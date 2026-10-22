@@ -245,14 +245,14 @@ class StructraCommand extends StructraElement {
       case 'export-csv': {
         if (!data) { Structra.toast('No data to export'); return; }
         Structra.engine.exportData('csv').then(csv => {
-          Structra.util.download(csv, 'export.csv', 'text/csv');
+          Structra.util.download(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         }).catch(() => {
           // JS fallback for non-array data
           const rows = Array.isArray(data) ? data : [data];
           const keys = [...new Set(rows.flatMap(r => Object.keys(r)))];
           const csv = [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
-          Structra.util.download(csv, 'export.csv', 'text/csv');
+          Structra.util.download(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         });
         break;
@@ -260,7 +260,7 @@ class StructraCommand extends StructraElement {
       case 'export-yaml': {
         if (!data) { Structra.toast('No data'); return; }
         Structra.convert.jsonToYaml(data).then(yaml => {
-          Structra.util.download(yaml, 'export.yaml', 'text/yaml');
+          Structra.util.download(yaml, this._baseName() + '.yaml', 'text/yaml');
           Structra.toast('YAML downloaded');
         }).catch(e => Structra.toast('YAML conversion failed: ' + e.message));
         break;
@@ -269,7 +269,7 @@ class StructraCommand extends StructraElement {
         if (!data) { Structra.toast('No data'); return; }
         try {
           const xml = Structra.convert.jsonToXml(data);
-          Structra.util.download(xml, 'export.xml', 'text/xml');
+          Structra.util.download(xml, this._baseName() + '.xml', 'text/xml');
           Structra.toast('XML downloaded');
         } catch (e) { Structra.toast('XML conversion failed: ' + e.message); }
         break;

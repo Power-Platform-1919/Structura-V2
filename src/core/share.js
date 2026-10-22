@@ -64,11 +64,55 @@ Structra.share = (() => {
 })();
 
 Structra.capture = (() => {
+  // html2canvas reads colours itself and does not know the colour functions the themes use
+  // (color-mix and color()). Before it draws, every colour in the copy of the page is written as plain rgb().
+  const COLOR_PROPS = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
+    'outlineColor', 'textDecorationColor', 'caretColor', 'columnRuleColor', 'fill', 'stroke', 'boxShadow', 'backgroundImage', 'textShadow'];
+  const MODERN = /(color-mix|color|oklch|oklab|lch|lab|hwb)\((?:[^()]|\([^()]*\))*\)/g;
+
+  function colorResolver() {
+    const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    ctx.canvas.width = ctx.canvas.height = 1;
+    const cache = new Map();
+    return (css) => {
+      if (cache.has(css)) return cache.get(css);
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = '#000';
+      ctx.fillStyle = css;                       // the browser parses any colour it supports
+      ctx.fillRect(0, 0, 1, 1);
+      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+      const out = a === 255 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${+(a / 255).toFixed(3)})`;
+      cache.set(css, out);
+      return out;
+    };
+  }
+
+  function flattenColors(clonedDoc) {
+    const win = clonedDoc.defaultView;
+    const toRgb = colorResolver();
+    for (const el of clonedDoc.querySelectorAll('*')) {
+      const cs = win.getComputedStyle(el);
+      for (const prop of COLOR_PROPS) {
+        const value = cs[prop];
+        if (value && MODERN.test(value)) {
+          MODERN.lastIndex = 0;
+          el.style[prop] = value.replace(MODERN, (m) => toRgb(m));
+        }
+        MODERN.lastIndex = 0;
+      }
+    }
+  }
+
   async function png(element, fileName) {
     if (!element) throw new Error('Nothing to capture');
     await Structra.libs.require('html2canvas');
     const bg = getComputedStyle(document.body).backgroundColor;
-    const canvas = await window.html2canvas(element, { backgroundColor: bg, scale: Math.min(2, window.devicePixelRatio || 1) });
+    const canvas = await window.html2canvas(element, {
+      backgroundColor: MODERN.test(bg) ? colorResolver()(bg) : bg,
+      scale: Math.min(2, window.devicePixelRatio || 1),
+      onclone: (doc) => flattenColors(doc),
+    });
+    MODERN.lastIndex = 0;
     await new Promise((resolve, reject) => canvas.toBlob((blob) => {
       if (!blob) { reject(new Error('Could not create the image')); return; }
       Structra.util.download(blob, fileName || 'structra.png');

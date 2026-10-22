@@ -24,20 +24,35 @@ Structra.convert = (() => {
 
   // --- XML ---
   function jsonToXml(json, rootName = 'root') {
+    // A JSON key is not always a legal XML name: no spaces or symbols, and it may not start with a digit
+    const tagOf = (key) => {
+      let t = String(key).replace(/[^A-Za-z0-9_.-]/g, '_');
+      if (!/^[A-Za-z_]/.test(t)) t = '_' + t;
+      return t;
+    };
+    // Characters XML cannot hold at all (control characters) are dropped
+    const escXml = (s) => s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+    let usesNil = false;
+    const nil = (tag) => { usesNil = true; return `<${tag} xsi:nil="true"/>`; };
+
     function convert(obj, indent = '') {
-      if (obj === null) return `${indent}<null/>`;
+      if (obj === null) return `${indent}${nil('null')}`;
       if (typeof obj !== 'object') return `${indent}${escXml(String(obj))}`;
 
       let xml = '';
       if (Array.isArray(obj)) {
         for (const item of obj) {
-          xml += `${indent}<item>\n${convert(item, indent + '  ')}\n${indent}</item>\n`;
+          xml += item === null
+            ? `${indent}${nil('item')}\n`
+            : `${indent}<item>\n${convert(item, indent + '  ')}\n${indent}</item>\n`;
         }
       } else {
         for (const [key, val] of Object.entries(obj)) {
-          const tag = key.replace(/[^a-zA-Z0-9_-]/g, '_');
+          const tag = tagOf(key);
           if (val === null) {
-            xml += `${indent}<${tag} xsi:nil="true"/>\n`;
+            xml += `${indent}${nil(tag)}\n`;
           } else if (typeof val === 'object') {
             xml += `${indent}<${tag}>\n${convert(val, indent + '  ')}\n${indent}</${tag}>\n`;
           } else {
@@ -48,12 +63,11 @@ Structra.convert = (() => {
       return xml.replace(/\n$/, '');
     }
 
-    function escXml(s) {
-      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
-    }
-
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<${rootName}>\n${convert(json, '  ')}\n</${rootName}>`;
+    const root = tagOf(rootName);
+    const body = convert(json, '  ');
+    // xsi:nil needs its namespace declared, or no XML parser will read the file
+    const ns = usesNil ? ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' : '';
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<${root}${ns}>\n${body}\n</${root}>`;
   }
 
   // --- CSV ---
