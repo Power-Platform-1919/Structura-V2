@@ -8,6 +8,7 @@ class StructraDrawer extends StructraElement {
 
   init() {
     this._stateIdx = 0; // 0=collapsed, 1=medium, 2=expanded
+    this.on('drawer:show', (id) => this._switchTab(id));
     this.on('state:drawerState', (d) => {
       Structra.log.debug('Drawer', 'drawerState → ' + d.value);
       this._stateIdx = Structra.constants.DRAWER_STATES.indexOf(d.value);

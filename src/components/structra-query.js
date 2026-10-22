@@ -8,6 +8,7 @@ class StructraQuery extends StructraElement {
 
   init() {
     this._mode = 'path';
+    this.on('query:show-tab', (tab) => this._switchTab(tab));
     this.on('state:queryPanelOpen', (d) => {
       Structra.log.info('Query', 'queryPanel ' + (d.value ? 'opened' : 'closed'));
       this.classList.toggle('show', d.value);

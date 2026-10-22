@@ -1952,3 +1952,8 @@ structra-schemagen {
 .expr-block { margin: var(--sp-3); padding: var(--sp-3); background: var(--surface-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius); }
 .expr-block-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
 .expr-block pre { margin: var(--sp-2) 0 0; max-height: 14rem; overflow: auto; font-family: var(--font-mono); font-size: var(--fs-xs); white-space: pre; color: var(--text); }
+
+/* ===== EMPTY STATE: tip under the drop area ===== */
+.io-drop-tip { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); color: var(--text-muted); }
+.io-link { padding: 0; border: none; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+.io-link:hover { color: var(--text); }

@@ -332,8 +332,8 @@
         },
         {
           "id": "10.2",
-          "title": "Guided first run: paste-first empty state, one-click sample, short next-step hint after load, no raw path text in the status bar",
-          "status": "todo"
+          "title": "Guided first run: welcome dialog, paste anywhere with Ctrl+V on an empty tab, a 'try a sample' link under the drop area, and a one-time tip after the first document about the Power Platform expressions",
+          "status": "done"
         },
         {
           "id": "10.2a",
@@ -342,8 +342,8 @@
         },
         {
           "id": "10.3",
-          "title": "Power Platform add-on stays prominent (rail icon and drawer tabs); the Overview now flags connector or API-shaped payloads and jumps to the Expressions tab",
-          "status": "in_progress"
+          "title": "Power Platform add-on prominent: the rail's Power Platform button opens the Expressions tab (it did nothing before), the Overview flags connector-shaped payloads, the Transform and Settings rail buttons now work too, and the rail highlight follows what is open",
+          "status": "done"
         },
         {
           "id": "10.4",

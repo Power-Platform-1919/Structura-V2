@@ -8,6 +8,17 @@
 class StructraInputPanel extends StructraElement {
   init() {
     this._activeTab = 'file';
+    // Ctrl+V anywhere on an empty tab loads what was copied, as long as it looks like data and the focus is not in a field
+    if (!Structra._pasteBound) document.addEventListener('paste', (e) => {
+      if (Structra.state.jsonData || !this.isConnected) return;
+      const target = e.target;
+      if (target && target.closest && target.closest('input, textarea, select, [contenteditable]')) return;
+      const text = e.clipboardData && e.clipboardData.getData('text');
+      if (!text || !/^\s*[\[{<\w"-]/.test(text)) return;
+      e.preventDefault();
+      this.loadText(text, 'pasted');
+    });
+    Structra._pasteBound = true;
     this.on('input:show-tab', (tab) => { const btn = this.$(`.io-tab[data-tab="${tab}"]`); if (btn) btn.click(); });
   }
 
@@ -44,6 +55,7 @@ class StructraInputPanel extends StructraElement {
           </div>
           <p><strong>Drop file here</strong> or click to browse</p>
           <p class="io-drop-formats">JSON • CSV • XML • YAML • TOML</p>
+          <p class="io-drop-tip">Press Ctrl+V anywhere to paste, or <button class="io-link" type="button" data-role="sample-link">try a sample</button></p>
           <input type="file" data-role="file-input" accept=".json,.txt,.csv,.tsv,.xml,.yaml,.yml,.toml" style="display:none">
         </div>
       </div>
@@ -158,6 +170,8 @@ class StructraInputPanel extends StructraElement {
     // Sample
     const sampleBtn = this.$('[data-action="sample"]');
     if (sampleBtn) sampleBtn.addEventListener('click', () => this._loadSample());
+    const sampleLink = this.$('[data-role="sample-link"]');
+    if (sampleLink) sampleLink.addEventListener('click', (e) => { e.stopPropagation(); this._loadSample(); });
 
     // URL / API
     this.$('[data-role="api-url"]').addEventListener('keydown', (e) => { if (e.key === 'Enter') this._apiSend(); });
@@ -240,6 +254,7 @@ class StructraInputPanel extends StructraElement {
     Structra.set('currentPath', '$');
     // A new document opens on its overview, unless it is so big that computing it would make the first view wait (measured: 88 MB is ready in under 2 s)
     if (byteSize <= 120 * 1048576) Structra.set('activeView', 'overview');
+    this._tipOnce();
 
     // Duplicate keys are invisible after parsing (JSON.parse keeps the last one), so scan the text
     // This runs in the background and yields to the page, so it never delays the first paint.
@@ -323,6 +338,16 @@ class StructraInputPanel extends StructraElement {
   }
 
   /** Open text from somewhere other than the file picker (used by session restore) */
+  /** Said once, after the first document: where the Power Platform tools are */
+  _tipOnce() {
+    const KEY = 'structra.tipExpressions';
+    try {
+      if (localStorage.getItem(KEY)) return;
+      localStorage.setItem(KEY, '1');
+    } catch { return; }
+    setTimeout(() => Structra.toast('Tip: select any value in the Tree to get its Power Automate or Power Fx expression'), 1500);
+  }
+
   async loadText(text, name) {
     const ext = (name || '').split('.').pop().toLowerCase();
     await this._parseByFormat(text, this._detectFormat(text, ext), name || 'Restored');

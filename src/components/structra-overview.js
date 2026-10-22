@@ -148,11 +148,7 @@ class StructraOverview extends StructraElement {
     } else if (go.view) {
       Structra.set('activeView', go.view);
     }
-    if (go.drawer) {
-      if (Structra.state.drawerState === 'collapsed') Structra.set('drawerState', 'medium');
-      const drawer = document.querySelector('structra-drawer');
-      if (drawer && drawer._switchTab) drawer._switchTab(go.drawer);
-    }
+    if (go.drawer) Structra.events.emit('drawer:show', go.drawer);
   }
 
   /* ====================================================
