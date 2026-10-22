@@ -972,22 +972,22 @@
         {
           "id": "13.94",
           "title": "Query panel Path and Jsonpath modes return 'No matches' for valid queries on the loaded data (value[*].Requester.Email and $.value[*].Requester.Email), with no error or hint; only Js mode works. The Path placeholder mixes four syntaxes",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.95",
           "title": "Query results show 'result[0]' with a cut-off one-line JSON string; they should show the real path (value[1]) and a short readable preview, with click to jump in the tree and a Copy all / Show in Table action",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.96",
           "title": "Query panel: Path, Jsonpath, Regex and Js share one box with a changing syntax and a placeholder that does not change per mode; no example per mode and no explanation of the leading '='",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.97",
           "title": "Query panel Run with an empty box does nothing and shows no message; Enter does not run, and there is no Ctrl+Enter hint",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.98",

@@ -6,6 +6,16 @@
 class StructraQuery extends StructraElement {
   static get observedAttributes() { return ['mode']; }
 
+  /** What each mode is for, with an example that works on most documents */
+  static get MODE_HELP() {
+    return {
+      path: { example: 'value[*].Title', hint: 'A path through the data. [*] means every item, so value[*].Title lists every Title.' },
+      jsonpath: { example: '$.value[?(@.Cost > 100)].Title', hint: 'JSONPath: $ is the document, [?(...)] keeps items that pass a test, $..name finds name at any depth.' },
+      regex: { example: '^[A-Z][a-z]+$', hint: 'Finds text values that match a pattern (not case sensitive).' },
+      js: { example: 'data.value.filter(x => x.Approved)', hint: 'JavaScript where data is the whole document. It runs only in this browser.' },
+    };
+  }
+
   init() {
     this._mode = 'path';
     this.on('query:show-tab', (tab) => this._switchTab(tab));
@@ -33,7 +43,8 @@ class StructraQuery extends StructraElement {
         <div class="seg qp-modes">
           ${modes.map(m => `<button class="seg-btn ${m === this._mode ? 'active' : ''}" type="button" data-mode="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</button>`).join('')}
         </div>
-        <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder="*.email\nor $..name\nor /^[A-Z]/\nor =data.filter(x => x.active)"></textarea>
+        <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder=""></textarea>
+        <div class="qp-hint" id="queryHint"></div>
         <button class="btn btn-primary qp-run" type="button" data-action="run">Run query</button>
       </div>
       <div class="qp-tab-body" id="qpTransformBody" hidden>
@@ -45,6 +56,7 @@ class StructraQuery extends StructraElement {
         <div class="qp-summary">Type a query and press Run</div>
       </div>`;
 
+    this._showModeHelp();
     this._renderTransformPresets();
     // The presets name the open file's fields, so they follow the open document
     this.on('state:jsonData', () => this._renderTransformPresets());
@@ -56,6 +68,8 @@ class StructraQuery extends StructraElement {
         this._switchTab(tab.dataset.qtab);
         return;
       }
+      const hit = e.target.closest('.qp-result[data-path]');
+      if (hit) { this._showMatch(hit.dataset.path); return; }
       const preset = e.target.closest('[data-preset]');
       if (preset) {
         this.$('#transformInput').value = preset.dataset.preset;
@@ -65,19 +79,22 @@ class StructraQuery extends StructraElement {
       if (mode) {
         this._mode = mode.dataset.mode;
         this.$$('.seg-btn').forEach(m => m.classList.toggle('active', m.dataset.mode === this._mode));
+        this._showModeHelp();
         return;
       }
       const action = e.target.closest('[data-action]');
       if (!action) return;
       if (action.dataset.action === 'close') Structra.set('queryPanelOpen', false);
       else if (action.dataset.action === 'run') this._runQuery();
+      else if (action.dataset.action === 'copyMatches') this._copyMatches();
+      else if (action.dataset.action === 'openMatches') this._openMatches();
       else if (action.dataset.action === 'runTransform') this._runTransform();
       else if (action.dataset.action === 'openTransform') this._openTransform();
       else if (action.dataset.action === 'copyTransform') Structra.util.copy(JSON.stringify(this._lastTransform, null, 2), 'Result copied');
     });
 
     this.$('#queryInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      if (e.key === 'Enter' && !e.shiftKey) {            // Enter runs, Shift+Enter starts a new line
         e.preventDefault();
         this._runQuery();
       }
@@ -193,98 +210,88 @@ class StructraQuery extends StructraElement {
     }
   }
 
+  _showModeHelp() {
+    const help = StructraQuery.MODE_HELP[this._mode] || StructraQuery.MODE_HELP.path;
+    const input = this.$('#queryInput');
+    if (input) input.placeholder = 'Example: ' + help.example;
+    const hint = this.$('#queryHint');
+    if (hint) hint.textContent = help.hint;
+  }
+
   _runQuery() {
     const input = this.$('#queryInput').value.trim();
     const results = this.$('#queryResults');
-    if (!input) { results.innerHTML = '<div class="qp-summary">Type a query and press Run</div>'; return; }
+    const help = StructraQuery.MODE_HELP[this._mode];
+    if (!input) {
+      results.innerHTML = `<div class="qp-summary">Type a query first. Example: <code>${Structra.util.esc(help.example)}</code></div>`;
+      this.$('#queryInput').focus();
+      return;
+    }
 
-    const data = Structra.state.jsonData;
-    if (!data) { results.innerHTML = '<div class="qp-summary">No JSON loaded</div>'; return; }
+    const ds = Structra.engine.getActive();
+    const data = ds ? ds.raw : Structra.state.jsonData;
+    if (!data) { results.innerHTML = '<div class="qp-summary">Open a file first</div>'; return; }
 
     try {
       let matches = [];
-      if (this._mode === 'path') matches = this._queryPath(data, input);
-      else if (this._mode === 'jsonpath') matches = this._queryJsonPath(data, input);
+      if (this._mode === 'path' || this._mode === 'jsonpath') matches = Structra.jsonpath.query(data, input);
       else if (this._mode === 'regex') matches = this._queryRegex(data, input);
       else if (this._mode === 'js') matches = this._queryJs(data, input);
+      this._lastMatches = matches;
 
       if (matches.length === 0) {
-        results.innerHTML = '<div class="qp-summary">No matches</div>';
-      } else {
-        results.innerHTML = `<div class="qp-summary">${matches.length} match${matches.length > 1 ? 'es' : ''}</div>` +
-          matches.slice(0, 100).map(m =>
-            `<div class="qp-result" data-path="${Structra.util.esc(m.path)}">
-              <span class="qp-result-path">${Structra.util.esc(m.path)}</span>
-              <span class="qp-result-value">${Structra.util.esc(this._preview(m.value))}</span>
-            </div>`
-          ).join('');
-
-        results.querySelectorAll('.qp-result[data-path]').forEach(el => {
-          el.addEventListener('click', () => {
-            Structra.set('currentPath', el.dataset.path);
-            Structra.events.emit('tree:node-selected', el.dataset.path);
-          });
-        });
+        results.innerHTML = `<div class="qp-summary">No matches. Nothing in this file fits <code>${Structra.util.esc(input)}</code>.</div>`;
+        return;
       }
-
-      Structra.toast(`${matches.length} match${matches.length === 1 ? '' : 'es'}`);
+      const shown = matches.slice(0, 100);
+      results.innerHTML = `<div class="qp-summary">${matches.length.toLocaleString()} ${matches.length === 1 ? 'match' : 'matches'}${matches.length > shown.length ? ` (first ${shown.length} shown)` : ''}</div>
+        <div class="qp-actions">
+          <button class="btn btn-sm" type="button" data-action="copyMatches">Copy values</button>
+          <button class="btn btn-sm" type="button" data-action="openMatches">Open in a new tab</button>
+        </div>` +
+        shown.map((m, i) =>
+          `<div class="qp-result" data-i="${i}" data-path="${Structra.util.esc(m.path)}" title="Show in the Tree">
+            <span class="qp-result-path">${Structra.util.esc(m.path)}</span>
+            <span class="qp-result-value">${Structra.util.esc(this._preview(m.value))}</span>
+          </div>`
+        ).join('');
     } catch (err) {
-      results.innerHTML = `<div class="qp-summary is-error">Error: ${Structra.util.esc(err.message)}</div>`;
+      results.innerHTML = `<div class="qp-summary is-error">${Structra.util.esc(err.message)}</div>`;
     }
   }
 
-  _queryPath(data, pattern) {
-    const matches = [];
-    const parts = pattern.replace(/^\$\.?/, '').split('.');
-    const walk = (val, path, depth) => {
-      if (depth >= parts.length) { matches.push({ path, value: val }); return; }
-      const part = parts[depth];
-      if (val && typeof val === 'object') {
-        if (part === '*') {
-          const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
-          entries.forEach(([k, v]) => {
-            const p = Array.isArray(val) ? `${path}[${k}]` : `${path}.${k}`;
-            walk(v, p, depth + 1);
-          });
-        } else if (Array.isArray(val)) {
-          const idx = parseInt(part, 10);
-          if (!isNaN(idx) && idx < val.length) walk(val[idx], `${path}[${idx}]`, depth + 1);
-        } else if (part in val) {
-          walk(val[part], `${path}.${part}`, depth + 1);
-        }
-      }
-    };
-    walk(data, '$', 0);
-    return matches;
+  /** A result was clicked: show it in the Tree, where it can be read in context and its expressions are one click away */
+  _showMatch(path) {
+    if (!path || !path.startsWith('$')) return;
+    Structra.set('activeView', 'tree');
+    Structra.set('currentPath', path);
+    setTimeout(() => Structra.events.emit('tree:navigate-path', path), 60);
   }
 
-  _queryJsonPath(data, expr) {
-    // Simple $.. recursive descent
-    const matches = [];
-    const key = expr.replace(/^\$\.\./, '');
-    const walk = (val, path) => {
-      if (val && typeof val === 'object') {
-        const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
-        entries.forEach(([k, v]) => {
-          const p = Array.isArray(val) ? `${path}[${k}]` : `${path}.${k}`;
-          if (String(k) === key) matches.push({ path: p, value: v });
-          walk(v, p);
-        });
-      }
-    };
-    walk(data, '$');
-    return matches;
+  _copyMatches() {
+    const values = (this._lastMatches || []).map((m) => m.value);
+    Structra.util.copy(JSON.stringify(values, null, 2), `${values.length} ${values.length === 1 ? 'value' : 'values'} copied`);
+  }
+
+  _openMatches() {
+    const cmd = document.querySelector('structra-command');
+    const values = (this._lastMatches || []).map((m) => m.value);
+    if (!cmd || !values.length) return;
+    const name = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '') + ' (query)';
+    cmd._openInNewTab(values, name).then((opened) => { if (opened) Structra.toast('Matches opened in a new tab'); });
   }
 
   _queryRegex(data, pattern) {
     const matches = [];
-    const re = new RegExp(pattern.replace(/^\/|\/$/g, ''));
+    let re;
+    try { re = new RegExp(pattern.replace(/^\/|\/[a-z]*$/g, ''), 'i'); }
+    catch (err) { throw new Error('That is not a valid pattern: ' + err.message.replace(/^Invalid regular expression: /, '')); }
     const walk = (val, path) => {
       if (typeof val === 'string' && re.test(val)) matches.push({ path, value: val });
       if (val && typeof val === 'object') {
         const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
         entries.forEach(([k, v]) => {
-          const p = Array.isArray(val) ? `${path}[${k}]` : `${path}.${k}`;
+          const p = Array.isArray(val) ? `${path}[${k}]` : (/^[A-Za-z_$][\w$]*$/.test(k) ? `${path}.${k}` : `${path}['${k}']`);
           walk(v, p);
         });
       }
@@ -296,16 +303,33 @@ class StructraQuery extends StructraElement {
   _queryJs(data, expr) {
     // Strip leading = if present
     const code = expr.replace(/^=/, '');
-    const fn = new Function('data', `return ${code};`);
-    const result = fn(data);
-    if (Array.isArray(result)) return result.map((v, i) => ({ path: `result[${i}]`, value: v }));
-    return [{ path: '$', value: result }];
+    let result;
+    try { result = new Function('data', `return ${code};`)(data); }
+    catch (err) { throw new Error('The JavaScript did not run: ' + err.message); }
+
+    // Items that are objects inside the document are given their real path ($.value[1]), the rest are numbered
+    let where = null;
+    const locate = (obj) => {
+      if (!where) {
+        where = new Map();
+        const walk = (val, path, budget) => {
+          if (budget.left-- <= 0 || !val || typeof val !== 'object') return;
+          if (!where.has(val)) where.set(val, path);
+          const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
+          for (const [k, v] of entries) walk(v, Array.isArray(val) ? `${path}[${k}]` : (/^[A-Za-z_$][\w$]*$/.test(k) ? `${path}.${k}` : `${path}['${k}']`), budget);
+        };
+        walk(data, '$', { left: 200000 });
+      }
+      return where.get(obj);
+    };
+    if (Array.isArray(result)) return result.map((v, i) => ({ path: (v && typeof v === 'object' && locate(v)) || `result[${i}]`, value: v }));
+    return [{ path: (result && typeof result === 'object' && locate(result)) || 'result', value: result }];
   }
 
   _preview(val) {
     if (val === null) return 'null';
     if (typeof val === 'string') return val.length > 40 ? val.slice(0, 40) + '…' : val;
-    if (typeof val === 'object') return JSON.stringify(val).slice(0, 50);
+    if (typeof val === 'object') { const t = JSON.stringify(val); return t.length > 60 ? t.slice(0, 60) + '…' : t; }
     return String(val);
   }
 
