@@ -988,6 +988,21 @@
           "id": "13.97",
           "title": "Query panel Run with an empty box does nothing and shows no message; Enter does not run, and there is no Ctrl+Enter hint",
           "status": "todo"
+        },
+        {
+          "id": "13.98",
+          "title": "Reloading the page loses every open tab and all data (back to 'Untitled 1' empty); there is no session restore, no 'Restore last session' prompt, and no warning before leaving with unsaved work",
+          "status": "todo"
+        },
+        {
+          "id": "13.99",
+          "title": "Copy Share Link puts the whole JSON in the URL hash (913 chars for a tiny file); large files will give an unusable or truncated link, and there is no size warning or note that the data is in the link. Opening it names the tab 'Shared JSON' and drops the other open tabs",
+          "status": "todo"
+        },
+        {
+          "id": "13.100",
+          "title": "Share link: after opening it the hash is removed from the address bar, so refreshing loses the data; the shared tab also keeps no original file name",
+          "status": "todo"
         }
       ]
     }
