@@ -43,6 +43,9 @@ Structra.virtualList = (() => {
       rehydrate,
       sentinelHtml,
       onChunkLoaded,
+      root: scrollRoot = container,   // element that scrolls (observer root)
+      chunkTag = 'div',               // 'tbody' when the container is a <table>
+      sentinelTag = chunkTag,
     } = opts;
 
     let _total = totalItems;
@@ -54,7 +57,7 @@ Structra.virtualList = (() => {
     /* --- Sentinel Factory --- */
     function makeSentinel(start) {
       const remaining = _total - start;
-      const el = document.createElement('div');
+      const el = document.createElement(sentinelTag);
       el.className = 'vl-sentinel';
       el.dataset.vlStart = start;
       el.dataset.vlTotal = _total;
@@ -68,7 +71,7 @@ Structra.virtualList = (() => {
 
     /* --- Chunk Wrapper --- */
     function wrapChunk(content, start, end) {
-      const el = document.createElement('div');
+      const el = document.createElement(chunkTag);
       el.className = 'vl-chunk';
       el.dataset.vlStart = start;
       el.dataset.vlEnd = end;
@@ -89,8 +92,13 @@ Structra.virtualList = (() => {
       const h = chunk.offsetHeight;
       if (h === 0) return;
       chunk.dataset.vlRecycled = '1';
-      chunk.innerHTML = '';
-      chunk.style.height = h + 'px';
+      if (chunk.tagName === 'TBODY') {
+        // An empty row group collapses, so keep its height with a spacer row
+        chunk.innerHTML = `<tr class="vl-spacer" style="height:${h}px"><td></td></tr>`;
+      } else {
+        chunk.innerHTML = '';
+        chunk.style.height = h + 'px';
+      }
     }
 
     function rehydrateChunk(chunk) {
@@ -158,7 +166,7 @@ Structra.virtualList = (() => {
             loadNextChunk(entry.target);
           }
         }
-      }, { root: container, rootMargin: '400px' });
+      }, { root: scrollRoot, rootMargin: '400px' });
 
       // Recycle/rehydrate observer
       _recycleObserver = new IntersectionObserver((entries) => {
@@ -170,7 +178,7 @@ Structra.virtualList = (() => {
             if (chunk.dataset.vlRecycled) rehydrateChunk(chunk);
           }
         }
-      }, { root: container, rootMargin: `${offscreenPx}px` });
+      }, { root: scrollRoot, rootMargin: `${offscreenPx}px` });
 
       // Observe existing sentinels and chunks
       container.querySelectorAll('.vl-sentinel').forEach(s => _loadObserver.observe(s));
@@ -240,7 +248,8 @@ Structra.virtualList = (() => {
       destroy();
       _total = newTotal;
       _chunkId = 0;
-      container.innerHTML = '';
+      // Only remove what this list created (the container may also hold a table header)
+      container.querySelectorAll(':scope > .vl-chunk, :scope > .vl-sentinel').forEach((el) => el.remove());
       init();
     }
 

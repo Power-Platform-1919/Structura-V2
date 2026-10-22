@@ -94,6 +94,12 @@
     });
   }
 
+  // Drag handles on the side panels (width is remembered)
+  Structra.resizer.attach(document.getElementById('queryPanel'),
+    { name: 'query', edge: 'right', cssVar: '--query-panel-w', min: 200, max: 560 });
+  Structra.resizer.attach(document.getElementById('contextPanel'),
+    { name: 'context', edge: 'left', cssVar: '--context-panel-w', min: 220, max: 560 });
+
   // Panel toggling is handled by the components themselves via state events
 
   // Global keyboard shortcuts

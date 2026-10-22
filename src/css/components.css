@@ -1010,8 +1010,7 @@ kbd {
   overflow: auto;
 }
 /* Virtual scroll chunk containers inside tbody */
-.data-table .vl-chunk { display: contents; }
-.data-table .vl-sentinel { display: table-row; }
+.vl-spacer td { padding: 0; border: none; }
 .vl-sentinel-row td { font-style: italic; }
 
 .data-table {
@@ -3447,3 +3446,100 @@ structra-schemagen {
 }
 .val-path:hover { text-decoration: underline; }
 .val-msg { color: var(--text-sec); }
+
+/* ===== TABLE: expand-column key picker ===== */
+.col-pick {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(22rem, 90vw);
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.col-pick-title { font-size: var(--fs-sm); font-weight: 600; }
+.col-pick-list { display: flex; flex-direction: column; gap: 2px; max-height: 16rem; overflow: auto; }
+.col-pick-item { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); font-family: var(--font-mono); }
+.col-pick-note { font-size: var(--fs-xs); color: var(--text-muted); }
+.col-pick-actions { display: flex; gap: var(--sp-2); justify-content: flex-end; }
+
+/* ===== PATH AUTOCOMPLETE ===== */
+.ac-item { display: flex; justify-content: space-between; gap: var(--sp-3); }
+.ac-type { color: var(--text-muted); font-family: var(--font-sans); }
+
+/* ===== PANEL RESIZER ===== */
+.app-query-panel,
+.app-context-panel { position: relative; }
+.panel-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--sp-1);
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none;
+}
+.panel-resizer-right { right: 0; }
+.panel-resizer-left { left: 0; }
+.panel-resizer:hover,
+.panel-resizer:focus-visible,
+.panel-resizer.dragging { background: var(--accent-muted); outline: none; }
+
+/* ===== CHARTS ===== */
+.ch-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-bg);
+}
+.ch-overlay.show { display: flex; }
+.ch-box {
+  display: flex;
+  flex-direction: column;
+  width: min(46rem, 94vw);
+  max-height: 88vh;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.ch-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+.ch-title { font-size: var(--fs-md); font-weight: 600; margin-right: auto; }
+.ch-field { display: flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-xs); color: var(--text-sec); }
+.ch-field select { max-width: 14rem; font-size: var(--fs-sm); }
+.ch-close { border: none; background: transparent; color: var(--text-muted); font-size: var(--fs-xl); cursor: pointer; }
+.ch-close:hover { color: var(--text); }
+.ch-body { padding: var(--sp-4); overflow: auto; }
+.ch-stats { display: flex; flex-wrap: wrap; gap: var(--sp-4); margin-bottom: var(--sp-3); }
+.ch-stat { display: flex; flex-direction: column; min-width: 4.5rem; }
+.ch-stat-v { font-size: var(--fs-lg); font-weight: 600; }
+.ch-stat-l { font-size: var(--fs-xs); color: var(--text-muted); }
+.ch-sub { margin: var(--sp-3) 0 var(--sp-1); font-size: var(--fs-xs); font-weight: 600; color: var(--text-sec); }
+.ch-svg { width: 100%; height: auto; display: block; }
+.ch-bar { fill: var(--accent); }
+.ch-bar:hover { fill: var(--accent-hover); }
+.ch-line { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.ch-axisline { stroke: var(--border); }
+.ch-axis { fill: var(--text-muted); font-size: var(--fs-xs); font-family: var(--font-sans); }
+.ch-note { margin: var(--sp-1) 0 0; font-size: var(--fs-xs); color: var(--text-muted); }
+.ch-hbars { display: flex; flex-direction: column; gap: 3px; }
+.ch-hrow { display: grid; grid-template-columns: minmax(6rem, 14rem) 1fr 4rem; gap: var(--sp-2); align-items: center; font-size: var(--fs-sm); }
+.ch-hlabel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); }
+.ch-htrack { height: 0.8rem; background: var(--surface-alt); border-radius: var(--radius-sm); overflow: hidden; }
+.ch-hbar { display: block; height: 100%; background: var(--accent); }
+.ch-hcount { text-align: right; color: var(--text-sec); }

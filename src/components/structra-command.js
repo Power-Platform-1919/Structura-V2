@@ -40,6 +40,7 @@ class StructraCommand extends StructraElement {
       { id: 'repair',     label: 'Repair JSON (in Editor)',        kbd: '',             cat: 'Tools',    icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>' },
       { id: 'format-json', label: 'Format JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/>' },
       { id: 'minify-json', label: 'Minify JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="12" x2="20" y2="12"/>' },
+      { id: 'charts',     label: 'Charts for a Column',              kbd: '',             cat: 'Analysis', icon: '<rect x="4" y="14" width="4" height="6"/><rect x="10" y="8" width="4" height="12"/><rect x="16" y="4" width="4" height="16"/>' },
       { id: 'find',       label: 'Find in JSON',                   kbd: 'Ctrl+F',       cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
       { id: 'filter',     label: 'Filter Data',                   kbd: 'Ctrl+Shift+F', cat: 'Search',   icon: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>' },
       { id: 'fuzzy',      label: 'Fuzzy Search (DuckDB)',          kbd: '',             cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
@@ -291,6 +292,9 @@ class StructraCommand extends StructraElement {
       /* ---- Analysis ---- */
       case 'validate':
         Structra.events.emit('validate:open');
+        break;
+      case 'charts':
+        Structra.events.emit('charts:open');
         break;
       case 'share-url': {
         if (!data) { Structra.toast('No data to share'); return; }

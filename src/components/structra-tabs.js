@@ -34,7 +34,7 @@ class StructraTabs extends StructraElement {
 
     this.innerHTML = `
       <div class="doc-tab-scroll">${tabsHtml}</div>
-      <button class="doc-tab-add" title="New tab (Ctrl+T)">+</button>`;
+      <button class="doc-tab-add" title="New tab (Alt+N)">+</button>`;
 
     // Event delegation
     this.addEventListener('click', this._handleClick);

@@ -65,7 +65,7 @@
     {
       "id": "3",
       "title": "Path navigation",
-      "status": "in_progress",
+      "status": "done",
       "subtasks": [
         {
           "id": "3.1",
@@ -85,10 +85,10 @@
         {
           "id": "3.4",
           "title": "Path autocomplete in header path input (component exists, wire it)",
-          "status": "todo"
+          "status": "done"
         }
       ],
-      "note": "Back/forward (buttons and Alt+Left/Right), breadcrumb and bookmarks (Ctrl+B, context panel list, persisted) verified in the browser. Path autocomplete still to do."
+      "note": "Path autocomplete rewritten: completes against the open document (keys and array indexes), Tab or Enter accepts."
     },
     {
       "id": "4",
@@ -172,29 +172,30 @@
     {
       "id": "7",
       "title": "Table and analysis gaps",
-      "status": "todo",
+      "status": "done",
       "subtasks": [
         {
           "id": "7.1",
           "title": "Table: expand nested object column into new columns",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "7.2",
           "title": "Table: verify hide/reorder columns and value/condition filters match V1",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "7.3",
           "title": "Data charts (sparklines, bar charts for numeric arrays)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "7.4",
           "title": "Panel resizer for query and context panels",
-          "status": "todo"
+          "status": "done"
         }
-      ]
+      ],
+      "note": "Table: non-destructive Expand with a key picker, hide with a chip to unhide, move left/right, row paths now follow sort and filter. Fixed the virtual-scroll table (rows rendered as plain text above 200 rows) by giving the virtual list a scroll root and tbody chunks. Charts overlay (histogram, trend, top values). Resize handles on the query and context panels."
     },
     {
       "id": "8",
@@ -204,7 +205,7 @@
         {
           "id": "8.1",
           "title": "Resolve shortcut collisions (Ctrl+T, Ctrl+W are browser-reserved)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "8.2",
@@ -227,7 +228,7 @@
           "status": "todo"
         }
       ],
-      "note": "Removed src/ui and the unused V1 utils; no window.App code remains. Structra.libs replaces the old loader; Structra.paths replaces Structra.path."
+      "note": "Ctrl+T and Ctrl+W replaced by Alt+N and Alt+W; the shortcuts overlay is now generated from Structra.constants.SHORTCUTS."
     }
   ],
   "principles": [

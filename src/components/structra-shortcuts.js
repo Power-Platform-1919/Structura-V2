@@ -78,34 +78,38 @@ class StructraShortcuts extends StructraElement {
       'General': []
     };
 
-    const mapping = {
-      'ctrl+f': { cat: 'Panels', desc: 'Find' },
-      'ctrl+shift+f': { cat: 'Panels', desc: 'Filter panel' },
-      'ctrl+shift+p': { cat: 'Tools', desc: 'Mask PII data' },
-      'ctrl+p': { cat: 'Panels', desc: 'Command palette' },
-      'ctrl+g': { cat: 'Panels', desc: 'Graph view' },
-      'ctrl+e': { cat: 'Panels', desc: 'Editor' },
-      'ctrl+q': { cat: 'Panels', desc: 'Query panel' },
-      'ctrl+1': { cat: 'Views', desc: 'Tree view' },
-      'ctrl+2': { cat: 'Views', desc: 'Table view' },
-      'ctrl+3': { cat: 'Views', desc: 'Graph view' },
-      'ctrl+4': { cat: 'Views', desc: 'Schema view' },
-      'ctrl+5': { cat: 'Views', desc: 'Stats view' },
-      'ctrl+6': { cat: 'Views', desc: 'Editor view' },
-      'ctrl+shift+s': { cat: 'Tools', desc: 'Sort keys' },
-      'ctrl+shift+e': { cat: 'Tools', desc: 'Export CSV' },
-      'ctrl+d': { cat: 'Tools', desc: 'Compare / diff' },
-      'ctrl+z': { cat: 'General', desc: 'Undo' },
-      'ctrl+y': { cat: 'General', desc: 'Redo' },
-      'alt+t': { cat: 'General', desc: 'Toggle theme' },
-      'escape': { cat: 'General', desc: 'Close overlays' },
+    // Described by action, so the list always follows Structra.constants.SHORTCUTS
+    const describe = {
+      'command-palette': ['Panels', 'Command palette'],
+      'find': ['Panels', 'Find'],
+      'find-replace': ['Panels', 'Find and replace'],
+      'filter': ['Panels', 'Filter'],
+      'focus-path': ['Navigation', 'Focus the path bar'],
+      'bookmark': ['Navigation', 'Bookmark the selected path'],
+      'nav-back': ['Navigation', 'Back'],
+      'nav-forward': ['Navigation', 'Forward'],
+      'new-tab': ['Tabs', 'New tab'],
+      'close-tab': ['Tabs', 'Close tab'],
+      'view-tree': ['Views', 'Tree view'],
+      'view-table': ['Views', 'Table view'],
+      'view-graph': ['Views', 'Graph view'],
+      'view-schema': ['Views', 'Schema view'],
+      'view-stats': ['Views', 'Stats view'],
+      'view-editor': ['Views', 'Editor view'],
+      'sort': ['Tools', 'Sort keys A to Z'],
+      'export-csv': ['Tools', 'Export as CSV'],
+      'mask': ['Tools', 'Mask sensitive data'],
+      'compare': ['Tools', 'Compare two documents'],
+      'undo': ['General', 'Undo'],
+      'redo': ['General', 'Redo'],
+      'theme': ['General', 'Toggle theme'],
+      'close-overlay': ['General', 'Close overlays'],
     };
 
     for (const [key, action] of Object.entries(shortcuts)) {
-      const info = mapping[key] || { cat: 'General', desc: action };
-      const cat = info.cat;
+      const [cat, desc] = describe[action] || ['General', action];
       if (!categories[cat]) categories[cat] = [];
-      categories[cat].push({ key, desc: info.desc });
+      categories[cat].push({ key, desc });
     }
 
     // Remove empty categories
@@ -118,7 +122,7 @@ class StructraShortcuts extends StructraElement {
 
   _formatKey(key) {
     return key.split('+').map(part => {
-      const labels = { ctrl: 'Ctrl', shift: 'Shift', alt: 'Alt', escape: 'Esc' };
+      const labels = { ctrl: 'Ctrl', shift: 'Shift', alt: 'Alt', escape: 'Esc', arrowleft: '\u2190', arrowright: '\u2192' };
       return `<span class="sc-key-part">${labels[part] || part.toUpperCase()}</span>`;
     }).join('<span class="sc-key-sep">+</span>');
   }

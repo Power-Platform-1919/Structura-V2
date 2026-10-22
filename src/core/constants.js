@@ -28,8 +28,8 @@ Structra.constants = {
     'ctrl+h':       'find-replace',
     'ctrl+shift+f': 'filter',
     'ctrl+l':       'focus-path',
-    'ctrl+t':       'new-tab',
-    'ctrl+w':       'close-tab',
+    'alt+n':        'new-tab',      // Ctrl+T and Ctrl+W belong to the browser
+    'alt+w':        'close-tab',
     'ctrl+1':       'view-tree',
     'ctrl+2':       'view-table',
     'ctrl+3':       'view-graph',
