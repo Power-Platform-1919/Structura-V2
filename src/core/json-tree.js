@@ -763,8 +763,8 @@ Structra.jsonTree = (() => {
   async function setFilter(container, matchedPaths) {
     const st = getState(container);
     if (!st) return;
-    // Search returns a list of paths; the filter looks paths up, so it keeps them as a Set
-    st.filterMatchedPaths = matchedPaths instanceof Set ? matchedPaths : new Set(matchedPaths);
+    // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b". The filter looks paths up, so keep them as a Set in the tree's form.
+    st.filterMatchedPaths = new Set([...matchedPaths].map((p) => Structra.paths.strip(p)));
     st.filterPathRegex = null;
     if (st.loadObserver) st.loadObserver.disconnect();
     Structra.events.emit('loading:show', 'Applying filter…');

@@ -140,5 +140,50 @@ Structra.paths = (() => {
     return out;
   }
 
-  return { tokenize, resolve, setNested, strip, lastKey, powerAutomate, powerFx };
+  /**
+   * A value inside a list item is usually used while looping over the list, where the item is
+   * "the current item" and the position in the list does not matter.
+   * Returns null when the path is not inside a list item, otherwise
+   *   { listPath: 'value', restTokens: [...] }   for value[0].Requester.Email → value and Requester.Email
+   * (the last list on the way decides, so nested lists loop over the innermost one).
+   */
+  function splitAtItem(path) {
+    const tokens = tokenize(path);
+    for (let i = tokens.length - 1; i >= 0; i--) {
+      if (tokens[i].type === 'index' || tokens[i].type === 'wildcard') {
+        const listTokens = tokens.slice(0, i);
+        const listPath = listTokens.map((t, n) => (t.type === 'key' ? (n ? '.' : '') + t.value : `[${t.type === 'wildcard' ? '*' : t.value}]`)).join('');
+        return { listPath: listPath || '$', restTokens: tokens.slice(i + 1) };
+      }
+    }
+    return null;
+  }
+
+  const steps = (tokens) => tokens.map((t) => (t.type === 'key' ? `?['${t.value.replace(/'/g, "''")}']` : `?[${t.type === 'wildcard' ? 0 : t.value}]`)).join('');
+
+  /** Power Automate inside "Apply to each": items('Apply_to_each')?['Requester']?['Email'] */
+  function powerAutomateInLoop(path, loopName) {
+    const at = splitAtItem(path);
+    return at ? { listPath: at.listPath, expr: `items('${loopName || 'Apply_to_each'}')${steps(at.restTokens)}` } : null;
+  }
+
+  /** Power Automate inside Select, Filter array and Condition on a list: item()?['Requester']?['Email'] */
+  function powerAutomateInItem(path) {
+    const at = splitAtItem(path);
+    return at ? { listPath: at.listPath, expr: `item()${steps(at.restTokens)}` } : null;
+  }
+
+  /** Power Fx inside ForAll (ThisRecord) or a gallery (ThisItem) */
+  function powerFxInRecord(path, head = 'ThisRecord') {
+    const at = splitAtItem(path);
+    if (!at) return null;
+    let out = head;
+    for (const t of at.restTokens) {
+      if (t.type === 'key') out += SIMPLE_FX_KEY.test(t.value) ? `.${t.value}` : `.'${t.value.replace(/'/g, "''")}'`;
+      else out = `Index(${out}, ${t.type === 'wildcard' ? 1 : t.value + 1})`;
+    }
+    return { listPath: at.listPath, expr: out };
+  }
+
+  return { tokenize, resolve, setNested, strip, lastKey, powerAutomate, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
 })();

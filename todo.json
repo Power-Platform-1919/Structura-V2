@@ -497,6 +497,139 @@
           "status": "done"
         }
       ]
+    },
+    {
+      "id": "13",
+      "title": "End-user walkthrough: problems found by using the app as a low-code maker (real clicks, layout, spacing)",
+      "status": "todo",
+      "brief": "Found by using the app with a realistic SharePoint Get items response, through real clicks and screenshots. Each item is a gap to fix.",
+      "subtasks": [
+        {
+          "id": "13.1",
+          "title": "Expressions: clicking a value inside a list item gives a first-row path (body('X')?['value']?[0]?['Requester']?['Email']); a maker inside Apply to each needs items('Apply_to_each')?['Requester']?['Email'], item()?[...] for Select/Filter and ThisRecord.x for ForAll. Add these as the top rows (core path functions already written in paths.js)",
+          "status": "todo"
+        },
+        {
+          "id": "13.2",
+          "title": "Node panel (right) shows nothing about Power Platform after a click; the maker must find the Expressions tab. Add a 'Use in Power Platform' section with the key expressions and copy buttons",
+          "status": "todo"
+        },
+        {
+          "id": "13.3",
+          "title": "Expressions drawer is crushed: the sub-tabs plus the Source bar leave about 1.5 rows visible. Open the drawer larger when Expressions is chosen and collapse the Source bar to one summary line",
+          "status": "todo"
+        },
+        {
+          "id": "13.4",
+          "title": "Expressions: 'Access value' and 'String value' rows repeat the same expression",
+          "status": "todo"
+        },
+        {
+          "id": "13.5",
+          "title": "Expression rows have no visible copy button (copy is only a click on the text with a title hint)",
+          "status": "todo"
+        },
+        {
+          "id": "13.6",
+          "title": "Power Fx typed table drops nested objects (Choice, Person) and includes noise like @odata.etag; flatten the useful children (Status_Value, Requester_Email) and skip @-prefixed keys",
+          "status": "todo"
+        },
+        {
+          "id": "13.7",
+          "title": "No column picker: Select action, Power Fx typed table and the schema should be built from chosen columns",
+          "status": "todo"
+        },
+        {
+          "id": "13.8",
+          "title": "Tree prints a string that contains quotes without escaping (value \"3\" shows as \"\"3\"\")",
+          "status": "todo"
+        },
+        {
+          "id": "13.9",
+          "title": "Status bar shows developer jargon: a gear plus NORMAL (log mode) and 'SQL off'. Hide log mode from normal users and rename SQL to something a maker understands",
+          "status": "todo"
+        },
+        {
+          "id": "13.10",
+          "title": "Overview: the bottom Analyze drawer repeats the same figures and takes about 250 px in every view; keep the drawer collapsed unless a tab is chosen",
+          "status": "todo"
+        },
+        {
+          "id": "13.11",
+          "title": "Overview headline wraps leaving a single word ('each.'); widen its max width",
+          "status": "todo"
+        },
+        {
+          "id": "13.12",
+          "title": "Overview null findings give no advice; say what to do (Parse JSON schema allows null, use coalesce() in expressions)",
+          "status": "todo"
+        },
+        {
+          "id": "13.13",
+          "title": "Overview charts numeric and categorical distributions for IDs, ETags and timestamps (ItemInternalId shown as 1.0/1.3/1.7); skip id-like, etag-like and date-like fields",
+          "status": "todo"
+        },
+        {
+          "id": "13.14",
+          "title": "Key Coverage table: 'Coverage 100%' next to 'Empty 1' is misleading when half the values are null; label it 'Has the key' or show filled share",
+          "status": "todo"
+        },
+        {
+          "id": "13.15",
+          "title": "Table headers are forced to UPPERCASE (ITEMINTERNALID), but key names are case-sensitive in expressions; show them exactly as written",
+          "status": "todo"
+        },
+        {
+          "id": "13.16",
+          "title": "Table shows nested Choice and Person cells as {…}; show their useful value (Value, DisplayName, Email) and join list values",
+          "status": "todo"
+        },
+        {
+          "id": "13.17",
+          "title": "Schema view reads only the first record, so Department shows 'null' although the second record has a string; merge across rows and show nullable and optional",
+          "status": "todo"
+        },
+        {
+          "id": "13.18",
+          "title": "A pasted document is named 'pasted'; name it 'Pasted JSON' (or Pasted data)",
+          "status": "todo"
+        },
+        {
+          "id": "13.19",
+          "title": "Left rail has six unlabeled icons; add short text labels so a maker can tell Files, Query, Power, Overview, Transform and Settings apart",
+          "status": "todo"
+        },
+        {
+          "id": "13.20",
+          "title": "A stray screenshot saved under the repo root by the test run (walk-02-overview.png) must not be committed",
+          "status": "todo"
+        },
+        {
+          "id": "13.21",
+          "title": "Find: searching 'Open' reports '1 found' but the tree area goes completely blank (no matched line, no filtered tree). A search must show the match in its context and highlight it",
+          "status": "todo"
+        },
+        {
+          "id": "13.22",
+          "title": "Find behaves like a filter: after a search the tree shows only the matching line, with no highlight and none of its parents (Status, the record), so the match has no context. Find should keep the tree, expand the parents, highlight every match, scroll to the first and step with next/previous; filtering belongs to the Filter bar",
+          "status": "todo"
+        },
+        {
+          "id": "13.23",
+          "title": "Find bar floats over the first lines of the tree; keep it from covering content (reserve space or anchor it in the toolbar row)",
+          "status": "todo"
+        },
+        {
+          "id": "13.24",
+          "title": "Find bar clear button and the Filter bar clear button share data-action='clear' (two elements match); scope or rename so each acts only on its own bar",
+          "status": "todo"
+        },
+        {
+          "id": "13.25",
+          "title": "Regression guard: the smoke test never searches; add a Find check (type text, a match is visible and highlighted, the tree is not blank). The blank-tree bug came from a path-format mismatch ($.a[0] versus a[0]) that only a real search shows",
+          "status": "todo"
+        }
+      ]
     }
   ],
   "principles": [
