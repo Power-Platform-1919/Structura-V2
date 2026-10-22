@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Structra V2 — Option C: Hybrid (Interactive)</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --surface-alt: #f4f4f5;
+      --surface-raised: #ffffff;
+      --border: #e4e4e7;
+      --text: #09090b;
+      --text-sec: #52525b;
+      --text-muted: #a1a1aa;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: #eff6ff;
+      --accent-soft: #dbeafe;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --radius: 6px;
+      --radius-lg: 12px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --transition: 0.15s ease;
+    }
+    [data-theme="dark"] {
+      --bg: #09090b; --surface: #18181b; --surface-alt: #27272a; --surface-raised: #27272a;
+      --border: #3f3f46; --text: #fafafa; --text-sec: #a1a1aa; --text-muted: #71717a;
+      --accent: #60a5fa; --accent-hover: #93c5fd; --accent-light: #172554; --accent-soft: #1e40af33;
+      --success: #4ade80; --success-light: #052e16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); display: flex; flex-direction: column; font-size: 14px; line-height: 1.5; transition: background 0.2s, color 0.2s; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 500; z-index: 9999; box-shadow: var(--shadow-md); transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.3s; opacity: 0; pointer-events: none; display: flex; align-items: center; gap: 8px; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast svg { width: 16px; height: 16px; }
+
+    /* Header */
+    .header { height: 50px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 12px; gap: 12px; flex-shrink: 0; z-index: 50; }
+    .brand { font-weight: 700; font-size: 15px; color: var(--accent); display: flex; align-items: center; gap: 6px; padding-right: 12px; border-right: 1px solid var(--border); margin-right: 4px; }
+    .brand svg { width: 20px; height: 20px; }
+    .path-bar { flex: 1; display: flex; align-items: center; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 12px; height: 34px; gap: 8px; max-width: 600px; transition: border-color var(--transition), box-shadow var(--transition); }
+    .path-bar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .path-bar .path-icon { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; }
+    .path-bar input { flex: 1; border: none; background: transparent; font-family: var(--mono); font-size: 12px; color: var(--text); outline: none; }
+    .path-bar input::placeholder { color: var(--text-muted); }
+    .path-bar kbd { font-size: 10px; padding: 1px 5px; background: var(--surface); border: 1px solid var(--border); border-radius: 3px; color: var(--text-muted); white-space: nowrap; }
+    .header-actions { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+    .icon-btn { width: 34px; height: 34px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-sec); transition: all var(--transition); }
+    .icon-btn:hover { background: var(--surface-alt); color: var(--text); }
+    .icon-btn svg { width: 16px; height: 16px; }
+    .header-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+
+    /* Main Layout */
+    .main { flex: 1; display: flex; min-height: 0; }
+
+    /* Rail */
+    .rail { width: 44px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 6px 0; gap: 2px; flex-shrink: 0; }
+    .rail-btn { width: 34px; height: 34px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all var(--transition); position: relative; }
+    .rail-btn:hover { background: var(--surface-alt); color: var(--text-sec); }
+    .rail-btn.active { color: var(--accent); }
+    .rail-btn.active::after { content: ''; position: absolute; left: 0; top: 50%; transform: translate(-3px, -50%); width: 3px; height: 18px; background: var(--accent); border-radius: 0 2px 2px 0; }
+    .rail-btn svg { width: 18px; height: 18px; }
+    .rail-sep { width: 24px; height: 1px; background: var(--border); margin: 6px 0; }
+    .rail-spacer { flex: 1; }
+    .rail-badge { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; background: var(--danger); border-radius: 50%; border: 2px solid var(--surface); }
+
+    /* Content */
+    .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .view-bar { display: flex; align-items: center; padding: 6px 16px; gap: 8px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .segment-control { display: flex; gap: 1px; background: var(--surface-alt); padding: 3px; border-radius: var(--radius); }
+    .seg-btn { padding: 5px 12px; border: none; background: transparent; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); transition: all var(--transition); font-family: var(--sans); white-space: nowrap; }
+    .seg-btn:hover { color: var(--text-sec); }
+    .seg-btn.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+    .view-spacer { flex: 1; }
+    .view-actions { display: flex; gap: 4px; align-items: center; }
+    .btn-ghost { padding: 5px 10px; border: 1px solid transparent; background: transparent; border-radius: var(--radius); font-size: 11px; font-weight: 500; cursor: pointer; color: var(--text-sec); display: flex; align-items: center; gap: 4px; transition: all var(--transition); font-family: var(--sans); }
+    .btn-ghost:hover { background: var(--surface-alt); color: var(--text); }
+    .btn-ghost.active { background: var(--accent-light); color: var(--accent); }
+    .btn-ghost svg { width: 12px; height: 12px; }
+
+    /* View panels */
+    .view-panel { flex: 1; overflow: auto; display: none; background: var(--bg); }
+    .view-panel.active { display: flex; flex-direction: column; }
+
+    /* JSON Tree */
+    .tree-container { flex: 1; overflow: auto; padding: 12px 0; font-family: var(--mono); font-size: 13px; line-height: 1.9; }
+    .tree-line { display: flex; align-items: flex-start; padding: 0 16px; min-height: 25px; cursor: pointer; border-left: 2px solid transparent; transition: background var(--transition); }
+    .tree-line:hover { background: var(--surface-alt); }
+    .tree-line.active { background: var(--accent-soft); border-left-color: var(--accent); }
+    .ln { width: 40px; text-align: right; padding-right: 16px; color: var(--text-muted); font-size: 11px; user-select: none; flex-shrink: 0; opacity: 0.7; }
+    .code { flex: 1; white-space: pre; }
+    .j-key { color: #6f42c1; font-weight: 500; }
+    .j-str { color: #032f62; }
+    .j-num { color: #005cc5; }
+    .j-bool { color: #d73a49; }
+    .j-null { color: var(--text-muted); font-style: italic; }
+    .j-brace { color: var(--text-sec); }
+    .j-arrow { display: inline-block; width: 16px; text-align: center; color: var(--text-muted); cursor: pointer; user-select: none; border-radius: 3px; font-size: 10px; }
+    .j-arrow:hover { background: var(--accent-light); color: var(--accent); }
+    .j-badge { display: inline-block; font-size: 10px; font-family: var(--sans); padding: 0 6px; margin-left: 8px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-full); color: var(--text-muted); font-weight: 400; vertical-align: middle; }
+    .j-children { overflow: hidden; transition: max-height 0.25s ease; }
+    .j-children.collapsed { max-height: 0 !important; }
+    .j-inline-hint { font-size: 10px; font-family: var(--sans); color: var(--text-muted); margin-left: 12px; opacity: 0; transition: opacity var(--transition); }
+    .tree-line:hover .j-inline-hint { opacity: 1; }
+    [data-theme="dark"] .j-key { color: #d2a8ff; }
+    [data-theme="dark"] .j-str { color: #a5d6ff; }
+    [data-theme="dark"] .j-num { color: #79c0ff; }
+    [data-theme="dark"] .j-bool { color: #ff7b72; }
+
+    /* Table View */
+    .table-container { flex: 1; overflow: auto; padding: 16px; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { text-align: left; padding: 8px 12px; background: var(--surface-alt); border-bottom: 2px solid var(--border); font-size: 11px; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; cursor: pointer; }
+    .data-table th:hover { color: var(--accent); }
+    .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 12px; }
+    .data-table tr:hover td { background: var(--surface-alt); }
+    .data-table tr.row-selected td { background: var(--accent-soft); }
+    .cell-bool { padding: 2px 8px; border-radius: var(--radius-full); font-size: 11px; font-weight: 500; }
+    .bool-true { background: var(--success-light); color: var(--success); }
+    .bool-false { background: #fef2f2; color: var(--danger); }
+    [data-theme="dark"] .bool-false { background: #450a0a; }
+
+    /* Graph placeholder */
+    .graph-container { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; padding: 32px; }
+    .graph-nodes { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .graph-node { padding: 12px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--mono); font-size: 12px; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.2s; }
+    .graph-node:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 16px var(--accent-soft); }
+    .graph-node.root { border-color: var(--accent); background: var(--accent-light); font-weight: 600; }
+    .graph-connector { width: 32px; height: 2px; background: var(--border); align-self: center; }
+
+    /* Schema View */
+    .schema-container { flex: 1; overflow: auto; padding: 16px 20px; font-family: var(--mono); font-size: 12px; line-height: 1.9; }
+    .s-key { color: #6f42c1; } .s-type { color: #005cc5; font-weight: 500; } .s-req { color: var(--danger); font-size: 10px; font-family: var(--sans); }
+    [data-theme="dark"] .s-key { color: #d2a8ff; } [data-theme="dark"] .s-type { color: #79c0ff; }
+
+    /* Editor View */
+    .editor-container { flex: 1; display: flex; flex-direction: column; }
+    .editor-toolbar { padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 6px; align-items: center; }
+    .ed-btn { padding: 4px 10px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); font-size: 11px; cursor: pointer; color: var(--text-sec); font-family: var(--sans); transition: all var(--transition); }
+    .ed-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .ed-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .ed-btn.primary:hover { background: var(--accent-hover); }
+    .ed-status { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+    .ed-status.valid { color: var(--success); }
+    .ed-status.error { color: var(--danger); }
+    .editor-textarea { flex: 1; resize: none; border: none; outline: none; padding: 16px 20px; font-family: var(--mono); font-size: 13px; line-height: 1.8; background: var(--bg); color: var(--text); tab-size: 2; }
+
+    /* Bottom Drawer */
+    .bottom-drawer { flex-shrink: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; transition: height 0.25s ease; }
+    .drawer-sm { height: 36px; }
+    .drawer-md { height: 200px; }
+    .drawer-lg { height: 320px; }
+    .drawer-handle { height: 36px; display: flex; align-items: center; padding: 0 16px; gap: 12px; cursor: ns-resize; flex-shrink: 0; user-select: none; }
+    .drawer-handle:hover { background: var(--surface-alt); }
+    .drawer-chevron { width: 14px; height: 14px; color: var(--text-muted); transition: transform 0.2s; }
+    .drawer-md .drawer-chevron, .drawer-lg .drawer-chevron { transform: rotate(180deg); }
+    .drawer-stats { font-size: 12px; color: var(--text-sec); display: flex; gap: 16px; flex: 1; }
+    .drawer-stats .s { display: flex; align-items: center; gap: 4px; }
+    .drawer-stats .sv { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+    .drawer-stats .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .dot-blue { background: var(--accent); } .dot-green { background: var(--success); } .dot-amber { background: var(--warning); }
+    .drawer-body { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    .drawer-nav { display: flex; padding: 0 16px; border-bottom: 1px solid var(--border); gap: 0; }
+    .drawer-nav-btn { padding: 8px 12px; border: none; background: transparent; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all var(--transition); font-family: var(--sans); }
+    .drawer-nav-btn:hover { color: var(--text-sec); }
+    .drawer-nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+    .drawer-panel { flex: 1; overflow: auto; padding: 12px 16px; display: none; }
+    .drawer-panel.active { display: block; }
+    .expr-group { margin-bottom: 12px; }
+    .expr-title { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px; }
+    .expr-card { font-family: var(--mono); font-size: 12px; background: var(--surface-alt); padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--border); cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .expr-card:hover { border-color: var(--accent); background: var(--accent-light); }
+    .expr-card .copy-hint { font-size: 10px; color: var(--text-muted); margin-left: auto; opacity: 0; transition: opacity var(--transition); font-family: var(--sans); }
+    .expr-card:hover .copy-hint { opacity: 1; color: var(--accent); }
+    /* Stats content */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+    .stat-card { background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+    .stat-card .stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+    .stat-card .stat-value { font-size: 20px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+    .stat-card .stat-sub { font-size: 11px; color: var(--text-sec); }
+
+    /* Context Panel */
+    .context-panel { width: 300px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; transition: width 0.2s, opacity 0.2s; }
+    .context-panel.hidden { width: 0; border-left: none; opacity: 0; pointer-events: none; }
+    .ctx-header { height: 40px; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--text-sec); gap: 6px; flex-shrink: 0; }
+    .ctx-path { font-family: var(--mono); font-weight: 400; color: var(--accent); font-size: 11px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ctx-close { width: 24px; height: 24px; border: none; background: transparent; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+    .ctx-close:hover { background: var(--surface-alt); color: var(--text); }
+    .ctx-close svg { width: 14px; height: 14px; }
+    .ctx-body { flex: 1; overflow: auto; padding: 12px; }
+    .ctx-section { margin-bottom: 14px; }
+    .ctx-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+    .ctx-value { font-family: var(--mono); font-size: 13px; padding: 8px 10px; background: var(--surface-alt); border-radius: var(--radius); border: 1px solid var(--border); word-break: break-all; }
+    .ctx-meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12px; }
+    .ctx-meta dt { color: var(--text-muted); } .ctx-meta dd { color: var(--text); font-weight: 500; }
+    .ctx-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ctx-btn { padding: 5px 10px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); font-size: 11px; cursor: pointer; color: var(--text-sec); transition: all var(--transition); font-family: var(--sans); }
+    .ctx-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Command Palette */
+    .cmd-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index: 1000; align-items: flex-start; justify-content: center; padding-top: 18vh; }
+    .cmd-overlay.show { display: flex; }
+    .cmd-box { width: 540px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; }
+    .cmd-search { display: flex; align-items: center; padding: 0 16px; height: 48px; border-bottom: 1px solid var(--border); gap: 10px; }
+    .cmd-search svg { width: 16px; height: 16px; color: var(--text-muted); }
+    .cmd-search input { flex: 1; border: none; background: transparent; font-size: 14px; color: var(--text); outline: none; font-family: var(--sans); }
+    .cmd-search input::placeholder { color: var(--text-muted); }
+    .cmd-group-title { padding: 8px 16px 4px; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+    .cmd-list { max-height: 360px; overflow-y: auto; padding: 4px 6px; }
+    .cmd-item { display: flex; align-items: center; padding: 8px 10px; border-radius: var(--radius); cursor: pointer; gap: 10px; font-size: 13px; transition: background 0.1s; }
+    .cmd-item:hover { background: var(--surface-alt); }
+    .cmd-item.highlighted { background: var(--accent-light); }
+    .cmd-item svg { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; }
+    .cmd-item .cmd-text { flex: 1; }
+    .cmd-item kbd { font-size: 10px; padding: 2px 5px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 3px; color: var(--text-muted); font-family: var(--sans); }
+    .cmd-footer { display: flex; align-items: center; padding: 8px 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); gap: 12px; }
+    .cmd-footer kbd { font-size: 10px; padding: 1px 4px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 3px; margin: 0 2px; }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span id="toastMsg"></span></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><line x1="12" y1="22" x2="12" y2="15.5"/><line x1="22" y1="8.5" x2="12" y2="15.5"/><line x1="2" y1="8.5" x2="12" y2="15.5"/></svg>
+      Structra
+    </div>
+    <div class="path-bar">
+      <svg class="path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/><path d="M12 6v5m0 2v5"/></svg>
+      <input type="text" id="pathInput" placeholder="Path, search, or JSONPath query..." value="">
+      <kbd>Ctrl+L</kbd>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" title="Undo" onclick="showToast('Undo — nothing to undo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      </button>
+      <button class="icon-btn" title="Redo" onclick="showToast('Redo — nothing to redo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/></svg>
+      </button>
+      <span class="header-sep"></span>
+      <button class="icon-btn" title="Toggle theme" onclick="toggleTheme()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" title="Command Palette (Ctrl+K)" onclick="toggleCmd()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Rail -->
+    <nav class="rail">
+      <button class="rail-btn active" title="Explorer" onclick="switchRail(this,'Explorer mode')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+      </button>
+      <button class="rail-btn" title="Search & Filter" onclick="switchRail(this,'Search & Filter panel')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="rail-btn" title="Power Platform" onclick="switchRail(this,'Power Platform expressions')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </button>
+      <div class="rail-sep"></div>
+      <button class="rail-btn" title="Analyze" onclick="switchRail(this,'Analyze: 1 null, 0 duplicates')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="rail-badge"></span>
+      </button>
+      <button class="rail-btn" title="Transform" onclick="switchRail(this,'Transform panel')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18m0-18l4 4m-4-4L8 7"/><circle cx="12" cy="12" r="1"/></svg>
+      </button>
+      <div class="rail-spacer"></div>
+      <button class="rail-btn" title="New / Load JSON" onclick="showToast('Open file dialog...')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </nav>
+
+    <!-- Content -->
+    <div class="content">
+      <div class="view-bar">
+        <div class="segment-control">
+          <button class="seg-btn active" onclick="switchView('tree')">Tree</button>
+          <button class="seg-btn" onclick="switchView('table')">Table</button>
+          <button class="seg-btn" onclick="switchView('graph')">Graph</button>
+          <button class="seg-btn" onclick="switchView('schema')">Schema</button>
+          <button class="seg-btn" onclick="switchView('editor')">Editor</button>
+        </div>
+        <span class="view-spacer"></span>
+        <div class="view-actions">
+          <button class="btn-ghost" onclick="expandAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Expand</button>
+          <button class="btn-ghost" onclick="collapseAll()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg> Collapse</button>
+          <button class="btn-ghost" onclick="copyJSON()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
+        </div>
+      </div>
+
+      <!-- Tree View -->
+      <div class="view-panel active" id="view-tree">
+        <div class="tree-container" id="treeView"></div>
+      </div>
+      <!-- Table View -->
+      <div class="view-panel" id="view-table">
+        <div class="table-container">
+          <table class="data-table"><thead><tr><th onclick="sortTable('id')"># id</th><th onclick="sortTable('name')">name</th><th onclick="sortTable('email')">email</th><th onclick="sortTable('role')">role</th><th onclick="sortTable('active')">active</th></tr></thead>
+          <tbody id="tableBody"></tbody></table>
+        </div>
+      </div>
+      <!-- Graph View -->
+      <div class="view-panel" id="view-graph">
+        <div class="graph-container">
+          <div class="graph-nodes"><div class="graph-node root" onclick="showToast('Root: Object with 8 keys')">{ root }</div><div class="graph-connector"></div><div class="graph-node" onclick="showToast('users: Array with 2 items')">[ users ]</div><div class="graph-connector"></div><div class="graph-node" onclick="showToast('users[0]: {id, name, email, role, active}')">{ [0] }</div></div>
+          <div class="graph-nodes" style="margin-top:12px"><div class="graph-node" onclick="showToast('settings: {theme, language, notifications}')">{ settings }</div><div class="graph-connector"></div><div class="graph-node" onclick="showToast('Value: &quot;dark&quot;')">"theme"</div><div class="graph-connector"></div><div class="graph-node" onclick="showToast('Value: &quot;en&quot;')">"language"</div></div>
+          <p style="color:var(--text-muted);font-size:12px;margin-top:20px">Click nodes to inspect · Drag to rearrange</p>
+        </div>
+      </div>
+      <!-- Schema View -->
+      <div class="view-panel" id="view-schema">
+        <div class="schema-container" id="schemaView"></div>
+      </div>
+      <!-- Editor View -->
+      <div class="view-panel" id="view-editor">
+        <div class="editor-container">
+          <div class="editor-toolbar">
+            <button class="ed-btn primary" onclick="applyEdit()">▶ Apply</button>
+            <button class="ed-btn" onclick="formatJSON()">Format</button>
+            <button class="ed-btn" onclick="minifyJSON()">Minify</button>
+            <span class="ed-status valid" id="edStatus">✓ Valid JSON</span>
+          </div>
+          <textarea class="editor-textarea" id="editorArea" spellcheck="false" oninput="validateEditor()"></textarea>
+        </div>
+      </div>
+
+      <!-- Bottom Drawer -->
+      <div class="bottom-drawer drawer-md" id="drawer">
+        <div class="drawer-handle" onclick="cycleDrawer()">
+          <svg class="drawer-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+          <div class="drawer-stats">
+            <span class="s"><span class="dot dot-blue"></span><span class="sv" id="statKeys">8</span> keys</span>
+            <span class="s"><span class="dot dot-green"></span><span class="sv">3</span> depth</span>
+            <span class="s"><span class="dot dot-amber"></span><span class="sv">2</span> arrays</span>
+            <span class="s" style="color:var(--text-muted)">·</span>
+            <span class="s" style="color:var(--text-muted)">sample-data.json</span>
+          </div>
+        </div>
+        <div class="drawer-body">
+          <div class="drawer-nav">
+            <button class="drawer-nav-btn active" onclick="switchDrawerTab(this,'dp-expr')">Expressions</button>
+            <button class="drawer-nav-btn" onclick="switchDrawerTab(this,'dp-stats')">Stats</button>
+            <button class="drawer-nav-btn" onclick="switchDrawerTab(this,'dp-schema')">Schema Gen</button>
+          </div>
+          <!-- Expressions panel -->
+          <div class="drawer-panel active" id="dp-expr">
+            <div id="exprContent"><div style="color:var(--text-muted);font-size:12px">Click a node in the tree to see expressions</div></div>
+          </div>
+          <!-- Stats panel -->
+          <div class="drawer-panel" id="dp-stats">
+            <div class="stats-grid">
+              <div class="stat-card"><div class="stat-label">Total Keys</div><div class="stat-value">8</div><div class="stat-sub">in root object</div></div>
+              <div class="stat-card"><div class="stat-label">Max Depth</div><div class="stat-value">3</div><div class="stat-sub">levels deep</div></div>
+              <div class="stat-card"><div class="stat-label">Arrays</div><div class="stat-value">2</div><div class="stat-sub">1 with 2 items</div></div>
+              <div class="stat-card"><div class="stat-label">Nulls</div><div class="stat-value">1</div><div class="stat-sub">metadata</div></div>
+              <div class="stat-card"><div class="stat-label">Strings</div><div class="stat-value">9</div><div class="stat-sub">avg 10.2 chars</div></div>
+              <div class="stat-card"><div class="stat-label">Size</div><div class="stat-value">312</div><div class="stat-sub">bytes (formatted)</div></div>
+            </div>
+          </div>
+          <!-- Schema Gen panel -->
+          <div class="drawer-panel" id="dp-schema">
+            <div class="expr-group">
+              <div class="expr-title">Parse JSON Schema (for Power Automate)</div>
+              <div class="expr-card" onclick="copyText(this.dataset.v)" data-v='{"type":"object","properties":{"name":{"type":"string"},"version":{"type":"string"},"users":{"type":"array","items":{"type":"object","properties":{"id":{"type":"integer"},"name":{"type":"string"},"email":{"type":"string"}}}}}}'>
+                Click to copy generated schema
+                <span class="copy-hint">Copy</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context Panel -->
+    <aside class="context-panel hidden" id="ctxPanel">
+      <div class="ctx-header">
+        <span>Node</span>
+        <span class="ctx-path" id="ctxPath">—</span>
+        <button class="ctx-close" onclick="closeCtx()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="ctx-body">
+        <div class="ctx-section"><div class="ctx-label">Value</div><div class="ctx-value" id="ctxValue">—</div></div>
+        <div class="ctx-section"><div class="ctx-label">Properties</div><dl class="ctx-meta" id="ctxMeta"><dt>Type</dt><dd>—</dd></dl></div>
+        <div class="ctx-section"><div class="ctx-label">Actions</div><div class="ctx-actions">
+          <button class="ctx-btn" onclick="copyText(document.getElementById('ctxValue').textContent)">Copy Value</button>
+          <button class="ctx-btn" onclick="copyText(document.getElementById('ctxPath').textContent)">Copy Path</button>
+          <button class="ctx-btn" onclick="showToast('Bookmarked!')">Bookmark</button>
+          <button class="ctx-btn" onclick="showToast('Filter applied')">Filter Here</button>
+          <button class="ctx-btn" onclick="showToast('Mock: &quot;Jane Doe&quot;')">Mock Data</button>
+        </div></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Command Palette -->
+  <div class="cmd-overlay" id="cmdOverlay">
+    <div class="cmd-box">
+      <div class="cmd-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="cmdInput" placeholder="Type a command or search..." oninput="filterCmds(this.value)">
+      </div>
+      <div class="cmd-group-title">Views</div>
+      <div class="cmd-list" id="cmdList">
+        <div class="cmd-item highlighted" data-cmd="tree"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><span class="cmd-text">Tree View</span><kbd>Ctrl+1</kbd></div>
+        <div class="cmd-item" data-cmd="table"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><span class="cmd-text">Table View</span><kbd>Ctrl+2</kbd></div>
+        <div class="cmd-item" data-cmd="graph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/></svg><span class="cmd-text">Graph View</span><kbd>Ctrl+3</kbd></div>
+        <div class="cmd-item" data-cmd="schema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="cmd-text">Schema View</span><kbd>Ctrl+4</kbd></div>
+        <div class="cmd-item" data-cmd="editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg><span class="cmd-text">Editor</span><kbd>Ctrl+E</kbd></div>
+        <div class="cmd-item" data-cmd="export-csv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="cmd-text">Export as CSV</span><kbd>Ctrl+Shift+E</kbd></div>
+        <div class="cmd-item" data-cmd="flatten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg><span class="cmd-text">Flatten (dot notation)</span></div>
+        <div class="cmd-item" data-cmd="sort"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg><span class="cmd-text">Sort Keys A→Z</span></div>
+        <div class="cmd-item" data-cmd="types"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="cmd-text">Generate TypeScript Types</span></div>
+        <div class="cmd-item" data-cmd="mask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8"/><line x1="1" y1="1" x2="23" y2="23"/></svg><span class="cmd-text">Mask Sensitive Data</span></div>
+        <div class="cmd-item" data-cmd="compare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg><span class="cmd-text">Compare / Diff JSON</span></div>
+      </div>
+      <div class="cmd-footer"><span><kbd>↑↓</kbd> Navigate</span><span><kbd>↵</kbd> Run</span><span><kbd>Esc</kbd> Close</span></div>
+    </div>
+  </div>
+
+  <script>
+    // === DATA ===
+    const jsonData = {
+      name: "Structra V2", version: "2.0.0", description: "A modern JSON explorer",
+      active: true, stars: 2431, metadata: null,
+      users: [
+        { id: 1, name: "Alice Johnson", email: "alice@example.com", role: "admin", active: true },
+        { id: 2, name: "Bob Smith", email: "bob@example.com", role: "editor", active: false }
+      ],
+      settings: { theme: "dark", language: "en", notifications: true }
+    };
+
+    // === TOAST ===
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._to);
+      t._to = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    // === COPY ===
+    function copyText(text) { navigator.clipboard.writeText(text).then(() => showToast('Copied!')); }
+    function copyJSON() { navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2)).then(() => showToast('JSON copied to clipboard!')); }
+
+    // === THEME ===
+    function toggleTheme() {
+      const d = document.body.hasAttribute('data-theme');
+      d ? document.body.removeAttribute('data-theme') : document.body.setAttribute('data-theme','dark');
+      showToast(d ? 'Light mode' : 'Dark mode');
+    }
+
+    // === VIEW SWITCHING ===
+    function switchView(view) {
+      document.querySelectorAll('.seg-btn').forEach((b,i) => { b.classList.toggle('active', b.textContent.toLowerCase() === view); });
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`view-${view}`).classList.add('active');
+      if (view === 'editor' && !document.getElementById('editorArea').value) document.getElementById('editorArea').value = JSON.stringify(jsonData, null, 2);
+      if (view === 'schema') renderSchema();
+      showToast(`${view.charAt(0).toUpperCase()+view.slice(1)} view`);
+    }
+
+    // === RAIL ===
+    function switchRail(btn, msg) {
+      document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      showToast(msg);
+    }
+
+    // === TREE ===
+    let lineNum = 0;
+    function renderTree() {
+      const container = document.getElementById('treeView');
+      container.innerHTML = ''; lineNum = 0;
+      buildNode(container, jsonData, 0, '$');
+    }
+    function buildNode(parent, obj, indent, path) {
+      if (Array.isArray(obj)) {
+        lineNum++;
+        const id = 'ch'+lineNum;
+        parent.appendChild(treeLine(lineNum, indent, `<span class="j-arrow" onclick="event.stopPropagation();toggleNode('${id}',this)">▾</span> <span class="j-brace">[</span><span class="j-badge">${obj.length} items</span>`, path));
+        const ch = document.createElement('div'); ch.className='j-children'; ch.id=id;
+        obj.forEach((item, i) => buildNode(ch, item, indent+1, `${path}[${i}]`));
+        lineNum++; ch.appendChild(treeLine(lineNum, indent, '<span class="j-brace">]</span>', path));
+        parent.appendChild(ch);
+      } else if (obj && typeof obj === 'object') {
+        const keys = Object.keys(obj);
+        lineNum++;
+        const id = 'ch'+lineNum;
+        parent.appendChild(treeLine(lineNum, indent, `<span class="j-arrow" onclick="event.stopPropagation();toggleNode('${id}',this)">▾</span> <span class="j-brace">{</span><span class="j-badge">${keys.length} keys</span>`, path));
+        const ch = document.createElement('div'); ch.className='j-children'; ch.id=id;
+        keys.forEach((k, i) => {
+          const v = obj[k], comma = i < keys.length-1 ? ',' : '', cp = `${path}.${k}`;
+          if (v && typeof v === 'object') {
+            lineNum++; ch.appendChild(treeLine(lineNum, indent+1, `<span class="j-key">"${k}"</span>: `, cp));
+            buildNode(ch, v, indent+1, cp);
+          } else {
+            lineNum++; ch.appendChild(treeLine(lineNum, indent+1, `<span class="j-key">"${k}"</span>: ${fmtVal(v)}${comma}<span class="j-inline-hint">${v===null?'null':typeof v}</span>`, cp, v));
+          }
+        });
+        lineNum++; ch.appendChild(treeLine(lineNum, indent, '<span class="j-brace">}</span>', path));
+        parent.appendChild(ch);
+      } else {
+        lineNum++; parent.appendChild(treeLine(lineNum, indent, fmtVal(obj), path, obj));
+      }
+    }
+    function treeLine(num, indent, html, path, value) {
+      const d = document.createElement('div'); d.className='tree-line'; d.dataset.path=path||'';
+      d.innerHTML = `<span class="ln">${num}</span><span class="code">${' '.repeat(indent*2)}${html}</span>`;
+      d.addEventListener('click', () => selectNode(d, path, value));
+      return d;
+    }
+    function fmtVal(v) {
+      if (v===null) return '<span class="j-null">null</span>';
+      if (typeof v==='string') return `<span class="j-str">"${v}"</span>`;
+      if (typeof v==='number') return `<span class="j-num">${v}</span>`;
+      if (typeof v==='boolean') return `<span class="j-bool">${v}</span>`;
+      return String(v);
+    }
+    function toggleNode(id, arrow) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('collapsed');
+      arrow.textContent = el.classList.contains('collapsed') ? '▸' : '▾';
+    }
+    function expandAll() { document.querySelectorAll('.j-children').forEach(c=>c.classList.remove('collapsed')); document.querySelectorAll('.j-arrow').forEach(a=>a.textContent='▾'); showToast('All expanded'); }
+    function collapseAll() { document.querySelectorAll('.j-children').forEach(c=>c.classList.add('collapsed')); document.querySelectorAll('.j-arrow').forEach(a=>a.textContent='▸'); showToast('All collapsed'); }
+
+    // === NODE SELECTION ===
+    function selectNode(el, path, value) {
+      document.querySelectorAll('.tree-line.active').forEach(l=>l.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('pathInput').value = path;
+      // Resolve value from path
+      const resolved = resolvePath(path);
+      // Update context panel
+      const panel = document.getElementById('ctxPanel');
+      panel.classList.remove('hidden');
+      document.getElementById('ctxPath').textContent = path;
+      document.getElementById('ctxValue').innerHTML = typeof resolved==='object' ? `<span style="color:var(--text-muted)">${JSON.stringify(resolved).slice(0,100)}${JSON.stringify(resolved).length>100?'...':''}</span>` : fmtVal(resolved);
+      const type = resolved===null?'null':Array.isArray(resolved)?'array':typeof resolved;
+      let meta = `<dt>Type</dt><dd>${type}</dd>`;
+      if (typeof resolved==='string') meta += `<dt>Length</dt><dd>${resolved.length} chars</dd>`;
+      if (Array.isArray(resolved)) meta += `<dt>Items</dt><dd>${resolved.length}</dd>`;
+      if (typeof resolved==='object'&&resolved) meta += `<dt>Keys</dt><dd>${Object.keys(resolved).length}</dd>`;
+      meta += `<dt>Path</dt><dd style="font-family:var(--mono);font-size:11px">${path}</dd>`;
+      document.getElementById('ctxMeta').innerHTML = meta;
+      // Update expressions
+      updateExpressions(path);
+    }
+    function resolvePath(path) {
+      const parts = path.replace(/^\$\.?/,'').split(/\.|\[(\d+)\]/).filter(Boolean);
+      let cur = jsonData;
+      for (const p of parts) { if (cur==null) return undefined; cur = cur[isNaN(p)?p:+p]; }
+      return cur;
+    }
+    function closeCtx() { document.getElementById('ctxPanel').classList.add('hidden'); }
+
+    // === EXPRESSIONS ===
+    function updateExpressions(path) {
+      const parts = path.replace(/^\$/,'').split(/\./).filter(Boolean);
+      let paPath = "body('Parse_JSON')";
+      parts.forEach(p => {
+        const arrMatch = p.match(/^(.+)\[(\d+)\]$/);
+        if (arrMatch) { paPath += `?['${arrMatch[1]}'][${arrMatch[2]}]`; }
+        else if (/^\[\d+\]$/.test(p)) { paPath += p; }
+        else { paPath += `?['${p}']`; }
+      });
+      let fxPath = 'ParseJSON(jsonText)';
+      parts.forEach(p => { fxPath += `.${p}`; });
+      document.getElementById('exprContent').innerHTML = `
+        <div class="expr-group"><div class="expr-title">Power Automate — Access</div>
+          <div class="expr-card" onclick="copyText('${paPath}')">${paPath}<span class="copy-hint">Click to copy</span></div></div>
+        <div class="expr-group"><div class="expr-title">Canvas App (Power Fx)</div>
+          <div class="expr-card" onclick="copyText('${fxPath}')">${fxPath}<span class="copy-hint">Click to copy</span></div></div>
+        <div class="expr-group"><div class="expr-title">JSONPath</div>
+          <div class="expr-card" onclick="copyText('${path}')">${path}<span class="copy-hint">Click to copy</span></div></div>
+      `;
+    }
+
+    // === TABLE ===
+    function renderTable() {
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = jsonData.users.map((u,i) => `<tr onclick="selectTableRow(this,${i})"><td>${u.id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td><td><span class="cell-bool ${u.active?'bool-true':'bool-false'}">${u.active}</span></td></tr>`).join('');
+    }
+    function selectTableRow(row,idx) {
+      document.querySelectorAll('.data-table tr.row-selected').forEach(r=>r.classList.remove('row-selected'));
+      row.classList.add('row-selected');
+      selectNode(row, `$.users[${idx}]`, jsonData.users[idx]);
+      showToast(`Selected user: ${jsonData.users[idx].name}`);
+    }
+    function sortTable(col) { showToast(`Sorted by ${col}`); }
+
+    // === SCHEMA ===
+    function renderSchema() {
+      const el = document.getElementById('schemaView');
+      if (el.innerHTML) return;
+      const lines = [
+        {k:'root', t:'object', d:0}, {k:'name',t:'string',d:1,r:true}, {k:'version',t:'string',d:1,r:true},
+        {k:'description',t:'string',d:1}, {k:'active',t:'boolean',d:1}, {k:'stars',t:'number',d:1},
+        {k:'metadata',t:'null',d:1}, {k:'users',t:'array',d:1}, {k:'[item]',t:'object',d:2},
+        {k:'id',t:'integer',d:3,r:true}, {k:'name',t:'string',d:3,r:true}, {k:'email',t:'string',d:3,r:true},
+        {k:'role',t:'string',d:3}, {k:'active',t:'boolean',d:3},
+        {k:'settings',t:'object',d:1}, {k:'theme',t:'string',d:2}, {k:'language',t:'string',d:2}, {k:'notifications',t:'boolean',d:2}
+      ];
+      el.innerHTML = lines.map(l => `<div class="schema-line">${'&nbsp;'.repeat(l.d*2)}<span class="s-key">${l.k}</span>: <span class="s-type">${l.t}</span>${l.r?' <span class="s-req">required</span>':''}</div>`).join('');
+    }
+
+    // === EDITOR ===
+    function formatJSON() { try { const a=document.getElementById('editorArea'); a.value=JSON.stringify(JSON.parse(a.value),null,2); showToast('Formatted'); validateEditor(); } catch(e){showToast('Invalid JSON!');} }
+    function minifyJSON() { try { const a=document.getElementById('editorArea'); a.value=JSON.stringify(JSON.parse(a.value)); showToast('Minified'); validateEditor(); } catch(e){showToast('Invalid JSON!');} }
+    function applyEdit() { try { JSON.parse(document.getElementById('editorArea').value); showToast('Changes applied successfully!'); } catch(e){showToast('Cannot apply — invalid JSON');} }
+    function validateEditor() {
+      const s = document.getElementById('edStatus');
+      try { JSON.parse(document.getElementById('editorArea').value); s.textContent='✓ Valid JSON'; s.className='ed-status valid'; }
+      catch(e) { s.textContent='✗ Invalid'; s.className='ed-status error'; }
+    }
+
+    // === DRAWER ===
+    function cycleDrawer() {
+      const d = document.getElementById('drawer');
+      if (d.classList.contains('drawer-sm')) { d.className='bottom-drawer drawer-md'; }
+      else if (d.classList.contains('drawer-md')) { d.className='bottom-drawer drawer-lg'; }
+      else { d.className='bottom-drawer drawer-sm'; }
+    }
+    function switchDrawerTab(btn, panelId) {
+      document.querySelectorAll('.drawer-nav-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.drawer-panel').forEach(p=>p.classList.remove('active'));
+      document.getElementById(panelId).classList.add('active');
+    }
+
+    // === COMMAND PALETTE ===
+    function toggleCmd() {
+      const o = document.getElementById('cmdOverlay');
+      o.classList.toggle('show');
+      if (o.classList.contains('show')) { document.getElementById('cmdInput').value=''; document.getElementById('cmdInput').focus(); filterCmds(''); }
+    }
+    function filterCmds(q) {
+      document.querySelectorAll('.cmd-item').forEach(item => {
+        item.style.display = item.querySelector('.cmd-text').textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+      });
+    }
+    // Click handlers for cmd items
+    document.addEventListener('click', e => {
+      const item = e.target.closest('.cmd-item');
+      if (!item) return;
+      const cmd = item.dataset.cmd;
+      toggleCmd();
+      if (['tree','table','graph','schema','editor'].includes(cmd)) switchView(cmd);
+      else if (cmd==='export-csv') showToast('Exported 2 rows as CSV');
+      else if (cmd==='flatten') showToast('JSON flattened to dot notation');
+      else if (cmd==='sort') showToast('Keys sorted alphabetically');
+      else if (cmd==='types') showToast('TypeScript interfaces generated!');
+      else if (cmd==='mask') showToast('2 emails masked: a***@example.com');
+      else if (cmd==='compare') showToast('Paste second JSON to compare...');
+    });
+
+    // === KEYBOARD SHORTCUTS ===
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey||e.metaKey) && e.key==='k') { e.preventDefault(); toggleCmd(); }
+      if (e.key==='Escape') { document.getElementById('cmdOverlay').classList.remove('show'); closeCtx(); }
+      if ((e.ctrlKey||e.metaKey) && e.key==='1') { e.preventDefault(); switchView('tree'); }
+      if ((e.ctrlKey||e.metaKey) && e.key==='2') { e.preventDefault(); switchView('table'); }
+      if ((e.ctrlKey||e.metaKey) && e.key==='3') { e.preventDefault(); switchView('graph'); }
+      if ((e.ctrlKey||e.metaKey) && e.key==='4') { e.preventDefault(); switchView('schema'); }
+      if ((e.ctrlKey||e.metaKey) && e.key==='e') { e.preventDefault(); switchView('editor'); }
+      if ((e.ctrlKey||e.metaKey) && e.key==='l') { e.preventDefault(); document.getElementById('pathInput').focus(); }
+    });
+    document.getElementById('cmdOverlay').addEventListener('click', e => { if (e.target===e.currentTarget) toggleCmd(); });
+
+    // === INIT ===
+    renderTree();
+    renderTable();
+  </script>
+</body>
+</html>

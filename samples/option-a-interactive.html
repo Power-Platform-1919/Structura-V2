@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Structra V2 — Option A: Sidebar + Canvas (Interactive)</title>
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --surface-alt: #f4f4f5;
+      --border: #e4e4e7;
+      --text: #09090b;
+      --text-sec: #71717a;
+      --text-muted: #a1a1aa;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --accent-light: #eff6ff;
+      --accent-soft: #dbeafe;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --radius: 6px;
+      --radius-lg: 12px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+      --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+      --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    [data-theme="dark"] {
+      --bg: #09090b; --surface: #18181b; --surface-alt: #27272a;
+      --border: #3f3f46; --text: #fafafa; --text-sec: #a1a1aa; --text-muted: #71717a;
+      --accent: #60a5fa; --accent-hover: #93c5fd; --accent-light: #172554; --accent-soft: #1e40af33;
+      --success: #4ade80; --success-light: #052e16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); display: flex; flex-direction: column; font-size: 14px; line-height: 1.5; transition: background 0.2s, color 0.2s; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: var(--radius); font-size: 13px; font-weight: 500; z-index: 9999; box-shadow: var(--shadow-md); transition: transform 0.3s cubic-bezier(.4,0,.2,1), opacity 0.3s; opacity: 0; pointer-events: none; display: flex; align-items: center; gap: 8px; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    .toast svg { width: 16px; height: 16px; }
+
+    /* Header */
+    .header { height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 12px; flex-shrink: 0; }
+    .brand { font-weight: 700; font-size: 15px; color: var(--accent); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .brand svg { width: 20px; height: 20px; }
+    .search-bar { flex: 1; max-width: 560px; display: flex; align-items: center; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 12px; gap: 8px; height: 36px; transition: border-color 0.15s, box-shadow 0.15s; }
+    .search-bar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .search-bar svg { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
+    .search-bar input { flex: 1; border: none; background: transparent; font-family: var(--mono); font-size: 13px; color: var(--text); outline: none; }
+    .search-bar input::placeholder { color: var(--text-muted); }
+    .search-bar kbd { font-size: 10px; padding: 2px 5px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted); }
+    .header-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+    .icon-btn { width: 34px; height: 34px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-sec); transition: all 0.15s; }
+    .icon-btn:hover { background: var(--surface-alt); color: var(--text); }
+    .icon-btn svg { width: 18px; height: 18px; }
+
+    /* Main Layout */
+    .main { flex: 1; display: flex; min-height: 0; }
+
+    /* Rail */
+    .rail { width: 48px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 4px; flex-shrink: 0; }
+    .rail-btn { width: 36px; height: 36px; border: none; background: transparent; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: all 0.15s; position: relative; }
+    .rail-btn:hover { background: var(--surface-alt); color: var(--text); }
+    .rail-btn.active { background: var(--accent-light); color: var(--accent); }
+    .rail-btn.active::before { content: ''; position: absolute; left: -6px; top: 50%; transform: translateY(-50%); width: 3px; height: 16px; background: var(--accent); border-radius: 0 3px 3px 0; }
+    .rail-btn svg { width: 18px; height: 18px; }
+    .rail-spacer { flex: 1; }
+    .rail-badge { position: absolute; top: 4px; right: 4px; width: 8px; height: 8px; background: var(--danger); border-radius: 50%; border: 2px solid var(--surface); }
+
+    /* Canvas */
+    .canvas { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+    .canvas-header { display: flex; align-items: center; padding: 8px 16px; gap: 8px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .view-tabs { display: flex; gap: 2px; background: var(--surface-alt); padding: 3px; border-radius: var(--radius); }
+    .view-tab { padding: 5px 12px; border: none; background: transparent; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-sec); transition: all 0.15s; font-family: var(--sans); }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+    .canvas-actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+    .btn-sm { padding: 5px 10px; border: 1px solid var(--border); background: var(--surface); border-radius: var(--radius); font-size: 11px; cursor: pointer; color: var(--text-sec); display: flex; align-items: center; gap: 4px; transition: all 0.15s; font-family: var(--sans); }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+    .btn-sm svg { width: 12px; height: 12px; }
+
+    /* Views Container */
+    .view-panel { flex: 1; overflow: auto; display: none; }
+    .view-panel.active { display: block; }
+
+    /* JSON Tree */
+    .tree-view { padding: 12px 16px; font-family: var(--mono); font-size: 13px; line-height: 1.9; }
+    .tree-line { display: flex; align-items: flex-start; padding: 1px 8px; border-radius: 4px; cursor: pointer; border-left: 2px solid transparent; }
+    .tree-line:hover { background: var(--surface-alt); }
+    .tree-line.selected { background: var(--accent-soft); border-left-color: var(--accent); }
+    .line-num { width: 36px; text-align: right; padding-right: 12px; color: var(--text-muted); font-size: 11px; user-select: none; flex-shrink: 0; }
+    .line-content { flex: 1; }
+    .j-key { color: #6f42c1; font-weight: 500; }
+    .j-str { color: #032f62; }
+    .j-num { color: #005cc5; }
+    .j-bool { color: #d73a49; }
+    .j-null { color: var(--text-muted); font-style: italic; }
+    .j-bracket { color: var(--text-sec); }
+    .j-toggle { display: inline-flex; width: 16px; height: 16px; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); margin-right: 2px; border-radius: 3px; font-size: 10px; user-select: none; }
+    .j-toggle:hover { background: var(--accent-light); color: var(--accent); }
+    .j-badge { font-size: 10px; font-family: var(--sans); padding: 0 6px; margin-left: 8px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-full); color: var(--text-muted); }
+    .j-children { overflow: hidden; transition: max-height 0.2s ease; }
+    .j-children.collapsed { max-height: 0 !important; }
+    .j-inline-hint { font-size: 10px; font-family: var(--sans); color: var(--text-muted); margin-left: 12px; opacity: 0; transition: opacity 0.15s; }
+    .tree-line:hover .j-inline-hint { opacity: 1; }
+    [data-theme="dark"] .j-key { color: #d2a8ff; }
+    [data-theme="dark"] .j-str { color: #a5d6ff; }
+    [data-theme="dark"] .j-num { color: #79c0ff; }
+    [data-theme="dark"] .j-bool { color: #ff7b72; }
+
+    /* Table View */
+    .table-view { padding: 16px; overflow: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .data-table th { text-align: left; padding: 8px 12px; background: var(--surface-alt); border-bottom: 2px solid var(--border); font-size: 11px; font-weight: 600; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.3px; position: sticky; top: 0; cursor: pointer; }
+    .data-table th:hover { color: var(--accent); }
+    .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 12px; }
+    .data-table tr:hover td { background: var(--surface-alt); }
+    .data-table tr.selected td { background: var(--accent-soft); }
+    .cell-str { color: #032f62; }
+    .cell-num { color: #005cc5; font-variant-numeric: tabular-nums; }
+    .cell-bool { padding: 2px 8px; border-radius: var(--radius-full); font-size: 11px; font-weight: 500; }
+    .cell-bool-true { background: var(--success-light); color: var(--success); }
+    .cell-bool-false { background: #fef2f2; color: var(--danger); }
+    [data-theme="dark"] .cell-str { color: #a5d6ff; }
+    [data-theme="dark"] .cell-num { color: #79c0ff; }
+    [data-theme="dark"] .cell-bool-false { background: #450a0a; }
+
+    /* Graph View */
+    .graph-view { padding: 40px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    .graph-placeholder { width: 100%; max-width: 700px; height: 360px; border: 2px dashed var(--border); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: var(--text-muted); }
+    .graph-placeholder svg { width: 48px; height: 48px; }
+    .graph-nodes { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+    .graph-node { padding: 12px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--mono); font-size: 12px; box-shadow: var(--shadow-sm); cursor: pointer; transition: all 0.15s; }
+    .graph-node:hover { border-color: var(--accent); box-shadow: 0 4px 12px var(--accent-soft); transform: translateY(-2px); }
+    .graph-node.root { border-color: var(--accent); background: var(--accent-light); }
+    .graph-edge { width: 40px; height: 2px; background: var(--border); align-self: center; }
+
+    /* Schema View */
+    .schema-view { padding: 16px 20px; font-family: var(--mono); font-size: 12px; line-height: 1.8; }
+    .schema-line { padding: 2px 0; }
+    .s-key { color: #6f42c1; }
+    .s-type { color: #005cc5; font-weight: 500; }
+    .s-req { color: var(--danger); font-size: 10px; }
+    [data-theme="dark"] .s-key { color: #d2a8ff; }
+    [data-theme="dark"] .s-type { color: #79c0ff; }
+
+    /* Editor View */
+    .editor-view { display: flex; flex-direction: column; height: 100%; }
+    .editor-toolbar { padding: 6px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 6px; align-items: center; }
+    .editor-textarea { flex: 1; resize: none; border: none; outline: none; padding: 16px 20px; font-family: var(--mono); font-size: 13px; line-height: 1.8; background: var(--bg); color: var(--text); tab-size: 2; }
+
+    /* Search Results Panel */
+    .search-results { display: none; border-bottom: 1px solid var(--border); background: var(--surface); max-height: 200px; overflow: auto; }
+    .search-results.show { display: block; }
+    .search-result-item { padding: 6px 16px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+    .search-result-item:hover { background: var(--surface-alt); }
+    .sr-path { font-family: var(--mono); color: var(--accent); font-size: 11px; }
+    .sr-value { color: var(--text-sec); font-family: var(--mono); font-size: 11px; }
+    .sr-count { margin-left: auto; font-size: 10px; background: var(--accent-light); color: var(--accent); padding: 2px 6px; border-radius: var(--radius-full); font-weight: 600; }
+
+    /* Status Bar */
+    .status-bar { height: 28px; background: var(--surface); border-top: 1px solid var(--border); display: flex; align-items: center; padding: 0 16px; gap: 16px; font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+    .status-item { display: flex; align-items: center; gap: 4px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+
+    /* Command Palette */
+    .cmd-palette { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 1000; align-items: flex-start; justify-content: center; padding-top: 18vh; }
+    .cmd-palette.show { display: flex; }
+    .cmd-box { width: 540px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 24px 48px rgba(0,0,0,0.15); overflow: hidden; }
+    .cmd-input-wrap { display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--border); gap: 10px; }
+    .cmd-input-wrap svg { width: 16px; height: 16px; color: var(--text-muted); }
+    .cmd-input { flex: 1; padding: 14px 0; border: none; background: transparent; font-size: 14px; color: var(--text); outline: none; font-family: var(--sans); }
+    .cmd-input::placeholder { color: var(--text-muted); }
+    .cmd-list { max-height: 340px; overflow-y: auto; padding: 6px; }
+    .cmd-group { padding: 6px 10px 2px; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
+    .cmd-item { display: flex; align-items: center; padding: 8px 10px; border-radius: var(--radius); cursor: pointer; gap: 10px; font-size: 13px; transition: background 0.1s; }
+    .cmd-item:hover { background: var(--surface-alt); }
+    .cmd-item.active { background: var(--accent-light); color: var(--accent); }
+    .cmd-item svg { width: 16px; height: 16px; color: var(--text-muted); flex-shrink: 0; }
+    .cmd-item .cmd-label { flex: 1; }
+    .cmd-item kbd { font-size: 10px; padding: 2px 5px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 4px; color: var(--text-muted); font-family: var(--sans); }
+    .cmd-footer { display: flex; padding: 8px 16px; border-top: 1px solid var(--border); gap: 16px; font-size: 11px; color: var(--text-muted); }
+    .cmd-footer kbd { font-size: 10px; padding: 1px 4px; background: var(--surface-alt); border: 1px solid var(--border); border-radius: 3px; margin: 0 2px; }
+
+    /* Animations */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-in { animation: fadeIn 0.2s ease; }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span id="toastMsg"></span></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/><line x1="12" y1="22" x2="12" y2="15.5"/><line x1="22" y1="8.5" x2="12" y2="15.5"/><line x1="2" y1="8.5" x2="12" y2="15.5"/></svg>
+      Structra
+    </div>
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInput" placeholder="Search paths, keys, values..." oninput="handleSearch(this.value)">
+      <kbd>Ctrl+K</kbd>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" title="Toggle theme" onclick="toggleTheme()">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" title="Command Palette (Ctrl+K)" onclick="toggleCmd()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <div class="main">
+    <nav class="rail">
+      <button class="rail-btn active" data-rail="explorer" title="Explorer" onclick="switchRail(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      </button>
+      <button class="rail-btn" data-rail="search" title="Search" onclick="switchRail(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="rail-btn" data-rail="analyze" title="Analyze" onclick="switchRail(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span class="rail-badge"></span>
+      </button>
+      <button class="rail-btn" data-rail="transform" title="Transform" onclick="switchRail(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      </button>
+      <button class="rail-btn" data-rail="power" title="Power Platform" onclick="switchRail(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </button>
+      <div class="rail-spacer"></div>
+      <button class="rail-btn" title="Settings" onclick="showToast('Settings panel coming soon')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </nav>
+
+    <div class="canvas">
+      <div class="canvas-header">
+        <div class="view-tabs" id="viewTabs">
+          <button class="view-tab active" data-view="tree" onclick="switchView('tree')">Tree</button>
+          <button class="view-tab" data-view="table" onclick="switchView('table')">Table</button>
+          <button class="view-tab" data-view="graph" onclick="switchView('graph')">Graph</button>
+          <button class="view-tab" data-view="schema" onclick="switchView('schema')">Schema</button>
+          <button class="view-tab" data-view="editor" onclick="switchView('editor')">Editor</button>
+        </div>
+        <div class="canvas-actions">
+          <button class="btn-sm" id="btnExpand" onclick="expandAll()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            Expand All
+          </button>
+          <button class="btn-sm" id="btnCollapse" onclick="collapseAll()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            Collapse
+          </button>
+          <button class="btn-sm" onclick="copyJSON()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Results -->
+      <div class="search-results" id="searchResults"></div>
+
+      <!-- Tree View -->
+      <div class="view-panel active" id="view-tree">
+        <div class="tree-view" id="treeView"></div>
+      </div>
+
+      <!-- Table View -->
+      <div class="view-panel" id="view-table">
+        <div class="table-view">
+          <table class="data-table" id="dataTable">
+            <thead><tr><th onclick="showToast('Sorted by Index')">#</th><th onclick="showToast('Sorted by Name')">name</th><th onclick="showToast('Sorted by Email')">email</th><th onclick="showToast('Sorted by Role')">role</th><th onclick="showToast('Sorted by Active')">active</th></tr></thead>
+            <tbody>
+              <tr onclick="selectRow(this, 'users[0]')"><td class="cell-num">0</td><td class="cell-str">Alice Johnson</td><td class="cell-str">alice@example.com</td><td class="cell-str">admin</td><td><span class="cell-bool cell-bool-true">true</span></td></tr>
+              <tr onclick="selectRow(this, 'users[1]')"><td class="cell-num">1</td><td class="cell-str">Bob Smith</td><td class="cell-str">bob@example.com</td><td class="cell-str">editor</td><td><span class="cell-bool cell-bool-false">false</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Graph View -->
+      <div class="view-panel" id="view-graph">
+        <div class="graph-view">
+          <div class="graph-nodes">
+            <div class="graph-node root" onclick="showToast('Root object: 8 keys')">{ root }</div>
+            <div class="graph-edge"></div>
+            <div class="graph-node" onclick="showToast('users: Array[2]')">[ users ]</div>
+            <div class="graph-edge"></div>
+            <div class="graph-node" onclick="showToast('users[0]: Object with 5 keys')">{ user[0] }</div>
+          </div>
+          <div class="graph-nodes" style="margin-top:16px">
+            <div class="graph-node" onclick="showToast('settings: Object with 3 keys')">{ settings }</div>
+            <div class="graph-edge"></div>
+            <div class="graph-node" onclick="showToast('theme: &quot;dark&quot;')">"theme"</div>
+          </div>
+          <p style="color:var(--text-muted);font-size:12px;margin-top:20px">Interactive graph — click nodes to inspect</p>
+        </div>
+      </div>
+
+      <!-- Schema View -->
+      <div class="view-panel" id="view-schema">
+        <div class="schema-view animate-in">
+          <div class="schema-line"><span class="s-key">root</span>: <span class="s-type">object</span></div>
+          <div class="schema-line">&nbsp;&nbsp;<span class="s-key">name</span>: <span class="s-type">string</span> <span class="s-req">required</span></div>
+          <div class="schema-line">&nbsp;&nbsp;<span class="s-key">version</span>: <span class="s-type">string</span> <span class="s-req">required</span></div>
+          <div class="schema-line">&nbsp;&nbsp;<span class="s-key">description</span>: <span class="s-type">string</span> <span class="s-req">required</span></div>
+          <div class="schema-line">&nbsp;&nbsp;<span class="s-key">active</span>: <span class="s-type">boolean</span></div>
+          <div class="schema-line">&nbsp;&nbsp;<span class="s-key">stars</span>: <span class="s-type">number</span></div>
+          <div class="schema-line">&nbsp;&nbsp;<span class="s-key">metadata</span>: <span class="s-type">null</span></div>
+          <div class="schema-line">&nbsp;&nbsp;<span class="s-key">users</span>: <span class="s-type">array</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">[item]</span>: <span class="s-type">object</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">id</span>: <span class="s-type">number</span> <span class="s-req">required</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">name</span>: <span class="s-type">string</span> <span class="s-req">required</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">email</span>: <span class="s-type">string</span> <span class="s-req">required</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">role</span>: <span class="s-type">string</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">active</span>: <span class="s-type">boolean</span></div>
+          <div class="schema-line">&nbsp;&nbsp;<span class="s-key">settings</span>: <span class="s-type">object</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">theme</span>: <span class="s-type">string</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">language</span>: <span class="s-type">string</span></div>
+          <div class="schema-line">&nbsp;&nbsp;&nbsp;&nbsp;<span class="s-key">notifications</span>: <span class="s-type">boolean</span></div>
+        </div>
+      </div>
+
+      <!-- Editor View -->
+      <div class="view-panel" id="view-editor">
+        <div class="editor-view">
+          <div class="editor-toolbar">
+            <button class="btn-sm" onclick="formatJSON()">Format</button>
+            <button class="btn-sm" onclick="minifyJSON()">Minify</button>
+            <button class="btn-sm" onclick="showToast('Changes applied!')">Apply</button>
+            <span style="margin-left:auto;font-size:11px;color:var(--text-muted)" id="editorStatus">Valid JSON</span>
+          </div>
+          <textarea class="editor-textarea" id="editorArea" spellcheck="false"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div class="status-item"><span class="status-dot"></span> Ready</div>
+    <div class="status-item" id="statusFile">sample-data.json</div>
+    <div class="status-item" id="statusInfo">8 keys · depth 3 · 2 arrays</div>
+    <div class="status-item" style="margin-left:auto" id="statusPath">$.root</div>
+  </div>
+
+  <!-- Command Palette -->
+  <div class="cmd-palette" id="cmdPalette">
+    <div class="cmd-box">
+      <div class="cmd-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="cmd-input" id="cmdInput" placeholder="Type a command..." oninput="filterCommands(this.value)">
+      </div>
+      <div class="cmd-list" id="cmdList">
+        <div class="cmd-group">Views</div>
+        <div class="cmd-item" onclick="cmdAction('switchView','tree')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><span class="cmd-label">Tree View</span><kbd>Ctrl+1</kbd></div>
+        <div class="cmd-item" onclick="cmdAction('switchView','table')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><span class="cmd-label">Table View</span><kbd>Ctrl+2</kbd></div>
+        <div class="cmd-item" onclick="cmdAction('switchView','graph')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span class="cmd-label">Graph View</span><kbd>Ctrl+3</kbd></div>
+        <div class="cmd-item" onclick="cmdAction('switchView','schema')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span class="cmd-label">Schema View</span><kbd>Ctrl+4</kbd></div>
+        <div class="cmd-item" onclick="cmdAction('switchView','editor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg><span class="cmd-label">Editor</span><kbd>Ctrl+E</kbd></div>
+        <div class="cmd-group">Actions</div>
+        <div class="cmd-item" onclick="cmdAction('expand')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/></svg><span class="cmd-label">Expand All Nodes</span></div>
+        <div class="cmd-item" onclick="cmdAction('collapse')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/></svg><span class="cmd-label">Collapse All Nodes</span></div>
+        <div class="cmd-item" onclick="cmdAction('copy')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="cmd-label">Copy JSON to Clipboard</span><kbd>Ctrl+C</kbd></div>
+        <div class="cmd-item" onclick="cmdAction('export-csv')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="cmd-label">Export as CSV</span><kbd>Ctrl+Shift+E</kbd></div>
+        <div class="cmd-item" onclick="cmdAction('flatten')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/></svg><span class="cmd-label">Flatten (dot notation)</span><kbd>Ctrl+Shift+L</kbd></div>
+        <div class="cmd-item" onclick="cmdAction('sort')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg><span class="cmd-label">Sort Keys A→Z</span></div>
+        <div class="cmd-item" onclick="cmdAction('types')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span class="cmd-label">Generate TypeScript Types</span></div>
+        <div class="cmd-item" onclick="cmdAction('mask')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><line x1="1" y1="1" x2="23" y2="23"/></svg><span class="cmd-label">Mask Sensitive Data</span></div>
+      </div>
+      <div class="cmd-footer"><span><kbd>↑↓</kbd> Navigate</span><span><kbd>↵</kbd> Run</span><span><kbd>Esc</kbd> Close</span></div>
+    </div>
+  </div>
+
+  <script>
+    // === DATA ===
+    const jsonData = {
+      name: "Structra V2",
+      version: "2.0.0",
+      description: "A modern JSON explorer",
+      active: true,
+      stars: 2431,
+      metadata: null,
+      users: [
+        { id: 1, name: "Alice Johnson", email: "alice@example.com", role: "admin", active: true },
+        { id: 2, name: "Bob Smith", email: "bob@example.com", role: "editor", active: false }
+      ],
+      settings: { theme: "dark", language: "en", notifications: true }
+    };
+
+    // === TOAST ===
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timeout);
+      t._timeout = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // === THEME ===
+    function toggleTheme() {
+      const isDark = document.body.hasAttribute('data-theme');
+      if (isDark) document.body.removeAttribute('data-theme');
+      else document.body.setAttribute('data-theme', 'dark');
+      showToast(isDark ? 'Light mode' : 'Dark mode');
+    }
+
+    // === VIEWS ===
+    function switchView(view) {
+      document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.view-tab[data-view="${view}"]`).classList.add('active');
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`view-${view}`).classList.add('active');
+      if (view === 'editor') initEditor();
+      showToast(`Switched to ${view.charAt(0).toUpperCase() + view.slice(1)} view`);
+    }
+
+    // === RAIL ===
+    function switchRail(btn) {
+      document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const rail = btn.dataset.rail;
+      const msgs = { explorer: 'Explorer mode', search: 'Search & Filter mode', analyze: 'Analyze mode — 1 null found', transform: 'Transform mode', power: 'Power Platform expressions' };
+      showToast(msgs[rail] || 'Switched panel');
+    }
+
+    // === TREE RENDERING ===
+    function renderTree() {
+      const container = document.getElementById('treeView');
+      container.innerHTML = '';
+      let lineNum = 0;
+      function render(obj, indent, path) {
+        if (Array.isArray(obj)) {
+          lineNum++;
+          const line = makeLine(lineNum, indent, `<span class="j-toggle" data-target="c${lineNum}">▾</span><span class="j-bracket">[</span><span class="j-badge">${obj.length} items</span>`, path);
+          container.appendChild(line);
+          const children = document.createElement('div');
+          children.className = 'j-children';
+          children.id = `c${lineNum}`;
+          obj.forEach((item, i) => {
+            if (typeof item === 'object' && item !== null) {
+              render(item, indent + 1, `${path}[${i}]`);
+            } else {
+              lineNum++;
+              children.appendChild(makeLine(lineNum, indent + 1, formatValue(item), `${path}[${i}]`));
+            }
+          });
+          lineNum++;
+          children.appendChild(makeLine(lineNum, indent, '<span class="j-bracket">]</span>', path));
+          container.appendChild(children);
+        } else if (typeof obj === 'object' && obj !== null) {
+          const keys = Object.keys(obj);
+          lineNum++;
+          const line = makeLine(lineNum, indent, `<span class="j-toggle" data-target="c${lineNum}">▾</span><span class="j-bracket">{</span><span class="j-badge">${keys.length} keys</span>`, path);
+          container.appendChild(line);
+          const children = document.createElement('div');
+          children.className = 'j-children';
+          children.id = `c${lineNum}`;
+          keys.forEach((key, i) => {
+            const val = obj[key];
+            const comma = i < keys.length - 1 ? ',' : '';
+            const childPath = `${path}.${key}`;
+            if (typeof val === 'object' && val !== null) {
+              lineNum++;
+              const kLine = makeLine(lineNum, indent + 1, `<span class="j-key">"${key}"</span>: `, childPath);
+              children.appendChild(kLine);
+              render(val, indent + 1, childPath);
+            } else {
+              lineNum++;
+              children.appendChild(makeLine(lineNum, indent + 1, `<span class="j-key">"${key}"</span>: ${formatValue(val)}${comma}<span class="j-inline-hint">${typeof val}</span>`, childPath));
+            }
+          });
+          lineNum++;
+          children.appendChild(makeLine(lineNum, indent, '<span class="j-bracket">}</span>', path));
+          container.appendChild(children);
+        }
+      }
+      render(jsonData, 0, '$');
+    }
+
+    function makeLine(num, indent, content, path) {
+      const div = document.createElement('div');
+      div.className = 'tree-line';
+      div.dataset.path = path || '';
+      div.innerHTML = `<span class="line-num">${num}</span><span class="line-content">${'&nbsp;'.repeat(indent * 2)}${content}</span>`;
+      div.addEventListener('click', () => selectTreeLine(div, path));
+      // Toggle handler
+      const toggle = div.querySelector('.j-toggle');
+      if (toggle) {
+        toggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const target = document.getElementById(toggle.dataset.target);
+          if (target) {
+            target.classList.toggle('collapsed');
+            toggle.textContent = target.classList.contains('collapsed') ? '▸' : '▾';
+          }
+        });
+      }
+      return div;
+    }
+
+    function formatValue(val) {
+      if (val === null) return '<span class="j-null">null</span>';
+      if (typeof val === 'string') return `<span class="j-str">"${val}"</span>`;
+      if (typeof val === 'number') return `<span class="j-num">${val}</span>`;
+      if (typeof val === 'boolean') return `<span class="j-bool">${val}</span>`;
+      return String(val);
+    }
+
+    function selectTreeLine(el, path) {
+      document.querySelectorAll('.tree-line.selected').forEach(l => l.classList.remove('selected'));
+      el.classList.add('selected');
+      document.getElementById('searchInput').value = path || '';
+      document.getElementById('statusPath').textContent = path || '$.root';
+      showToast(`Path: ${path}`);
+    }
+
+    // === EXPAND / COLLAPSE ===
+    function expandAll() {
+      document.querySelectorAll('.j-children').forEach(c => c.classList.remove('collapsed'));
+      document.querySelectorAll('.j-toggle').forEach(t => t.textContent = '▾');
+      showToast('All nodes expanded');
+    }
+    function collapseAll() {
+      document.querySelectorAll('.j-children').forEach(c => c.classList.add('collapsed'));
+      document.querySelectorAll('.j-toggle').forEach(t => t.textContent = '▸');
+      showToast('All nodes collapsed');
+    }
+
+    // === COPY ===
+    function copyJSON() {
+      navigator.clipboard.writeText(JSON.stringify(jsonData, null, 2)).then(() => showToast('JSON copied to clipboard!'));
+    }
+
+    // === EDITOR ===
+    function initEditor() {
+      const area = document.getElementById('editorArea');
+      if (!area.value) area.value = JSON.stringify(jsonData, null, 2);
+    }
+    function formatJSON() {
+      try {
+        const area = document.getElementById('editorArea');
+        area.value = JSON.stringify(JSON.parse(area.value), null, 2);
+        document.getElementById('editorStatus').textContent = 'Formatted ✓';
+        document.getElementById('editorStatus').style.color = 'var(--success)';
+        showToast('JSON formatted');
+      } catch(e) { showToast('Invalid JSON!'); }
+    }
+    function minifyJSON() {
+      try {
+        const area = document.getElementById('editorArea');
+        area.value = JSON.stringify(JSON.parse(area.value));
+        showToast('JSON minified');
+      } catch(e) { showToast('Invalid JSON!'); }
+    }
+
+    // === SEARCH ===
+    function handleSearch(query) {
+      const panel = document.getElementById('searchResults');
+      if (!query.trim()) { panel.classList.remove('show'); return; }
+      const results = [];
+      function search(obj, path) {
+        if (typeof obj === 'object' && obj !== null) {
+          for (const [k, v] of Object.entries(obj)) {
+            const p = Array.isArray(obj) ? `${path}[${k}]` : `${path}.${k}`;
+            if (k.toLowerCase().includes(query.toLowerCase())) results.push({ path: p, value: v });
+            if (typeof v === 'string' && v.toLowerCase().includes(query.toLowerCase())) results.push({ path: p, value: v });
+            if (typeof v === 'object') search(v, p);
+          }
+        }
+      }
+      search(jsonData, '$');
+      if (results.length) {
+        panel.innerHTML = results.slice(0, 8).map(r => `<div class="search-result-item" onclick="showToast('Navigate to ${r.path}')"><span class="sr-path">${r.path}</span><span class="sr-value">${JSON.stringify(r.value).slice(0,40)}</span></div>`).join('') + `<div class="search-result-item"><span class="sr-count">${results.length} results</span></div>`;
+        panel.classList.add('show');
+      } else {
+        panel.innerHTML = '<div class="search-result-item"><span class="sr-value">No results found</span></div>';
+        panel.classList.add('show');
+      }
+    }
+
+    // === TABLE ===
+    function selectRow(row, path) {
+      document.querySelectorAll('.data-table tr.selected').forEach(r => r.classList.remove('selected'));
+      row.classList.add('selected');
+      document.getElementById('statusPath').textContent = `$.${path}`;
+      showToast(`Selected: $.${path}`);
+    }
+
+    // === COMMAND PALETTE ===
+    function toggleCmd() {
+      const p = document.getElementById('cmdPalette');
+      p.classList.toggle('show');
+      if (p.classList.contains('show')) { document.getElementById('cmdInput').value = ''; document.getElementById('cmdInput').focus(); filterCommands(''); }
+    }
+    function filterCommands(q) {
+      document.querySelectorAll('.cmd-item').forEach(item => {
+        const text = item.querySelector('.cmd-label').textContent.toLowerCase();
+        item.style.display = text.includes(q.toLowerCase()) ? '' : 'none';
+      });
+    }
+    function cmdAction(action, param) {
+      toggleCmd();
+      switch(action) {
+        case 'switchView': switchView(param); break;
+        case 'expand': expandAll(); break;
+        case 'collapse': collapseAll(); break;
+        case 'copy': copyJSON(); break;
+        case 'export-csv': showToast('Exported 2 rows to CSV'); break;
+        case 'flatten': showToast('JSON flattened to dot notation'); break;
+        case 'sort': showToast('Keys sorted alphabetically'); break;
+        case 'types': showToast('TypeScript interfaces generated!'); break;
+        case 'mask': showToast('2 email addresses masked'); break;
+      }
+    }
+
+    // === KEYBOARD SHORTCUTS ===
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); toggleCmd(); }
+      if (e.key === 'Escape') { document.getElementById('cmdPalette').classList.remove('show'); document.getElementById('searchResults').classList.remove('show'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '1') { e.preventDefault(); switchView('tree'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '2') { e.preventDefault(); switchView('table'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '3') { e.preventDefault(); switchView('graph'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === '4') { e.preventDefault(); switchView('schema'); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'e') { e.preventDefault(); switchView('editor'); }
+    });
+    document.getElementById('cmdPalette').addEventListener('click', e => { if (e.target === e.currentTarget) toggleCmd(); });
+
+    // === INIT ===
+    renderTree();
+  </script>
+</body>
+</html>

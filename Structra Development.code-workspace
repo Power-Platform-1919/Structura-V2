@@ -1,0 +1,9 @@
+﻿{
+	"folders": [
+		{ "name": "Structra V1", "path": "../structra" },
+		{ "name": "Structra V2", "path": "." }
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "Structra V2"
+	}
+}
