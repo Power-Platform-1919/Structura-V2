@@ -708,6 +708,206 @@
           "id": "13.41",
           "title": "The error message from the Paste tab stays visible when switching to Load URL or Upload; clear it when the tab changes or new input arrives",
           "status": "todo"
+        },
+        {
+          "id": "13.42",
+          "title": "Path bar accepts a path that does not exist (value[0].name when only name.first and displayName exist): the breadcrumb and status bar show it with no warning. Say 'No value at this path' and suggest the closest keys",
+          "status": "todo"
+        },
+        {
+          "id": "13.43",
+          "title": "A path typed in the path bar while the Overview (or Stats-like view) is open shows nothing; entering a path should switch to the Tree and scroll to and select that node",
+          "status": "todo"
+        },
+        {
+          "id": "13.44",
+          "title": "Path autocomplete list stays open after Enter and covers the tab bar; close it on submit, on Escape and when focus leaves",
+          "status": "todo"
+        },
+        {
+          "id": "13.45",
+          "title": "Tree-only toolbar buttons (+All, -All, D1, D2, D3, Wrap) stay enabled in Table, Graph, Overview, Schema and Editor where they do nothing (Wrap even lights up); disable or hide the ones the current view cannot use",
+          "status": "todo"
+        },
+        {
+          "id": "13.46",
+          "title": "Bookmark: the button turns amber but there is no visible bookmarks list or entry point (bookmarks only show in the Node panel after selecting a node); allow bookmarking a path that does not exist",
+          "status": "todo"
+        },
+        {
+          "id": "13.47",
+          "title": "Header Copy path and Bookmark buttons give no visible feedback (no toast seen) after click",
+          "status": "todo"
+        },
+        {
+          "id": "13.48",
+          "title": "CRITICAL: the Overview cannot scroll. components.css line 548 still styles structra-stats (renamed to structra-overview), so the Overview element is inline with auto height; its 1,983 px of content (Details, quality, arrays, coverage, profiler, distributions) is clipped with no scrollbar and PageDown does nothing. Rename the selector; add a smoke check that every view's scroll area is reachable",
+          "status": "todo"
+        },
+        {
+          "id": "13.49",
+          "title": "Overview area has no visible scrollbar and its last card is cut at the drawer edge with no hint that more content follows",
+          "status": "todo"
+        },
+        {
+          "id": "13.50",
+          "title": "Observed: clicking the Overview headline then pressing PageDown switched the bottom drawer from Analyze to Expressions by itself; find what changes the drawer tab",
+          "status": "todo"
+        },
+        {
+          "id": "13.51",
+          "title": "Main view areas are not keyboard focusable (no tabindex), so PageDown, End and arrow keys cannot scroll Overview, Schema and similar views",
+          "status": "todo"
+        },
+        {
+          "id": "13.52",
+          "title": "Table columns share the full width equally: a two-column table gives the ID column half the screen; size columns to their content (with a sensible min and max) and left-align numbers consistently",
+          "status": "todo"
+        },
+        {
+          "id": "13.53",
+          "title": "Opening a second document keeps the previous document's drawer tab (Expressions) with a stale source/path message ('Select a path in the tree...'); reset the drawer's context per tab",
+          "status": "todo"
+        },
+        {
+          "id": "13.54",
+          "title": "Table column menu (right-click a header) mixes colour emoji (chart, stats, distinct, copy), Unicode triangles and one Lucide arrow, with uneven row heights; use Structra.icons for every entry and one row height",
+          "status": "todo"
+        },
+        {
+          "id": "13.55",
+          "title": "Table column widths jump when the sort changes (VAL moved right after sorting ID); keep widths stable",
+          "status": "todo"
+        },
+        {
+          "id": "13.56",
+          "title": "Table column menu 'Distinct Values' silently starts the SQL engine (about 14 s: library load, then registering the data), then fails with 'Catalog Error: Table with name data does not exist' and shows nothing; no progress, no result, no error message. Compute distinct values in JavaScript (or fix the table name) and always show a result or a clear error",
+          "status": "todo"
+        },
+        {
+          "id": "13.57",
+          "title": "Features that need the SQL engine start it without saying so and block for many seconds; say 'Preparing the SQL engine (first use only)...' with progress, and prefer JavaScript paths for small data",
+          "status": "todo"
+        },
+        {
+          "id": "13.58",
+          "title": "Filter panel offers only the top-level keys (just 'data' for {data:[...]}), not the columns of the list being viewed; filtering 'item1' collapsed 120 rows to one {…} row. Filter the main list's rows by its columns (value, id) and show the matching count",
+          "status": "todo"
+        },
+        {
+          "id": "13.59",
+          "title": "Column Stats in the table column menu does nothing visible (SQL error in the console); Charts works but shows a faint stray tooltip text at the top right of the histogram",
+          "status": "todo"
+        },
+        {
+          "id": "13.60",
+          "title": "Filter panel header shows '1 rows' (grammar) and no way to see which condition produced it; add 'No rows match' empty state in the table",
+          "status": "todo"
+        },
+        {
+          "id": "13.61",
+          "title": "Not responsive: at 900 px the right toolbar buttons (Find, Filter, Wrap, Edit, Copy) are clipped with no overflow menu; at 640 px the header Commands button, the table and the status bar are cut off and the page overflows sideways. Collapse the toolbar into a More menu, stack or hide secondary header items, and make panels overlay instead of squeezing",
+          "status": "todo"
+        },
+        {
+          "id": "13.62",
+          "title": "After Clear in the Filter panel the condition row disappears (only '+ Add condition' remains) and the open panel keeps covering the toolbar buttons; Clear should reset to one empty row and Escape should close the panel",
+          "status": "todo"
+        },
+        {
+          "id": "13.63",
+          "title": "At laptop heights (700 px) the bottom drawer takes about 40% of the screen and leaves 6 table rows; the drawer needs a smaller default, remember its size, and offer one click to hide it",
+          "status": "todo"
+        },
+        {
+          "id": "13.64",
+          "title": "Tree view after switching documents and back renders duplicated lines (line numbers 12, 13 then again 12, 13, and 20, 21 twice) and the fold arrows sit on top of key names (value, $select, #ref, $values) while the first array line has no arrow; reproduce: open two files, switch tab 2 then tab 1, Tree",
+          "status": "todo"
+        },
+        {
+          "id": "13.65",
+          "title": "Tree right-click menu icons are colour emoji (clipboard, star, magnifier, target, bolt) and a blue square, not the Lucide set; use Structra.icons",
+          "status": "todo"
+        },
+        {
+          "id": "13.66",
+          "title": "Right-clicking a tree line opens the menu for that line but does not select it: the path bar, breadcrumb and Node panel keep showing the previous path",
+          "status": "todo"
+        },
+        {
+          "id": "13.67",
+          "title": "Tree line numbers repeat after the closing bracket of an array of plain values ('$select': [id, displayName] then ], takes number 12 again) so every later line is numbered one too low; the fold arrow for arrays is drawn over the key text instead of after the colon. Seen with tests/fixtures/edge_odata.json in the Tree",
+          "status": "todo"
+        },
+        {
+          "id": "13.68",
+          "title": "Editor: when the JSON is broken it only says 'Invalid' (no reason, line or column, no marker in the text); Apply and Repair give no visible response (no message when nothing can be repaired, no error on Apply). Show the parse error with its position, and say what Repair changed",
+          "status": "todo"
+        },
+        {
+          "id": "13.69",
+          "title": "Editor has no line numbers or syntax colours, and the text starts flush against the left edge of the panel",
+          "status": "todo"
+        },
+        {
+          "id": "13.70",
+          "title": "Toolbar actions (Mask, Repair, Apply) report their result only in a short toast that was not visible in screenshots taken a second later; keep results visible long enough or log them in a small activity area",
+          "status": "todo"
+        },
+        {
+          "id": "13.71",
+          "title": "Pivot dialog lists the document's top-level keys (@odata.context, @odata.nextLink, value, $metadata) as fields instead of the main list's columns (id, displayName...), so it cannot pivot the data a user sees; the Rows, Columns and Values zones wrap into an odd 2-row layout (Values under Rows) with a huge empty result area, and nothing says how to use it (drag chips? click?)",
+          "status": "todo"
+        },
+        {
+          "id": "13.72",
+          "title": "Same root cause as Filter and Pivot: several tools (Filter, Pivot, probably Null finder and Charts defaults) work on the document root instead of the main list; one shared 'working list' (the main list, switchable) should drive them all",
+          "status": "todo"
+        },
+        {
+          "id": "13.73",
+          "title": "CRITICAL: Transform is broken. Rail Transform or the Transform tab, any preset or expression, then Run transform shows 'Error: Structra.transformOps.evaluate is not a function' (the query panel calls evaluate, the module exports executeStep, operations, validateExpression, buildFn1, buildFn2). Implement evaluate or call the right function, and add a test",
+          "status": "todo"
+        },
+        {
+          "id": "13.74",
+          "title": "Transform presets insert expressions with placeholder field names (.[] | {name, email}, sort_by(.name)) that rarely match the data; offer presets built from the real keys of the main list",
+          "status": "todo"
+        },
+        {
+          "id": "13.75",
+          "title": "Query & Filter panel title does not change when the Transform tab is open (rail Transform and Query open the same panel); name the panel for what it shows",
+          "status": "todo"
+        },
+        {
+          "id": "13.76",
+          "title": "Null and Empty Finder 'missing' results are mostly false positives (28 found on edge_odata.json): it reports keys such as @odata.type, id, displayName as missing inside value[0].#ref and nested.dotted.key by comparing against the parent record's keys; compare only sibling objects in the same list, and show the count per kind",
+          "status": "todo"
+        },
+        {
+          "id": "13.77",
+          "title": "Null finder list uses the $.a.b path form and a Unicode triangle on Prev; clicking a result should jump to it (check) and the dialog should say how many of each kind (null, empty, missing)",
+          "status": "todo"
+        },
+        {
+          "id": "13.78",
+          "title": "The '?' shortcut for Keyboard Shortcuts (listed in the palette) does nothing, and there is no visible Help or shortcuts entry point in the interface; add a Help menu (shortcuts, welcome, what is new) in the header",
+          "status": "todo"
+        },
+        {
+          "id": "13.79",
+          "title": "CRITICAL: data tools say they worked but no view changes. Palette 'Sort Keys A to Z' shows the toast 'Keys sorted A→Z', the engine copy is sorted ($metadata first), but Structra.state.jsonData and the Tree still show the original order. The tools call _reingest which updates only the engine dataset; check Flatten, Unflatten, Mask, Unmask, Mock, Sample the same way, set state.jsonData and re-render, and add a smoke check that the Tree changes after Sort Keys",
+          "status": "todo"
+        },
+        {
+          "id": "13.80",
+          "title": "Tool results should be undoable and visible: after Sort, Flatten or Mask the tab should show a 'Modified' marker and an Undo link in the toast",
+          "status": "todo"
+        },
+        {
+          "id": "13.81",
+          "title": "Status bar 'NORMAL' button flips to 'DEV' when clicked with no explanation (log level); keep it out of the normal interface",
+          "status": "todo"
         }
       ]
     }
