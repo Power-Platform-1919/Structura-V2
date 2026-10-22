@@ -1053,6 +1053,11 @@
           "id": "13.110",
           "title": "Command palette lists every command in every state: Undo/Redo, Zoom to Fit, Expand All appear on an empty tab or in the Editor; unavailable commands should be hidden or dimmed with a reason. There is no Power Platform command (Expressions, Schema Gen, Choose columns, Copy Power Automate expression)",
           "status": "todo"
+        },
+        {
+          "id": "13.111",
+          "title": "Size Heatmap: only a floating legend 'Heatmap ON Small Medium Large' appears (about 300 px from the right edge, not aligned to anything) and no row in the Tree is coloured; it does not say what 'size' means (bytes? child count?) and the toggle state is not visible anywhere else",
+          "status": "todo"
         }
       ]
     }
