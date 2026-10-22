@@ -1188,6 +1188,41 @@
           "id": "13.137",
           "title": "Dark theme looks consistent in Table, Tree and the side panel (distinct panels, readable table, accent on tabs); but the side panel and canvas are only about 2 percent apart in lightness, so the panel edge is hard to see without the 1px border; check the High Contrast and custom themes",
           "status": "todo"
+        },
+        {
+          "id": "13.138",
+          "title": "High Contrast theme: app background is #000000 and panels are #0a0a0a, so the side panel, Table and canvas merge into one black area separated only by a faint grey line; a high contrast theme needs bright borders (the Borders token is #7a7a7a) and the disabled pager buttons are almost invisible",
+          "status": "todo"
+        },
+        {
+          "id": "13.139",
+          "title": "Custom theme editor is good (live preview, contrast badges with AA), but it opens scrolled to the bottom of the dialog with the theme list half off screen, has two confirm buttons (Save theme and Done) and the Cancel button is easy to confuse with other dialogs; the Mode hint 'System follows your operating system' stays the same for Light, Dark and System",
+          "status": "todo"
+        },
+        {
+          "id": "13.140",
+          "title": "Closed dialogs stay in the page as hidden copies (Snippet Library, Welcome, Input overlay duplicate Cancel, Light, Send, Paste Data and the sample link controls), so keyboard focus order and screen readers can reach duplicates; dialogs and the input overlay should be created on open and removed on close",
+          "status": "todo"
+        },
+        {
+          "id": "13.141",
+          "title": "Generate Mock Data says 'Mock data generated from structure' but opens no tab and shows no result; the clipboard did not receive mock JSON when read back, so the maker has nothing to use. It should open the mock in a new tab (or a preview with Copy and Download) and say how many rows were made",
+          "status": "todo"
+        },
+        {
+          "id": "13.142",
+          "title": "Recent list works and opens into the empty tab, but it stores the full text of every file in the browser (the Pasted JSON entry shows emails and phone numbers in its preview), has only a 'Clear History' button and no per-entry remove, lists the same name twice (two 'Pasted JSON' tabs after reopening) and the long list scrolls the whole card instead of an inner list",
+          "status": "todo"
+        },
+        {
+          "id": "13.143",
+          "title": "CORRECTION to the Mock Data item: Generate Mock Data does replace the open document, but only after a delay and only in the Table (the Table later showed 3 mock rows such as 43751 / magna@example.com in place of the 2 real rows), with no confirmation, no new tab and no Undo; the tab name 'Pasted JSON' and the Tree and Overview state do not say the data was replaced. Mock must open in a new tab and never overwrite the user's file",
+          "status": "todo"
+        },
+        {
+          "id": "13.144",
+          "title": "Table column Hide and restore work well (the '1 hidden' chip brings the column back); the column menu mixes arrow glyphs and emoji icons (triangles, arrow, circle, chart emoji), which looks unfinished next to the Lucide icons in the rest of the app",
+          "status": "todo"
         }
       ]
     }
