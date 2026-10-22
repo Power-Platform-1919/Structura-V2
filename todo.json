@@ -1058,6 +1058,16 @@
           "id": "13.111",
           "title": "Size Heatmap: only a floating legend 'Heatmap ON Small Medium Large' appears (about 300 px from the right edge, not aligned to anything) and no row in the Tree is coloured; it does not say what 'size' means (bytes? child count?) and the toggle state is not visible anywhere else",
           "status": "todo"
+        },
+        {
+          "id": "13.112",
+          "title": "Shortcuts listed in the palette do not all work: Ctrl+D (Diff) did nothing in the browser; the shortcut list needs a check against real key handling and against browser-reserved keys (Ctrl+D is Bookmark in most browsers)",
+          "status": "todo"
+        },
+        {
+          "id": "13.113",
+          "title": "Diff dialog works, but the summary '+1 -0 ~2' is unlabelled (added, removed, changed), the paste box disappears after Compare so the right side cannot be corrected, and the Right dropdown still reads 'Paste JSON...'",
+          "status": "todo"
         }
       ]
     }
