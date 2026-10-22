@@ -1128,6 +1128,16 @@
           "id": "13.125",
           "title": "Find Duplicate Keys on a pasted CSV (and on any data that was parsed, repaired, edited or loaded from a recent entry) only toasts 'The original text of this document is not available' instead of saying 'No duplicate keys' or running on the data; the message is jargon and the check has no result view",
           "status": "todo"
+        },
+        {
+          "id": "13.126",
+          "title": "Mask Sensitive Data (Ctrl+Shift+P) says 'Masked 4 sensitive values' for a list with 2 emails and 2 phone numbers but the Tree and Table still show the real values; a maker who trusts the toast would share unmasked data. Same root cause as the sort and flatten tools (item about tools not updating state); this one is a privacy risk so it should be treated as critical",
+          "status": "todo"
+        },
+        {
+          "id": "13.127",
+          "title": "The Paste Data box keeps the text pasted into the previous tab (the old CSV was still there in a new tab) and the Format dropdown keeps its previous choice; a new tab should start empty",
+          "status": "todo"
         }
       ]
     }
