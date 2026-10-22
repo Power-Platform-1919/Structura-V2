@@ -21,7 +21,7 @@
         {
           "id": "1.3",
           "title": "Add favicon link and icons/icon.svg",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "1.4",
@@ -33,32 +33,32 @@
     {
       "id": "2",
       "title": "Power Platform expressions drawer (V1 core value, empty in V2)",
-      "status": "todo",
+      "status": "done",
       "subtasks": [
         {
           "id": "2.1",
-          "title": "Port power-platform.js (Power Automate + Power Fx) to Structra namespace as src/core/expressions-pp.js",
-          "status": "todo"
+          "title": "Rewrite Power Automate and Power Fx generators as data-driven src/core/expressions.js (rows, not HTML)",
+          "status": "done"
         },
         {
           "id": "2.2",
           "title": "Fill the Expressions drawer tab with PA / Canvas sub-tabs, driven by the selected path",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "2.3",
           "title": "Port helpers.js (Apply to each, connector shape detection) into the Expressions tab",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "2.4",
           "title": "Port schema-gen.js and fill the Schema Gen tab with Copy Schema",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "2.5",
-          "title": "Add path builders (buildPAPath, buildFxPathFull) check against src/utils/path.js",
-          "status": "todo"
+          "title": "Rewrite path helpers as src/core/paths.js (Structra.paths)",
+          "status": "done"
         }
       ]
     },
@@ -209,7 +209,7 @@
         },
         {
           "id": "8.3",
-          "title": "Migrate remaining window.App usages (lib-loader, path) to Structra",
+          "title": "Remove remaining window.App usage (lib-loader, path, primitives) and rewrite under Structra",
           "status": "todo"
         },
         {
@@ -224,5 +224,9 @@
         }
       ]
     }
+  ],
+  "principles": [
+    "Fresh rewrite: reuse V1 logic, but no backward-compatibility layers (no window.App shims). Everything lives under window.Structra.",
+    "V2 should end up better and different from V1, not a copy."
   ]
 }

@@ -28,6 +28,11 @@ class StructraDrawer extends StructraElement {
 
   render() {
     const tabs = Structra.constants.DRAWER_TABS;
+    const panelTag = {
+      'analyze': 'structra-drawer-stats',
+      'expressions': 'structra-expressions',
+      'schema-gen': 'structra-schemagen',
+    };
 
     this.innerHTML = `
       <div class="drawer-resize-bar" id="drawerResizeBar"></div>
@@ -41,7 +46,7 @@ class StructraDrawer extends StructraElement {
         <div class="drawer-nav">
           ${tabs.map((t, i) => `<button class="drawer-nav-btn ${i === 0 ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
         </div>
-        ${tabs.map((t, i) => `<div class="drawer-panel ${i === 0 ? 'active' : ''}" data-panel="${t.id}" id="dp-${t.id}">${t.id === 'analyze' ? '<structra-drawer-stats></structra-drawer-stats>' : ''}</div>`).join('')}
+        ${tabs.map((t, i) => `<div class="drawer-panel ${i === 0 ? 'active' : ''}" data-panel="${t.id}" id="dp-${t.id}">${panelTag[t.id] ? `<${panelTag[t.id]}></${panelTag[t.id]}>` : ''}</div>`).join('')}
       </div>`;
 
     this._applyState();
