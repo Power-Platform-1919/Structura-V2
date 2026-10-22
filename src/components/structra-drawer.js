@@ -14,9 +14,27 @@ class StructraDrawer extends StructraElement {
       this._stateIdx = Structra.constants.DRAWER_STATES.indexOf(d.value);
       this._applyState();
     });
+    // The Overview already shows what the Analyze tab shows, so the drawer stays folded there and opens in the other views
+    const analyzeOpen = () => (this.$('.drawer-tabs .tab.active') || {}).dataset?.tab === 'analyze';
+    this.on('state:activeView', (d) => {
+      if (!Structra.state.jsonData) return;
+      if (d.value === 'overview' && analyzeOpen() && this._stateIdx !== 0) {
+        this._autoFolded = true;
+        this._stateIdx = 0;
+        Structra.set('drawerState', 'collapsed');
+        this._applyState();
+      } else if (d.value !== 'overview' && this._autoFolded) {
+        this._autoFolded = false;
+        this._stateIdx = 1;
+        Structra.set('drawerState', 'medium');
+        this._applyState();
+      }
+    });
     this.on('state:jsonData', (d) => {
       this.hidden = !d.value;
-      if (d.value && this._stateIdx === 0) {
+      if (d.value && this._stateIdx === 0 && Structra.state.activeView === 'overview' && analyzeOpen()) {
+        this._autoFolded = true;                    // stays folded on the Overview, opens when another view is chosen
+      } else if (d.value && this._stateIdx === 0) {
         Structra.log.debug('Drawer', 'Data loaded — expanding to medium');
         this._stateIdx = 1;
         this._applyState();

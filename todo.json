@@ -552,27 +552,27 @@
         {
           "id": "13.10",
           "title": "Overview: the bottom Analyze drawer repeats the same figures and takes about 250 px in every view; keep the drawer collapsed unless a tab is chosen",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.11",
           "title": "Overview headline wraps leaving a single word ('each.'); widen its max width",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.12",
           "title": "Overview null findings give no advice; say what to do (Parse JSON schema allows null, use coalesce() in expressions)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.13",
           "title": "Overview charts numeric and categorical distributions for IDs, ETags and timestamps (ItemInternalId shown as 1.0/1.3/1.7); skip id-like, etag-like and date-like fields",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.14",
           "title": "Key Coverage table: 'Coverage 100%' next to 'Empty 1' is misleading when half the values are null; label it 'Has the key' or show filled share",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.15",
@@ -747,17 +747,17 @@
         {
           "id": "13.49",
           "title": "Overview area has no visible scrollbar and its last card is cut at the drawer edge with no hint that more content follows",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.50",
           "title": "Observed: clicking the Overview headline then pressing PageDown switched the bottom drawer from Analyze to Expressions by itself; find what changes the drawer tab",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.51",
           "title": "Main view areas are not keyboard focusable (no tabindex), so PageDown, End and arrow keys cannot scroll Overview, Schema and similar views",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.52",
@@ -1012,7 +1012,7 @@
         {
           "id": "13.102",
           "title": "Overview 'Worth a look' and the bottom Analyze tab repeat the same numbers (nodes, keys, nulls, depth, type chips, data quality); two places for one fact, and the bottom Analyze tab stays open over every view",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.103",

@@ -64,6 +64,14 @@ function serve() {
       if (moved <= 0) failures.push('Overview: the mouse wheel does not scroll it');
     }
 
+    // ---- The Overview and the Analyze tab show the same figures: the drawer stays folded on the Overview ----
+    const ovDrawer = await page.evaluate(() => document.querySelector('structra-drawer').getBoundingClientRect().height);
+    if (ovDrawer > 60) failures.push(`Overview: the bottom drawer is open (${Math.round(ovDrawer)}px) and repeats the Overview's figures`);
+    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.waitForTimeout(500);
+    const treeDrawer = await page.evaluate(() => document.querySelector('structra-drawer').getBoundingClientRect().height);
+    if (treeDrawer < 150) failures.push(`the drawer did not open when leaving the Overview (${Math.round(treeDrawer)}px)`);
+
     // ---- Toolbar: every button stays inside the toolbar at normal and narrow widths, with the side panels open ----
     await page.evaluate(() => { Structra.set('activeView', 'tree'); Structra.set('queryPanelOpen', true); Structra.set('contextPanelOpen', true); });
     await page.evaluate(() => Structra.events.emit('tree:node-selected', '$.value[0].Title'));

@@ -12,13 +12,14 @@
     "test:find": "node tests/smoke/find.js",
     "test:layout": "node tests/smoke/layout.js",
     "test:transform": "node tests/smoke/transform.js",
-    "test:all": "npm test && node tests/smoke/tabs.js && node tests/smoke/tools.js && node tests/smoke/find.js && node tests/smoke/layout.js && node tests/smoke/transform.js && node tests/smoke/exports.js && node tests/smoke/schema.js && node tests/smoke/table.js && node tests/smoke/query.js && node tests/smoke/powerplatform.js && node tests/smoke/shell.js",
+    "test:all": "npm test && node tests/smoke/tabs.js && node tests/smoke/tools.js && node tests/smoke/find.js && node tests/smoke/layout.js && node tests/smoke/transform.js && node tests/smoke/exports.js && node tests/smoke/schema.js && node tests/smoke/table.js && node tests/smoke/query.js && node tests/smoke/powerplatform.js && node tests/smoke/shell.js && node tests/smoke/overview.js",
     "test:exports": "node tests/smoke/exports.js",
     "test:schema": "node tests/smoke/schema.js",
     "test:table": "node tests/smoke/table.js",
     "test:query": "node tests/smoke/query.js",
     "test:powerplatform": "node tests/smoke/powerplatform.js",
-    "test:shell": "node tests/smoke/shell.js"
+    "test:shell": "node tests/smoke/shell.js",
+    "test:overview": "node tests/smoke/overview.js"
   },
   "devDependencies": {
     "playwright": "^1.64.1"

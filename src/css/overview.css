@@ -9,6 +9,9 @@
 .stats-view {
   height: 100%;
   overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
   padding: var(--sp-5) var(--sp-6) var(--sp-8);
   display: flex;
   flex-direction: column;
@@ -166,7 +169,7 @@
 .ds-action-btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
 
 .ovw-summary { padding: var(--sp-2) 0 var(--sp-1); }
-.ovw-headline { margin: 0 0 var(--sp-4); max-width: 46rem; font-size: var(--fs-2xl); font-weight: var(--fw-semibold); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--text); }
+.ovw-headline { margin: 0 0 var(--sp-4); max-width: 70rem; text-wrap: balance; font-size: var(--fs-2xl); font-weight: var(--fw-semibold); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--text); }
 .ovw-facts { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-8); margin: 0; }
 .ovw-fact { display: flex; flex-direction: column; gap: 2px; }
 .ovw-fact dt { font-size: var(--fs-sm); color: var(--text-muted); }

@@ -39,7 +39,8 @@ class StructraOverview extends StructraElement {
   }
 
   render() {
-    this.innerHTML = '<div class="stats-view" id="statsContainer"></div>';
+    // tabindex: the page can be scrolled with the keyboard (arrows, Page Down, End) once it is clicked or tabbed to
+    this.innerHTML = '<div class="stats-view" id="statsContainer" tabindex="0" role="region" aria-label="Overview"></div>';
     this.renderStats();
 
     // Single event-delegated click handler
@@ -394,11 +395,13 @@ class StructraOverview extends StructraElement {
       : '';
 
     let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage — ${Structra.util.esc(path)} (${rows.length} rows)${backBtn}</div>`;
-    html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th>Coverage</th><th></th></tr></thead><tbody>';
+    html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th title="Rows where the key is there and not empty">Has a value</th><th></th></tr></thead><tbody>';
 
     const sorted = [...coverage].sort((a, b) => b.missing - a.missing || b.empty - a.empty || a.key.localeCompare(b.key));
     for (const k of sorted) {
-      const color = k.pct === 100 ? 'var(--success)' : k.pct >= 80 ? 'var(--warning)' : 'var(--danger)';
+      // "Has a value": present and not empty (a key that is there but null is not a value)
+      const hasValue = rows.length ? Math.round(Math.max(0, k.present - k.empty) / rows.length * 100) : 0;
+      const color = hasValue === 100 ? 'var(--success)' : hasValue >= 80 ? 'var(--warning)' : 'var(--danger)';
       const missStyle = k.missing > 0 ? 'class="stat-missing-cell" data-action="show-missing" data-keyname="' + Structra.util.esc(k.key) + '"' : '';
       const emptyStyle = k.empty > 0 ? 'class="stat-empty-cell" data-action="show-empty" data-keyname="' + Structra.util.esc(k.key) + '"' : '';
 
@@ -415,8 +418,8 @@ class StructraOverview extends StructraElement {
         <td>${k.present}</td>
         <td ${emptyStyle}>${k.empty || '-'}</td>
         <td ${missStyle} style="${k.missing > 0 ? 'color:var(--danger);font-weight:700;cursor:pointer' : ''}">${k.missing || '-'}</td>
-        <td class="cov-pct" style="color:${color}">${k.pct}%</td>
-        <td><div class="cov-bar"><div class="cov-bar-fill" style="width:${k.pct}%;background:${color}"></div></div></td>
+        <td class="cov-pct" style="color:${color}">${hasValue}%</td>
+        <td><div class="cov-bar"><div class="cov-bar-fill" style="width:${hasValue}%;background:${color}"></div></div></td>
       </tr>`;
 
       // Nested object keys (hidden by default, toggled)
@@ -475,7 +478,9 @@ class StructraOverview extends StructraElement {
      ==================================================== */
 
   _renderDistribution(profile) {
-    const fields = profile.fields.filter((f) => f.histogram || f.distTop);
+    // Identifiers, tags and time stamps have a different value every row: their "distribution" says nothing
+    const NOISE = /^(@|odata)|(^|[_.])(id|guid|uuid|etag)$|^itemInternalId$|^(created|modified|updated|timestamp)(at|on|date|time|by)?$/i;
+    const fields = profile.fields.filter((f) => (f.histogram || f.distTop) && !NOISE.test(f.key));
     if (!fields.length) return '';
 
     let html = '<div class="stats-section"><div class="stats-section-title">Value Distribution</div><div class="dist-grid">';

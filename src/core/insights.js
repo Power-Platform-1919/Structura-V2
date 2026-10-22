@@ -66,10 +66,13 @@ Structra.insights = (() => {
 
     if (profile) {
       for (const issue of profile.quality.issues) {
+        const empty = /null|empty|missing/i.test(issue.msg);
         findings.push({
           severity: issue.severity === 'high' ? 'high' : 'med',
           title: `${issue.field}: ${issue.msg}`,
-          detail: firstArr ? `In the records of ${readable(firstArr.path)}.` : '',
+          // Say what to do about it: in a flow an empty value breaks an expression that does not expect it
+          detail: (firstArr ? `In the records of ${readable(firstArr.path)}. ` : '')
+            + (empty ? `In Power Automate, wrap it as coalesce(item()?['${issue.field}'], 'default'). The Parse JSON schema from Schema Gen already allows null here.` : ''),
           go: { view: 'table', column: issue.field },
         });
       }
