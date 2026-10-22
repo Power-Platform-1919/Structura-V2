@@ -55,6 +55,7 @@ class StructraCommand extends StructraElement {
       { id: 'redo',       label: 'Redo',                           kbd: 'Ctrl+Y',       cat: 'Edit',     icon: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/>' },
       // UI
       { id: 'theme',      label: 'Switch Light / Dark',             kbd: 'Alt+T',        cat: 'UI',       icon: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/>' },
+      { id: 'welcome',    label: 'Welcome',                         kbd: '',             cat: 'Help',     icon: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
       { id: 'shortcuts',  label: 'Keyboard Shortcuts',             kbd: '?',            cat: 'Help',     icon: '<rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/>' },
       // Phase 5 features
       { id: 'diff',       label: 'Diff / Compare JSON',            kbd: 'Ctrl+D',       cat: 'Analysis', icon: '<rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>' },
@@ -369,6 +370,9 @@ class StructraCommand extends StructraElement {
         break;
       case 'shortcuts':
         this._showShortcuts();
+        break;
+      case 'welcome':
+        Structra.events.emit('welcome:open');
         break;
 
       /* ---- Phase 5 ---- */

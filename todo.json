@@ -336,6 +336,11 @@
           "status": "todo"
         },
         {
+          "id": "10.2a",
+          "title": "First-run welcome dialog (shown once, reopen from the command palette as 'Welcome'): purpose, privacy, Power Platform add-on, light/dark choice, Try a sample / Open a file / Skip",
+          "status": "done"
+        },
+        {
           "id": "10.3",
           "title": "Power Platform add-on stays prominent (rail icon and drawer tabs); highlights itself when the payload looks like a connector or OData response",
           "status": "todo"

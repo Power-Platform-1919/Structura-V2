@@ -30,7 +30,7 @@
 
 /* Elements that float or overlay should not take part in the layout */
 structra-find, structra-toast, structra-command, structra-loading, structra-input-panel,
-structra-validate, structra-theme, structra-charts, structra-diff, structra-typedef, structra-shortcuts,
+structra-validate, structra-theme, structra-welcome, structra-charts, structra-diff, structra-typedef, structra-shortcuts,
 structra-snippets, structra-workspace, structra-pivot, structra-nullfinder, structra-minimap,
 structra-heatmap, structra-zoom, structra-autocomplete {
   display: contents;
