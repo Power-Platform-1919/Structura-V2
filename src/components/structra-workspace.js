@@ -4,22 +4,16 @@
    state (tabs, bookmarks, settings, query history, undo stack).
    ============================================================ */
 
-class StructraWorkspace extends StructraElement {
+class StructraWorkspace extends StructraOverlay {
   init() {
+    super.init();
     this.on('workspace:export', () => this._export());
     this.on('workspace:import', () => this._showImport());
-    this.on('workspace:open', () => this._open());
-    this.on('overlay:close', () => this._close());
+    this.on('workspace:open', () => this.open());
   }
 
   render() {
-    this.innerHTML = `<div class="ws-overlay" id="wsOverlay" style="display:none">
-      <div class="ws-panel">
-        <div class="ws-header">
-          <span class="ws-title">Workspace</span>
-          <button class="ws-close" data-action="close">${Structra.icons.svg('x', { size: 14 })}</button>
-        </div>
-        <div class="ws-body">
+    this.mount({ title: 'Workspace', size: 'md', body: `<div class="ws-body">
           <div class="ws-section">
             <h3>Export Workspace</h3>
             <p class="ws-desc">Save your current session including settings, bookmarks, query history, and snippets to a file.</p>
@@ -40,22 +34,17 @@ class StructraWorkspace extends StructraElement {
             <input type="file" id="wsImportFile" accept=".structra,.json" class="ws-file-input">
             <button class="btn btn-primary" data-action="import">Import</button>
           </div>
-        </div>
-      </div>
-    </div>`;
+        </div>` });
 
     this.addEventListener('click', (e) => {
       const action = e.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
-      if (a === 'close') this._close();
+      if (a === 'close') this.close();
       else if (a === 'export') this._export();
       else if (a === 'import') this._import();
     });
   }
-
-  _open() { this.$('#wsOverlay').style.display = ''; }
-  _close() { this.$('#wsOverlay').style.display = 'none'; }
 
   _export() {
     const ws = { version: 2, exportedAt: new Date().toISOString(), type: 'structra-workspace' };
@@ -91,7 +80,7 @@ class StructraWorkspace extends StructraElement {
     Structra.toast('Workspace exported');
   }
 
-  _showImport() { this._open(); }
+  _showImport() { this.open(); }
 
   async _import() {
     const fileInput = this.$('#wsImportFile');
@@ -135,7 +124,7 @@ class StructraWorkspace extends StructraElement {
         localStorage.setItem('structra_snippets', JSON.stringify(ws.snippets));
       }
 
-      this._close();
+      this.close();
       Structra.toast('Workspace imported successfully');
     } catch (e) {
       Structra.toast('Import failed: ' + e.message, 'error');

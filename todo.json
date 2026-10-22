@@ -293,8 +293,8 @@
         },
         {
           "id": "9.12",
-          "title": "Migrate remaining overlays (shortcuts, typedef, diff, nullfinder, pivot, minimap, snippets, workspace, heatmap, zoom) to StructraOverlay + ui.css",
-          "status": "todo"
+          "title": "Dialogs on the shared overlay base: shortcuts, typedef, diff, null finder, pivot, snippets and workspace now use StructraOverlay (open, close, Escape, backdrop, focus trap come from one place); about 35 old overlay, panel and header CSS rules removed. The smoke test opens and closes ten dialogs",
+          "status": "done"
         },
         {
           "id": "9.13",
@@ -387,8 +387,8 @@
         },
         {
           "id": "10.12",
-          "title": "Move older dialogs (shortcuts, typedef, diff, nullfinder, pivot, snippets, workspace, heatmap, minimap) onto StructraOverlay",
-          "status": "todo"
+          "title": "Dialogs on the shared overlay base: shortcuts, typedef, diff, null finder, pivot, snippets and workspace now use StructraOverlay (open, close, Escape, backdrop, focus trap come from one place); about 35 old overlay, panel and header CSS rules removed. The smoke test opens and closes ten dialogs",
+          "status": "done"
         }
       ]
     },

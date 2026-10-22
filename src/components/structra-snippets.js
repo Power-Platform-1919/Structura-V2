@@ -4,22 +4,16 @@
    Stored in localStorage. Integrates with engine for validation.
    ============================================================ */
 
-class StructraSnippets extends StructraElement {
+class StructraSnippets extends StructraOverlay {
   init() {
+    super.init();
     this._snippets = this._load();
-    this.on('snippets:open', () => this._open());
+    this.on('snippets:open', () => this.open());
     this.on('snippets:save', (d) => this._saveFromEvent(d));
-    this.on('overlay:close', () => this._close());
   }
 
   render() {
-    this.innerHTML = `<div class="snip-overlay" id="snipOverlay" style="display:none">
-      <div class="snip-panel">
-        <div class="snip-header">
-          <span class="snip-title">Snippet Library</span>
-          <button class="snip-close" data-action="close">${Structra.icons.svg('x', { size: 14 })}</button>
-        </div>
-        <div class="snip-toolbar">
+    this.mount({ title: 'Snippet Library', size: 'md', body: `<div class="snip-toolbar">
           <button class="btn btn-primary" data-action="save-current">+ Save Current Selection</button>
           <input type="text" class="snip-search" id="snipSearch" placeholder="Search snippets…">
         </div>
@@ -31,9 +25,7 @@ class StructraSnippets extends StructraElement {
             <button class="btn btn-primary" data-action="confirm-save">Save</button>
             <button class="btn" data-action="cancel-save">Cancel</button>
           </div>
-        </div>
-      </div>
-    </div>`;
+        </div>` });
 
     this._renderList();
 
@@ -41,7 +33,7 @@ class StructraSnippets extends StructraElement {
       const action = e.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
-      if (a === 'close') this._close();
+      if (a === 'close') this.close();
       else if (a === 'save-current') this._showSaveForm();
       else if (a === 'confirm-save') this._confirmSave();
       else if (a === 'cancel-save') this._hideSaveForm();
@@ -53,8 +45,7 @@ class StructraSnippets extends StructraElement {
     this.$('#snipSearch').addEventListener('input', (e) => this._filterList(e.target.value));
   }
 
-  _open() { this.$('#snipOverlay').style.display = ''; this._renderList(); }
-  _close() { this.$('#snipOverlay').style.display = 'none'; }
+  onOpen() { this._renderList(); }
 
   _load() {
     try { return JSON.parse(localStorage.getItem('structra_snippets') || '[]'); }
@@ -114,7 +105,7 @@ class StructraSnippets extends StructraElement {
       Structra.set('fileName', snip.name + '.json');
       Structra.set('fileSize', snip.content.length);
       Structra.engine.ingest(data, snip.name + '.json', snip.content.length);
-      this._close();
+      this.close();
       Structra.toast(`Loaded snippet: ${snip.name}`);
     } catch (e) { Structra.toast('Failed to load: ' + e.message, 'error'); }
   }

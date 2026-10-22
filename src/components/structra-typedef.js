@@ -5,26 +5,18 @@
    Uses Structra.codeGen for all language generation.
    ============================================================ */
 
-class StructraTypedef extends StructraElement {
+class StructraTypedef extends StructraOverlay {
   init() {
+    super.init();
     this._lang = 'typescript';
     this._code = '';
     this._rootName = 'Root';
 
     this.on('typedef:open', (d) => this._open(d));
-    this.on('overlay:close', () => this._close());
   }
 
   render() {
-    this.innerHTML = `<div class="typedef-overlay" id="typedefOverlay" style="display:none">
-      <div class="typedef-modal">
-        <div class="typedef-header">
-          <span class="typedef-title">Type Definitions</span>
-          <button class="typedef-close" data-action="close">
-            ${Structra.icons.svg('x')}
-          </button>
-        </div>
-        <div class="typedef-tabs" id="typedefTabs"></div>
+    this.mount({ title: 'Type Definitions', size: 'lg', body: `<div class="typedef-tabs" id="typedefTabs"></div>
         <div class="typedef-options">
           <label class="typedef-opt">
             <span>Root name:</span>
@@ -37,9 +29,7 @@ class StructraTypedef extends StructraElement {
         <div class="typedef-actions">
           <button class="btn btn-primary" data-action="copy">Copy to Clipboard</button>
           <button class="btn" data-action="download">Download File</button>
-        </div>
-      </div>
-    </div>`;
+        </div>` });
 
     this._renderTabs();
 
@@ -47,7 +37,7 @@ class StructraTypedef extends StructraElement {
       const action = e.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
-      if (a === 'close') this._close();
+      if (a === 'close') this.close();
       else if (a === 'copy') this._copy();
       else if (a === 'download') this._download();
 
@@ -94,13 +84,10 @@ class StructraTypedef extends StructraElement {
       if (nameInput) nameInput.value = opts.name;
     }
     this.querySelectorAll('.typedef-tab').forEach(t => t.classList.toggle('active', t.dataset.lang === this._lang));
-    this.$('#typedefOverlay').style.display = '';
+    this.open();
     this._generate();
   }
 
-  _close() {
-    this.$('#typedefOverlay').style.display = 'none';
-  }
 
   _generate() {
     const data = Structra.state.jsonData;

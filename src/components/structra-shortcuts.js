@@ -4,46 +4,17 @@
    keyboard shortcuts grouped by category.
    ============================================================ */
 
-class StructraShortcuts extends StructraElement {
+class StructraShortcuts extends StructraOverlay {
   init() {
-    this.on('shortcuts:open', () => this._open());
-    this.on('overlay:close', () => this._close());
+    super.init();
+    this.on('shortcuts:open', () => this.open());
   }
 
   render() {
-    this.innerHTML = `<div class="shortcuts-overlay" id="shortcutsOverlay" style="display:none">
-      <div class="shortcuts-modal">
-        <div class="shortcuts-header">
-          <span class="shortcuts-title">Keyboard Shortcuts</span>
-          <button class="shortcuts-close" data-action="close">
-            ${Structra.icons.svg('x')}
-          </button>
-        </div>
-        <div class="shortcuts-body" id="shortcutsBody"></div>
-      </div>
-    </div>`;
-
-    this.addEventListener('click', (e) => {
-      const action = e.target.closest('[data-action]');
-      if (action && action.dataset.action === 'close') this._close();
-      // Close on backdrop click
-      if (e.target.id === 'shortcutsOverlay') this._close();
-    });
-
-    this.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') this._close();
-    });
+    this.mount({ title: 'Keyboard Shortcuts', size: 'lg', body: `<div class="shortcuts-body" id="shortcutsBody"></div>` });
   }
 
-  _open() {
-    this.$('#shortcutsOverlay').style.display = '';
-    this._renderShortcuts();
-    this.$('#shortcutsOverlay').focus();
-  }
-
-  _close() {
-    this.$('#shortcutsOverlay').style.display = 'none';
-  }
+  onOpen() { this._renderShortcuts(); }
 
   _renderShortcuts() {
     const body = this.$('#shortcutsBody');

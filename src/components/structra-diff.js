@@ -5,27 +5,18 @@
    when both sides are tabular arrays.
    ============================================================ */
 
-class StructraDiff extends StructraElement {
+class StructraDiff extends StructraOverlay {
   init() {
+    super.init();
     this._left = null;
     this._right = null;
     this._diffs = [];
 
     this.on('diff:open', (d) => this._open(d));
-    this.on('overlay:close', () => this._close());
   }
 
   render() {
-    this.innerHTML = `<div class="diff-overlay" id="diffOverlay" style="display:none">
-      <div class="diff-modal">
-        <div class="diff-header">
-          <span class="diff-title">JSON Diff</span>
-          <div class="diff-stats" id="diffStats"></div>
-          <button class="diff-close" data-action="close">
-            ${Structra.icons.svg('x')}
-          </button>
-        </div>
-        <div class="diff-toolbar">
+    this.mount({ title: 'JSON Diff', size: 'xl flush', head: '<div class="diff-stats" id="diffStats"></div>', body: `<div class="diff-toolbar">
           <button class="diff-btn active" data-diff-mode="side">Side by Side</button>
           <button class="diff-btn" data-diff-mode="inline">Inline</button>
           <button class="diff-btn" data-diff-mode="structural">Structural</button>
@@ -59,15 +50,13 @@ class StructraDiff extends StructraElement {
         <div class="diff-body" id="diffBody">
           <div class="diff-pane diff-left" id="diffLeft"></div>
           <div class="diff-pane diff-right" id="diffRight"></div>
-        </div>
-      </div>
-    </div>`;
+        </div>` });
 
     this.addEventListener('click', (e) => {
       const action = e.target.closest('[data-action]');
       if (action) {
         const a = action.dataset.action;
-        if (a === 'close') this._close();
+        if (a === 'close') this.close();
         else if (a === 'swap') this._swap();
         else if (a === 'copy-diff') this._copyDiff();
         else if (a === 'copy-patch') this._copyPatch();
@@ -88,7 +77,7 @@ class StructraDiff extends StructraElement {
   }
 
   _open(opts) {
-    this.$('#diffOverlay').style.display = '';
+    this.open();
     if (opts && opts.left) this._left = opts.left;
     else this._left = Structra.state.jsonData;
 
@@ -100,7 +89,6 @@ class StructraDiff extends StructraElement {
     }
   }
 
-  _close() { this.$('#diffOverlay').style.display = 'none'; }
 
   _showPasteArea() {
     this.$('#diffPasteArea').style.display = '';

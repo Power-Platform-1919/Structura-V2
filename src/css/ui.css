@@ -203,3 +203,7 @@
 }
 .menu-item:hover { background: var(--accent-soft); color: var(--accent); }
 .menu-sep { height: 1px; margin: var(--sp-1) var(--sp-1); background: var(--border-subtle); }
+
+/* A dialog whose content runs edge to edge supplies its own padding */
+.ov-box.flush { height: min(88vh, 56rem); }
+.ov-box.flush .ov-body { flex: 1; min-height: 0; padding: 0; display: flex; flex-direction: column; overflow: hidden; }

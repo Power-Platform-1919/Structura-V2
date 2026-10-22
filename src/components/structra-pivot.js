@@ -4,8 +4,9 @@
    drop field placement. Uses DuckDB GROUP BY / aggregate SQL.
    ============================================================ */
 
-class StructraPivot extends StructraElement {
+class StructraPivot extends StructraOverlay {
   init() {
+    super.init();
     this._rows = [];
     this._cols = [];
     this._values = [];
@@ -14,18 +15,11 @@ class StructraPivot extends StructraElement {
     this._fields = [];
 
     this.on('pivot:open', () => this._open());
-    this.on('overlay:close', () => this._close());
     this.on('engine:ingested', () => this._refreshFields());
   }
 
   render() {
-    this.innerHTML = `<div class="pivot-overlay" id="pivotOverlay" style="display:none">
-      <div class="pivot-modal">
-        <div class="pivot-header">
-          <span class="pivot-title">Pivot Table</span>
-          <button class="pivot-close" data-action="close">${Structra.icons.svg('x', { size: 14 })}</button>
-        </div>
-        <div class="pivot-config">
+    this.mount({ title: 'Pivot Table', size: 'xl flush', body: `<div class="pivot-config">
           <div class="pivot-field-list">
             <div class="pivot-field-title">Fields</div>
             <div class="pivot-fields" id="pivotFields"></div>
@@ -53,14 +47,12 @@ class StructraPivot extends StructraElement {
           </div>
           <button class="btn btn-primary pivot-run" data-action="run">Generate Pivot</button>
         </div>
-        <div class="pivot-result" id="pivotResult"></div>
-      </div>
-    </div>`;
+        <div class="pivot-result" id="pivotResult"></div>` });
 
     this.addEventListener('click', (e) => {
       const action = e.target.closest('[data-action]');
       if (action) {
-        if (action.dataset.action === 'close') this._close();
+        if (action.dataset.action === 'close') this.close();
         else if (action.dataset.action === 'run') this._runPivot();
       }
       // Field chip click — add to appropriate zone
@@ -79,11 +71,10 @@ class StructraPivot extends StructraElement {
   }
 
   _open() {
-    this.$('#pivotOverlay').style.display = '';
+    this.open();
     this._refreshFields();
   }
 
-  _close() { this.$('#pivotOverlay').style.display = 'none'; }
 
   _refreshFields() {
     const ds = Structra.engine.getActive();

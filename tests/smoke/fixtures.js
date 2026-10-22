@@ -19,6 +19,8 @@ try { ({ chromium } = require('playwright')); } catch {
 const ROOT = path.join(__dirname, '..', '..');
 const FIXTURES = path.join(ROOT, 'tests', 'fixtures');
 const VIEWS = ['tree', 'table', 'graph', 'schema', 'editor', 'overview'];
+const DIALOGS = ['shortcuts', 'diff', 'nullfinder', 'pivot', 'snippets', 'workspace', 'typedef', 'theme', 'validate', 'welcome'];
+let dialogsChecked = false;
 // Documents that are a single falsy value cannot be opened; the app says so instead of showing an overview
 const NO_OVERVIEW = /^(edge_null|edge_bool|edge_number|edge_string|test_case6)/;
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
@@ -60,6 +62,20 @@ function serve() {
       for (const v of VIEWS) {
         await page.evaluate((view) => Structra.set('activeView', view), v);
         await page.waitForTimeout(120);
+      }
+
+      // Every dialog opens and closes (checked on the first fixture only, they do not depend on the data)
+      if (!dialogsChecked) {
+        dialogsChecked = true;
+        for (const name of DIALOGS) {
+          await page.evaluate((n) => Structra.events.emit(n + ':open', n === 'typedef' ? { lang: 'typescript', name: 'Root' } : {}), name);
+          await page.waitForTimeout(250);
+          const opened = await page.evaluate((n) => { const el = document.querySelector('structra-' + n + ' .ov'); return !!el && el.classList.contains('show'); }, name);
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(150);
+          const closed = await page.evaluate((n) => !document.querySelector('structra-' + n + ' .ov').classList.contains('show'), name);
+          if (!opened || !closed) failures.push('dialog ' + name + (opened ? ' did not close' : ' did not open'));
+        }
       }
     } catch (err) {
       errors.push(String(err.message).split('\n')[0]);

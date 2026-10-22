@@ -5,23 +5,17 @@
    when available.
    ============================================================ */
 
-class StructraNullfinder extends StructraElement {
+class StructraNullfinder extends StructraOverlay {
   init() {
+    super.init();
     this._results = [];
     this._idx = -1;
 
-    this.on('nullfinder:open', () => this._open());
-    this.on('overlay:close', () => this._close());
+    this.on('nullfinder:open', () => this.open());
   }
 
   render() {
-    this.innerHTML = `<div class="nf-overlay" id="nfOverlay" style="display:none">
-      <div class="nf-panel">
-        <div class="nf-header">
-          <span class="nf-title">Null & Empty Finder</span>
-          <button class="nf-close" data-action="close">${Structra.icons.svg('x', { size: 14 })}</button>
-        </div>
-        <div class="nf-options">
+    this.mount({ title: 'Null & Empty Finder', size: 'md', body: `<div class="nf-options">
           <label class="nf-opt"><input type="checkbox" id="nfNull" checked> null</label>
           <label class="nf-opt"><input type="checkbox" id="nfEmpty" checked> empty string</label>
           <label class="nf-opt"><input type="checkbox" id="nfUndef" checked> missing keys</label>
@@ -36,15 +30,13 @@ class StructraNullfinder extends StructraElement {
           <button class="nf-nav-btn" data-action="prev">◀ Prev</button>
           <span class="nf-nav-count" id="nfNavCount">0/0</span>
           <button class="nf-nav-btn" data-action="next">Next ${Structra.icons.svg('chevron-right', { size: 14 })}</button>
-        </div>
-      </div>
-    </div>`;
+        </div>` });
 
     this.addEventListener('click', (e) => {
       const action = e.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
-      if (a === 'close') this._close();
+      if (a === 'close') this.close();
       else if (a === 'scan') this._scan();
       else if (a === 'prev') this._navigate(-1);
       else if (a === 'next') this._navigate(1);
@@ -57,13 +49,6 @@ class StructraNullfinder extends StructraElement {
     });
   }
 
-  _open() {
-    this.$('#nfOverlay').style.display = '';
-  }
-
-  _close() {
-    this.$('#nfOverlay').style.display = 'none';
-  }
 
   async _scan() {
     const data = Structra.state.jsonData;
