@@ -1,0 +1,17 @@
+{
+  "@odata.context": "https://contoso.sharepoint.com/sites/hr/_api/$metadata#Collection(Microsoft.SharePoint.Items)",
+  "value": [
+    { "@odata.etag": "\"3\"", "ItemInternalId": "1", "ID": 1, "Title": "Laptop refresh",
+      "Status": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference", "Id": 0, "Value": "Open" },
+      "Requester": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser", "Claims": "i:0#.f|membership|ann@contoso.com", "DisplayName": "Ann Lee", "Email": "ann@contoso.com", "Picture": "https://x/p.jpg", "Department": null, "JobTitle": null },
+      "Due": "2025-03-14T00:00:00Z", "Cost": 1299.5, "Approved": false, "Tags": [{ "Id": 0, "Value": "IT" }, { "Id": 1, "Value": "Hardware" }], "Notes": null, "Created": "2025-01-02T09:30:00Z", "Modified": "2025-01-05T11:00:00Z" },
+    { "@odata.etag": "\"1\"", "ItemInternalId": "2", "ID": 2, "Title": "Badge request",
+      "Status": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference", "Id": 1, "Value": "Closed" },
+      "Requester": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser", "Claims": "i:0#.f|membership|bo@contoso.com", "DisplayName": "Bo Kim", "Email": "bo@contoso.com", "Picture": null, "Department": "HR", "JobTitle": "Analyst" },
+      "Due": null, "Cost": 20, "Approved": true, "Tags": [], "Notes": "Needs photo", "Created": "2025-01-03T09:30:00Z", "Modified": "2025-01-03T09:30:00Z" },
+    { "@odata.etag": "\"2\"", "ItemInternalId": "3", "ID": 3, "Title": "Parking pass",
+      "Status": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference", "Id": 0, "Value": "Open" },
+      "Requester": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser", "Claims": "i:0#.f|membership|cy@contoso.com", "DisplayName": "Cy Ng", "Email": "cy@contoso.com", "Picture": null, "Department": "Facilities", "JobTitle": "Lead" },
+      "Due": "2025-04-01T00:00:00Z", "Cost": 45.25, "Approved": true, "Tags": [{ "Id": 2, "Value": "Facilities" }], "Notes": "", "Created": "2025-01-04T08:00:00Z", "Modified": "2025-01-06T12:15:00Z" }
+  ]
+}

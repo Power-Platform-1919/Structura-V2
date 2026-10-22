@@ -524,6 +524,10 @@ Structra.engine = (() => {
     const ds = getActive();
     if (!ds) return null;
 
+    // A top-level object is one row to DuckDB, so "1 found" would mean "the whole document" and no
+    // value could be located. Search the values themselves: they carry the path of every match.
+    if (ds.meta.shape === 'object') return _findInMemory(ds, text);
+
     // DuckDB path: any registered dataset
     if (_canUseDuck(ds)) {
       const tableName = _tableOf(ds);
@@ -539,12 +543,15 @@ Structra.engine = (() => {
 
       try {
         const rows = await Structra.duckdb.query(sqlQuery);
+        const matchedPaths = _rowsToMatchedPaths(ds, rows, text);
+        // Rows matched but none could be located in the document: the Tree would filter everything out
+        if (rows.length > 0 && matchedPaths.length === 0) return _findInMemory(ds, text);
         const result = {
           source: 'find',
           query: text,
           conditions: null,
           rows,
-          matchedPaths: _rowsToMatchedPaths(ds, rows, text),
+          matchedPaths,
           total: rows.length,
           columns: cols,
         };
@@ -552,6 +559,7 @@ Structra.engine = (() => {
         return result;
       } catch (err) {
         Structra.log.warn('Engine', 'DuckDB find failed, falling back to in-memory', err.message);
+        _forgetMissingTable(ds, err);
       }
     }
 
@@ -665,6 +673,7 @@ Structra.engine = (() => {
         return result;
       } catch (err) {
         Structra.log.warn('Engine', 'DuckDB filter failed, falling back to in-memory', err.message);
+        _forgetMissingTable(ds, err);
       }
     }
 
@@ -677,7 +686,14 @@ Structra.engine = (() => {
       return { error: 'The SQL engine could not start' };
     }
     const t0 = performance.now();
+    const ds = getActive();
     try {
+      // In SQL the open document is the table "data" (SELECT * FROM data), whichever tab it is in
+      if (ds && _isDuckRegistered(ds)) {
+        await Structra.duckdb.query(`CREATE OR REPLACE TEMP VIEW data AS SELECT * FROM "${_tableOf(ds)}"`);
+      } else if (/\bdata\b/i.test(sqlText)) {
+        return { error: 'This document is not a list or object, so there is no table named data to query' };
+      }
       const rows = await Structra.duckdb.query(sqlText);
       const duration = performance.now() - t0;
       const cols = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -695,6 +711,7 @@ Structra.engine = (() => {
       return result;
     } catch (err) {
       Structra.log.error('Engine', 'SQL execution failed', err.message);
+      _forgetMissingTable(ds, err);
       return { error: err.message };
     }
   }
@@ -1570,14 +1587,33 @@ Structra.engine = (() => {
     if (!_isDuckRegistered(ds)) {
       Structra.events.emit('loading:show', 'Loading data into the SQL engine…');
       try {
-        if (!ds._duckPromise) ds._duckPromise = Structra.duckdb.registerDataset(ds);
-        await ds._duckPromise;
-        Structra.events.emit('engine:duckdb-registered', { tabId: ds.id });
+        await _ensureRegistered(ds);
+        if (_isDuckRegistered(ds)) Structra.events.emit('engine:duckdb-registered', { tabId: ds.id });
       } finally {
         Structra.events.emit('loading:hide');
       }
     }
     return _canUseDuck(ds);
+  }
+
+  /**
+   * Make sure the dataset has its table in DuckDB. A registration that did not produce a table
+   * (it failed, or the table was dropped) is tried again instead of being remembered as done.
+   */
+  async function _ensureRegistered(ds) {
+    if (_isDuckRegistered(ds)) return true;
+    if (!ds._duckPromise) ds._duckPromise = Structra.duckdb.registerDataset(ds);
+    await ds._duckPromise;
+    ds._duckPromise = null;
+    return _isDuckRegistered(ds);
+  }
+
+  /** The table a query used is gone: forget that this dataset was registered so the next SQL call loads it again */
+  function _forgetMissingTable(ds, err) {
+    if (ds && err && /does not exist/i.test(err.message || '')) {
+      ds._duckColumns = null;
+      ds._duckPromise = null;
+    }
   }
 
   /* ============================ */

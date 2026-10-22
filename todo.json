@@ -1232,7 +1232,7 @@
         {
           "id": "13.146",
           "title": "Table 'Distinct Values' still fails with SQL on: console 'Catalog Error: Table with name data does not exist' while the user sees only a stale toast; same for Column Stats (see earlier item), so both stay silent failures",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.147",
@@ -1262,7 +1262,7 @@
         {
           "id": "13.152",
           "title": "CRITICAL, Find blanks the Tree again: on the SharePoint sample (opened from Recent, with a path selected and the drawer open) searching 'Laptop' or 'contoso' shows '1 found' and an empty Tree, even after scrolling to the top; pressing Clear brings the document back. The earlier blank-tree fix (99b0b57) does not cover this case, so find the real cause and add a smoke test that runs Find on every fixture and checks that matching rows are rendered",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.153",
