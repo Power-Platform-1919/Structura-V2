@@ -12,6 +12,7 @@ class StructraTree extends StructraElement {
     this._wrap = false;
     this.on('state:jsonData', () => this.renderTree());
     this.on('state:currentPath', (d) => this._highlightPath(d.value));
+    this.on('bookmarks:changed', () => this._markBookmarks());
     this.on('tree:expand-all', () => this._expandAll());
     this.on('tree:collapse-all', () => this._collapseAll());
     this.on('tree:collapse-depth', (depth) => this._collapseToDepth(depth));
@@ -67,7 +68,14 @@ class StructraTree extends StructraElement {
       },
     });
 
+    this._markBookmarks();
     Structra.log.perf('Tree', 'renderTree()', performance.now() - t0);
+  }
+
+  /** Show the bookmark marker on bookmarked lines that are currently rendered */
+  _markBookmarks() {
+    const view = this._getView();
+    if (view) Structra.jsonTree.updateBookmarkHighlights(view, Structra.bookmarks.paths());
   }
 
   _emptyState() {

@@ -65,51 +65,53 @@
     {
       "id": "3",
       "title": "Path navigation",
-      "status": "todo",
+      "status": "in_progress",
       "subtasks": [
         {
           "id": "3.1",
           "title": "Path history back/forward buttons in header (Alt+Left / Alt+Right)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "3.2",
           "title": "Breadcrumb bar under header, click to jump",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "3.3",
           "title": "Real bookmarks: store, toggle (Ctrl+B), highlight in tree, list panel, persist",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "3.4",
           "title": "Path autocomplete in header path input (component exists, wire it)",
           "status": "todo"
         }
-      ]
+      ],
+      "note": "Back/forward (buttons and Alt+Left/Right), breadcrumb and bookmarks (Ctrl+B, context panel list, persisted) verified in the browser. Path autocomplete still to do."
     },
     {
       "id": "4",
       "title": "Tree right-click context menu",
-      "status": "todo",
+      "status": "done",
       "subtasks": [
         {
           "id": "4.1",
           "title": "Context menu component: copy path, value, subtree",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "4.2",
           "title": "Copy As (TypeScript, Python, C#, Go, Rust, Java, SQL) via code-gen",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "4.3",
           "title": "Bookmark and Generate mock data entries",
-          "status": "todo"
+          "status": "done"
         }
-      ]
+      ],
+      "note": "Already existed in V2 (structra-tree.js). Verified in the browser: menu opens, Copy As works."
     },
     {
       "id": "5",

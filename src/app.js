@@ -141,6 +141,14 @@
       case 'close-overlay':
         Structra.events.emit('overlay:close');
         break;
+      case 'bookmark': {
+        const path = Structra.state.currentPath;
+        if (!path || path === '$') { Structra.toast('Select a path to bookmark'); break; }
+        Structra.toast(Structra.bookmarks.toggle(path) ? 'Bookmarked ' + path : 'Bookmark removed');
+        break;
+      }
+      case 'nav-back':    Structra.nav.back(); break;
+      case 'nav-forward': Structra.nav.forward(); break;
       // View shortcuts
       case 'view-tree':   Structra.set('activeView', 'tree'); break;
       case 'view-table':  Structra.set('activeView', 'table'); break;

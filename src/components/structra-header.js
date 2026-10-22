@@ -10,7 +10,22 @@ class StructraHeader extends StructraElement {
     this.on('state:currentPath', (d) => {
       const input = this.$('#pathInput');
       if (input) input.value = d.value;
+      this._syncButtons();
     });
+    this.on('nav:changed', () => this._syncButtons());
+    this.on('bookmarks:changed', () => this._syncButtons());
+    this.on('state:jsonData', () => this._syncButtons());
+  }
+
+  /** Back and forward enabled state, and whether the current path is bookmarked */
+  _syncButtons() {
+    if (!this._mounted) return;
+    const back = this.$('[data-action="back"]');
+    const fwd = this.$('[data-action="forward"]');
+    const mark = this.$('[data-action="bookmark"]');
+    if (back) back.disabled = !Structra.nav.canBack();
+    if (fwd) fwd.disabled = !Structra.nav.canForward();
+    if (mark) mark.classList.toggle('active', Structra.bookmarks.has(Structra.state.currentPath));
   }
 
   render() {
@@ -20,6 +35,13 @@ class StructraHeader extends StructraElement {
         Structra
       </div>
       <span class="sep"></span>
+
+      <button class="toolbar-btn" data-action="back" title="Back (Alt+Left)" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
+      <button class="toolbar-btn" data-action="forward" title="Forward (Alt+Right)" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
 
       <div class="search-bar">
         <span class="sb-label">Path</span>
@@ -49,7 +71,9 @@ class StructraHeader extends StructraElement {
       if (!btn) return;
       const action = btn.dataset.action;
       if (action === 'copy-path') this._copyPath();
-      else if (action === 'bookmark') Structra.toast('Path bookmarked');
+      else if (action === 'back') Structra.nav.back();
+      else if (action === 'forward') Structra.nav.forward();
+      else if (action === 'bookmark') this._toggleBookmark();
       else if (action === 'toggle-theme') Structra.toggleTheme();
       else if (action === 'command-palette') Structra.events.emit('command-palette:toggle');
     });
@@ -59,6 +83,14 @@ class StructraHeader extends StructraElement {
         Structra.set('currentPath', e.target.value);
       }
     });
+
+    this._syncButtons();
+  }
+
+  _toggleBookmark() {
+    const path = Structra.state.currentPath;
+    if (!path || path === '$') { Structra.toast('Select a path to bookmark'); return; }
+    Structra.toast(Structra.bookmarks.toggle(path) ? 'Bookmarked ' + path : 'Bookmark removed');
   }
 
   _copyPath() {

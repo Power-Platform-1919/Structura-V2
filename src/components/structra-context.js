@@ -16,6 +16,8 @@ class StructraContext extends StructraElement {
       this.classList.toggle('show', d.value);
     });
     this.on('overlay:close', () => Structra.set('contextPanelOpen', false));
+    this.on('bookmarks:changed', () => this._renderBookmarks());
+    this.on('state:fileName', () => this._renderBookmarks());
   }
 
   render() {
@@ -41,6 +43,10 @@ class StructraContext extends StructraElement {
           <dl class="ctx-meta" id="ctxMeta"><dt>Type</dt><dd>—</dd></dl>
         </div>
         <div class="ctx-section">
+          <div class="ctx-label">Bookmarks</div>
+          <div class="ctx-bookmarks" id="ctxBookmarks"></div>
+        </div>
+        <div class="ctx-section">
           <div class="ctx-label">Actions</div>
           <div class="ctx-actions">
             <button class="ctx-btn" data-action="copy-value">Copy Value</button>
@@ -51,6 +57,7 @@ class StructraContext extends StructraElement {
           </div>
         </div>
       </div>`;
+    this._renderBookmarks();
 
     this.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
@@ -59,10 +66,31 @@ class StructraContext extends StructraElement {
       if (a === 'close') Structra.set('contextPanelOpen', false);
       else if (a === 'copy-value') this._copyValue();
       else if (a === 'copy-path') this._copyPath();
-      else if (a === 'bookmark') Structra.toast('Bookmarked!');
+      else if (a === 'bookmark') this._toggleBookmark();
+      else if (a === 'go-bookmark') Structra.set('currentPath', btn.dataset.path);
+      else if (a === 'del-bookmark') Structra.bookmarks.remove(btn.dataset.path);
       else if (a === 'filter') this._filterFromContext();
       else if (a === 'mock') this._mockFromContext();
     });
+  }
+
+  _toggleBookmark() {
+    const path = this._currentPath || Structra.state.currentPath;
+    if (!path || path === '$') { Structra.toast('Select a path to bookmark'); return; }
+    Structra.toast(Structra.bookmarks.toggle(path) ? 'Bookmarked ' + path : 'Bookmark removed');
+  }
+
+  _renderBookmarks() {
+    const el = this.$('#ctxBookmarks');
+    if (!el) return;
+    const esc = Structra.dom.esc;
+    const items = Structra.bookmarks.list();
+    el.innerHTML = items.length
+      ? items.map((b) => `<div class="ctx-bm">
+          <button class="ctx-bm-path" data-action="go-bookmark" data-path="${esc(b.path)}" title="${esc(b.preview || b.path)}">${esc(b.path)}</button>
+          <button class="ctx-bm-del" data-action="del-bookmark" data-path="${esc(b.path)}" title="Remove bookmark">&times;</button>
+        </div>`).join('')
+      : '<div class="ctx-bm-empty">No bookmarks yet. Press Ctrl+B on a path.</div>';
   }
 
   _show(path) {

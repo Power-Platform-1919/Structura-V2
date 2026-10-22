@@ -1,0 +1,46 @@
+/* ============================================================
+   STRUCTRA V2 — Breadcrumb
+   <structra-breadcrumb> — the selected path as clickable segments.
+   Click a segment to jump back up to that level.
+   ============================================================ */
+
+class StructraBreadcrumb extends StructraElement {
+  init() {
+    this.on('state:currentPath', () => this._update());
+    this.on('state:jsonData', () => this._update());
+  }
+
+  render() {
+    this.addEventListener('click', (e) => {
+      const seg = e.target.closest('[data-path]');
+      if (!seg) return;
+      Structra.set('currentPath', seg.dataset.path);
+    });
+    this._update();
+  }
+
+  _update() {
+    if (!this._mounted) return;
+    const tokens = Structra.paths.tokenize(Structra.state.currentPath);
+    if (!tokens.length || !Structra.state.jsonData) {
+      this.innerHTML = '';
+      this.classList.remove('show');
+      return;
+    }
+
+    const esc = Structra.dom.esc;
+    let running = '';
+    const parts = [`<button class="bc-seg" data-path="$">root</button>`];
+    tokens.forEach((t, i) => {
+      if (t.type === 'key') running += (running ? '.' : '') + t.value;
+      else running += `[${t.value}]`;
+      const label = t.type === 'key' ? t.value : `[${t.value}]`;
+      const last = i === tokens.length - 1;
+      parts.push(`<span class="bc-sep">›</span><button class="bc-seg${last ? ' bc-current' : ''}" data-path="${esc(running)}">${esc(label)}</button>`);
+    });
+    this.innerHTML = parts.join('');
+    this.classList.add('show');
+  }
+}
+
+customElements.define('structra-breadcrumb', StructraBreadcrumb);
