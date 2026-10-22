@@ -347,33 +347,33 @@
         },
         {
           "id": "10.4",
-          "title": "Power Automate expression: core done (source/root model, null-safe ?['k'] and ?[0], whole-action-output detection, checked against Microsoft docs and tested in Node). Still to do: Source selector in the Expressions tab UI",
-          "status": "in_progress"
+          "title": "Power Automate expressions: source selector (action output, trigger body, loop item, custom), null-safe ?['k'] and ?[0], whole-action-output detection; checked against Microsoft docs, unit tested and verified in the browser",
+          "status": "done"
         },
         {
           "id": "10.5",
-          "title": "Parse JSON schema: still to do (nullable as type arrays, a safe 'number' option, a required toggle)",
-          "status": "todo"
+          "title": "Parse JSON schema: nullable keys as type lists, nested objects and lists merged across rows, 'number' by default with an integer option, required toggle; unit tested",
+          "status": "done"
         },
         {
           "id": "10.6",
-          "title": "Power Fx: core done (each column converted by its real type: Value, Boolean, DateValue, DateTimeValue, Text; single-quoted names; editable variable). Browser check still to do",
-          "status": "in_progress"
+          "title": "Power Fx: each column converted by its real type (Value, Boolean, DateValue, DateTimeValue, Text), quoted names, editable variable; unit tested",
+          "status": "done"
         },
         {
           "id": "10.7",
-          "title": "Flow action snippets: core done (Select, Filter array, Apply to each, Compose, Condition as paste-ready action JSON, tested in Node). Still to do: a Flow actions tab in the UI",
-          "status": "in_progress"
+          "title": "Flow actions tab: Select, Filter array, Apply to each, Compose and Condition as copyable action JSON; unit tested and verified in the browser",
+          "status": "done"
         },
         {
           "id": "10.8",
-          "title": "Committed fixture suite: one command loads all fixtures, opens every view, checks counts and console errors",
-          "status": "todo"
+          "title": "Committed fixture smoke test: npm run test:smoke (PW_CHANNEL=msedge to use the installed Edge); 30 fixtures x 6 views, fails on any page error or missing Overview headline",
+          "status": "done"
         },
         {
           "id": "10.9",
-          "title": "Engine unit tests in Node for analysis, paths, expressions and schema generation",
-          "status": "todo"
+          "title": "Node unit tests: npm test (schema generation, expressions and paths, insights); the engine's analysis functions still need tests",
+          "status": "in_progress"
         },
         {
           "id": "10.10",

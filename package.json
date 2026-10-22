@@ -1,0 +1,14 @@
+{
+  "name": "structra-v2",
+  "private": true,
+  "description": "Structra: a local JSON analyzer with built-in Power Platform tools",
+  "scripts": {
+    "test": "node tests/unit/run.js",
+    "test:unit": "node tests/unit/run.js",
+    "test:smoke": "node tests/smoke/fixtures.js",
+    "serve": "python -m http.server 8765"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
+  }
+}

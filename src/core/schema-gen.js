@@ -4,93 +4,128 @@
    "Parse JSON" action.
 
    API:
-     Structra.schemaGen.basic(value)  → schema from the first array item only
-     Structra.schemaGen.smart(value)  → schema from every array item:
-                                         optional keys are left out of "required",
-                                         keys that are sometimes null become anyOf [type, null],
-                                         keys with mixed types become {}
+     Structra.schemaGen.basic(value, opts)  → schema from the first array item only
+     Structra.schemaGen.smart(value, opts)  → schema from every item, merged:
+         - a key that is sometimes null becomes a type list, e.g. ["string", "null"]
+         - a key that is missing from some objects is left out of "required"
+         - a key that holds different types gets all of them, e.g. ["string", "number"]
+         - nested objects and lists are merged across rows, not taken from the first row
+
+   opts:
+     integers: false   (default) every number is "number", which also accepts whole numbers, so a
+                       flow does not fail when a later run sends 1.5 where the sample had 1
+               true    whole numbers are "integer", as the designer's own generator writes them
+     required: true    (default) list keys that are present in every object under "required"
+               false   write no "required" at all (the run never fails because a key is missing)
    ============================================================ */
 
 window.Structra = window.Structra || {};
 
 Structra.schemaGen = (() => {
+  const kindOf = Structra.util.typeOf;
   const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-  function scalar(value) {
-    if (value === null) return { type: 'null' };
-    if (typeof value === 'string') return { type: 'string' };
-    if (typeof value === 'number') return { type: Number.isInteger(value) ? 'integer' : 'number' };
-    if (typeof value === 'boolean') return { type: 'boolean' };
-    return {};
+  const DEFAULTS = { integers: false, required: true };
+
+  /** A type name or a list of them: one name stays a string, several become an array */
+  const typeValue = (list) => (list.length === 1 ? list[0] : list);
+
+  function numberType(values, opts) {
+    return opts.integers && values.every((n) => Number.isInteger(n)) ? 'integer' : 'number';
   }
 
-  /* --- basic: first item decides --- */
-  function basic(value) {
-    if (Array.isArray(value)) {
-      return { type: 'array', items: value.length ? basic(value[0]) : {} };
+  /**
+   * Schema for everything seen at one place in the data.
+   * `values` holds every value found there (one per row, per parent object, and so on).
+   */
+  function infer(values, opts) {
+    const seen = { string: [], number: [], boolean: [], object: [], array: [] };
+    let hasNull = false;
+    for (const v of values) {
+      const k = kindOf(v);
+      if (k === 'null') hasNull = true;
+      else if (seen[k]) seen[k].push(v);
     }
-    if (isPlainObject(value)) {
-      const properties = {};
-      const required = [];
-      for (const [k, v] of Object.entries(value)) {
-        properties[k] = basic(v);
-        if (v !== null) required.push(k);
-      }
-      const schema = { type: 'object', properties };
-      if (required.length) schema.required = required;
-      return schema;
+
+    const scalarTypes = [];
+    if (seen.string.length) scalarTypes.push('string');
+    if (seen.number.length) scalarTypes.push(numberType(seen.number, opts));
+    if (seen.boolean.length) scalarTypes.push('boolean');
+
+    const hasObject = seen.object.length > 0;
+    const hasArray = seen.array.length > 0;
+    if (!scalarTypes.length && !hasObject && !hasArray) return {};          // only null, or nothing seen: accept anything
+
+    const parts = [];
+    if (hasObject) parts.push(objectSchema(seen.object, opts));
+    if (hasArray) parts.push(arraySchema(seen.array, opts));
+
+    // One kind of value
+    if (scalarTypes.length && !parts.length) return { type: typeValue(hasNull ? [...scalarTypes, 'null'] : scalarTypes) };
+    if (!scalarTypes.length && parts.length === 1) {
+      const only = parts[0];
+      return hasNull ? { ...only, type: [only.type, 'null'] } : only;
     }
-    return scalar(value);
+
+    // Several kinds, including objects or lists: list every shape
+    const anyOf = [...scalarTypes.map((t) => ({ type: t })), ...parts];
+    if (hasNull) anyOf.push({ type: 'null' });
+    return { anyOf };
   }
 
-  /* --- smart: every item decides --- */
-  function smart(value) {
-    if (Array.isArray(value)) {
-      const schema = { type: 'array' };
-      if (value.length) schema.items = _mergeItems(value);
-      return schema;
-    }
-    if (isPlainObject(value)) {
-      const properties = {};
-      for (const [k, v] of Object.entries(value)) properties[k] = smart(v);
-      return { type: 'object', properties, required: Object.keys(value) };
-    }
-    return scalar(value);
-  }
-
-  const _typeName = Structra.util.typeOf;
-
-  function _mergeItems(arr) {
-    const objects = arr.filter(isPlainObject);
-    if (!objects.length) return smart(arr[0]);
-
-    // Per key: how many objects have it, which types it takes, and one non-null sample
-    const profile = new Map();
+  function objectSchema(objects, opts) {
+    const byKey = new Map();
     for (const obj of objects) {
-      for (const [k, v] of Object.entries(obj)) {
-        let p = profile.get(k);
-        if (!p) { p = { present: 0, types: new Set(), sample: undefined }; profile.set(k, p); }
-        p.present++;
-        p.types.add(_typeName(v));
-        if (p.sample === undefined && v !== null) p.sample = v;
+      for (const k of Object.keys(obj)) {
+        let entry = byKey.get(k);
+        if (!entry) { entry = { present: 0, values: [] }; byKey.set(k, entry); }
+        entry.present++;
+        entry.values.push(obj[k]);
       }
     }
-
     const properties = {};
     const required = [];
-    for (const [k, p] of profile) {
-      const nonNull = [...p.types].filter((t) => t !== 'null');
-      const hasNull = p.types.has('null');
-      if (nonNull.length === 0) properties[k] = { type: 'null' };
-      else if (nonNull.length > 1) properties[k] = {};
-      else if (hasNull) properties[k] = { anyOf: [smart(p.sample), { type: 'null' }] };
-      else properties[k] = smart(p.sample);
-      if (p.present === objects.length) required.push(k);
+    for (const [k, entry] of byKey) {
+      properties[k] = infer(entry.values, opts);
+      if (entry.present === objects.length) required.push(k);
     }
-
     const schema = { type: 'object', properties };
-    if (required.length) schema.required = required;
+    if (opts.required && required.length) schema.required = required;
     return schema;
+  }
+
+  function arraySchema(arrays, opts) {
+    const items = [];
+    for (const a of arrays) for (const el of a) items.push(el);
+    const schema = { type: 'array' };
+    if (items.length) schema.items = infer(items, opts);
+    return schema;
+  }
+
+  /** The whole document: every row decides */
+  function smart(value, options = {}) {
+    return infer([value], { ...DEFAULTS, ...options });
+  }
+
+  /** The quick version: only the first item of each list decides */
+  function basic(value, options = {}) {
+    const opts = { ...DEFAULTS, ...options };
+    const walk = (v) => {
+      if (Array.isArray(v)) return v.length ? { type: 'array', items: walk(v[0]) } : { type: 'array' };
+      if (isPlainObject(v)) {
+        const properties = {};
+        const required = [];
+        for (const [k, child] of Object.entries(v)) {
+          properties[k] = walk(child);
+          if (child !== null) required.push(k);
+        }
+        const schema = { type: 'object', properties };
+        if (opts.required && required.length) schema.required = required;
+        return schema;
+      }
+      return infer([v], opts);
+    };
+    return walk(value);
   }
 
   return { basic, smart };

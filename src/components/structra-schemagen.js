@@ -8,6 +8,8 @@
 class StructraSchemaGen extends StructraElement {
   init() {
     this._allItems = true;
+    this._integers = false;     // false: every number is "number" (safe); true: whole numbers are "integer"
+    this._required = true;
     this._stale = true;
     this.on('state:jsonData', () => { this._stale = true; this._refresh(); });
     this.on('tabs:switched', () => { this._stale = true; this._refresh(); });
@@ -29,6 +31,12 @@ class StructraSchemaGen extends StructraElement {
         <label class="sg-opt" title="Read every array item to find optional and nullable keys">
           <input type="checkbox" data-action="all-items" checked> Read all items
         </label>
+        <label class="sg-opt" title="Off: all numbers are typed number, which also accepts whole numbers. On: whole numbers are typed integer, and a later 1.5 would fail the Parse JSON action">
+          <input type="checkbox" data-action="integers"> Whole numbers as integer
+        </label>
+        <label class="sg-opt" title="Off: no key is required, so a missing key never fails the Parse JSON action">
+          <input type="checkbox" data-action="required" checked> Mark keys as required
+        </label>
         <span class="sg-hint">Paste into the Parse JSON action</span>
       </div>
       <pre class="sg-output" id="sgOutput"></pre>`;
@@ -40,8 +48,11 @@ class StructraSchemaGen extends StructraElement {
       Structra.util.copy(text, 'Schema copied');
     });
     this.addEventListener('change', (e) => {
-      if (!e.target.matches('[data-action="all-items"]')) return;
-      this._allItems = e.target.checked;
+      const a = e.target.dataset && e.target.dataset.action;
+      if (a === 'integers') this._integers = e.target.checked;
+      else if (a === 'required') this._required = e.target.checked;
+      else if (a === 'all-items') this._allItems = e.target.checked;
+      else return;
       this._stale = true;
       this._refresh();
     });
@@ -60,7 +71,8 @@ class StructraSchemaGen extends StructraElement {
       return;
     }
     try {
-      const schema = this._allItems ? Structra.schemaGen.smart(data) : Structra.schemaGen.basic(data);
+      const opts = { integers: this._integers, required: this._required };
+      const schema = this._allItems ? Structra.schemaGen.smart(data, opts) : Structra.schemaGen.basic(data, opts);
       const text = JSON.stringify(schema, null, 2);
       out.dataset.schema = text;
       out.textContent = text;
