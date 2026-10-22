@@ -1223,6 +1223,51 @@
           "id": "13.144",
           "title": "Table column Hide and restore work well (the '1 hidden' chip brings the column back); the column menu mixes arrow glyphs and emoji icons (triangles, arrow, circle, chart emoji), which looks unfinished next to the Lucide icons in the rest of the app",
           "status": "todo"
+        },
+        {
+          "id": "13.145",
+          "title": "Schema view reads types from the first record only: Requester.Department and JobTitle show 'null' although rows 2 and 3 hold 'HR' and 'Facilities' (should be 'string, nullable'), Picture shows 'string' although row 2 is null; 'required' appears only on the top two keys and never on item fields, so the Schema view contradicts the Schema Gen tab that already handles nullable and required",
+          "status": "todo"
+        },
+        {
+          "id": "13.146",
+          "title": "Table 'Distinct Values' still fails with SQL on: console 'Catalog Error: Table with name data does not exist' while the user sees only a stale toast; same for Column Stats (see earlier item), so both stay silent failures",
+          "status": "todo"
+        },
+        {
+          "id": "13.147",
+          "title": "Schema view rows are not clickable: clicking 'Email' does nothing and the Expressions tab keeps saying 'Select a path in the tree' although the user is in the Schema view; the Schema view is where a maker sees the field list, so a click should select the field and show its expressions",
+          "status": "todo"
+        },
+        {
+          "id": "13.148",
+          "title": "Typing a path in the path bar and pressing Enter updates the breadcrumb and the Expressions tab but does not scroll the Tree to that node or highlight it (the Tree stayed at line 1 while the target Email is at line 18 of the first item and line 45 of the second), and the autocomplete suggestion list stays open over the document tabs",
+          "status": "todo"
+        },
+        {
+          "id": "13.149",
+          "title": "Expressions tab with the drawer at its default height shows only about two and a half rows (the third row 'Access value' is cut in half); the rows are the useful part, so the drawer should show at least 5 rows or open taller when a value is selected",
+          "status": "todo"
+        },
+        {
+          "id": "13.150",
+          "title": "Canvas app expressions tab has no row for use inside a gallery or ForAll (ThisItem.Requester.Email or ThisRecord.Requester.Email) for a value inside a list item; the first rows only offer Index(ParseJSON(jsonText).value, 2).Requester.Email, so the maker must rewrite it by hand (the loop-relative rows exist only for Power Automate, and the Node panel quick set is not wired in)",
+          "status": "todo"
+        },
+        {
+          "id": "13.151",
+          "title": "At 820 x 700 the layout is cramped: the left panel keeps 300 px so the Tree gets about 470 px and only 140 px of height (the bottom drawer takes the rest); the view toolbar is cut off after '+All' so D1 to D3, Find, Filter, Wrap, Edit and Copy cannot be reached and there is no overflow menu; the Expressions sub tabs wrap onto two lines ('Power Automate', 'Flow actions') and expression text breaks in the middle of words (Index(ParseJSON(jsonTe / xt)...)); tabs end in a clipped 'Pasted JS'",
+          "status": "todo"
+        },
+        {
+          "id": "13.152",
+          "title": "CRITICAL, Find blanks the Tree again: on the SharePoint sample (opened from Recent, with a path selected and the drawer open) searching 'Laptop' or 'contoso' shows '1 found' and an empty Tree, even after scrolling to the top; pressing Clear brings the document back. The earlier blank-tree fix (99b0b57) does not cover this case, so find the real cause and add a smoke test that runs Find on every fixture and checks that matching rows are rendered",
+          "status": "todo"
+        },
+        {
+          "id": "13.153",
+          "title": "Find counts look wrong: 'contoso' appears in 6 strings of the sample but the bar says '1 found'; and the case-sensitive 'Aa' toggle is on by default so a maker typing 'laptop' finds nothing. The three mode buttons are tiny symbols (Aa, ~, .*) with only a hover title, the replace pencil has no label, and the box floats over the top right of the Tree and its scrollbar",
+          "status": "todo"
         }
       ]
     }
