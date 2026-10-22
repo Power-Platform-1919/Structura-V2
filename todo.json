@@ -1037,7 +1037,7 @@
         {
           "id": "13.107",
           "title": "Editor Repair works well (single quotes, trailing comma, comment, True) but the repair message for hopeless input is jargon ('Unexpected end of json string at position 1'); also no diff of what was repaired",
-          "status": "done"
+          "status": "todo"
         },
         {
           "id": "13.108",
@@ -1087,7 +1087,7 @@
         {
           "id": "13.117",
           "title": "Accessibility: the document tabs and the bottom tabs have no accessible names or roles (file tab is a plain generic), line numbers are read as text '1 2 3 4 5 4 5 6', toolbar icon buttons like +All and -All have no labels, and the Graph nodes expose no role; keyboard-only use of rail, tabs and dialogs needs a pass",
-          "status": "done"
+          "status": "todo"
         },
         {
           "id": "13.118",
