@@ -299,7 +299,7 @@
         {
           "id": "9.13",
           "title": "Unify leftover tab/segment patterns (expr-subtab, io-tab, filter modes) into .tabs/.seg",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "9.14",
@@ -318,6 +318,74 @@
         }
       ],
       "note": "Foundation, shell, stats, side panels, command palette, find/filter bars, graph, input panel, minimap/heatmap and token colours are done and checked in the browser (dark and light, custom theme export/import round trip). Remaining: moving the older dialogs onto StructraOverlay (they already look consistent), folding the last tab/segment variants into .tabs/.seg, and the post-redesign smoke run + memory-bank refresh."
+    },
+    {
+      "id": "10",
+      "title": "Product direction: overview-first analyzer with a built-in Power Platform add-on",
+      "status": "todo",
+      "brief": "Structra is a fully local JSON analyzer for everyone. The Power Platform tools (expressions, Parse JSON schema, Power Fx, flow actions) ship built in as an always-visible add-on for makers using canvas apps and cloud flows. Main job: understand an unknown payload in under a minute. Look: calm workbench.",
+      "subtasks": [
+        {
+          "id": "10.1",
+          "title": "Overview screen right after load: shape, size, depth, types, quality, largest arrays, suspicious fields; one click opens the tree at that spot",
+          "status": "todo"
+        },
+        {
+          "id": "10.2",
+          "title": "Guided first run: paste-first empty state, one-click sample, short next-step hint after load, no raw path text in the status bar",
+          "status": "todo"
+        },
+        {
+          "id": "10.3",
+          "title": "Power Platform add-on stays prominent (rail icon and drawer tabs); highlights itself when the payload looks like a connector or OData response",
+          "status": "todo"
+        },
+        {
+          "id": "10.4",
+          "title": "Power Automate expression for the selected node (items/body/outputs, Apply to each, null-safe ?[])",
+          "status": "todo"
+        },
+        {
+          "id": "10.5",
+          "title": "Parse JSON schema generated from the real payload, with required/nullable handling",
+          "status": "todo"
+        },
+        {
+          "id": "10.6",
+          "title": "Power Fx for canvas apps: ParseJSON, ForAll, ShowColumns, typed record helpers",
+          "status": "todo"
+        },
+        {
+          "id": "10.7",
+          "title": "Flow action snippets (Select, Filter array, Compose, Condition) built from the selected path",
+          "status": "todo"
+        },
+        {
+          "id": "10.8",
+          "title": "Committed fixture suite: one command loads all fixtures, opens every view, checks counts and console errors",
+          "status": "todo"
+        },
+        {
+          "id": "10.9",
+          "title": "Engine unit tests in Node for analysis, paths, expressions and schema generation",
+          "status": "todo"
+        },
+        {
+          "id": "10.10",
+          "title": "100 MB target: overview quickly with progress and cancel; benchmark parse and analysis off the main thread first (earlier worker clone cost was larger than parse)",
+          "status": "todo"
+        },
+        {
+          "id": "10.11",
+          "title": "Remove duplicate JS and DuckDB code paths: one engine contract, one place per rule",
+          "status": "todo"
+        },
+        {
+          "id": "10.12",
+          "title": "Move older dialogs (shortcuts, typedef, diff, nullfinder, pivot, snippets, workspace, heatmap, minimap) onto StructraOverlay",
+          "status": "todo"
+        }
+      ]
     }
   ],
   "principles": [
@@ -328,7 +396,7 @@
     "Stats view is slow on big files: about 6.7 s for 100k rows and 17.7 s for 150k rows (V1 had no such step). Compute off the main thread or use DuckDB SUMMARIZE.",
     "Tree first paint: 4.8 s vs V1 2.9 s on perf_100k (similar on perf_150k: 12.2 s vs 13.7 s). Heap on perf_150k: 562 MB vs 454 MB.",
     "Top-level null, false, 0 and empty string documents cannot be opened (about 40 falsy checks use jsonData as the has-data flag). V2 now shows a clear message instead.",
-    "Add a Playwright smoke test that runs the V1 fixtures.",
-    "Session restore works (tabs, view, path, stored original). It only saves the stored copy once the page is idle, so a reload within a few seconds of opening a file restores an empty tab."
+    "Session restore works (tabs, view, path, stored original). It only saves the stored copy once the page is idle, so a reload within a few seconds of opening a file restores an empty tab.",
+    "Fixture smoke test (30 small V1 fixtures, all six views each) passed with zero page errors after the redesign. It is run by hand through Playwright; task 10.8 turns it into a committed script."
   ]
 }

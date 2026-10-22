@@ -1004,29 +1004,6 @@ structra-stats {
 .io-clip-dismiss:hover { opacity: 1; }
 
 /* ===== FILTER MODE TABS ===== */
-.filter-mode-tabs {
-  display: flex;
-  gap: 2px;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: var(--sp-1);
-}
-.filter-mode-tab {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: 4px 10px;
-  background: none;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-  color: var(--text-muted);
-  cursor: pointer;
-}
-.filter-mode-tab:hover { color: var(--text); background: var(--surface-alt); }
-.filter-mode-tab.active {
-  color: var(--accent);
-  border-color: var(--border);
-  border-bottom-color: var(--surface);
-  background: var(--surface);
-}
 .filter-expr-body {
   display: flex;
   flex-direction: column;
@@ -1923,27 +1900,7 @@ structra-schemagen {
   flex: 1;
 }
 
-.expr-subtabs {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding-bottom: var(--sp-2);
-  flex-shrink: 0;
-}
 
-.expr-subtab {
-  padding: 3px var(--sp-2);
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  font-family: var(--font-sans);
-  cursor: pointer;
-}
-.expr-subtab:hover { color: var(--text); background: var(--surface-hover); }
-.expr-subtab.active { color: var(--accent); background: var(--accent-soft); }
 
 .expr-path {
   margin-left: auto;

@@ -21,10 +21,10 @@ class StructraExpressions extends StructraElement {
 
   render() {
     this.innerHTML = `
-      <div class="expr-subtabs">
-        <button class="expr-subtab active" data-sub="automate">Power Automate</button>
-        <button class="expr-subtab" data-sub="canvas">Canvas app</button>
-        <button class="expr-subtab" data-sub="helpers">Helpers</button>
+      <div class="tabs expr-subtabs">
+        <button class="tab expr-subtab active" type="button" data-sub="automate">Power Automate</button>
+        <button class="tab expr-subtab" type="button" data-sub="canvas">Canvas app</button>
+        <button class="tab expr-subtab" type="button" data-sub="helpers">Helpers</button>
         <span class="expr-path" id="exprPath"></span>
       </div>
       <div class="expr-pane active" data-pane="automate"></div>

@@ -40,11 +40,11 @@ class StructraFilter extends StructraElement {
             </button>
           </div>
         </div>
-        <div class="filter-mode-tabs">
-          <button class="filter-mode-tab active" data-fmode="structured">Structured</button>
-          <button class="filter-mode-tab" data-fmode="jsonpath">JSONPath</button>
-          <button class="filter-mode-tab" data-fmode="regex">Regex</button>
-          <button class="filter-mode-tab" data-fmode="expression">Expression</button>
+        <div class="tabs filter-mode-tabs">
+          <button class="tab filter-mode-tab active" type="button" data-fmode="structured">Structured</button>
+          <button class="tab filter-mode-tab" type="button" data-fmode="jsonpath">JSONPath</button>
+          <button class="tab filter-mode-tab" type="button" data-fmode="regex">Regex</button>
+          <button class="tab filter-mode-tab" type="button" data-fmode="expression">Expression</button>
         </div>
         <div class="filter-body" id="filterBody">
           <div class="filter-conditions" id="filterConditions"></div>
