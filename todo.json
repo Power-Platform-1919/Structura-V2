@@ -1043,6 +1043,16 @@
           "id": "13.108",
           "title": "Toolbar 'Edit' just switches to the Editor tab, which is already in the view tabs; two entries for one place, and 'Copy' at the far right is not explained (copies what: whole document, selection, or path?)",
           "status": "todo"
+        },
+        {
+          "id": "13.109",
+          "title": "Minimap: floating box at the top right overlaps the Editor's 'Valid JSON' status (only 'ON' shows), has no border contrast or close button, uses unlabelled coloured blocks, and is offered in views (Editor, Overview) where it means nothing; there is no legend and no tooltip",
+          "status": "todo"
+        },
+        {
+          "id": "13.110",
+          "title": "Command palette lists every command in every state: Undo/Redo, Zoom to Fit, Expand All appear on an empty tab or in the Editor; unavailable commands should be hidden or dimmed with a reason. There is no Power Platform command (Expressions, Schema Gen, Choose columns, Copy Power Automate expression)",
+          "status": "todo"
         }
       ]
     }
