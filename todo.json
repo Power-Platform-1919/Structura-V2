@@ -1078,6 +1078,16 @@
           "id": "13.115",
           "title": "Graph: a small graph sits in the top left corner of a large empty canvas; it should open centred and fit to the view; the zoom bar floats at the bottom left and is not aligned with the canvas edge",
           "status": "todo"
+        },
+        {
+          "id": "13.116",
+          "title": "Pivot dialog: the drop zones are empty boxes with no hint until a field is clicked, chips look draggable but only click works, 'Generate Pivot' on a field with no rows shows 'No results' without saying why (the file has no list of records), and the Count/Sum selector floats under Values without a label",
+          "status": "todo"
+        },
+        {
+          "id": "13.117",
+          "title": "Accessibility: the document tabs and the bottom tabs have no accessible names or roles (file tab is a plain generic), line numbers are read as text '1 2 3 4 5 4 5 6', toolbar icon buttons like +All and -All have no labels, and the Graph nodes expose no role; keyboard-only use of rail, tabs and dialogs needs a pass",
+          "status": "todo"
         }
       ]
     }
