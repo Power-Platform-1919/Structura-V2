@@ -1088,6 +1088,21 @@
           "id": "13.117",
           "title": "Accessibility: the document tabs and the bottom tabs have no accessible names or roles (file tab is a plain generic), line numbers are read as text '1 2 3 4 5 4 5 6', toolbar icon buttons like +All and -All have no labels, and the Graph nodes expose no role; keyboard-only use of rail, tabs and dialogs needs a pass",
           "status": "todo"
+        },
+        {
+          "id": "13.118",
+          "title": "Type Definitions: for a pasted CSV where qty and price are empty in some rows, TypeScript says 'qty: number; price: number;' (should be number | null or optional); same for the other languages. The Overview already flagged both as 33% null, so the two views disagree",
+          "status": "todo"
+        },
+        {
+          "id": "13.119",
+          "title": "Type Definitions: 'Root name: Root' produces 'RootItem' in TypeScript and 'RootType' in Power Fx, so the name box does not match the output; the code box is short and scrolls inside a dialog that has free space; Power Fx sits between languages instead of under the Power Platform add-on",
+          "status": "todo"
+        },
+        {
+          "id": "13.120",
+          "title": "Wording is inconsistent across entry points: 'Try a sample', 'try a sample', 'Load Sample', 'Load & Explore', 'Open a file or a recent one'; pick one verb per action",
+          "status": "todo"
         }
       ]
     }
