@@ -17,7 +17,7 @@
   --font-mono: 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Consolas, monospace;
 
   /* ===== TYPE SCALE (one size knob: --structra-font-size) ===== */
-  --structra-font-size: 15px;
+  --structra-font-size: 14px;
   --fs-xxs: calc(var(--structra-font-size) - 5px);
   --fs-xs:  calc(var(--structra-font-size) - 4px);
   --fs-sm:  calc(var(--structra-font-size) - 3px);

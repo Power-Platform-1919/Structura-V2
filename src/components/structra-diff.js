@@ -172,29 +172,59 @@ class StructraDiff extends StructraOverlay {
       rightPane.innerHTML = '';
     } else {
       body.className = 'diff-body';
-      const leftLines = JSON.stringify(this._left, null, 2).split('\n');
-      const rightLines = JSON.stringify(this._right, null, 2).split('\n');
+      const leftLines = this._lines(this._left);
+      const rightLines = this._lines(this._right);
       leftPane.innerHTML = this._renderSidePane(leftLines, 'left');
       rightPane.innerHTML = this._renderSidePane(rightLines, 'right');
     }
   }
 
+  /**
+   * The pretty-printed JSON of a value as lines, each with the data path it belongs to
+   * (the same "$.a[2].b" form the diff uses), so a changed path can be matched to its lines.
+   */
+  _lines(value) {
+    const out = [];
+    const walk = (v, path, indent, key, last) => {
+      const prefix = indent + (key === undefined ? '' : JSON.stringify(key) + ': ');
+      const comma = last ? '' : ',';
+      if (v !== null && typeof v === 'object') {
+        const entries = Array.isArray(v) ? v.map((x, i) => [i, x]) : Object.entries(v);
+        const open = Array.isArray(v) ? '[' : '{';
+        const close = Array.isArray(v) ? ']' : '}';
+        if (!entries.length) { out.push({ text: prefix + open + close + comma, path }); return; }
+        out.push({ text: prefix + open, path });
+        entries.forEach(([k, child], i) => {
+          const childPath = Array.isArray(v) ? `${path}[${k}]` : `${path}.${k}`;
+          walk(child, childPath, indent + '  ', Array.isArray(v) ? undefined : k, i === entries.length - 1);
+        });
+        out.push({ text: indent + close + comma, path });
+      } else {
+        out.push({ text: prefix + JSON.stringify(v) + comma, path });
+      }
+    };
+    walk(value, '$', '', undefined, true);
+    return out;
+  }
+
+  /** Does a change at changePath cover the line printed for linePath (the value itself or anything inside it)? */
+  _covers(changePath, linePath) {
+    return linePath === changePath || linePath.startsWith(changePath + '.') || linePath.startsWith(changePath + '[');
+  }
+
   _renderSidePane(lines, side) {
-    const diffPaths = new Set(this._diffs.map(d => d.path));
     return '<div class="diff-lines">' + lines.map((line, i) => {
-      const cls = this._getLineDiffClass(line, i, side);
-      return `<div class="diff-line ${cls}"><span class="diff-ln">${i + 1}</span><span class="diff-code">${Structra.util.esc(line)}</span></div>`;
+      const cls = this._getLineDiffClass(line, side);
+      return `<div class="diff-line ${cls}"><span class="diff-ln">${i + 1}</span><span class="diff-code">${Structra.util.esc(line.text)}</span></div>`;
     }).join('') + '</div>';
   }
 
-  _getLineDiffClass(line, idx, side) {
+  _getLineDiffClass(line, side) {
     for (const d of this._diffs) {
-      if (d.leftLine === idx && side === 'left') {
-        return d.type === 'removed' ? 'diff-rm' : d.type === 'changed' ? 'diff-chg' : '';
-      }
-      if (d.rightLine === idx && side === 'right') {
-        return d.type === 'added' ? 'diff-add' : d.type === 'changed' ? 'diff-chg' : '';
-      }
+      if (!this._covers(d.path, line.path)) continue;
+      if (d.type === 'changed') return 'diff-chg';
+      if (d.type === 'removed' && side === 'left') return 'diff-rm';
+      if (d.type === 'added' && side === 'right') return 'diff-add';
     }
     return '';
   }

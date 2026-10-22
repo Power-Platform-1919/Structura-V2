@@ -82,7 +82,6 @@ Workers: `src/workers` (csv, yaml, toml, xml parsers, engine worker). JSON itsel
 - No cancel button for very large files, and no progress beyond the loading overlay steps.
 - Unit tests (47) cover engine analysis, schema generation, expressions, paths and insights. The DuckDB paths and the views are covered only by the browser smoke test.
 - Share links are limited to about 30 KB of encoded data.
-- The font size default is 14 px in `structra-zoom.js` but 15 px in `tokens.css`; layout was tuned at 14.
 - `components.css` is still large (view styles for tree, table, graph and the input panel); more can move to the shared patterns.
 - `docs/`, `samples/` and `structra-v2.html` are history and can be deleted.
 - Overview and the new toolbar menu have been checked in dark mode more than light mode.

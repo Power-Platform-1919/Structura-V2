@@ -508,6 +508,7 @@
     "Fixture smoke test (30 small V1 fixtures, all six views each) passed with zero page errors after the redesign. It is run by hand through Playwright; task 10.8 turns it into a committed script.",
     "Task 12 smoke run: 30 of 30 fixtures opened in all six views with zero page errors, and TypeScript generation checked on jsonobject.json.",
     "Top-level null, false, 0 and empty string documents cannot be opened (jsonData doubles as the has-data flag). The app shows a clear message instead.",
-    "Large files (above 120 MB) open on the tree, and there is no cancel button. Parsing stays on the main thread because copying data to a worker cost more than parsing it."
+    "Large files (above 120 MB) open on the tree, and there is no cancel button. Parsing stays on the main thread because copying data to a worker cost more than parsing it.",
+    "Fixed after the light-mode pass: the side-by-side diff never highlighted changed lines (line numbers were never set); it now marks changed, removed and added lines by data path. The font-size token now matches the 14 px the app actually runs at."
   ]
 }
