@@ -1068,6 +1068,16 @@
           "id": "13.113",
           "title": "Diff dialog works, but the summary '+1 -0 ~2' is unlabelled (added, removed, changed), the paste box disappears after Compare so the right side cannot be corrected, and the Right dropdown still reads 'Paste JSON...'",
           "status": "todo"
+        },
+        {
+          "id": "13.114",
+          "title": "Graph: clicking a node gives no feedback (no selected state, the path bar stays 'Click an element...', no side panel) and a click on a parent does not collapse its children; nodes cannot be expanded or collapsed from the graph",
+          "status": "todo"
+        },
+        {
+          "id": "13.115",
+          "title": "Graph: a small graph sits in the top left corner of a large empty canvas; it should open centred and fit to the view; the zoom bar floats at the bottom left and is not aligned with the canvas edge",
+          "status": "todo"
         }
       ]
     }
