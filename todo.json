@@ -234,7 +234,7 @@
     {
       "id": "9",
       "title": "Redesign look and feel (themes, layout, shared code)",
-      "status": "in_progress",
+      "status": "done",
       "subtasks": [
         {
           "id": "9.1",
@@ -313,8 +313,8 @@
         },
         {
           "id": "9.16",
-          "title": "Re-run fixture smoke test after the redesign; update memory-bank.md",
-          "status": "todo"
+          "title": "Fixture smoke test re-run after the redesign (30 of 30 clean) and memory-bank.md refreshed to match the code",
+          "status": "done"
         }
       ],
       "note": "Foundation, shell, stats, side panels, command palette, find/filter bars, graph, input panel, minimap/heatmap and token colours are done and checked in the browser (dark and light, custom theme export/import round trip). Remaining: moving the older dialogs onto StructraOverlay (they already look consistent), folding the last tab/segment variants into .tabs/.seg, and the post-redesign smoke run + memory-bank refresh."

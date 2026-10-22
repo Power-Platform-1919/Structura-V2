@@ -1,117 +1,88 @@
 # Structra V2 Memory Bank
 
-Reference notes for the V2 codebase. Companion: `..\structra-v1\memory-bank.md`.
-Written from the code (the files in `docs/` are old and not trusted). Refreshed 2026-10-22 after the V1 to V2 catch-up work.
-The task list lives in `todo.json` at the repo root.
+Reference notes for the V2 codebase. Companion: `..\structra-v1\memory-bank.md` (V1, for reference only).
+Written from the code (the files in `docs/` are old and not trusted). Refreshed 2026-10-22 after the redesign, Overview, icon, Power Platform and test work.
+The task list lives in `todo.json` at the repo root (tasks 1 to 12).
 
-## 1. Snapshot
+## 1. What the app is
+
+A local JSON analyzer for everyone, with a built-in Power Platform add-on for makers of cloud flows and canvas apps.
+- Main job: understand an unknown payload in under a minute (the Overview screen opens first).
+- Power Platform add-on (always visible): Power Automate expressions, Power Fx, Parse JSON schema, flow action snippets for the selected value.
+- Everything is processed in the browser. Hosting (for example GitHub Pages) is fine; data never leaves the page. Libraries and icons may load from a CDN, the data does not.
+- Look: "calm workbench", light and dark themes, custom themes (JSON export and import).
+
+## 2. Snapshot
 
 | Item | Value |
 |---|---|
 | Location | `C:\Users\228295\Personal Github Repos\structra-v2` |
 | Remote | `https://github.com/Hemanth-PPlatform-1919/structra-v2` (private), branch `main` |
 | Stack | Vanilla JS custom elements (no Shadow DOM), plain `<script>` tags, no build step, no ES modules in app code |
-| Namespace | everything lives under `window.Structra`. No `window.App` code remains |
-| Entry points | `index.html` (the app), `structra-v2.html` (old single-file design prototype, not used by the app) |
-| Size | 21 core files, 38 components, 7 utils, 6 workers, 3 CSS files (`components.css` is about 3.5k lines) |
-| Design rule | V2 is a fresh rewrite of V1 ideas, not a port. No backward-compatibility layers |
+| Namespace | everything under `window.Structra`. No `window.App`, no V1 compatibility layers |
+| Entry point | `index.html` (`structra-v2.html` and `samples/` are old design prototypes) |
+| Dev dependency | `playwright` only, for the smoke and perf scripts |
 
-## 2. Run and test
+## 3. Run and test
 
-- Serve over HTTP. A no-cache static server is used for testing (see `scratchpad/nocache_server.py` during the dev session): V2 on port 8765, V1 on 8766.
-- Browsers cache scripts aggressively. When testing in Playwright, reload changed files with `fetch(url, { cache: 'reload' })` and open the page with a new query string (`index.html?v=N`), otherwise an old copy of a script may run.
-- Pushing: plain `git push` picks the wrong GitHub login. Use `git -c credential.helper= -c "credential.helper=!gh auth git-credential" push origin main`.
-- Shell note: the Bash tool breaks on backticks inside heredocs. Write files with the file tool and run Python patch scripts from a file.
-- Fixtures for testing are in `..\structra-v1\Tests` (edge cases, `jsonobject.json`, and the large `perf_100k.json` and `perf_150k_complex.json`).
+- Serve over HTTP: `npm run serve` (python on port 8765). Browsers cache scripts, so when testing by hand reload changed files with `fetch(url, { cache: 'reload' })` and open the page with a new query string.
+- `npm test` runs the Node unit tests (`tests/unit`: schema generation, expressions and paths, insights). The harness loads the pure modules from `src/core` into Node.
+- `npm run test:smoke` opens all 30 fixtures in `tests/fixtures` in a real browser, visits six views each, opens and closes ten dialogs, and fails on any page error. `PW_CHANNEL=msedge` uses the installed Edge instead of downloading Chromium.
+- `node tests/perf/large.js <file.json> [overview]` measures time to first view and the longest page freeze. Large fixtures live in `..\structra-v1\Tests` (`perf_100k.json` 37 MB, `perf_150k_complex.json` 88 MB).
+- Push: plain `git push` picks the wrong GitHub login. Use `git -c credential.helper= -c "credential.helper=!gh auth git-credential" push origin main`.
+- Shell: the Bash tool breaks on backticks in heredocs. Write scripts with the file tool and run them from a file.
 
-## 3. Architecture
+## 4. Architecture
 
-### 3.1 Base class (`src/core/base.js`)
-`class StructraElement extends HTMLElement`. `connectedCallback` runs once: `_readProps`, `init()`, `render()`. Helpers: `on/off` (global event bus), `emit`, `$`, `$$`, attribute-to-`props` mapping.
+- `StructraElement` (`core/base.js`): `init`, `render`, `on/emit`, `$`, `$$`. `StructraOverlay` (`core/overlay.js`) extends it for every dialog: `mount({ title, body, foot, head, size })`, `open`, `close`, Escape, backdrop, focus trap. Sizes `sm md lg xl`; add `flush` for edge-to-edge content.
+- State and events (`core/state.js`): `Structra.set(key, value)` emits `state:<key>`. Views: `overview tree table graph schema editor` (`constants.VIEWS`; Ctrl+1 to Ctrl+5 map to tree, table, graph, schema, overview).
+- Paths in `currentPath` have no leading `$`. `Structra.paths` accepts both.
+- Shared helpers: `Structra.util` (esc, typeOf, naming styles, formatBytes, timeAgo, debounce, yieldToBrowser, whenIdle, copy, download, uid). Write general logic there once.
+- Icons: `Structra.icons.svg(name, { size, cls, color, stroke })` wraps the Lucide library (CDN with `src/vendor/lucide.min.js` fallback). `color` takes a theme token name (accent, success, warning, danger, info, muted, syn-*) or any CSS colour. `<i data-icon="name">` placeholders in HTML are filled on load.
+- Theme (`core/theme.js`): 17 base colours, the rest derived with `color-mix()`. Modes light, dark, system. 8 built-in themes, custom themes saved in localStorage `structra.theme`, JSON format `{ format: 'structra-theme', version: 1, name, mode, colors, fonts? }`. Appearance dialog: `structra-theme`.
+- Engine (`core/engine.js`): per-tab datasets. Analysis is computed once per dataset (`getAnalysis`), time-sliced. DuckDB WASM is optional and loads on demand (`enableSql`); the JavaScript path is the fallback by design. `_tableOf(ds)` gives the DuckDB table name.
+- Insights (`core/insights.js`): pure logic that turns an analysis into the Overview: headline sentence, key figures, findings with a place to jump to, biggest lists (grouped by pattern).
+- Session: tabs, view, path and the stored original are saved to IndexedDB and restored on load. The original is stored once the page is idle, so a reload within a few seconds of opening a file restores an empty tab.
 
-### 3.2 State and events (`src/core/state.js`)
-- `Structra.events`: `on`, `off`, `emit`, `once`. A listener that throws is logged and re-thrown.
-- `Structra.state`: `theme, activeView, currentPath, jsonData, fileName, fileSize, drawerState, queryPanelOpen, contextPanelOpen, findBarOpen, duplicateKeys`.
-- `Structra.set(key, value)` emits `state:<key>` with `{ key, value, old }` (no-op when the value is identical).
-- `Structra.tabs = { list, activeId, nextId }`.
-- Paths in `currentPath` are written without a leading `$` (for example `body.value[0].name`). `Structra.paths` accepts both forms.
+## 5. Power Platform (`core/expressions.js`, `core/schema-gen.js`, `core/paths.js`)
 
-### 3.3 Boot (`src/app.js`)
-Creates the first tab, syncs state with tabs, mounts the six view components into the view switcher, binds global shortcuts, drag and drop (json, txt, csv, tsv), wires engine ingest, starts DuckDB, attaches panel resizers, opens a `#share=` link if present, restores a session stub, saves tab metadata on unload.
+- Source model: `Structra.expressions.getSource()/setSource()` (kind action, trigger, item or custom; name; Power Fx variable; whole-output detection). Saved in localStorage `structra.ppSource`. Emits `expressions:source-changed`.
+- Power Automate paths are null-safe at every step (`?['key']`, `?[0]`). A whole action output (`statusCode`, `headers`, `body`) is detected so `body` is not repeated.
+- Power Fx: reads `ParseJSON(variable)`; typed tables convert each column by its real type (Value, Boolean, DateValue, DateTimeValue, Text); nested columns are left out; names that are not plain identifiers are single-quoted. Syntax checked against Microsoft Learn.
+- Flow actions (`flowActions(path, value)`): Select, Filter array (Query), Apply to each (Foreach), Compose, Condition (If) as paste-ready action JSON. `empty()` is only used on text, lists and objects; numbers and flags are checked against null.
+- Parse JSON schema: `smart(value, { integers, required })`: nullable keys as type lists (`["string","null"]`), objects and lists merged across rows, mixed scalars as type lists, "number" by default (safe), optional integer typing and optional `required`.
+- UI: drawer tabs Analyze, Expressions (sub-tabs Power Automate, Canvas app, Flow actions, Helpers; a Source bar), Schema Gen (toggles for integers and required). Rail button "Power Platform" opens the Expressions tab.
 
-### 3.4 Event names in use
-State: `state:jsonData`, `state:currentPath`, `state:fileName`, `state:fileSize`, `state:duplicateKeys`.
-Tabs: `tabs:changed`, `tabs:switched`, `tabs:closed`, `tabs:add`, `tabs:close-active`.
-Navigation and tree: `nav:changed`, `bookmarks:changed`, `bookmark:add`, `tree:navigate-path`, `tree:node-selected`, `tree:expand-all`, `tree:collapse-all`, `tree:collapse-depth`, `tree:toggle-wrap`.
-Engine: `engine:ingested`, `engine:active`, `engine:removed`, `engine:filter-changed`, `engine:data-modified`, `engine:duckdb-ready`, `engine:duckdb-failed`.
-UI and overlays: `command-palette:toggle`, `command:run`, `command:exec`, `overlay:close`, `drawer:tab-switched`, `view:switched`, `validate:open`, `charts:open`, `diff:open`, `pivot:open`, `nullfinder:open`, `snippets:open`, `workspace:open`, `typedef:open`, `shortcuts:open`, `heatmap:toggle`, `minimap:toggle`, `editor:repair`, `editor:format`, `editor:minify`, `toast`, `loading:show`, `loading:hide`.
+## 6. Files
 
-## 4. Core modules (`src/core/`)
+Core (`src/core`): `base overlay util logger settings constants theme state icons libs paths expressions schema-gen insights json-tools share navigation bookmarks resizer persistence worker-pool virtual-list json-tree engine duckdb code-gen data-mask format-convert mock-gen transform-ops undo-stack`.
+Components (`src/components`): shell (`header tabs rail status toast breadcrumb canvas-header view-switcher drawer`), views (`overview tree table graph schema editor`), drawer panels (`drawer-stats expressions schemagen`), panels (`query context`), input (`input-panel find filter autocomplete`), dialogs on the overlay base (`theme welcome validate charts shortcuts typedef diff nullfinder pivot snippets workspace`), others (`command loading minimap heatmap zoom`).
+CSS (`src/css`, load order): `tokens base ui layout shell overview panels overlays components theme-panel`. Use `var(--*)` tokens; shared patterns (dialogs, `.seg`, `.tabs`, `.menu`, `.field`, `.card`, `.tag`) live in `ui.css`. `components.css` still holds older view styles (tree, table, graph, input panel).
+Workers: `src/workers` (csv, yaml, toml, xml parsers, engine worker). JSON itself is parsed on the main thread (copying data to a worker cost more than parsing it).
 
-| File | What it is |
-|---|---|
-| `logger.js`, `settings.js`, `constants.js`, `dom-shim.js` | Logger (`dev`/`normal`/`off`), persisted settings (`structra.` keys), shortcut and view constants, `Structra.dom.esc` and friends |
-| `worker-pool.js` | `Structra.createWorkerPool`, `parseJsonAsync`, `parseCsvAsync` and the other parsers. Blob URL fallback for `file://` |
-| `virtual-list.js` | Generic chunk, sentinel, recycle, rehydrate controller. Options include `root` (scroll box), `chunkTag` and `sentinelTag` so it can build `<tbody>` chunks inside a table |
-| `json-tree.js` | Virtualized tree renderer (chunks of 100, recycling, filters, bookmarks, inline edit) |
-| `engine.js` | Per-tab datasets, query pipeline (DuckDB first, JS fallback), analysis helpers. Public API now includes `sql`, `summarizeTable`, `getSchemaDb` |
-| `duckdb.js` | DuckDB WASM adapter, loaded through `Structra.libs` |
-| `persistence.js` | IndexedDB `structra-store` (recents, raw files, session, api history) |
-| `libs.js` | `Structra.libs.require(name)`: loads jsonrepair, jsonpath, ajv, html2canvas (scripts) and duckdb (module) from a CDN, with retry |
-| `paths.js` | `Structra.paths`: `tokenize`, `resolve`, `setNested`, `strip`, `lastKey`, `powerAutomate`, `powerFx` |
-| `expressions.js` | `Structra.expressions`: `powerAutomate(path, value)`, `powerFx(path, value)` return `[{label, code}]`; `helpers(data)` returns sections |
-| `schema-gen.js` | `Structra.schemaGen.basic` and `.smart` (reads every array item for optional and nullable keys) |
-| `json-tools.js` | `Structra.jsonTools`: `repair` (jsonrepair), `findDuplicateKeys(text)`, `patch(from, to)` (RFC 6902), `validate(data, schema)` (Ajv) |
-| `share.js` | `Structra.share` (`#share=g.<gzip base64url>` links, about 30 KB limit) and `Structra.capture.png(element)` (html2canvas) |
-| `navigation.js` | `Structra.nav`: back and forward history per tab (Alt+Left, Alt+Right) |
-| `bookmarks.js` | `Structra.bookmarks`: saved paths per file name in localStorage `structra_bookmarks` |
-| `resizer.js` | `Structra.resizer.attach`: drag and keyboard resize for side panels, width saved in localStorage |
+## 7. Behaviours worth knowing
 
-## 5. Components (`src/components/`)
+- A new document opens on the Overview (up to 120 MB; above that, the tree).
+- Toolbar buttons can be hidden with a right-click; hidden ones sit under "..." with "Show all buttons" (also a palette command). Saved in localStorage `structra.toolbarHidden`.
+- Welcome dialog shows once (`structra.welcomeSeen`); reopen from the palette ("Welcome"). Ctrl+V on an empty tab loads the clipboard. One-time tip after the first document (`structra.tipExpressions`).
+- Rail buttons: Explorer (new tab on Recent), Query, Power Platform, Overview, Transform, Settings (Appearance). The highlight shows what is open.
+- Palette (Ctrl+K) covers every toolbar action plus views, tools, code generation, export, analysis, zoom (including fit), unmask, navigation, new tab, load from URL.
+- Table: sort, column filters, hide, move, expand object columns, chart a column; virtual list above 200 rows.
+- Documents that are only null, false, 0 or an empty string cannot be opened (jsonData doubles as the has-data flag); the app says so.
 
-Shell: `structra-header` (path bar, back, forward, bookmark, theme), `structra-tabs`, `structra-rail`, `structra-status` (file, SQL state, duplicate-key badge, log mode), `structra-toast`, `structra-breadcrumb`.
-Canvas: `structra-canvas-header`, `structra-view-switcher`, `structra-drawer` (tabs: Analyze, Expressions, Schema Gen), `structra-drawer-stats`, `structra-expressions`, `structra-schemagen`, `structra-input-panel`, `structra-find`, `structra-filter`.
-Views: `structra-tree`, `structra-table`, `structra-graph`, `structra-schema`, `structra-editor`, `structra-stats`.
-Panels: `structra-query` (left, resizable), `structra-context` (right, resizable, includes the bookmarks list).
-Overlays: `structra-command` (palette), `structra-typedef`, `structra-shortcuts`, `structra-loading`, `structra-diff`, `structra-nullfinder`, `structra-pivot`, `structra-minimap`, `structra-snippets`, `structra-workspace`, `structra-heatmap`, `structra-zoom`, `structra-autocomplete`, `structra-validate`, `structra-charts`.
+## 8. Measured performance (Edge, `tests/perf/large.js`)
 
-Notable behaviours:
-- Table: sort, per-column filters, hide (with an "N hidden" chip to restore), move left or right, non-destructive expand of object columns with a key picker, "Chart this column". Above 200 rows it uses the virtual list with `<tbody>` chunks. Row selection paths follow the real row index even after sort or filter.
-- Path autocomplete: resolves everything before the last separator in the open document and lists keys or array indexes. Tab or Enter accepts.
-- Editor: Format, Minify, Repair (jsonrepair), Apply.
-- Validate overlay: paste a schema or infer one, errors link to the tree.
-- Diff overlay: includes Copy JSON Patch.
-- Charts overlay: numeric histogram, trend and summary, or top values for text columns. Inline SVG.
-- Tree right-click menu (in `structra-tree`): copy path, value, subtree, Copy As (TypeScript, Python, C#, Go, Rust, Java, SQL), mock data, bookmark, filter to this.
+| File | First view | Worst page freeze | Heap |
+|---|---|---|---|
+| perf_100k.json, 37 MB | 0.5 s | 0.15 s | 77 MB |
+| perf_150k_complex.json, 88 MB | 2.0 s | 0.67 s | 210 MB |
 
-## 6. Shortcuts (`constants.js`, shown by `structra-shortcuts`)
-Ctrl+K palette, Ctrl+F find, Ctrl+H find and replace, Ctrl+Shift+F filter, Ctrl+L path bar, Ctrl+B bookmark, Alt+Left and Alt+Right back and forward, Alt+N new tab, Alt+W close tab, Ctrl+1 to Ctrl+5 views (tree, table, graph, schema, stats), Ctrl+E editor, Ctrl+Shift+S sort keys, Ctrl+Shift+E export CSV, Ctrl+Shift+P mask, Ctrl+D compare, Ctrl+Z and Ctrl+Y undo and redo, Alt+T theme, Escape close.
-Ctrl+T and Ctrl+W were removed because browsers do not let pages intercept them.
+## 9. Known gaps and ideas
 
-## 7. Command palette
-Views, sort, flatten, unflatten, mask, mock, sample, type generation (TypeScript, Python, Go, C#, Rust, SQL), export CSV, YAML, XML, copy share link, export view as image, repair, format, minify, find, filter, fuzzy search, SQL, validate, charts, distribution, undo, redo, theme, shortcuts, diff, null finder, pivot, minimap, snippets, workspace, heatmap, zoom.
-
-## 8. CSS
-`variables.css` (all tokens, light and dark), `layout.css` (grid shell), `components.css`. Rule: use `var(--*)` tokens, no raw hex or px sizes except 1px borders. Fonts: Inter and JetBrains Mono.
-
-## 9. What changed from the earlier notes
-- The engine crash (`sql`, `summarizeTable`, `getSchemaDb` exported but undefined) is fixed, so V2 boots with no console errors.
-- All V1 code copies (`src/ui`, `src/expressions`, five utils) are deleted. `Structra.libs` replaced the old loader, `Structra.paths` replaced `Structra.path`.
-- Added: Power Platform expressions, Parse JSON schema, history and breadcrumb, real bookmarks, repair, schema validation, duplicate keys, JSON Patch export, share links, image export, charts, table improvements, autocomplete rewrite, panel resizers.
-- Fixed: table virtual scroll rendered rows as plain text, and table row paths pointed at the wrong row after sorting.
-
-## 10. Test results (V1 vs V2, 2026-10-22)
-All 30 small V1 fixtures plus perf_100k and perf_150k_complex were loaded through each app's real file input. V2 matches V1 line counts everywhere V1 renders, with no view errors. V1 itself threw page errors on test7_mixed and test9_edge.
-Bugs found and fixed in V2: infinite recursion in `findFirstObjectArray` on null values, a blank screen for documents that are just null, and the broken virtual-scroll table.
-Timings (first tree render): perf_100k V2 4.8 s vs V1 2.9 s, perf_150k V2 12.2 s vs V1 13.7 s. Heap on perf_150k: V2 562 MB, V1 454 MB.
-Stats view is the slow spot in V2: about 6.7 s on 100k rows and 17.7 s on 150k rows.
-
-## 11. Known gaps and ideas
-- Documents that are only null, false, 0 or an empty string cannot be opened (jsonData doubles as the has-data flag). V2 shows a message instead of a blank screen.
-- Session restore is still a stub (only tab metadata is saved on unload, not data).
-- `structra-v2.html` and `samples/` are design prototypes and can be archived or deleted.
-- `docs/` is old. Treat it as history, or delete it.
-- DuckDB init gates the reveal of the app shell (up to 90 s on a slow network).
-- No automated tests yet. A Playwright smoke test using the V1 fixtures would be the next step.
-- The engine keeps a stale sorted index when the table sort is cleared in code (the UI cannot clear a sort, only flip it).
+- No cancel button for very large files, and no progress beyond the loading overlay steps.
+- Unit tests cover schema generation, expressions, paths and insights; the engine's analysis functions are not unit tested yet.
 - Share links are limited to about 30 KB of encoded data.
+- The font size default is 14 px in `structra-zoom.js` but 15 px in `tokens.css`; layout was tuned at 14.
+- `components.css` is still large (view styles for tree, table, graph and the input panel); more can move to the shared patterns.
+- `docs/`, `samples/` and `structra-v2.html` are history and can be deleted.
+- Overview and the new toolbar menu have been checked in dark mode more than light mode.
