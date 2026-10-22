@@ -225,7 +225,7 @@
         {
           "id": "8.5",
           "title": "Refresh memory-bank.md to match the code after the work above",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "note": "Ctrl+T and Ctrl+W replaced by Alt+N and Alt+W; the shortcuts overlay is now generated from Structra.constants.SHORTCUTS."
