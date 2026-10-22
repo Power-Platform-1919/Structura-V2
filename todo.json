@@ -1138,6 +1138,56 @@
           "id": "13.127",
           "title": "The Paste Data box keeps the text pasted into the previous tab (the old CSV was still there in a new tab) and the Format dropdown keeps its previous choice; a new tab should start empty",
           "status": "todo"
+        },
+        {
+          "id": "13.128",
+          "title": "Palette 'Run SQL Query' does not open any SQL editor: the first time nothing happens at all (SQL stays 'SQL off'), the second time it switches the view to Overview and opens the Query & Filter panel on the Transform tab. There is no place to type SQL anywhere; the only way to turn SQL on is clicking the small 'SQL off' chip in the status bar, which has no tooltip and turns into a green 'SQL' check without saying what is now possible",
+          "status": "todo"
+        },
+        {
+          "id": "13.129",
+          "title": "Rail shows two buttons as active at once (Query & Filter and Overview) after a palette command; the active rail state should follow the one open panel",
+          "status": "todo"
+        },
+        {
+          "id": "13.130",
+          "title": "Ctrl+K failed to open the palette right after clicking the status bar SQL chip (focus left in the chip); global shortcuts should work wherever the focus is, except inside text boxes",
+          "status": "todo"
+        },
+        {
+          "id": "13.131",
+          "title": "Fuzzy Search (DuckDB) asks for its term in a native browser prompt() box (unthemed, blocks the page) and then shows only the toast 'Fuzzy: undefined matches' with no results list and no highlighting, even with SQL on; the term 'anne' against 'Ann' should have matched",
+          "status": "todo"
+        },
+        {
+          "id": "13.132",
+          "title": "Column Distribution (DuckDB) reports only the first numeric column as a toast ('id: median=1.5, stddev=0.71') that disappears in seconds; there is no table of all columns with count, min, max, median, spread and no way to keep the result",
+          "status": "todo"
+        },
+        {
+          "id": "13.133",
+          "title": "Overview for a file that is just 'true' (edge_bool.json) says 'A single value.' but Type distribution shows '1 Objects' and the bottom chip says '1 obj'; a boolean must be counted as a boolean. Check the same for a top level null, number and string",
+          "status": "todo"
+        },
+        {
+          "id": "13.134",
+          "title": "Load URL: the request panel is a small REST client (method, Auth, Headers, Body) shown to every maker with no explanation, and it does not say that the browser blocks pages that do not allow cross origin requests (CORS); the loaded file keeps the URL's file name as the tab name, which is good, but the URL is not remembered in Recent with its headers",
+          "status": "todo"
+        },
+        {
+          "id": "13.135",
+          "title": "Load URL for a file that contains only 'null' shows '200 OK, 68ms, 4 B' and then stays on the loader: nothing opens, no message says the document is a null value; top level null is valid JSON and should open as a single null value",
+          "status": "todo"
+        },
+        {
+          "id": "13.136",
+          "title": "Document tabs cannot be reordered by dragging, have no right-click menu (Close others, Close to the right, Duplicate, Rename), and every 'Load from URL', 'New tab' or palette load adds another 'Untitled N' tab instead of reusing an empty one; five tabs already crowd the strip with no overflow control",
+          "status": "todo"
+        },
+        {
+          "id": "13.137",
+          "title": "Dark theme looks consistent in Table, Tree and the side panel (distinct panels, readable table, accent on tabs); but the side panel and canvas are only about 2 percent apart in lightness, so the panel edge is hard to see without the 1px border; check the High Contrast and custom themes",
+          "status": "todo"
         }
       ]
     }
