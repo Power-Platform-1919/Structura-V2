@@ -108,6 +108,10 @@ class StructraQuery extends StructraElement {
   }
 
   _switchTab(tab) {
+    this._tab = tab;
+    const title = this.$('.panel-title');
+    if (title) title.textContent = tab === 'transform' ? 'Transform' : 'Query & Filter';
+    Structra.events.emit('query:tab-switched', tab);
     this.querySelectorAll('.tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.qtab === tab));
     this.$('#qpQueryBody').hidden = tab !== 'query';
     this.$('#qpTransformBody').hidden = tab !== 'transform';

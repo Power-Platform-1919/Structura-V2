@@ -25,25 +25,28 @@ class StructraStatus extends StructraElement {
       </span>
       <span class="st-file" id="statusFile"></span>
       <span class="st-dupes" id="statusDupes" hidden></span>
-      <span class="st-duck" id="statusDuck" data-state="${duckState}">
+      <button type="button" class="st-duck" id="statusDuck" data-state="${duckState}">
         <span class="st-duck-icon" id="duckIcon">${duckState === 'ready' ? Structra.icons.svg('check', { size: 12 }) : Structra.icons.svg('circle', { size: 12 })}</span>
-        <span class="st-duck-label" id="duckLabel">${duckState === 'ready' ? 'SQL' : 'SQL off'}</span>
-      </span>
+        <span class="st-duck-label" id="duckLabel">${duckState === 'ready' ? 'SQL ready' : 'SQL off'}</span>
+      </button>
       <span style="flex:1"></span>
       <span class="st-path" id="statusPath"></span>
-      <span class="st-sep"></span>
-      <button class="st-log-toggle" id="logToggle" title="Console log mode (click to cycle)">
-        <span class="st-log-icon">⚙</span>
+      ${this._devTools() ? `<span class="st-sep"></span>
+      <button class="st-log-toggle" id="logToggle" title="Developer: console log mode (click to cycle)">
         <span class="st-log-label" id="logLabel">${mode.toUpperCase()}</span>
-      </button>`;
+      </button>` : ''}`;
 
     this._updateAll();
 
-    this.$('#logToggle').addEventListener('click', () => this._cycleLogMode());
+    this.$('#logToggle')?.addEventListener('click', () => this._cycleLogMode());
     this.$('#statusDuck').addEventListener('click', () => {
       if (this.$('#statusDuck').dataset.state === 'idle') Structra.engine.enableSql();
     });
+    this._updateDuckStatus(duckState);
   }
+
+  /** The log switch is for people working on the app: it only shows with ?dev in the address */
+  _devTools() { return /[?&]dev\b/.test(location.search); }
 
   _cycleLogMode() {
     const modes = ['off', 'normal', 'dev'];
@@ -69,19 +72,24 @@ class StructraStatus extends StructraElement {
     const label = this.$('#duckLabel');
     if (!el) return;
     el.dataset.state = state;
-    el.title = state === 'idle' ? 'Click to start the SQL engine' : '';
+    el.title = {
+      idle: 'The SQL engine answers questions about your data with SQL queries. It is off until needed and takes a few seconds to start. Click to start it now.',
+      loading: 'Starting the SQL engine. This takes a few seconds the first time.',
+      ready: 'The SQL engine is running. SQL runs on this computer only.',
+      failed: 'The SQL engine could not start in this browser. Everything else still works.',
+    }[state] || '';
     if (state === 'ready') {
       icon.innerHTML = Structra.icons.svg('check', { size: 12 });
-      label.textContent = 'SQL';
+      label.textContent = 'SQL ready';
     } else if (state === 'loading') {
       icon.innerHTML = Structra.icons.svg('refresh-cw', { size: 12 });
       label.textContent = 'Starting SQL…';
     } else if (state === 'idle') {
-      icon.textContent = '○';
+      icon.innerHTML = Structra.icons.svg('circle', { size: 12 });
       label.textContent = 'SQL off';
     } else if (state === 'failed') {
       icon.innerHTML = Structra.icons.svg('x', { size: 12 });
-      label.textContent = 'No SQL';
+      label.textContent = 'SQL unavailable';
     }
   }
 

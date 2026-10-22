@@ -113,15 +113,16 @@ structra-canvas-header { container-type: inline-size; }
 /* ===== RAIL ===== */
 .rail-btn {
   position: relative;
-  display: flex; align-items: center; justify-content: center;
-  width: var(--rail-btn-size); height: var(--rail-btn-size);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  width: calc(var(--rail-w) - 10px); height: 52px;
   border: none; border-radius: var(--radius); background: transparent;
   color: var(--text-muted);
   transition: background var(--transition), color var(--transition);
 }
 .rail-btn:hover { background: var(--surface-hover); color: var(--text); }
+.rail-label { font-size: 10.5px; font-weight: var(--fw-medium); line-height: 1; letter-spacing: 0.01em; }
 .rail-btn.active { background: var(--accent-soft); color: var(--accent); }
-.rail-btn.active::before { content: ''; position: absolute; left: -7px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+.rail-btn.active::before { content: ''; position: absolute; left: -5px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
 .rail-btn svg { width: var(--icon-lg); height: var(--icon-lg); }
 .rail-btn .badge { position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); box-sizing: content-box; }
 

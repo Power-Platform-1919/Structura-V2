@@ -8,25 +8,24 @@ class StructraRail extends StructraElement {
 
   render() {
     this.innerHTML = `
-      <button class="rail-btn active" data-rail="explorer" title="Open a file or a recent one">
-        ${Structra.icons.svg('file')}
+      <button class="rail-btn" data-rail="explorer" title="Open a file, paste data or pick a recent one" aria-label="Open">
+        ${Structra.icons.svg('file')}<span class="rail-label">Open</span>
       </button>
-      <button class="rail-btn" data-rail="query" title="Query & Filter">
-        ${Structra.icons.svg('search')}
+      <button class="rail-btn" data-rail="query" title="Search the data with a path, pattern or JavaScript" aria-label="Query">
+        ${Structra.icons.svg('search')}<span class="rail-label">Query</span>
       </button>
-      <button class="rail-btn" data-rail="power" title="Power Platform">
-        ${Structra.icons.svg('zap')}
+      <button class="rail-btn" data-rail="transform" title="Reshape the data: pick fields, sort, group, total" aria-label="Transform">
+        ${Structra.icons.svg('package')}<span class="rail-label">Transform</span>
       </button>
-      <button class="rail-btn" data-rail="overview" title="Overview">
-        ${Structra.icons.svg('chart-column')}
-        <span class="badge"></span>
+      <button class="rail-btn" data-rail="power" title="Power Automate and Power Fx expressions for the selected value" aria-label="Power Platform">
+        ${Structra.icons.svg('zap')}<span class="rail-label">Power</span>
       </button>
-      <button class="rail-btn" data-rail="transform" title="Transform">
-        ${Structra.icons.svg('package')}
+      <button class="rail-btn" data-rail="overview" title="A summary of what is in the file and what to look at first" aria-label="Overview">
+        ${Structra.icons.svg('chart-column')}<span class="rail-label">Overview</span>
       </button>
       <div style="flex:1"></div>
-      <button class="rail-btn" data-rail="settings" title="Settings">
-        ${Structra.icons.svg('settings')}
+      <button class="rail-btn" data-rail="settings" title="Colours, themes and text size" aria-label="Appearance">
+        ${Structra.icons.svg('palette')}<span class="rail-label">Theme</span>
       </button>`;
 
     this.addEventListener('click', (e) => {
@@ -36,10 +35,18 @@ class StructraRail extends StructraElement {
       Structra.events.emit('rail:action', action);
 
       switch (action) {
-        case 'explorer':      // a new tab on the Recent list
-          Structra.events.emit('tabs:add');
-          setTimeout(() => Structra.events.emit('input:show-tab', 'recent'), 50);
+        case 'explorer': {    // the Open screen: reuse a tab that is still empty instead of piling up new ones
+          const empty = Structra.tabs.list.find((t) => !t.data && !t.hash);
+          if (empty && empty.id !== Structra.tabs.activeId) {
+            Structra.tabs.activeId = empty.id;
+            Structra.events.emit('tabs:changed');
+            Structra.events.emit('tabs:switched', empty);
+          } else if (!empty) {
+            Structra.events.emit('tabs:add');
+          }
+          setTimeout(() => Structra.events.emit('input:show-tab', 'file'), 50);
           break;
+        }
         case 'query':
           Structra.set('queryPanelOpen', !Structra.state.queryPanelOpen);
           break;
@@ -60,15 +67,28 @@ class StructraRail extends StructraElement {
     });
 
     // The highlight shows what is open, not what was clicked last
+    // Each button is lit by one thing only: the panel or view it opens
+    let qTab = 'query';
+    let drawerTab = 'analyze';
     const sync = () => {
-      this.$$('.rail-btn').forEach((b) => {
-        const on = (b.dataset.rail === 'overview' && Structra.state.activeView === 'overview')
-          || (b.dataset.rail === 'query' && !!Structra.state.queryPanelOpen);
-        b.classList.toggle('active', on);
-      });
+      const panel = !!Structra.state.queryPanelOpen;
+      const drawerOpen = Structra.state.drawerState !== 'collapsed';
+      const lit = {
+        explorer: !Structra.state.jsonData,
+        query: panel && qTab === 'query',
+        transform: panel && qTab === 'transform',
+        power: drawerOpen && drawerTab === 'expressions' && !!Structra.state.jsonData,
+        overview: Structra.state.activeView === 'overview' && !!Structra.state.jsonData,
+      };
+      this.$$('.rail-btn').forEach((b) => b.classList.toggle('active', !!lit[b.dataset.rail]));
     };
     this.on('state:activeView', sync);
     this.on('state:queryPanelOpen', sync);
+    this.on('state:jsonData', sync);
+    this.on('state:drawerState', sync);
+    this.on('tabs:switched', sync);
+    this.on('query:tab-switched', (t) => { qTab = t; sync(); });
+    this.on('drawer:tab-switched', (t) => { drawerTab = t; sync(); });
     sync();
   }
 }

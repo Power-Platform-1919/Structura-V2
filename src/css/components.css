@@ -912,21 +912,34 @@ structra-overview {
 .io-error {
   display: none;
   font-size: var(--fs-sm);
-  color: var(--danger);
-  margin-top: var(--sp-2);
+  color: var(--text);
+  margin-top: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--danger-soft, color-mix(in srgb, var(--danger) 10%, transparent));
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
+  border-radius: var(--radius);
 }
 .io-error.show { display: block; }
+.io-error-title { font-weight: var(--fw-semibold); color: var(--danger); }
+.io-error-detail { margin-top: 2px; color: var(--text-sec); overflow-wrap: anywhere; }
+.io-error-actions { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-3); }
+.io-error-hint { font-size: var(--fs-xs); color: var(--text-muted); }
 .io-btn-repair {
-  padding: var(--sp-1) var(--sp-2);
-  font-size: var(--fs-xs);
-  background: var(--warning-soft);
-  color: var(--warning);
-  border: 1px solid var(--warning);
-  border-radius: var(--radius-sm);
+  display: inline-flex; align-items: center; gap: var(--sp-1);
+  padding: 0 var(--sp-3); min-height: 30px;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--radius);
   cursor: pointer;
-  margin-left: var(--sp-2);
 }
-.io-btn-repair:hover { background: var(--warning); color: var(--bg); }
+.io-btn-repair:hover { filter: brightness(1.1); }
+.io-kbd { margin-left: var(--sp-2); padding: 0 5px; font-family: var(--font-sans); font-size: var(--fs-xxs, 10px); border: 1px solid color-mix(in srgb, currentColor 40%, transparent); border-radius: 4px; opacity: 0.85; }
+.io-help { margin-top: var(--sp-4); font-size: var(--fs-sm); color: var(--text-sec); text-align: left; }
+.io-help summary { cursor: pointer; color: var(--accent); font-weight: var(--fw-medium); width: fit-content; }
+.io-help ul { margin: var(--sp-2) 0 0; padding-left: var(--sp-5); display: flex; flex-direction: column; gap: var(--sp-2); }
+.io-help code { font-family: var(--font-mono); font-size: var(--fs-xs); background: var(--surface-alt); padding: 0 4px; border-radius: 3px; }
 
 /* ===== Recent ===== */
 .io-recent-list { display: flex; flex-direction: column; gap: var(--sp-1); }

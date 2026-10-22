@@ -67,8 +67,6 @@
     if (tab) tab.fileSize = d.value;
   });
 
-  // Theme toggle on overlay (kept for when overlay is manually opened)
-  document.getElementById('overlayThemeToggle').addEventListener('click', () => Structra.theme.toggle());
 
   // Canvas data-dependent visibility: views vs empty input panel
   function _updateCanvasVisibility(hasData) {
@@ -114,6 +112,14 @@
 
   // Global keyboard shortcuts
   document.addEventListener('keydown', (e) => {
+    // While typing in a box, keys belong to the box (its own undo, and "?" is a character)
+    const t = e.target;
+    const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+    if (e.key === '?' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      Structra.events.emit('command:run', 'shortcuts');
+      return;
+    }
     const key = [];
     if (e.ctrlKey || e.metaKey) key.push('ctrl');
     if (e.shiftKey) key.push('shift');
@@ -126,6 +132,7 @@
     const combo = key.join('+');
     const action = Structra.constants.SHORTCUTS[combo];
     if (!action) return;
+    if ((action === 'undo' || action === 'redo') && typing) return;
 
     e.preventDefault();
     Structra.events.emit('shortcut', action);
@@ -176,11 +183,13 @@
       case 'sort':
       case 'export-csv':
       case 'mask':
-      case 'compare':
       case 'undo':
       case 'redo':
       case 'theme':
         Structra.events.emit('command:run', action);
+        break;
+      case 'compare':
+        Structra.events.emit('command:run', 'diff');
         break;
     }
   });

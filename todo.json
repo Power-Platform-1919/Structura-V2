@@ -547,7 +547,7 @@
         {
           "id": "13.9",
           "title": "Status bar shows developer jargon: a gear plus NORMAL (log mode) and 'SQL off'. Hide log mode from normal users and rename SQL to something a maker understands",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.10",
@@ -597,7 +597,7 @@
         {
           "id": "13.19",
           "title": "Left rail has six unlabeled icons; add short text labels so a maker can tell Files, Query, Power, Overview, Transform and Settings apart",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.20",
@@ -647,12 +647,12 @@
         {
           "id": "13.29",
           "title": "Command palette has no Power Platform commands: searching 'expression', 'parse json', 'power fx', 'select' or 'apply to each' finds nothing. Add: Copy Parse JSON schema, Copy Power Fx typed table, Copy Select action, Copy Filter array action, Open expressions for the selected value",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.30",
           "title": "Command palette shows an empty list under the COMMANDS heading when nothing matches; show 'No command matches' with a hint, and match on keywords (aliases) not only titles",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.31",
@@ -672,12 +672,12 @@
         {
           "id": "13.34",
           "title": "Empty state says nothing about where a maker gets the JSON. Add a short 'Where do I get JSON?' help: Power Automate run history (Show raw outputs, copy the body), Power Apps Monitor, an HTTP/API tool",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.35",
           "title": "Empty state copy is generic ('Explore your JSON, CSV, XML...'); say what the app does for a maker: paste a flow output or API response, get the expression, schema and formula",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.36",
@@ -687,27 +687,27 @@
         {
           "id": "13.37",
           "title": "Two input panels exist at once: the visible empty-state one and a hidden #inputOverlay copy in index.html (with its own theme-toggle button); every selector matches twice and listeners are doubled. Keep one",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.38",
           "title": "Invalid JSON error text is technical and repeated ('JSON parse error: JSON parse error (40B): Unexpected token...'); say what is wrong in plain words with the line and column, and show the offending spot",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.39",
           "title": "Auto-Repair is a tiny chip under the error although fixing broken JSON (trailing commas, single quotes, run-history copies) is the usual fix; make it a clear primary action ('Fix and load') and tell the user what was fixed",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.40",
           "title": "Paste tab: no Ctrl+Enter to load, and no hint that pasting loads automatically where the text is valid JSON",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.41",
           "title": "The error message from the Paste tab stays visible when switching to Load URL or Upload; clear it when the tab changes or new input arrives",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.42",
@@ -877,7 +877,7 @@
         {
           "id": "13.75",
           "title": "Query & Filter panel title does not change when the Transform tab is open (rail Transform and Query open the same panel); name the panel for what it shows",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.76",
@@ -892,7 +892,7 @@
         {
           "id": "13.78",
           "title": "The '?' shortcut for Keyboard Shortcuts (listed in the palette) does nothing, and there is no visible Help or shortcuts entry point in the interface; add a Help menu (shortcuts, welcome, what is new) in the header",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.79",
@@ -907,12 +907,12 @@
         {
           "id": "13.81",
           "title": "Status bar 'NORMAL' button flips to 'DEV' when clicked with no explanation (log level); keep it out of the normal interface",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.82",
           "title": "Rail Explorer button opens a new empty tab on every click (Untitled 2, Untitled 3 ...); reuse an existing empty tab. Its highlight also disappears or sticks inconsistently",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.83",
@@ -1017,7 +1017,7 @@
         {
           "id": "13.103",
           "title": "Two 'try a sample' controls exist in the DOM (welcome overlay with autofocus button and the empty-card link); hidden controls with the same label confuse keyboard and screen reader users",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.104",
@@ -1052,7 +1052,7 @@
         {
           "id": "13.110",
           "title": "Command palette lists every command in every state: Undo/Redo, Zoom to Fit, Expand All appear on an empty tab or in the Editor; unavailable commands should be hidden or dimmed with a reason. There is no Power Platform command (Expressions, Schema Gen, Choose columns, Copy Power Automate expression)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.111",
@@ -1062,7 +1062,7 @@
         {
           "id": "13.112",
           "title": "Shortcuts listed in the palette do not all work: Ctrl+D (Diff) did nothing in the browser; the shortcut list needs a check against real key handling and against browser-reserved keys (Ctrl+D is Bookmark in most browsers)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.113",
@@ -1102,7 +1102,7 @@
         {
           "id": "13.120",
           "title": "Wording is inconsistent across entry points: 'Try a sample', 'try a sample', 'Load Sample', 'Load & Explore', 'Open a file or a recent one'; pick one verb per action",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.121",
@@ -1142,12 +1142,12 @@
         {
           "id": "13.128",
           "title": "Palette 'Run SQL Query' does not open any SQL editor: the first time nothing happens at all (SQL stays 'SQL off'), the second time it switches the view to Overview and opens the Query & Filter panel on the Transform tab. There is no place to type SQL anywhere; the only way to turn SQL on is clicking the small 'SQL off' chip in the status bar, which has no tooltip and turns into a green 'SQL' check without saying what is now possible",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.129",
           "title": "Rail shows two buttons as active at once (Query & Filter and Overview) after a palette command; the active rail state should follow the one open panel",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.130",
@@ -1157,12 +1157,12 @@
         {
           "id": "13.131",
           "title": "Fuzzy Search (DuckDB) asks for its term in a native browser prompt() box (unthemed, blocks the page) and then shows only the toast 'Fuzzy: undefined matches' with no results list and no highlighting, even with SQL on; the term 'anne' against 'Ann' should have matched",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.132",
           "title": "Column Distribution (DuckDB) reports only the first numeric column as a toast ('id: median=1.5, stddev=0.71') that disappears in seconds; there is no table of all columns with count, min, max, median, spread and no way to keep the result",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.133",
@@ -1287,7 +1287,7 @@
         {
           "id": "13.157",
           "title": "Keyboard Shortcuts dialog shows 'Alt + –' for both Back and Forward (a dash instead of the left and right arrow keys), so the two rows look identical; it also omits Ctrl+= / Ctrl+- / Ctrl+0 (zoom), Alt+Left and Alt+Right as written in the palette, and '?' itself, and the dialog has no search",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.158",

@@ -30,8 +30,18 @@ class StructraInputPanel extends StructraElement {
             ${Structra.icons.svg('box')}
             Structra
           </h2>
-          <div class="io-sub">Explore your JSON, CSV, XML, YAML &amp; TOML data, navigate paths, and generate code</div>
+          <div class="io-sub">Open a flow run's output, an API response or any data file, see what is in it, and copy the exact Power Automate or Power Fx expression for any value. Everything stays in your browser.</div>
           ${this._innerContent()}
+          <details class="io-help">
+            <summary>Where do I get JSON?</summary>
+            <ul>
+              <li><strong>Power Automate:</strong> open a run in the run history, open an action, and copy its <em>Outputs</em> (or <em>Inputs</em>). A "Get items" or "HTTP" output works as it is.</li>
+              <li><strong>Canvas app:</strong> use the Monitor tool and copy a response, or put <code>JSON(MyCollection)</code> in a label and copy the text.</li>
+              <li><strong>SharePoint or Dataverse:</strong> copy the output of a "Get items" or "List rows" action.</li>
+              <li><strong>Any API:</strong> in the browser's developer tools, open the Network tab, click the request, and copy the response.</li>
+              <li><strong>No data yet?</strong> Use <button class="io-link" type="button" data-role="help-sample">the sample</button> to see how it works.</li>
+            </ul>
+          </details>
         </div>
       </div>`;
 
@@ -55,7 +65,7 @@ class StructraInputPanel extends StructraElement {
           </div>
           <p><strong>Drop file here</strong> or click to browse</p>
           <p class="io-drop-formats">JSON • CSV • XML • YAML • TOML</p>
-          <p class="io-drop-tip">Press Ctrl+V anywhere to paste, or <button class="io-link" type="button" data-role="sample-link">try a sample</button></p>
+          <p class="io-drop-tip">Press Ctrl+V anywhere to paste, or <button class="io-link" type="button" data-role="sample-link">open the sample</button></p>
           <input type="file" data-role="file-input" accept=".json,.txt,.csv,.tsv,.xml,.yaml,.yml,.toml" style="display:none">
         </div>
       </div>
@@ -72,10 +82,10 @@ class StructraInputPanel extends StructraElement {
             <option value="toml">TOML</option>
           </select>
         </div>
-        <textarea class="io-textarea" data-role="paste-input" placeholder="Paste JSON, CSV, XML, YAML or TOML here..." spellcheck="false"></textarea>
+        <textarea class="io-textarea" data-role="paste-input" placeholder="Paste JSON, CSV, XML, YAML or TOML here" spellcheck="false"></textarea>
         <div class="io-actions">
-          <button class="io-btn-go" data-action="parse-text">${Structra.icons.svg('play', { size: 14 })} Load &amp; Explore</button>
-          <button class="io-btn-sec" data-action="sample">Load Sample</button>
+          <button class="io-btn-go" data-action="parse-text">${Structra.icons.svg('play', { size: 14 })} Open <kbd class="io-kbd">Ctrl+Enter</kbd></button>
+          <button class="io-btn-sec" data-action="sample">Open the sample</button>
         </div>
       </div>
 
@@ -146,6 +156,7 @@ class StructraInputPanel extends StructraElement {
         this._activeTab = btn.dataset.tab;
         this.$$('.io-tab').forEach(b => b.classList.toggle('active', b === btn));
         this.$$('.io-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === this._activeTab));
+        this._clearError();
         if (this._activeTab === 'recent') this._renderRecent();
       });
     });
@@ -166,6 +177,11 @@ class StructraInputPanel extends StructraElement {
 
     // Paste & parse (unified)
     this.$('[data-action="parse-text"]').addEventListener('click', () => this._parseText());
+    this.$('[data-role="paste-input"]').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this._parseText(); }
+    });
+    const helpSample = this.$('[data-role="help-sample"]');
+    if (helpSample) helpSample.addEventListener('click', () => this._loadSample());
 
     // Sample
     const sampleBtn = this.$('[data-action="sample"]');
@@ -707,23 +723,47 @@ class StructraInputPanel extends StructraElement {
   }
 
   /* ======== ERROR ======== */
+  /** "JSON parse error: JSON parse error (40B): Unexpected token x at position 12" → { what, where } in plain words */
+  _explainError(msg, rawText) {
+    let detail = String(msg).replace(/^(?:(?:JSON|CSV|XML|YAML|TOML)\s+)?parse error(?:\s*\([^)]*\))?:\s*/i, '').replace(/^(?:(?:JSON|CSV|XML|YAML|TOML)\s+)?parse error(?:\s*\([^)]*\))?:\s*/i, '');
+    let where = '';
+    const pos = /position\s+(\d+)/i.exec(detail);
+    if (pos && rawText) {
+      const before = rawText.slice(0, Number(pos[1]));
+      const line = before.split('\n').length;
+      const col = before.length - before.lastIndexOf('\n');
+      where = `Around line ${line}, character ${col}.`;
+      detail = detail.replace(/\s*\(?at position\s+\d+[^)]*\)?/i, '').replace(/\s*in JSON at position\s+\d+/i, '');
+    }
+    return { detail: detail.trim(), where };
+  }
+
   _showError(msg, rawText) {
     const el = this.$('[data-role="error"]');
-    if (rawText) {
-      el.innerHTML = `${Structra.util.esc(msg)} <button class="io-btn-repair" data-action="repair">\ud83d\udd27 Auto-Repair</button>`;
-      el.querySelector('[data-action="repair"]').addEventListener('click', async () => {
+    const esc = Structra.util.esc;
+    const kind = (/^(\w+) parse error/i.exec(msg) || [])[1] || 'JSON';
+    const { detail, where } = this._explainError(msg, rawText);
+    const canRepair = !!rawText && /^json$/i.test(kind);
+    el.innerHTML = `
+      <div class="io-error-title">This is not valid ${esc(kind)}</div>
+      <div class="io-error-detail">${esc(detail)}${where ? ' ' + esc(where) : ''}</div>
+      ${canRepair ? `<div class="io-error-actions">
+        <button class="io-btn-repair" data-action="repair">${Structra.icons.svg('wrench', { size: 14 })} Fix it for me</button>
+        <span class="io-error-hint">Fixes trailing commas, single quotes, comments and True, False or None.</span>
+      </div>` : ''}`;
+    const repair = el.querySelector('[data-action="repair"]');
+    if (repair) {
+      repair.addEventListener('click', async () => {
         try {
           const fixed = await Structra.jsonTools.repair(rawText);
           const data = await Structra.parseJsonAsync(fixed);
           this._clearError();
-          Structra.toast('JSON repaired successfully!');
+          Structra.toast('Fixed: the data now opens');
           this._loadSuccess(data, fixed, 'Repaired JSON');
         } catch (e) {
-          el.textContent = 'Auto-repair failed: ' + e.message;
+          el.innerHTML = `<div class="io-error-title">It could not be fixed automatically</div><div class="io-error-detail">${esc(this._explainError(e.message, rawText).detail)}</div>`;
         }
       });
-    } else {
-      el.textContent = msg;
     }
     el.classList.add('show');
   }

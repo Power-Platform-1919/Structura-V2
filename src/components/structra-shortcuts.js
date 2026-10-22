@@ -82,6 +82,9 @@ class StructraShortcuts extends StructraOverlay {
       if (!categories[cat]) categories[cat] = [];
       categories[cat].push({ key, desc });
     }
+    // Shortcuts that are handled outside the table
+    categories.General.push({ key: '?', desc: 'Show this list' });
+    categories.Views.push({ key: 'ctrl+=', desc: 'Zoom in (Ctrl+- zooms out, Ctrl+0 resets)' });
 
     // Remove empty categories
     for (const key of Object.keys(categories)) {
@@ -93,7 +96,7 @@ class StructraShortcuts extends StructraOverlay {
 
   _formatKey(key) {
     return key.split('+').map(part => {
-      const labels = { ctrl: 'Ctrl', shift: 'Shift', alt: 'Alt', escape: 'Esc', arrowleft: '\u2190', arrowright: '\u2192' };
+      const labels = { ctrl: 'Ctrl', shift: 'Shift', alt: 'Alt', escape: 'Esc', arrowleft: 'Left', arrowright: 'Right' };
       return `<span class="sc-key-part">${labels[part] || part.toUpperCase()}</span>`;
     }).join('<span class="sc-key-sep">+</span>');
   }

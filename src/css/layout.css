@@ -132,6 +132,9 @@ structra-heatmap, structra-zoom, structra-autocomplete {
 }
 @media (max-width: 768px) {
   .app-rail { width: var(--rail-w-sm); }
+  .rail-label { display: none; }
+  .app-query-panel.show { left: var(--rail-w-sm); }
+  .rail-btn { width: var(--rail-btn-size); height: var(--rail-btn-size); }
   .app-query-panel { width: var(--query-panel-w-sm); }
   .app-context-panel { width: var(--context-panel-w-sm); }
 }

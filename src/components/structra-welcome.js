@@ -44,7 +44,7 @@ class StructraWelcome extends StructraOverlay {
       foot: `
         <button class="btn" type="button" data-act="skip">Skip</button>
         <button class="btn" type="button" data-act="file">Open a file</button>
-        <button class="btn btn-primary" type="button" data-act="sample" autofocus>Try a sample</button>`,
+        <button class="btn btn-primary" type="button" data-act="sample" autofocus>Open the sample</button>`,
     });
 
     this.root.addEventListener('click', (e) => {

@@ -16,6 +16,13 @@ class StructraCommand extends StructraElement {
       { id: 'schema',     label: 'Schema View',                  kbd: 'Ctrl+4',       cat: 'Views',    icon: 'braces' },
       { id: 'editor',     label: 'Editor',                       kbd: 'Ctrl+E',       cat: 'Views',    icon: 'pencil' },
       { id: 'overview',   label: 'Overview',             kbd: 'Ctrl+5',       cat: 'Views',    icon: 'chart-column' },
+      // Power Platform
+      { id: 'pp-expressions', label: 'Power Platform: expressions for the selected value', kbd: '', cat: 'Power Platform', icon: 'zap', keys: 'power automate power fx expression apply to each items body' },
+      { id: 'pp-copy-pa', label: 'Power Platform: copy the Power Automate expression', kbd: '', cat: 'Power Platform', icon: 'copy', keys: 'copy power automate expression body outputs' },
+      { id: 'pp-copy-fx', label: 'Power Platform: copy the Power Fx formula', kbd: '', cat: 'Power Platform', icon: 'copy', keys: 'copy power fx formula parsejson canvas' },
+      { id: 'pp-schema', label: 'Power Platform: copy the Parse JSON schema', kbd: '', cat: 'Power Platform', icon: 'braces', keys: 'parse json schema copy action' },
+      { id: 'pp-flow', label: 'Power Platform: flow actions (Select, Filter array, Apply to each)', kbd: '', cat: 'Power Platform', icon: 'workflow', keys: 'select filter array apply to each flow actions compose' },
+      { id: 'pp-columns', label: 'Power Platform: choose the columns for typed tables and Select', kbd: '', cat: 'Power Platform', icon: 'columns-3', keys: 'columns typed table select choose fields' },
       // Data operations
       { id: 'sort',       label: 'Sort Keys A→Z',                kbd: 'Ctrl+Shift+S', cat: 'Tools',    icon: 'arrow-down-a-z' },
       { id: 'flatten',    label: 'Flatten (dot notation)',        kbd: '',             cat: 'Tools',    icon: 'layers' },
@@ -45,11 +52,10 @@ class StructraCommand extends StructraElement {
       { id: 'appearance', label: 'Appearance and Themes',          kbd: '',             cat: 'UI',       icon: 'palette' },
       { id: 'find',       label: 'Find in JSON',                   kbd: 'Ctrl+F',       cat: 'Search',   icon: 'search' },
       { id: 'filter',     label: 'Filter Data',                   kbd: 'Ctrl+Shift+F', cat: 'Search',   icon: 'filter' },
-      { id: 'fuzzy',      label: 'Fuzzy Search (DuckDB)',          kbd: '',             cat: 'Search',   icon: 'search' },
-      { id: 'sql',        label: 'Run SQL Query',                  kbd: '',             cat: 'Search',   icon: 'database' },
+      { id: 'fuzzy',      label: 'Fuzzy search (finds close matches)', kbd: '',         cat: 'Search',   icon: 'search' },
+      { id: 'sql',        label: 'Ask the data with SQL',          kbd: '',             cat: 'Search',   icon: 'database', keys: 'run sql query select' },
       // Analysis
       { id: 'validate',   label: 'Validate JSON Schema',           kbd: '',             cat: 'Analysis', icon: 'shield-check' },
-      { id: 'distribution',label:'Column Distribution (DuckDB)',   kbd: '',             cat: 'Analysis', icon: 'chart-column' },
       // Undo/Redo
       { id: 'undo',       label: 'Undo',                           kbd: 'Ctrl+Z',       cat: 'Edit',     icon: 'undo-2' },
       { id: 'redo',       label: 'Redo',                           kbd: 'Ctrl+Y',       cat: 'Edit',     icon: 'redo-2' },
@@ -135,10 +141,29 @@ class StructraCommand extends StructraElement {
     });
   }
 
+  /** Commands that need a document, or the Tree, or something to undo, are left out when that is not the case */
+  _available(c) {
+    const hasData = !!Structra.state.jsonData;
+    const ALWAYS = ['new-tab', 'load-url', 'welcome', 'shortcuts', 'appearance', 'theme', 'toolbar-reset', 'zoom-in', 'zoom-out', 'zoom-reset', 'zoom-fit', 'snippets', 'workspace', 'back', 'forward'];
+    if (ALWAYS.includes(c.id)) return true;
+    if (!hasData) return false;
+    if (['expand-all', 'collapse-all', 'depth-3', 'wrap'].includes(c.id)) return Structra.state.activeView === 'tree';
+    if (c.id === 'undo') return Structra.undoStack.canUndo();
+    if (c.id === 'redo') return Structra.undoStack.canRedo();
+    if (c.id === 'unmask') return !!(this._maskBackups && this._maskBackups.has(Structra.tabs.activeId));
+    if (['pp-copy-pa', 'pp-copy-fx'].includes(c.id)) return !!Structra.state.currentPath && Structra.state.currentPath !== '$';
+    return true;
+  }
+
   _renderList(query) {
-    const q = query.toLowerCase();
+    const q = query.toLowerCase().trim();
     const list = this.$('#cmdList');
-    const filtered = this._commands.filter(c => !q || c.label.toLowerCase().includes(q) || c.id.includes(q) || (c.cat && c.cat.toLowerCase().includes(q)));
+    const filtered = this._commands.filter(c => this._available(c)
+      && (!q || c.label.toLowerCase().includes(q) || c.id.includes(q) || (c.cat && c.cat.toLowerCase().includes(q)) || (c.keys && c.keys.includes(q))));
+    if (!filtered.length) {
+      list.innerHTML = `<div class="cmd-empty">No command matches <strong>${Structra.util.esc(query)}</strong>. Try a word like sort, mask, export, table or power.</div>`;
+      return;
+    }
     list.innerHTML = filtered
       .map((c, i) =>
         `<div class="cmd-item ${i === this._selectedIdx ? 'selected' : ''}" data-cmd="${c.id}">
@@ -278,18 +303,37 @@ class StructraCommand extends StructraElement {
       /* ---- Search & Filter ---- */
       case 'find':   Structra.events.emit('find:toggle'); break;
       case 'filter': Structra.events.emit('filter:toggle'); break;
-      case 'fuzzy': {
-        const term = prompt('Fuzzy search term:');
-        if (!term) return;
-        Structra.engine.fuzzySearch(term).then(result => {
-          Structra.toast(`Fuzzy: ${result.total} matches`);
-          Structra.events.emit('engine:filter-changed');
-        }).catch(() => Structra.toast('Fuzzy search requires DuckDB'));
+      case 'fuzzy':
+        Structra.events.emit('find:open', { mode: 'fuzzy' });
+        break;
+      case 'sql':
+        // SQL is typed in the Find bar (anything that starts with SELECT runs as SQL); `data` is the open document
+        Structra.events.emit('find:open', { mode: 'text', text: 'SELECT * FROM data LIMIT 100', run: false });
+        break;
+
+      /* ---- Power Platform ---- */
+      case 'pp-expressions': Structra.events.emit('drawer:show', 'expressions'); break;
+      case 'pp-flow':
+        Structra.events.emit('drawer:show', 'expressions');
+        setTimeout(() => document.querySelector('.expr-subtab[data-sub="flow"]')?.click(), 60);
+        break;
+      case 'pp-columns':
+        Structra.events.emit('drawer:show', 'expressions');
+        setTimeout(() => document.querySelector('.expr-subtab[data-sub="canvas"]')?.click(), 60);
+        Structra.toast('Choose the columns at the top of the Canvas app and Flow actions tabs. Select a list first.');
+        break;
+      case 'pp-copy-pa':
+      case 'pp-copy-fx': {
+        const path = Structra.state.currentPath;
+        const value = Structra.paths.resolve(Structra.state.jsonData, path);
+        if (!path || path === '$') { Structra.toast('Select a value first'); return; }
+        const rows = Structra.expressions.quick(path, value).filter((r) => r.app === (cmdId === 'pp-copy-pa' ? 'Power Automate' : 'Power Fx'));
+        if (rows[0]) Structra.util.copy(rows[0].code, rows[0].label + ' copied');
         break;
       }
-      case 'sql': {
-        // Focus the query panel SQL input
-        Structra.events.emit('rail:switch', 'query');
+      case 'pp-schema': {
+        if (!data) { Structra.toast('Open a file first'); return; }
+        Structra.util.copy(JSON.stringify(Structra.schemaGen.smart(data, { integers: true, required: true }), null, 2), 'Parse JSON schema copied');
         break;
       }
 
@@ -336,15 +380,6 @@ class StructraCommand extends StructraElement {
         Structra.set('activeView', 'editor');
         const evt = { 'repair': 'editor:repair', 'format-json': 'editor:format', 'minify-json': 'editor:minify' }[cmdId];
         setTimeout(() => Structra.events.emit(evt), 80);
-        break;
-      }
-      case 'distribution': {
-        if (!Array.isArray(data) || !data.length) { Structra.toast('Need array data for distribution'); return; }
-        const col = Object.keys(data[0])[0];
-        Structra.engine.analyzeDistribution(col).then(dist => {
-          Structra.toast(`${col}: median=${dist.median}, stddev=${dist.stddev?.toFixed(2)}`);
-          Structra.log.info('Distribution', dist);
-        }).catch(() => Structra.toast('Distribution requires DuckDB'));
         break;
       }
 
