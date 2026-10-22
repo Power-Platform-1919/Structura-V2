@@ -1303,6 +1303,36 @@
           "id": "13.160",
           "title": "Schema Gen works well and matches Power Automate Parse JSON needs (nullable types as lists, required keys, items for arrays, copy toast), so it should be the single source for the Schema view and the Type Definitions dialog, which both disagree with it",
           "status": "todo"
+        },
+        {
+          "id": "13.161",
+          "title": "Tree: clicking a collapsed row such as '{ ...4 keys }' only selects it and opens the Node panel; it does not expand, so the maker must find the tiny triangle (about 8 px). A click on the row text of a collapsed node should expand it, and double click should too",
+          "status": "todo"
+        },
+        {
+          "id": "13.162",
+          "title": "With the Node panel open the view toolbar loses Edit and Copy at 1440 px wide (three panels: left 300, Node 320, drawer) and Wrap sits against the panel edge; the Tree gets about 760 px; the Node panel needs to be a overlay or the toolbar needs an overflow menu",
+          "status": "todo"
+        },
+        {
+          "id": "13.163",
+          "title": "Node panel 'Copy Path' copies '[0]' (a bare JS style path) while the Power Platform expressions use body('Parse_JSON')?['value']; the panel should offer 'Copy path', 'Copy as Power Automate' and 'Copy as Power Fx' buttons so makers do not have to open the drawer",
+          "status": "todo"
+        },
+        {
+          "id": "13.164",
+          "title": "Wrap toggle shows as pressed but nothing changes on short lines and there is no indication of what it wraps (tree values, long strings); the toggle also persists no state across tabs",
+          "status": "todo"
+        },
+        {
+          "id": "13.165",
+          "title": "LIKELY ROOT CAUSE of the SQL failures (Find blank, Distinct Values, Column Stats, Fuzzy): after several tabs are opened, closed and reopened, the engine looks for table tab_5 but only tab_3 exists ('Catalog Error: Table with name tab_5 does not exist! Did you mean tab_3?' in the console during Find and Replace All); engine tab tables are registered once and never re-registered or renamed when tabs change. Fix the table registry first, then retest all four features",
+          "status": "todo"
+        },
+        {
+          "id": "13.166",
+          "title": "Ctrl+H opens Find and Replace with the cursor in the Replace box instead of the Find box, so typing goes to the wrong field. Replace All works ('Replaced 1 occurrence(s)') and the data changes, but Ctrl+Z only toasts 'Undo' and the value stays 'anna@' (undo does not revert a replace), and Replace gives no preview of what will change",
+          "status": "todo"
         }
       ]
     }
