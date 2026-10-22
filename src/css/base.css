@@ -210,3 +210,6 @@ kbd {
 
 /* The hidden attribute always wins over component display rules */
 [hidden] { display: none !important; }
+
+/* Icons from Structra.icons sit on the text baseline and take the colour of their text */
+svg { flex-shrink: 0; vertical-align: middle; }

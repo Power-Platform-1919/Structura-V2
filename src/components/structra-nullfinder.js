@@ -19,7 +19,7 @@ class StructraNullfinder extends StructraElement {
       <div class="nf-panel">
         <div class="nf-header">
           <span class="nf-title">Null & Empty Finder</span>
-          <button class="nf-close" data-action="close">✕</button>
+          <button class="nf-close" data-action="close">${Structra.icons.svg('x', { size: 14 })}</button>
         </div>
         <div class="nf-options">
           <label class="nf-opt"><input type="checkbox" id="nfNull" checked> null</label>
@@ -35,7 +35,7 @@ class StructraNullfinder extends StructraElement {
         <div class="nf-nav" id="nfNav" style="display:none">
           <button class="nf-nav-btn" data-action="prev">◀ Prev</button>
           <span class="nf-nav-count" id="nfNavCount">0/0</span>
-          <button class="nf-nav-btn" data-action="next">Next ▶</button>
+          <button class="nf-nav-btn" data-action="next">Next ${Structra.icons.svg('chevron-right', { size: 14 })}</button>
         </div>
       </div>
     </div>`;
@@ -178,7 +178,7 @@ class StructraNullfinder extends StructraElement {
     const container = this.$('#nfResults');
     const nav = this.$('#nfNav');
     if (this._results.length === 0) {
-      container.innerHTML = '<div class="nf-placeholder">No null/empty values found ✓</div>';
+      container.innerHTML = '<div class="nf-placeholder">No null/empty values found</div>';
       nav.style.display = 'none';
       return;
     }

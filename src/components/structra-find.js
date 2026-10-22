@@ -42,16 +42,16 @@ class StructraFind extends StructraElement {
             placeholder="Find… (text, /regex/, key:name, $.path, SELECT…)" autocomplete="off">
           <span class="fb-count" id="findCount">0/0</span>
           <button class="fb-btn" data-action="prev" title="Previous (Shift+Enter)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+            ${Structra.icons.svg('chevron-up')}
           </button>
           <button class="fb-btn" data-action="next" title="Next (Enter)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            ${Structra.icons.svg('chevron-down')}
           </button>
           <button class="fb-btn" data-action="toggleReplace" title="Toggle Replace (Ctrl+H)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            ${Structra.icons.svg('pencil')}
           </button>
           <button class="fb-btn" data-action="clear" title="Clear">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            ${Structra.icons.svg('x')}
           </button>
         </div>
         <div class="replace-row" id="replaceRow" style="display:none">

@@ -15,12 +15,7 @@ class StructraInputPanel extends StructraElement {
       <div class="io-inline">
         <div class="io-box">
           <h2 class="io-brand">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/>
-              <line x1="12" y1="22" x2="12" y2="15.5"/>
-              <line x1="22" y1="8.5" x2="12" y2="15.5"/>
-              <line x1="2" y1="8.5" x2="12" y2="15.5"/>
-            </svg>
+            ${Structra.icons.svg('box')}
             Structra
           </h2>
           <div class="io-sub">Explore your JSON, CSV, XML, YAML &amp; TOML data, navigate paths, and generate code</div>
@@ -44,12 +39,7 @@ class StructraInputPanel extends StructraElement {
       <div class="io-panel active" data-panel="file">
         <div class="io-drop-area" data-role="drop-area">
           <div class="io-drop-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="12" y1="11" x2="12" y2="17"/>
-              <line x1="9" y1="14" x2="15" y2="14"/>
-            </svg>
+            ${Structra.icons.svg('file-plus', { stroke: 1.5 })}
           </div>
           <p><strong>Drop file here</strong> or click to browse</p>
           <p class="io-drop-formats">JSON • CSV • XML • YAML • TOML</p>
@@ -71,7 +61,7 @@ class StructraInputPanel extends StructraElement {
         </div>
         <textarea class="io-textarea" data-role="paste-input" placeholder="Paste JSON, CSV, XML, YAML or TOML here..." spellcheck="false"></textarea>
         <div class="io-actions">
-          <button class="io-btn-go" data-action="parse-text">&#9654; Load &amp; Explore</button>
+          <button class="io-btn-go" data-action="parse-text">${Structra.icons.svg('play', { size: 14 })} Load &amp; Explore</button>
           <button class="io-btn-sec" data-action="sample">Load Sample</button>
         </div>
       </div>
@@ -86,7 +76,7 @@ class StructraInputPanel extends StructraElement {
             <option value="DELETE">DELETE</option>
           </select>
           <input type="text" class="io-api-url" data-role="api-url" placeholder="https://api.example.com/data" autocomplete="off">
-          <button class="io-btn-go io-api-send" data-role="api-send">&#9654; Send</button>
+          <button class="io-btn-go io-api-send" data-role="api-send">${Structra.icons.svg('play', { size: 14 })} Send</button>
         </div>
 
         <div class="io-api-options">

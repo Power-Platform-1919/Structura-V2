@@ -41,7 +41,7 @@ class StructraOverlay extends StructraElement {
             <h2 class="ov-title">${esc(title)}</h2>
             ${head}
             <button class="ov-close btn-icon btn" type="button" data-ov-close aria-label="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              ${Structra.icons.svg('x', { size: 2 })}
             </button>
           </header>
           <div class="ov-body">${body}</div>

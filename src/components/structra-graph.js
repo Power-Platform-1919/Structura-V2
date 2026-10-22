@@ -36,19 +36,19 @@ class StructraGraph extends StructraElement {
       <div class="graph-container" id="graphContainer">
         <div class="graph-zoom-toolbar">
           <button class="gz-btn" data-action="fit" title="Zoom to fit">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ${Structra.icons.svg('scan', { size: 16 })}
           </button>
           <span class="gz-sep"></span>
           <button class="gz-btn" data-action="out" title="Zoom out">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 8h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            ${Structra.icons.svg('minus', { size: 16 })}
           </button>
           <span class="gz-level">100%</span>
           <button class="gz-btn" data-action="in" title="Zoom in">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 4v8M4 8h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            ${Structra.icons.svg('plus', { size: 16 })}
           </button>
           <span class="gz-sep"></span>
           <button class="gz-btn" data-action="reset" title="Reset to 100%">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 0 1 10.3-4.1M14 2v3h-3M14 8a6 6 0 0 1-10.3 4.1M2 14v-3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            ${Structra.icons.svg('refresh-cw', { size: 16 })}
           </button>
         </div>
       </div>`;

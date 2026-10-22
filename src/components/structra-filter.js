@@ -36,7 +36,7 @@ class StructraFilter extends StructraElement {
             <button class="fb-btn" data-action="apply" title="Apply filter">Apply</button>
             <button class="fb-btn" data-action="clear" title="Clear all">Clear</button>
             <button class="fb-btn" data-action="close" title="Close">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              ${Structra.icons.svg('x')}
             </button>
           </div>
         </div>
@@ -201,7 +201,7 @@ class StructraFilter extends StructraElement {
       <select class="fc-op">${opOpts}</select>
       <input type="text" class="fc-value" placeholder="value…" autocomplete="off">
       <button class="fb-btn fc-remove" data-action="removeCondition" title="Remove">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        ${Structra.icons.svg('x', { size: 14 })}
       </button>`;
 
     container.appendChild(row);

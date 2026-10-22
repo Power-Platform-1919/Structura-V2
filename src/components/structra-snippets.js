@@ -17,7 +17,7 @@ class StructraSnippets extends StructraElement {
       <div class="snip-panel">
         <div class="snip-header">
           <span class="snip-title">Snippet Library</span>
-          <button class="snip-close" data-action="close">✕</button>
+          <button class="snip-close" data-action="close">${Structra.icons.svg('x', { size: 14 })}</button>
         </div>
         <div class="snip-toolbar">
           <button class="btn btn-primary" data-action="save-current">+ Save Current Selection</button>

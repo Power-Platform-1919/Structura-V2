@@ -26,7 +26,7 @@ class StructraStatus extends StructraElement {
       <span class="st-file" id="statusFile"></span>
       <span class="st-dupes" id="statusDupes" hidden></span>
       <span class="st-duck" id="statusDuck" data-state="${duckState}">
-        <span class="st-duck-icon" id="duckIcon">${duckState === 'ready' ? '✓' : '○'}</span>
+        <span class="st-duck-icon" id="duckIcon">${duckState === 'ready' ? Structra.icons.svg('check', { size: 12 }) : Structra.icons.svg('circle', { size: 12 })}</span>
         <span class="st-duck-label" id="duckLabel">${duckState === 'ready' ? 'SQL' : 'SQL off'}</span>
       </span>
       <span style="flex:1"></span>
@@ -71,16 +71,16 @@ class StructraStatus extends StructraElement {
     el.dataset.state = state;
     el.title = state === 'idle' ? 'Click to start the SQL engine' : '';
     if (state === 'ready') {
-      icon.textContent = '✓';
+      icon.innerHTML = Structra.icons.svg('check', { size: 12 });
       label.textContent = 'SQL';
     } else if (state === 'loading') {
-      icon.textContent = '⟳';
+      icon.innerHTML = Structra.icons.svg('refresh-cw', { size: 12 });
       label.textContent = 'Starting SQL…';
     } else if (state === 'idle') {
       icon.textContent = '○';
       label.textContent = 'SQL off';
     } else if (state === 'failed') {
-      icon.textContent = '✗';
+      icon.innerHTML = Structra.icons.svg('x', { size: 12 });
       label.textContent = 'No SQL';
     }
   }

@@ -391,6 +391,54 @@
           "status": "todo"
         }
       ]
+    },
+    {
+      "id": "11",
+      "title": "One icon system (Lucide, ISC licence, bundled locally)",
+      "status": "in_progress",
+      "brief": "About 70 inline SVGs were hand-copied across components (the close X alone appeared 9 times) plus glyph icons. Now every icon comes from the Lucide library (ISC licence) through one small wrapper, Structra.icons. The library loads from the jsDelivr CDN with a bundled copy as the offline fallback; only icon artwork is fetched, data processing stays local.",
+      "subtasks": [
+        {
+          "id": "11.1",
+          "title": "Pick the library: Lucide (ISC, stroke icons that match the current Feather-style set, 1,500+ icons, per-icon SVG files)",
+          "status": "done"
+        },
+        {
+          "id": "11.2",
+          "title": "Structra.icons wrapper over the Lucide library (src/core/icons.js): any Lucide name works, nothing hand-listed or generated",
+          "status": "done"
+        },
+        {
+          "id": "11.3",
+          "title": "API: svg(name, {size, cls, color, stroke}), has(name), hydrate(root) for <i data-icon> placeholders; color accepts theme token names so icons follow every theme",
+          "status": "done"
+        },
+        {
+          "id": "11.4",
+          "title": "Replace inline SVGs in all components, header, rail, canvas header, overlays, index.html",
+          "status": "done"
+        },
+        {
+          "id": "11.5",
+          "title": "Command palette: icon names instead of raw path strings",
+          "status": "done"
+        },
+        {
+          "id": "11.6",
+          "title": "Replace glyph and emoji icons (play, check, times, swap arrows, status marks) with icons",
+          "status": "done"
+        },
+        {
+          "id": "11.7",
+          "title": "Shared icon sizing: CSS size rules per container plus one baseline rule; fix remaining oversized icons",
+          "status": "in_progress"
+        },
+        {
+          "id": "11.8",
+          "title": "Check every screen in dark and light; run the 30-fixture smoke test",
+          "status": "todo"
+        }
+      ]
     }
   ],
   "principles": [

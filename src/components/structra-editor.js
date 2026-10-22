@@ -28,11 +28,11 @@ class StructraEditor extends StructraElement {
     this.innerHTML = `
       <div class="editor-container">
         <div class="editor-toolbar">
-          <button class="toolbar-btn" data-action="apply">▶ Apply</button>
+          <button class="toolbar-btn" data-action="apply">${Structra.icons.svg('play', { size: 14 })} Apply</button>
           <button class="toolbar-btn" data-action="format">Format</button>
           <button class="toolbar-btn" data-action="minify">Minify</button>
           <button class="toolbar-btn" data-action="repair" title="Fix trailing commas, quotes, comments and other mistakes">Repair</button>
-          <span class="ed-status valid" id="edStatus">✓ Valid JSON</span>
+          <span class="ed-status valid" id="edStatus">${Structra.icons.svg('check', { size: 14, color: 'success' })} Valid JSON</span>
         </div>
         <textarea class="editor-textarea" id="editorArea" spellcheck="false"></textarea>
       </div>`;
@@ -64,7 +64,7 @@ class StructraEditor extends StructraElement {
       Structra.log.warn('Editor', 'File too large for editor (' + (size / 1048576).toFixed(1) + ' MB) — skipping stringify');
       area.value = '// File too large for editor (' + (size / 1048576).toFixed(1) + ' MB)\n// Use the tree view to explore this data.';
       const status = this.$('#edStatus');
-      if (status) { status.textContent = '⚠ Too large'; status.className = 'ed-status warn'; }
+      if (status) { status.innerHTML = Structra.icons.svg('triangle-alert', { size: 14, color: 'warning' }) + ' Too large'; status.className = 'ed-status warn'; }
       return;
     }
     try {
@@ -84,10 +84,10 @@ class StructraEditor extends StructraElement {
     if (!status || !area) return;
     try {
       await Structra.parseJsonAsync(area.value);
-      status.textContent = '✓ Valid JSON';
+      status.innerHTML = Structra.icons.svg('check', { size: 14, color: 'success' }) + ' Valid JSON';
       status.className = 'ed-status valid';
     } catch (e) {
-      status.textContent = '✗ Invalid';
+      status.innerHTML = Structra.icons.svg('x', { size: 14, color: 'danger' }) + ' Invalid';
       status.className = 'ed-status error';
     }
   }

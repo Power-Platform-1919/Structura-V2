@@ -38,7 +38,7 @@ class StructraDrawer extends StructraElement {
       <div class="drawer-resize-bar" id="drawerResizeBar"></div>
       <div class="drawer-bar">
         <button class="drawer-toggle" type="button" data-action="cycle" aria-label="Expand or collapse the panel" title="Expand or collapse">
-          <svg class="drawer-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+          ${Structra.icons.svg('chevron-up', { cls: 'drawer-chevron' })}
         </button>
         <div class="tabs drawer-tabs" role="tablist">
           ${tabs.map((t, i) => `<button class="tab ${i === 0 ? 'active' : ''}" type="button" role="tab" data-tab="${t.id}">${t.label}</button>`).join('')}

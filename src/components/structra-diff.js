@@ -22,7 +22,7 @@ class StructraDiff extends StructraElement {
           <span class="diff-title">JSON Diff</span>
           <div class="diff-stats" id="diffStats"></div>
           <button class="diff-close" data-action="close">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            ${Structra.icons.svg('x')}
           </button>
         </div>
         <div class="diff-toolbar">
@@ -30,7 +30,7 @@ class StructraDiff extends StructraElement {
           <button class="diff-btn" data-diff-mode="inline">Inline</button>
           <button class="diff-btn" data-diff-mode="structural">Structural</button>
           <span class="diff-sep"></span>
-          <button class="diff-btn" data-action="swap">⇄ Swap</button>
+          <button class="diff-btn" data-action="swap">${Structra.icons.svg('arrow-left-right', { size: 14 })} Swap</button>
           <button class="diff-btn" data-action="copy-diff">Copy Diff</button>
           <button class="diff-btn" data-action="copy-patch" title="Copy the changes as an RFC 6902 JSON Patch">Copy JSON Patch</button>
         </div>

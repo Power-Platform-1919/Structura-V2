@@ -98,7 +98,7 @@ class StructraStats extends StructraElement {
       ${this._heroCard(s.keys, 'Total Keys', 'across objects')}
       ${this._heroCard(s.depth, 'Max Depth', 'nesting levels')}
       ${this._heroCard(s.arrays, 'Arrays', s.arraysDetail.length > 0 ? `longest: ${longest}` : 'none')}
-      ${this._heroCard(s.nulls, 'Nulls', s.nulls > 0 ? '⚠ found' : 'none')}
+      ${this._heroCard(s.nulls, 'Nulls', s.nulls > 0 ? 'found' : 'none')}
       ${this._heroCard(fileSize, 'Size', 'file size')}
     </div>`;
   }
@@ -361,7 +361,7 @@ class StructraStats extends StructraElement {
       // Detect nested type for drill tags
       let typeTag = '';
       if (k.types && k.types.has('object')) {
-        typeTag = ` <span class="stat-nested-tag" data-action="toggle-nested" data-keyname="${Structra.util.esc(k.key)}">▶ {…}</span>`;
+        typeTag = ` <span class="stat-nested-tag" data-action="toggle-nested" data-keyname="${Structra.util.esc(k.key)}">${Structra.icons.svg('chevron-right', { size: 12 })} {…}</span>`;
       } else if (k.types && k.types.has('array')) {
         typeTag = ` <span class="stat-nested-tag" data-action="drill-nested-array" data-keyname="${Structra.util.esc(k.key)}">[…]</span>`;
       }
@@ -526,7 +526,7 @@ class StructraStats extends StructraElement {
         const rows = container.querySelectorAll(`.stat-nested-row[data-parent="${keyName}"]`);
         const isOpen = rows[0]?.style.display !== 'none';
         rows.forEach(r => r.style.display = isOpen ? 'none' : '');
-        action.textContent = isOpen ? '▶ {…}' : '▼ {…}';
+        action.innerHTML = Structra.icons.svg(isOpen ? 'chevron-right' : 'chevron-down', { size: 12 }) + ' {…}';
         break;
       }
       case 'drill-nested-array': {

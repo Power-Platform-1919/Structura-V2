@@ -492,12 +492,12 @@ class StructraTable extends StructraElement {
       <div class="col-ctx-item" data-col-action="sort-desc">▼ Sort Descending</div>
       <div class="col-ctx-sep"></div>
       <div class="col-ctx-item" data-col-action="filter">⏷ Filter Values…</div>
-      ${hasFilter ? '<div class="col-ctx-item" data-col-action="clear-filter">✕ Clear Filter</div>' : ''}
+      ${hasFilter ? `<div class="col-ctx-item" data-col-action="clear-filter">${Structra.icons.svg('x', { size: 14 })} Clear Filter</div>` : ''}
       <div class="col-ctx-sep"></div>
       ${hasObjects ? '<div class="col-ctx-item" data-col-action="expand">⊞ Expand Object Column…</div>' : ''}
       ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">⊟ Collapse "${Structra.util.esc(this._expandParent.get(col))}"</div>` : ''}
       <div class="col-ctx-item" data-col-action="move-left">◀ Move Left</div>
-      <div class="col-ctx-item" data-col-action="move-right">▶ Move Right</div>
+      <div class="col-ctx-item" data-col-action="move-right">${Structra.icons.svg('arrow-right', { size: 14 })} Move Right</div>
       <div class="col-ctx-item" data-col-action="hide">⊘ Hide Column</div>
       ${this._hiddenCols.size ? `<div class="col-ctx-item" data-col-action="unhide-all">⊙ Show ${this._hiddenCols.size} Hidden Column${this._hiddenCols.size === 1 ? '' : 's'}</div>` : ''}
       <div class="col-ctx-item" data-col-action="chart">📈 Chart This Column</div>
@@ -703,7 +703,7 @@ class StructraTable extends StructraElement {
     panel.innerHTML = `
       <div class="cfp-header">
         <span class="cfp-title">Filter: ${Structra.util.esc(col)}</span>
-        <button class="cfp-close" data-cfp="close">✕</button>
+        <button class="cfp-close" data-cfp="close">${Structra.icons.svg('x', { size: 14 })}</button>
       </div>
       <div class="cfp-tabs">
         <button class="cfp-tab active" data-cfp-tab="values">Values</button>
@@ -791,7 +791,7 @@ class StructraTable extends StructraElement {
     row.innerHTML = `
       <select class="cfp-cond-op">${ops.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select>
       <input type="text" class="cfp-cond-val" placeholder="Value…">
-      <button class="cfp-cond-rm" title="Remove">✕</button>`;
+      <button class="cfp-cond-rm" title="Remove">${Structra.icons.svg('x', { size: 14 })}</button>`;
     row.querySelector('.cfp-cond-rm').addEventListener('click', () => row.remove());
     container.appendChild(row);
   }

@@ -23,15 +23,15 @@ class StructraWelcome extends StructraOverlay {
         <p class="wl-lead">Open a JSON, CSV, XML, YAML or TOML file and see what is inside it: its shape, its types, and where the data has gaps.</p>
         <ul class="wl-points">
           <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            ${Structra.icons.svg('lock')}
             <div><strong>Your data stays on this device.</strong> Files are read in the browser and never uploaded.</div>
           </li>
           <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            ${Structra.icons.svg('search')}
             <div><strong>Understand a payload quickly.</strong> Browse it as a tree, table, graph or schema, then query, filter and compare.</div>
           </li>
           <li>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            ${Structra.icons.svg('zap')}
             <div><strong>Built in for Power Platform.</strong> Click any value to get the Power Automate expression, Parse JSON schema or Power Fx formula for it.</div>
           </li>
         </ul>

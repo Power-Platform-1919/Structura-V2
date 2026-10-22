@@ -19,16 +19,11 @@ class StructraTabs extends StructraElement {
     const tabsHtml = tabs.map(t => `
       <div class="doc-tab ${t.id === activeId ? 'active' : ''} ${t.modified ? 'modified' : ''}"
            data-id="${t.id}">
-        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-          <polyline points="14 2 14 8 20 8"/>
-        </svg>
+        ${Structra.icons.svg('file', { cls: 'tab-icon' })}
         <span class="tab-label">${t.label}</span>
         <span class="tab-modified"></span>
         <span class="tab-close" data-close="${t.id}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
+          ${Structra.icons.svg('x')}
         </span>
       </div>`).join('');
 

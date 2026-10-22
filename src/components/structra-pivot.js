@@ -23,7 +23,7 @@ class StructraPivot extends StructraElement {
       <div class="pivot-modal">
         <div class="pivot-header">
           <span class="pivot-title">Pivot Table</span>
-          <button class="pivot-close" data-action="close">✕</button>
+          <button class="pivot-close" data-action="close">${Structra.icons.svg('x', { size: 14 })}</button>
         </div>
         <div class="pivot-config">
           <div class="pivot-field-list">
@@ -129,7 +129,7 @@ class StructraPivot extends StructraElement {
 
   _renderZones() {
     const chip = (field, zone) =>
-      `<span class="pivot-zone-chip">${Structra.util.esc(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.util.esc(field)}">✕</span></span>`;
+      `<span class="pivot-zone-chip">${Structra.util.esc(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.util.esc(field)}">${Structra.icons.svg('x', { size: 14 })}</span></span>`;
     this.$('#pivotRows').innerHTML = this._rows.map(f => chip(f, 'rows')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';
     this.$('#pivotCols').innerHTML = this._cols.map(f => chip(f, 'cols')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';
     this.$('#pivotValues').innerHTML = this._values.map(f => chip(f, 'values')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';

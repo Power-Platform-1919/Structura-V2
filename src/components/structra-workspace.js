@@ -17,7 +17,7 @@ class StructraWorkspace extends StructraElement {
       <div class="ws-panel">
         <div class="ws-header">
           <span class="ws-title">Workspace</span>
-          <button class="ws-close" data-action="close">✕</button>
+          <button class="ws-close" data-action="close">${Structra.icons.svg('x', { size: 14 })}</button>
         </div>
         <div class="ws-body">
           <div class="ws-section">

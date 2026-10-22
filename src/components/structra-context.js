@@ -26,7 +26,7 @@ class StructraContext extends StructraElement {
         <span class="panel-title">Node</span>
         <span class="panel-sub" id="ctxPath">—</span>
         <button class="btn btn-icon btn-ghost" type="button" data-action="close" aria-label="Close panel" title="Close">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          ${Structra.icons.svg('x', { size: 16 })}
         </button>
       </div>
       <div class="ctx-body">
@@ -88,7 +88,7 @@ class StructraContext extends StructraElement {
     el.innerHTML = items.length
       ? items.map((b) => `<div class="ctx-bm">
           <button class="ctx-bm-path" data-action="go-bookmark" data-path="${esc(b.path)}" title="${esc(b.preview || b.path)}">${esc(b.path)}</button>
-          <button class="ctx-bm-del" data-action="del-bookmark" data-path="${esc(b.path)}" title="Remove bookmark">&times;</button>
+          <button class="ctx-bm-del" data-action="del-bookmark" data-path="${esc(b.path)}" title="Remove bookmark">${Structra.icons.svg('x', { size: 14 })}</button>
         </div>`).join('')
       : '<div class="ctx-bm-empty">No bookmarks yet. Press Ctrl+B on a path.</div>';
   }

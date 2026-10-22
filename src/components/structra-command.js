@@ -10,64 +10,64 @@ class StructraCommand extends StructraElement {
     this._selectedIdx = 0;
     this._commands = [
       // Views
-      { id: 'tree',       label: 'Tree View',                    kbd: 'Ctrl+1',       cat: 'Views',    icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>' },
-      { id: 'table',      label: 'Table View',                   kbd: 'Ctrl+2',       cat: 'Views',    icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>' },
-      { id: 'graph',      label: 'Graph View',                   kbd: 'Ctrl+3',       cat: 'Views',    icon: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>' },
-      { id: 'schema',     label: 'Schema View',                  kbd: 'Ctrl+4',       cat: 'Views',    icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>' },
-      { id: 'editor',     label: 'Editor',                       kbd: 'Ctrl+E',       cat: 'Views',    icon: '<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>' },
-      { id: 'stats',      label: 'Stats & Analysis',             kbd: 'Ctrl+5',       cat: 'Views',    icon: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
+      { id: 'tree',       label: 'Tree View',                    kbd: 'Ctrl+1',       cat: 'Views',    icon: 'list-tree' },
+      { id: 'table',      label: 'Table View',                   kbd: 'Ctrl+2',       cat: 'Views',    icon: 'table' },
+      { id: 'graph',      label: 'Graph View',                   kbd: 'Ctrl+3',       cat: 'Views',    icon: 'network' },
+      { id: 'schema',     label: 'Schema View',                  kbd: 'Ctrl+4',       cat: 'Views',    icon: 'braces' },
+      { id: 'editor',     label: 'Editor',                       kbd: 'Ctrl+E',       cat: 'Views',    icon: 'pencil' },
+      { id: 'stats',      label: 'Stats & Analysis',             kbd: 'Ctrl+5',       cat: 'Views',    icon: 'chart-column' },
       // Data operations
-      { id: 'sort',       label: 'Sort Keys A→Z',                kbd: 'Ctrl+Shift+S', cat: 'Tools',    icon: '<path d="M11 5h10M11 9h7M11 13h4"/><path d="M3 17l3 3 3-3"/><line x1="6" y1="18" x2="6" y2="7"/>' },
-      { id: 'flatten',    label: 'Flatten (dot notation)',        kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/>' },
-      { id: 'unflatten',  label: 'Unflatten (restore nested)',    kbd: '',             cat: 'Tools',    icon: '<polyline points="4 7 4 4 20 4 20 7"/><line x1="12" y1="4" x2="12" y2="20"/>' },
-      { id: 'mask',       label: 'Mask Sensitive Data (PII)',     kbd: 'Ctrl+Shift+P', cat: 'Tools',    icon: '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8"/><line x1="1" y1="1" x2="23" y2="23"/>' },
-      { id: 'mock',       label: 'Generate Mock Data',            kbd: '',             cat: 'Tools',    icon: '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/>' },
-      { id: 'sample',     label: 'Sample Random Rows',            kbd: '',             cat: 'Tools',    icon: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8"/>' },
+      { id: 'sort',       label: 'Sort Keys A→Z',                kbd: 'Ctrl+Shift+S', cat: 'Tools',    icon: 'arrow-down-a-z' },
+      { id: 'flatten',    label: 'Flatten (dot notation)',        kbd: '',             cat: 'Tools',    icon: 'layers' },
+      { id: 'unflatten',  label: 'Unflatten (restore nested)',    kbd: '',             cat: 'Tools',    icon: 'unfold-vertical' },
+      { id: 'mask',       label: 'Mask Sensitive Data (PII)',     kbd: 'Ctrl+Shift+P', cat: 'Tools',    icon: 'eye-off' },
+      { id: 'mock',       label: 'Generate Mock Data',            kbd: '',             cat: 'Tools',    icon: 'dices' },
+      { id: 'sample',     label: 'Sample Random Rows',            kbd: '',             cat: 'Tools',    icon: 'shuffle' },
       // Code generation
-      { id: 'types-ts',   label: 'Generate TypeScript Interfaces',kbd: '',             cat: 'Code Gen', icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
-      { id: 'types-py',   label: 'Generate Python Dataclasses',   kbd: '',             cat: 'Code Gen', icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
-      { id: 'types-go',   label: 'Generate Go Structs',           kbd: '',             cat: 'Code Gen', icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
-      { id: 'types-csharp',label:'Generate C# Classes',           kbd: '',             cat: 'Code Gen', icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
-      { id: 'types-rust',  label:'Generate Rust Structs',         kbd: '',             cat: 'Code Gen', icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
-      { id: 'types-sql',   label:'Generate SQL CREATE TABLE',     kbd: '',             cat: 'Code Gen', icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
+      { id: 'types-ts',   label: 'Generate TypeScript Interfaces',kbd: '',             cat: 'Code Gen', icon: 'code-xml' },
+      { id: 'types-py',   label: 'Generate Python Dataclasses',   kbd: '',             cat: 'Code Gen', icon: 'code-xml' },
+      { id: 'types-go',   label: 'Generate Go Structs',           kbd: '',             cat: 'Code Gen', icon: 'code-xml' },
+      { id: 'types-csharp',label:'Generate C# Classes',           kbd: '',             cat: 'Code Gen', icon: 'code-xml' },
+      { id: 'types-rust',  label:'Generate Rust Structs',         kbd: '',             cat: 'Code Gen', icon: 'code-xml' },
+      { id: 'types-sql',   label:'Generate SQL CREATE TABLE',     kbd: '',             cat: 'Code Gen', icon: 'database' },
       // Export / Convert
-      { id: 'export-csv', label: 'Export as CSV',                  kbd: 'Ctrl+Shift+E', cat: 'Export',   icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' },
-      { id: 'export-yaml',label: 'Convert to YAML',               kbd: '',             cat: 'Export',   icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' },
-      { id: 'export-xml', label: 'Convert to XML',                kbd: '',             cat: 'Export',   icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' },
+      { id: 'export-csv', label: 'Export as CSV',                  kbd: 'Ctrl+Shift+E', cat: 'Export',   icon: 'download' },
+      { id: 'export-yaml',label: 'Convert to YAML',               kbd: '',             cat: 'Export',   icon: 'download' },
+      { id: 'export-xml', label: 'Convert to XML',                kbd: '',             cat: 'Export',   icon: 'download' },
       // Search & Filter
-      { id: 'share-url',  label: 'Copy Share Link',                 kbd: '',             cat: 'Export',   icon: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>' },
-      { id: 'export-image', label: 'Export View as Image',         kbd: '',             cat: 'Export',   icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>' },
-      { id: 'repair',     label: 'Repair JSON (in Editor)',        kbd: '',             cat: 'Tools',    icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>' },
-      { id: 'format-json', label: 'Format JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/>' },
-      { id: 'minify-json', label: 'Minify JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="12" x2="20" y2="12"/>' },
-      { id: 'charts',     label: 'Charts for a Column',              kbd: '',             cat: 'Analysis', icon: '<rect x="4" y="14" width="4" height="6"/><rect x="10" y="8" width="4" height="12"/><rect x="16" y="4" width="4" height="16"/>' },
-      { id: 'dup-keys',  label: 'Find Duplicate Keys',              kbd: '',             cat: 'Analysis', icon: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' },
-      { id: 'appearance', label: 'Appearance and Themes',          kbd: '',             cat: 'UI',       icon: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9z"/>' },
-      { id: 'find',       label: 'Find in JSON',                   kbd: 'Ctrl+F',       cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
-      { id: 'filter',     label: 'Filter Data',                   kbd: 'Ctrl+Shift+F', cat: 'Search',   icon: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>' },
-      { id: 'fuzzy',      label: 'Fuzzy Search (DuckDB)',          kbd: '',             cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
-      { id: 'sql',        label: 'Run SQL Query',                  kbd: '',             cat: 'Search',   icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8"/>' },
+      { id: 'share-url',  label: 'Copy Share Link',                 kbd: '',             cat: 'Export',   icon: 'link' },
+      { id: 'export-image', label: 'Export View as Image',         kbd: '',             cat: 'Export',   icon: 'image' },
+      { id: 'repair',     label: 'Repair JSON (in Editor)',        kbd: '',             cat: 'Tools',    icon: 'wrench' },
+      { id: 'format-json', label: 'Format JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: 'align-left' },
+      { id: 'minify-json', label: 'Minify JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: 'minus' },
+      { id: 'charts',     label: 'Charts for a Column',              kbd: '',             cat: 'Analysis', icon: 'chart-column' },
+      { id: 'dup-keys',  label: 'Find Duplicate Keys',              kbd: '',             cat: 'Analysis', icon: 'copy' },
+      { id: 'appearance', label: 'Appearance and Themes',          kbd: '',             cat: 'UI',       icon: 'palette' },
+      { id: 'find',       label: 'Find in JSON',                   kbd: 'Ctrl+F',       cat: 'Search',   icon: 'search' },
+      { id: 'filter',     label: 'Filter Data',                   kbd: 'Ctrl+Shift+F', cat: 'Search',   icon: 'filter' },
+      { id: 'fuzzy',      label: 'Fuzzy Search (DuckDB)',          kbd: '',             cat: 'Search',   icon: 'search' },
+      { id: 'sql',        label: 'Run SQL Query',                  kbd: '',             cat: 'Search',   icon: 'database' },
       // Analysis
-      { id: 'validate',   label: 'Validate JSON Schema',           kbd: '',             cat: 'Analysis', icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' },
-      { id: 'distribution',label:'Column Distribution (DuckDB)',   kbd: '',             cat: 'Analysis', icon: '<rect x="4" y="14" width="4" height="6"/><rect x="10" y="8" width="4" height="12"/><rect x="16" y="4" width="4" height="16"/>' },
+      { id: 'validate',   label: 'Validate JSON Schema',           kbd: '',             cat: 'Analysis', icon: 'shield-check' },
+      { id: 'distribution',label:'Column Distribution (DuckDB)',   kbd: '',             cat: 'Analysis', icon: 'chart-column' },
       // Undo/Redo
-      { id: 'undo',       label: 'Undo',                           kbd: 'Ctrl+Z',       cat: 'Edit',     icon: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>' },
-      { id: 'redo',       label: 'Redo',                           kbd: 'Ctrl+Y',       cat: 'Edit',     icon: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/>' },
+      { id: 'undo',       label: 'Undo',                           kbd: 'Ctrl+Z',       cat: 'Edit',     icon: 'undo-2' },
+      { id: 'redo',       label: 'Redo',                           kbd: 'Ctrl+Y',       cat: 'Edit',     icon: 'redo-2' },
       // UI
-      { id: 'theme',      label: 'Switch Light / Dark',             kbd: 'Alt+T',        cat: 'UI',       icon: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/>' },
-      { id: 'welcome',    label: 'Welcome',                         kbd: '',             cat: 'Help',     icon: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' },
-      { id: 'shortcuts',  label: 'Keyboard Shortcuts',             kbd: '?',            cat: 'Help',     icon: '<rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/>' },
+      { id: 'theme',      label: 'Switch Light / Dark',             kbd: 'Alt+T',        cat: 'UI',       icon: 'sun-moon' },
+      { id: 'welcome',    label: 'Welcome',                         kbd: '',             cat: 'Help',     icon: 'circle-help' },
+      { id: 'shortcuts',  label: 'Keyboard Shortcuts',             kbd: '?',            cat: 'Help',     icon: 'keyboard' },
       // Phase 5 features
-      { id: 'diff',       label: 'Diff / Compare JSON',            kbd: 'Ctrl+D',       cat: 'Analysis', icon: '<rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>' },
-      { id: 'nullfinder', label: 'Find Null & Empty Values',       kbd: '',             cat: 'Analysis', icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' },
-      { id: 'pivot',      label: 'Pivot Table',                    kbd: '',             cat: 'Analysis', icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="3" x2="9" y2="21"/>' },
-      { id: 'minimap',    label: 'Toggle Minimap',                 kbd: '',             cat: 'UI',       icon: '<rect x="15" y="3" width="6" height="18" rx="1"/><rect x="3" y="3" width="9" height="18" rx="1"/>' },
-      { id: 'snippets',   label: 'Snippet Library',                kbd: '',             cat: 'Tools',    icon: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>' },
-      { id: 'workspace',  label: 'Export/Import Workspace',        kbd: '',             cat: 'Tools',    icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>' },
-      { id: 'heatmap',    label: 'Toggle Size Heatmap',            kbd: '',             cat: 'UI',       icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><rect x="7" y="7" width="3" height="9" fill="currentColor" opacity=".3"/><rect x="14" y="5" width="3" height="11" fill="currentColor" opacity=".6"/>' },
-      { id: 'zoom-in',    label: 'Zoom In',                        kbd: 'Ctrl+=',       cat: 'UI',       icon: '<circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>' },
-      { id: 'zoom-out',   label: 'Zoom Out',                       kbd: 'Ctrl+-',       cat: 'UI',       icon: '<circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/>' },
-      { id: 'zoom-reset', label: 'Reset Zoom',                     kbd: 'Ctrl+0',       cat: 'UI',       icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
+      { id: 'diff',       label: 'Diff / Compare JSON',            kbd: 'Ctrl+D',       cat: 'Analysis', icon: 'git-compare' },
+      { id: 'nullfinder', label: 'Find Null & Empty Values',       kbd: '',             cat: 'Analysis', icon: 'circle-alert' },
+      { id: 'pivot',      label: 'Pivot Table',                    kbd: '',             cat: 'Analysis', icon: 'table-properties' },
+      { id: 'minimap',    label: 'Toggle Minimap',                 kbd: '',             cat: 'UI',       icon: 'map' },
+      { id: 'snippets',   label: 'Snippet Library',                kbd: '',             cat: 'Tools',    icon: 'clipboard-list' },
+      { id: 'workspace',  label: 'Export/Import Workspace',        kbd: '',             cat: 'Tools',    icon: 'package' },
+      { id: 'heatmap',    label: 'Toggle Size Heatmap',            kbd: '',             cat: 'UI',       icon: 'flame' },
+      { id: 'zoom-in',    label: 'Zoom In',                        kbd: 'Ctrl+=',       cat: 'UI',       icon: 'zoom-in' },
+      { id: 'zoom-out',   label: 'Zoom Out',                       kbd: 'Ctrl+-',       cat: 'UI',       icon: 'zoom-out' },
+      { id: 'zoom-reset', label: 'Reset Zoom',                     kbd: 'Ctrl+0',       cat: 'UI',       icon: 'scan-search' },
     ];
 
     this.on('command-palette:toggle', () => this._toggle());
@@ -80,7 +80,7 @@ class StructraCommand extends StructraElement {
       <div class="cmd-overlay" id="cmdOverlay">
         <div class="cmd-box">
           <div class="cmd-search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            ${Structra.icons.svg('search')}
             <input type="text" class="cmd-input" id="cmdInput" placeholder="Type a command..." autocomplete="off">
           </div>
           <div class="cmd-group-title">Commands</div>
@@ -129,7 +129,7 @@ class StructraCommand extends StructraElement {
     list.innerHTML = filtered
       .map((c, i) =>
         `<div class="cmd-item ${i === this._selectedIdx ? 'selected' : ''}" data-cmd="${c.id}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${c.icon}</svg>
+          ${Structra.icons.svg(c.icon)}
           <span class="cmd-text">${Structra.util.esc(c.label)}</span>
           <span class="cmd-cat">${c.cat || ''}</span>
           ${c.kbd ? `<kbd>${c.kbd}</kbd>` : ''}
