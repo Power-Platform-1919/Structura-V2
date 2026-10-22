@@ -15,6 +15,7 @@ class StructraExpressions extends StructraElement {
     this.on('state:currentPath', (d) => { this._path = Structra.paths.strip(d.value); this._refresh(); });
     this.on('state:jsonData', () => this._refresh());
     this.on('expressions:source-changed', () => this._refresh());
+    this.on('expressions:columns-changed', () => this._refresh());
     this.on('tabs:switched', () => this._refresh());
     this.on('drawer:tab-switched', (id) => { if (id === 'expressions') this._refresh(); });
     this._path = Structra.paths.strip(Structra.state.currentPath);
@@ -40,12 +41,22 @@ class StructraExpressions extends StructraElement {
       if (tab) { this._switch(tab.dataset.sub); return; }
       const copyAll = e.target.closest('[data-copy-block]');
       if (copyAll) { Structra.util.copy(copyAll.closest('.expr-block').querySelector('pre').textContent, 'Action copied'); return; }
+      const copy = e.target.closest('.expr-copy');
+      if (copy) { Structra.util.copy(copy.parentElement.querySelector('.ecode').textContent, 'Copied'); return; }
       const code = e.target.closest('.ecode');
       if (code) {
         Structra.util.copy(code.textContent, 'Copied');
       }
+      const all = e.target.closest('[data-cols-all]');
+      if (all) this._setAllColumns(all.dataset.colsAll === 'on');
     });
     this.addEventListener('change', (e) => {
+      const col = e.target.closest('[data-col]');
+      if (col) {
+        const rows = Structra.paths.resolve(Structra.state.jsonData, this._path);
+        if (Array.isArray(rows)) Structra.expressions.setColumn(this._path, rows, col.dataset.col, col.checked);
+        return;
+      }
       const kind = e.target.closest('[data-src="kind"]');
       if (kind) { Structra.expressions.setSource({ kind: kind.value }); return; }
       const full = e.target.closest('[data-src="full"]');
@@ -132,11 +143,36 @@ class StructraExpressions extends StructraElement {
       this._fill(this._tab, this._empty('No value at this path'));
       return;
     }
+    // Typed tables and Select actions are built from the columns the person keeps ticked
+    const picker = this._tab === 'automate' ? '' : this._columnPicker(value);
     if (this._tab === 'flow') {
-      this._fill('flow', this._blocks(() => Structra.expressions.flowActions(this._path, value)));
+      this._fill('flow', picker + this._blocks(() => Structra.expressions.flowActions(this._path, value)));
       return;
     }
-    this._fill(this._tab, this._sections(() => [{ rows: make(this._path, value) }]));
+    this._fill(this._tab, picker + this._sections(() => [{ rows: make(this._path, value) }]));
+  }
+
+  /** For a list of records: which columns go into typed tables (Power Fx) and the Select action (flow). */
+  _columnPicker(value) {
+    if (!Array.isArray(value) || !value.length || !value[0] || typeof value[0] !== 'object' || Array.isArray(value[0])) return '';
+    const cols = Structra.expressions.pickedColumns(this._path, value);
+    if (!cols.length) return '';
+    const esc = Structra.util.esc;
+    const on = cols.filter((c) => c.on).length;
+    return `<div class="expr-cols">
+      <div class="expr-cols-head"><strong>Columns</strong>
+        <span class="expr-note">${on} of ${cols.length} used in typed tables and Select. Choice and Person fields give one column per part (Status_Value).</span>
+        <button class="btn btn-sm btn-ghost" type="button" data-cols-all="on">All</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-cols-all="off">None</button>
+      </div>
+      <div class="expr-cols-list">${cols.slice(0, 80).map((c) => `<label class="expr-col${c.on ? ' on' : ''}${c.noise ? ' noise' : ''}" title="${esc(c.noise ? c.id + ' (system field, off by default)' : c.id)}"><input type="checkbox" data-col="${esc(c.id)}"${c.on ? ' checked' : ''}>${esc(c.name)}</label>`).join('')}</div>
+    </div>`;
+  }
+
+  _setAllColumns(on) {
+    const rows = Structra.paths.resolve(Structra.state.jsonData, this._path);
+    if (!Array.isArray(rows)) return;
+    Structra.expressions.pickedColumns(this._path, rows).forEach((c) => { if (c.on !== on) Structra.expressions.setColumn(this._path, rows, c.id, on); });
   }
 
   /** Action JSON: a titled block with its own copy button */
@@ -178,7 +214,7 @@ class StructraExpressions extends StructraElement {
       <section class="expr-section">
         ${s.title ? `<h4 class="expr-title">${esc(s.title)}</h4>` : ''}
         ${s.note ? `<p class="expr-note">${esc(s.note)}</p>` : ''}
-        ${s.rows.map((r) => `<div class="expr-row"><span class="elabel">${esc(r.label)}</span><div class="ecode" title="Click to copy">${esc(r.code)}</div></div>`).join('')}
+        ${s.rows.map((r) => `<div class="expr-row"><span class="elabel" title="${esc(r.label)}">${esc(r.label)}</span><div class="ecode" title="Click to copy">${esc(r.code)}</div><button class="expr-copy" type="button" title="Copy" aria-label="Copy ${esc(r.label)}">${Structra.icons.svg('copy', { size: 14 })}</button></div>`).join('')}
       </section>`).join('');
   }
 }

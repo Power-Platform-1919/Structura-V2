@@ -105,6 +105,19 @@
 }
 .ctx-btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
 
+.ctx-pp { display: flex; flex-direction: column; gap: var(--sp-3); }
+.ctx-pp-row { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ctx-pp-head { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-xs); min-width: 0; }
+.ctx-pp-app { flex-shrink: 0; padding: 1px var(--sp-2); border-radius: var(--radius-full); font-weight: var(--fw-semibold); }
+.ctx-pp-pa { background: var(--info-soft, var(--accent-soft)); color: var(--info, var(--accent)); }
+.ctx-pp-fx { background: var(--accent-soft); color: var(--accent); }
+.ctx-pp-label { color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctx-pp-line { display: flex; align-items: flex-start; gap: var(--sp-1); }
+.ctx-pp-code { flex: 1; min-width: 0; padding: var(--sp-1) var(--sp-2); background: var(--surface-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text); overflow-wrap: anywhere; user-select: all; }
+.ctx-pp-copy { flex-shrink: 0; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-sec); }
+.ctx-pp-copy:hover { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.ctx-pp-src { font-size: var(--fs-xs); color: var(--text-muted); }
+.ctx-link-btn { border: none; background: none; padding: 0; color: var(--accent); font-size: inherit; text-decoration: underline; cursor: pointer; }
 .ctx-preview { display: flex; flex-direction: column; gap: var(--sp-2); }
 .ctx-detection { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); min-width: 0; }
 .ctx-det-badge {

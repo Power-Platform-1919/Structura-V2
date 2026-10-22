@@ -512,7 +512,7 @@
         {
           "id": "13.2",
           "title": "Node panel (right) shows nothing about Power Platform after a click; the maker must find the Expressions tab. Add a 'Use in Power Platform' section with the key expressions and copy buttons",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.3",
@@ -527,7 +527,7 @@
         {
           "id": "13.5",
           "title": "Expression rows have no visible copy button (copy is only a click on the text with a title hint)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.6",
@@ -537,7 +537,7 @@
         {
           "id": "13.7",
           "title": "No column picker: Select action, Power Fx typed table and the schema should be built from chosen columns [logic done and tested (pickedColumns, setColumn, used by Select and the typed table); the picker UI is still to do]",
-          "status": "in_progress"
+          "status": "done"
         },
         {
           "id": "13.8",
@@ -947,12 +947,12 @@
         {
           "id": "13.89",
           "title": "Node panel 'Filter' only opens the filter bar with an empty condition; it should prefill 'Status.Value equals Closed' for the selected value. 'Copy Value' and 'Mock' give feedback only through a short toast, and Mock does not show what it copied",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.90",
           "title": "Node panel has no Power Platform section, no 'Copy as expression' buttons, and no way to see all bookmarks except while a node is selected",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.91",
@@ -1252,7 +1252,7 @@
         {
           "id": "13.150",
           "title": "Canvas app expressions tab has no row for use inside a gallery or ForAll (ThisItem.Requester.Email or ThisRecord.Requester.Email) for a value inside a list item; the first rows only offer Index(ParseJSON(jsonText).value, 2).Requester.Email, so the maker must rewrite it by hand (the loop-relative rows exist only for Power Automate, and the Node panel quick set is not wired in)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.151",
@@ -1272,17 +1272,17 @@
         {
           "id": "13.154",
           "title": "Helpers tab, 'Apply to each' block: the nested list Tags uses items('Apply_to_each')?['Id'] for its own fields, the same loop name as the outer loop; the inner loop over items('Apply_to_each')?['Tags'] should be named Apply_to_each_2 and read items('Apply_to_each_2')?['Value']; the first row for the Tags list itself is body('Parse_JSON')?['value']?[0]?['Tags'] (a fixed index) instead of items('Apply_to_each')?['Tags']",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.155",
           "title": "Helpers tab 'Compose and variables' rows give body('Parse_JSON')?['keyName'] and ?['arrayName'] as examples; these are placeholder names that do not exist in the data, so a maker copying them gets null. Use the first real key of the data or hide the rows",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.156",
           "title": "Flow actions tab for a single scalar value offers only 'Compose: this value' with a fixed index (value?[1]); for a value inside a list item it should also offer Condition on this field, Set variable and an Apply to each that reads the same field",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.157",
@@ -1317,7 +1317,7 @@
         {
           "id": "13.163",
           "title": "Node panel 'Copy Path' copies '[0]' (a bare JS style path) while the Power Platform expressions use body('Parse_JSON')?['value']; the panel should offer 'Copy path', 'Copy as Power Automate' and 'Copy as Power Fx' buttons so makers do not have to open the drawer",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.164",

@@ -42,6 +42,10 @@ class StructraContext extends StructraElement {
           <div class="ctx-label">Properties</div>
           <dl class="ctx-meta" id="ctxMeta"><dt>Type</dt><dd>—</dd></dl>
         </div>
+        <div class="ctx-section" id="ctxPpSection" hidden>
+          <div class="ctx-label">Use in Power Platform</div>
+          <div class="ctx-pp" id="ctxPp"></div>
+        </div>
         <div class="ctx-section">
           <div class="ctx-label">Bookmarks</div>
           <div class="ctx-bookmarks" id="ctxBookmarks"></div>
@@ -49,11 +53,11 @@ class StructraContext extends StructraElement {
         <div class="ctx-section">
           <div class="ctx-label">Actions</div>
           <div class="ctx-actions">
-            <button class="ctx-btn" data-action="copy-value">Copy Value</button>
-            <button class="ctx-btn" data-action="copy-path">Copy Path</button>
-            <button class="ctx-btn" data-action="bookmark">Bookmark</button>
-            <button class="ctx-btn" data-action="filter">Filter</button>
-            <button class="ctx-btn" data-action="mock">Mock</button>
+            <button class="ctx-btn" data-action="copy-value" title="Copy this value as it is in the file">Copy value</button>
+            <button class="ctx-btn" data-action="copy-path" title="Copy the path to this value">Copy path</button>
+            <button class="ctx-btn" data-action="bookmark" title="Keep this place in the list of bookmarks (Ctrl+B)">Bookmark</button>
+            <button class="ctx-btn" data-action="find-value" title="Find every place this value appears">Find this value</button>
+            <button class="ctx-btn" data-action="mock" title="Copy made-up data with the same shape as this value">Copy mock data</button>
           </div>
         </div>
       </div>`;
@@ -69,8 +73,10 @@ class StructraContext extends StructraElement {
       else if (a === 'bookmark') this._toggleBookmark();
       else if (a === 'go-bookmark') Structra.set('currentPath', btn.dataset.path);
       else if (a === 'del-bookmark') Structra.bookmarks.remove(btn.dataset.path);
-      else if (a === 'filter') this._filterFromContext();
+      else if (a === 'find-value') this._findValue();
       else if (a === 'mock') this._mockFromContext();
+      else if (a === 'copy-pp') Structra.util.copy(btn.dataset.code, 'Copied');
+      else if (a === 'pp-source') Structra.events.emit('drawer:show', 'expressions');
     });
   }
 
@@ -99,8 +105,10 @@ class StructraContext extends StructraElement {
 
     const data = Structra.state.jsonData;
     const val = this._resolve(data, path);
+    this._currentValue = val;
 
     this.$('#ctxPath').textContent = path;
+    this._renderPowerPlatform(path, val);
 
     // Value preview
     const valEl = this.$('#ctxValue');
@@ -204,15 +212,36 @@ class StructraContext extends StructraElement {
     return detections;
   }
 
-  _filterFromContext() {
-    if (!this._currentPath) return;
-    Structra.set('filterBarOpen', true);
-    Structra.toast('Filter opened');
+  /** The expressions a maker wants for this value, one click to copy. The full set lives in the Expressions tab. */
+  _renderPowerPlatform(path, val) {
+    const section = this.$('#ctxPpSection');
+    const box = this.$('#ctxPp');
+    if (!section || !box) return;
+    if (!path || path === '$') { section.hidden = true; return; }
+    const esc = Structra.util.esc;
+    const rows = Structra.expressions.quick(path, val);
+    const src = Structra.expressions.getSource();
+    const srcText = src.kind === 'trigger' ? 'the trigger body' : src.kind === 'item' ? 'the current loop item' : src.kind === 'custom' ? 'your own expression' : `the action ${src.name}`;
+    box.innerHTML = rows.map((r) => `
+      <div class="ctx-pp-row">
+        <div class="ctx-pp-head"><span class="ctx-pp-app ctx-pp-${r.app === 'Power Fx' ? 'fx' : 'pa'}">${esc(r.app)}</span><span class="ctx-pp-label">${esc(r.label)}</span></div>
+        <div class="ctx-pp-line">
+          <code class="ctx-pp-code">${esc(r.code)}</code>
+          <button class="ctx-pp-copy" type="button" data-action="copy-pp" data-code="${esc(r.code)}" title="Copy" aria-label="Copy ${esc(r.label)}">${Structra.icons.svg('copy', { size: 14 })}</button>
+        </div>
+      </div>`).join('') + `<div class="ctx-pp-src">Reading from ${esc(srcText)}. <button class="ctx-link-btn" type="button" data-action="pp-source">Change</button></div>`;
+    section.hidden = false;
+  }
+
+  /** Search the whole document for this value (a number or text; objects and lists have no single value to search for) */
+  _findValue() {
+    const v = this._currentValue;
+    if (v === null || v === undefined || typeof v === 'object') { Structra.toast('Select a text, number or true/false value to find where else it appears'); return; }
+    Structra.events.emit('find:prefill', String(v));
   }
 
   _mockFromContext() {
-    const data = Structra.state.jsonData;
-    const val = this._resolve(data, this._currentPath);
+    const val = this._currentValue;
     if (val == null) { Structra.toast('No value to mock', 'warning'); return; }
     const mocked = Structra.mockGen.generate(val, 3);
     Structra.util.copy(JSON.stringify(mocked, null, 2), 'Mock data copied to clipboard');
@@ -220,17 +249,13 @@ class StructraContext extends StructraElement {
 
   _resolve(data, path) {
     if (!data || !path || path === '$') return data;
-    const parts = path.replace(/^\$\.?/, '').replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
-    let cur = data;
-    for (const p of parts) {
-      if (cur == null) return undefined;
-      cur = Array.isArray(cur) ? cur[parseInt(p, 10)] : cur[p];
-    }
-    return cur;
+    return Structra.paths.resolve(data, path);
   }
 
   _copyValue() {
-    const text = this.$('#ctxValue').textContent;
+    // The whole value, not the shortened text shown on screen
+    const v = this._currentValue;
+    const text = v === undefined ? '' : (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
     Structra.util.copy(text, 'Value copied');
   }
 

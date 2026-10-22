@@ -178,3 +178,48 @@ test('switching one column on keeps the other defaults', () => {
   truthy(on.includes('@odata.etag') && on.includes('Title') && !on.includes('ItemInternalId'), on.join());
   E.setColumn('value', sp.value, '@odata.etag', false);
 });
+
+/* ---- inside a list item, nested loops, and helpers that use the real names ---- */
+const spNested = {
+  value: [
+    { Title: 'Laptop', Requester: { Email: 'ann@x.com' }, Tags: [{ Id: 0, Value: 'IT' }] },
+    { Title: 'Badge', Requester: { Email: 'bo@x.com' }, Tags: [] },
+  ],
+};
+
+test('Power Fx offers ThisRecord and ThisItem for a value inside a list item', () => {
+  useSource({});
+  const rows = E.powerFx('value[0].Requester.Email', 'ann@x.com');
+  truthy(rows.some((r) => r.code === 'ThisRecord.Requester.Email'), rows.map((r) => r.code).join(' / '));
+  truthy(rows.some((r) => r.code === 'ThisItem.Requester.Email'));
+});
+test('a value outside any list has no ThisRecord rows', () => {
+  useSource({});
+  truthy(!E.powerFx('value', sp.value).some((r) => /^Inside ForAll|^In a gallery or data table/.test(r.label)));
+});
+test('flow actions for a field of a list item include Apply to each, Filter array and a variable', () => {
+  useSource({});
+  const labels = E.flowActions('value[0].Title', 'Laptop').map((a) => a.label);
+  truthy(labels.some((l) => l.startsWith('Apply to each')), labels.join(' | '));
+  truthy(labels.some((l) => l.startsWith('Filter array')), labels.join(' | '));
+  truthy(labels.some((l) => l.startsWith('Initialize variable')), labels.join(' | '));
+  const apply = JSON.parse(E.flowActions('value[0].Title', 'Laptop').find((a) => a.label.startsWith('Apply to each')).code).Apply_to_each;
+  eq(apply.actions.Compose_field.inputs, "@items('Apply_to_each')?['Title']");
+});
+test('helpers: a list inside a list uses the second loop name', () => {
+  useSource({});
+  Structra.engine = { findAllArrays: () => [{ path: 'value' }, { path: 'value[*].Tags' }] };
+  const sections = E.helpers(spNested);
+  const rows = sections.find((s) => s.title.startsWith('Apply to each')).rows;
+  const codes = rows.map((r) => r.code);
+  truthy(codes.includes("items('Apply_to_each')?['Tags']"), codes.join(' / '));
+  truthy(codes.includes("items('Apply_to_each_2')?['Value']"), codes.join(' / '));
+  truthy(!codes.some((c) => c.includes("items('Apply_to_each')?['Value']")), 'the inner field must not use the outer loop');
+});
+test('helpers use real keys from the document, not placeholder names', () => {
+  useSource({});
+  Structra.engine = { findAllArrays: () => [] };
+  const all = E.helpers({ name: 'Ann', items: [1, 2], age: 3 }).flatMap((s) => s.rows).map((r) => r.code).join('\n');
+  truthy(all.includes("?['name']") && all.includes("?['items']"), all.slice(0, 300));
+  truthy(!all.includes("?['keyName']") && !all.includes("?['arrayName']"), 'placeholder names are still there');
+});

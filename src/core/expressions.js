@@ -369,6 +369,12 @@ Structra.expressions = (() => {
     const table = `ForAll(${p}, ThisRecord)`;
     const rows = [row('Access (ParseJSON)', p)];
     const add = (label, code) => rows.push(row(label, code));
+    // Inside a list item, the item is "the current record": no position in the list is needed
+    const rec = Structra.paths.powerFxInRecord(path, 'ThisRecord');
+    if (rec) {
+      rows.push(row(`Inside ForAll, Filter or Sum over ${rec.listPath}`, rec.expr));
+      rows.push(row(`In a gallery or data table over ${rec.listPath}`, Structra.paths.powerFxInRecord(path, 'ThisItem').expr));
+    }
 
     switch (kindOf(value)) {
       case 'array': {
@@ -578,32 +584,47 @@ Structra.expressions = (() => {
      HELPERS — whole-document patterns
      ======================================================== */
 
-  const PP = "body('Parse_JSON')";
+  /**
+   * The first two helper sections use the names that are really in the document, so a copied expression
+   * returns something. They also follow the Source settings (action name, trigger, loop) like the other tabs.
+   */
+  function patternSections(data) {
+    const isObj = data && typeof data === 'object' && !Array.isArray(data);
+    const keys = isObj ? Object.keys(data).filter((k) => !k.startsWith('@')) : [];
+    const keyPath = (k) => (/^[A-Za-z_$][\w$]*$/.test(k) ? `$.${k}` : `$['${k.replace(/'/g, "\\'")}']`);
+    const scalarKey = keys.find((k) => data[k] === null || typeof data[k] !== 'object');
+    const stringKey = keys.find((k) => typeof data[k] === 'string');
+    const arrayKey = keys.find((k) => Array.isArray(data[k]));
+    const v = source.fxVar || 'jsonText';
 
-  const STATIC_SECTIONS = [
-    {
-      title: 'Compose and variables',
-      rows: [
-        row('Compose (full output)', PP),
-        row('Initialize string variable', `${PP}?['keyName']`),
-        row('Initialize array variable', `${PP}?['arrayName']`),
-        row('JSON string', `string(${PP})`),
-        row('Outputs reference', `outputs('Compose')`),
-      ],
-    },
-    {
-      title: 'Common patterns',
-      rows: [
-        row('PA: condition (is null)', `equals(${PP}?['key'], null)`),
-        row('PA: condition (not empty)', `greater(length(${PP}?['arr']), 0)`),
-        row('PA: empty string check', `empty(${PP}?['key'])`),
-        row('PA: ternary', `if(equals(${PP}?['status'], 'active'), 'Yes', 'No')`),
-        row('Fx: set from JSON', 'Set(varData, ParseJSON(jsonText))'),
-        row('Fx: ClearCollect', 'ClearCollect(colData, ForAll(ParseJSON(jsonText), ThisRecord))'),
-        row('Fx: notify when empty', 'If(IsEmpty(ForAll(ParseJSON(jsonText), ThisRecord)), Notify("No data found", NotificationType.Warning))'),
-        row('Fx: navigate with context', 'Navigate(scrDetail, ScreenTransition.None, {selectedItem: ThisItem})'),
-      ],
-    },
+    const compose = [row('Compose (full output)', pa('$'))];
+    if (stringKey) compose.push(row(`Initialize string variable (${stringKey})`, pa(keyPath(stringKey))));
+    if (arrayKey) compose.push(row(`Initialize array variable (${arrayKey})`, pa(keyPath(arrayKey))));
+    compose.push(row('JSON string', `string(${pa('$')})`));
+    compose.push(row('Outputs reference', `outputs('Compose')`));
+
+    const patterns = [];
+    if (scalarKey) patterns.push(row(`PA: condition (${scalarKey} is null)`, `equals(${pa(keyPath(scalarKey))}, null)`));
+    if (arrayKey) patterns.push(row(`PA: condition (${arrayKey} has items)`, `greater(length(${pa(keyPath(arrayKey))}), 0)`));
+    if (stringKey) {
+      patterns.push(row(`PA: empty string check (${stringKey})`, `empty(${pa(keyPath(stringKey))})`));
+      patterns.push(row(`PA: ternary on ${stringKey}`, `if(equals(${pa(keyPath(stringKey))}, '${String(data[stringKey]).replace(/'/g, "''").slice(0, 30)}'), 'Yes', 'No')`));
+    }
+    patterns.push(
+      row('Fx: set from JSON', `Set(varData, ParseJSON(${v}))`),
+      row('Fx: ClearCollect', `ClearCollect(colData, ForAll(ParseJSON(${v}), ThisRecord))`),
+      row('Fx: notify when empty', `If(IsEmpty(ForAll(ParseJSON(${v}), ThisRecord)), Notify("No data found", NotificationType.Warning))`),
+      row('Fx: navigate with context', 'Navigate(scrDetail, ScreenTransition.None, {selectedItem: ThisItem})'),
+    );
+    return [{ title: 'Compose and variables', rows: compose }, { title: 'Common patterns', rows: patterns }];
+  }
+
+  // Recipes that start from the whole document: built when asked, so they follow the Source settings
+  const staticSections = () => {
+    const PP = pa('$');
+    return [
+    null,
+    null,
     {
       title: 'Date and time',
       rows: [
@@ -662,7 +683,8 @@ Structra.expressions = (() => {
         row('Base64 decode', `base64ToString(${PP}?['encoded'])`),
       ],
     },
-  ];
+    ];
+  };
 
   /* ========================================================
      FLOW ACTIONS: action JSON to paste into a cloud flow
@@ -722,6 +744,22 @@ Structra.expressions = (() => {
         out.push(fa('Compose: this value', 'Keeps the value for later steps.', 'Compose', { type: 'Compose', inputs: at(p) }));
         out.push(fa('Condition: value is not empty', 'Add actions under "actions" for the yes path.', 'Condition',
           { type: 'If', expression: { and: [{ equals: [at(hasValue(p, value)), true] }] }, actions: {}, else: { actions: {} } }));
+        // A field of a list item is used per item: through Apply to each, or by testing every item at once
+        const inLoop = Structra.paths.powerAutomateInLoop(path, source.loopName);
+        const inItem = Structra.paths.powerAutomateInItem(path);
+        if (inLoop && inItem) {
+          const list = pa(inLoop.listPath);
+          out.push(fa(`Apply to each: read this field of every item`, `Goes through every item of ${inLoop.listPath}.`, 'Apply_to_each',
+            { type: 'Foreach', foreach: at(list), actions: { Compose_field: { type: 'Compose', inputs: at(inLoop.expr), runAfter: {} } } }));
+          out.push(fa(`Filter array: keep items where this field has a value`, `Keeps the items of ${inLoop.listPath} where the field is filled in.`, 'Filter_array',
+            { type: 'Query', inputs: { from: at(list), where: at(hasValue(inItem.expr, value)) } }));
+        }
+        const varType = { string: 'string', number: Number.isInteger(value) ? 'integer' : 'float', boolean: 'boolean' }[kindOf(value)];
+        if (varType) {
+          const name = (Structra.paths.lastKey(path) || 'value').replace(/[^A-Za-z0-9_]/g, '_');
+          out.push(fa('Initialize variable: keep this value in a variable', 'Create it at the top level of the flow, not inside a loop.', 'Initialize_variable',
+            { type: 'InitializeVariable', inputs: { variables: [{ name, type: varType, value: at(p) }] } }));
+        }
       }
     }
     return out;
@@ -771,31 +809,42 @@ Structra.expressions = (() => {
   function helpers(data) {
     const sections = [];
     const arrays = Structra.engine.findAllArrays(data, '');
+    const patterns = patternSections(data);
+    const base = source.loopName || 'Apply_to_each';
+    // Power Automate names the second loop Apply_to_each_2, the third Apply_to_each_3, and so on
+    const loopAt = (n) => (n <= 1 ? base : `${base}_${n}`);
 
     if (arrays.length) {
       const each = [];
       const gallery = [];
       for (const a of arrays) {
         const raw = a.path === '(root)' ? '' : a.path;
-        each.push(row(a.path, Structra.paths.powerAutomate(raw)));
-        const sample = Structra.paths.resolve(data, raw);
+        const depth = (raw.match(/\[(?:\*|\d+)\]/g) || []).length;          // how many lists this list sits inside
+        const sample = Structra.paths.resolve(data, raw.replace(/\[\*\]/g, '[0]'));
         const keys = Array.isArray(sample) ? firstObjectKeys(sample) : null;
-        if (keys) {
-          for (const k of keys.slice(0, 3)) each.push(row(`  .${k}`, `items('Apply_to_each')?['${k}']`));
+
+        if (depth === 0) {
+          each.push(row(a.path, pa(raw ? `$.${raw}` : '$')));
+        } else {
+          const inner = Structra.paths.powerAutomateInLoop(raw, loopAt(depth));
+          each.push(row(`${a.path}  (inside the loop over ${inner.listPath})`, inner.expr));
         }
-        const fx = Structra.paths.powerFx(raw);
-        gallery.push(row(a.path, `ForAll(${fx}, ThisRecord)`));
+        if (keys) {
+          for (const k of keys.slice(0, 3)) each.push(row(`  .${k}`, `items('${loopAt(depth + 1)}')?['${k}']`));
+        }
+        const fxPath = Structra.paths.powerFx(raw.replace(/\[\*\]/g, '[0]'), { variable: source.fxVar || 'jsonText' });
+        gallery.push(row(a.path, `ForAll(${fxPath}, ThisRecord)`));
         if (keys && keys.length) {
           const cols = keys.slice(0, 4).map((k) => `${k}: Text(ThisRecord.${k})`).join(', ');
-          gallery.push(row('  Typed', `ForAll(${fx}, {${cols}})`));
+          gallery.push(row('  Typed', `ForAll(${fxPath}, {${cols}})`));
         }
       }
       sections.push({ title: 'Apply to each (Power Automate)', rows: each });
-      sections.push(STATIC_SECTIONS[0]);
+      sections.push(patterns[0]);
       sections.push({ title: 'Gallery and data table items (Canvas app)', rows: gallery });
-      sections.push(...STATIC_SECTIONS.slice(1));
+      sections.push(patterns[1], ...staticSections().slice(2));
     } else {
-      sections.push(...STATIC_SECTIONS);
+      sections.push(...patterns, ...staticSections().slice(2));
     }
 
     sections.push({ title: 'Likely connector shape', note: connectorShape(data), rows: [] });

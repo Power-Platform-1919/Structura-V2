@@ -23,6 +23,17 @@ class StructraFind extends StructraElement {
     });
     this.on('overlay:close', () => this._close());
     this.on('find:toggle-replace', () => this._toggleReplace());
+    // Open the bar with a search already typed in (used by "Find this value" in the Node panel)
+    this.on('find:prefill', (text) => {
+      Structra.set('findBarOpen', true);
+      const input = this.$('#findInput');
+      if (!input) return;
+      this._setMode('text');
+      input.value = text;
+      input.focus();
+      input.select();
+      this._doFind(text);
+    });
     // Re-run on data changes
     this.on('engine:data-modified', () => {
       const query = this._getInput();
