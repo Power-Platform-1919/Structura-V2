@@ -50,7 +50,6 @@ Structra.events = (() => {
 
 /* ===== APPLICATION STATE ===== */
 Structra.state = {
-  theme: Structra.settings.get('theme'),
   activeView: 'tree',
   currentPath: '$',
   jsonData: null,
@@ -92,16 +91,7 @@ Structra.set = (key, value) => {
 Structra.get = (key) => Structra.state[key];
 
 /* ===== THEME ===== */
-Structra.applyTheme = () => {
-  Structra.settings.set('theme', Structra.state.theme);
-  Structra.settings.applyTheme();
-  Structra.log.info('State', 'Theme applied: ' + Structra.state.theme);
-};
-
-Structra.toggleTheme = () => {
-  Structra.set('theme', Structra.state.theme === 'dark' ? 'light' : 'dark');
-  Structra.applyTheme();
-};
+Structra.events.on('theme:toggle', () => Structra.theme.toggle());
 
 /* ===== TOAST (quick access) ===== */
 Structra.toast = (msg) => {

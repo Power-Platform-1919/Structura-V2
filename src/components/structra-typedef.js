@@ -120,21 +120,13 @@ class StructraTypedef extends StructraElement {
   }
 
   _copy() {
-    navigator.clipboard.writeText(this._code)
-      .then(() => Structra.toast('Copied to clipboard'))
-      .catch(() => Structra.toast('Copy failed', 'error'));
+    Structra.util.copy(this._code, 'Copied to clipboard');
   }
 
   _download() {
     const exts = { typescript: '.ts', python: '.py', csharp: '.cs', go: '.go', rust: '.rs', java: '.java', powerfx: '.fx', sql: '.sql' };
     const ext = exts[this._lang] || '.txt';
-    const blob = new Blob([this._code], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${this._rootName}${ext}`;
-    a.click();
-    URL.revokeObjectURL(url);
+    Structra.util.download(this._code, `${this._rootName}${ext}`, 'text/plain');
     Structra.toast(`Downloaded ${this._rootName}${ext}`);
   }
 }

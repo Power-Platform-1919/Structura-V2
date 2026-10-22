@@ -195,7 +195,7 @@ class StructraDiff extends StructraElement {
     const diffPaths = new Set(this._diffs.map(d => d.path));
     return '<div class="diff-lines">' + lines.map((line, i) => {
       const cls = this._getLineDiffClass(line, i, side);
-      return `<div class="diff-line ${cls}"><span class="diff-ln">${i + 1}</span><span class="diff-code">${this._esc(line)}</span></div>`;
+      return `<div class="diff-line ${cls}"><span class="diff-ln">${i + 1}</span><span class="diff-code">${Structra.util.esc(line)}</span></div>`;
     }).join('') + '</div>';
   }
 
@@ -215,12 +215,12 @@ class StructraDiff extends StructraElement {
     let html = '<div class="diff-lines">';
     for (const d of this._diffs) {
       if (d.type === 'removed') {
-        html += `<div class="diff-line diff-rm"><span class="diff-ln">-</span><span class="diff-code">${this._esc(d.path)}: ${this._esc(this._preview(d.left))}</span></div>`;
+        html += `<div class="diff-line diff-rm"><span class="diff-ln">-</span><span class="diff-code">${Structra.util.esc(d.path)}: ${Structra.util.esc(this._preview(d.left))}</span></div>`;
       } else if (d.type === 'added') {
-        html += `<div class="diff-line diff-add"><span class="diff-ln">+</span><span class="diff-code">${this._esc(d.path)}: ${this._esc(this._preview(d.right))}</span></div>`;
+        html += `<div class="diff-line diff-add"><span class="diff-ln">+</span><span class="diff-code">${Structra.util.esc(d.path)}: ${Structra.util.esc(this._preview(d.right))}</span></div>`;
       } else if (d.type === 'changed') {
-        html += `<div class="diff-line diff-rm"><span class="diff-ln">-</span><span class="diff-code">${this._esc(d.path)}: ${this._esc(this._preview(d.left))}</span></div>`;
-        html += `<div class="diff-line diff-add"><span class="diff-ln">+</span><span class="diff-code">${this._esc(d.path)}: ${this._esc(this._preview(d.right))}</span></div>`;
+        html += `<div class="diff-line diff-rm"><span class="diff-ln">-</span><span class="diff-code">${Structra.util.esc(d.path)}: ${Structra.util.esc(this._preview(d.left))}</span></div>`;
+        html += `<div class="diff-line diff-add"><span class="diff-ln">+</span><span class="diff-code">${Structra.util.esc(d.path)}: ${Structra.util.esc(this._preview(d.right))}</span></div>`;
       }
     }
     html += '</div>';
@@ -236,10 +236,10 @@ class StructraDiff extends StructraElement {
     }
     let html = '<div class="diff-structural">';
     for (const [path, changes] of Object.entries(groups)) {
-      html += `<div class="diff-struct-group"><div class="diff-struct-path">${this._esc(path)}</div>`;
+      html += `<div class="diff-struct-group"><div class="diff-struct-path">${Structra.util.esc(path)}</div>`;
       for (const c of changes) {
         const cls = c.type === 'added' ? 'diff-add' : c.type === 'removed' ? 'diff-rm' : 'diff-chg';
-        html += `<div class="diff-struct-item ${cls}">${c.type}: ${this._esc(c.path.replace(path + '.', ''))}</div>`;
+        html += `<div class="diff-struct-item ${cls}">${c.type}: ${Structra.util.esc(c.path.replace(path + '.', ''))}</div>`;
       }
       html += '</div>';
     }
@@ -283,15 +283,14 @@ class StructraDiff extends StructraElement {
       if (d.type === 'removed') return `- ${d.path}: ${JSON.stringify(d.left)}`;
       return `~ ${d.path}: ${JSON.stringify(d.left)} → ${JSON.stringify(d.right)}`;
     }).join('\n');
-    navigator.clipboard.writeText(text).then(() => Structra.toast('Diff copied'));
+    Structra.util.copy(text, 'Diff copied');
   }
 
   _copyPatch() {
     if (this._left === undefined || this._right === undefined) { Structra.toast('Load both sides first'); return; }
     const ops = Structra.jsonTools.patch(this._left, this._right);
     if (!ops.length) { Structra.toast('No differences'); return; }
-    navigator.clipboard.writeText(JSON.stringify(ops, null, 2))
-      .then(() => Structra.toast('Copied ' + ops.length + ' patch operation' + (ops.length === 1 ? '' : 's')));
+    Structra.util.copy(JSON.stringify(ops, null, 2), 'Copied ' + ops.length + ' patch operation' + (ops.length === 1 ? '' : 's'));
   }
 
   _preview(val) {
@@ -300,7 +299,6 @@ class StructraDiff extends StructraElement {
     return String(val).slice(0, 60);
   }
 
-  _esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 }
 
 customElements.define('structra-diff', StructraDiff);

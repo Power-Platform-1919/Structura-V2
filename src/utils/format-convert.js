@@ -73,12 +73,7 @@ Structra.convert = (() => {
 
   function downloadCsv(rows, columns, filename) {
     const csv = generateCsv(rows, columns);
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename || 'export.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    Structra.util.download(csv, filename || 'export.csv', 'text/csv');
     toast('CSV exported');
   }
 

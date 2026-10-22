@@ -36,7 +36,7 @@ class StructraExpressions extends StructraElement {
       if (tab) { this._switch(tab.dataset.sub); return; }
       const code = e.target.closest('.ecode');
       if (code) {
-        navigator.clipboard.writeText(code.textContent).then(() => Structra.toast('Copied'));
+        Structra.util.copy(code.textContent, 'Copied');
       }
     });
     this._refresh();

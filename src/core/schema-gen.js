@@ -58,10 +58,7 @@ Structra.schemaGen = (() => {
     return scalar(value);
   }
 
-  function _typeName(v) {
-    if (v === null) return 'null';
-    return Array.isArray(v) ? 'array' : typeof v;
-  }
+  const _typeName = Structra.util.typeOf;
 
   function _mergeItems(arr) {
     const objects = arr.filter(isPlainObject);

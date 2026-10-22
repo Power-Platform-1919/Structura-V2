@@ -169,7 +169,7 @@ Structra.engine = (() => {
 
     // Keep the original text for Recents. Not urgent, so wait until the page is idle.
     if (meta.rawSource) {
-      new Promise((resolve) => (window.requestIdleCallback || setTimeout)(resolve, { timeout: 3000 }))
+      new Promise((resolve) => Structra.util.whenIdle(resolve, 3000))
         .then(() => Structra.persistence.raw.put(meta.rawSource, { format: meta.format, name: meta.name }))
         .then(hash => {
           dataset.meta.hash = hash;
@@ -1016,7 +1016,7 @@ Structra.engine = (() => {
   }
 
   /** Yield to the browser so the UI stays responsive during long loops */
-  const _tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const _tick = () => Structra.util.yieldToBrowser();
   const _SLICE_MS = 12;
 
   /**
@@ -1495,18 +1495,6 @@ Structra.engine = (() => {
   }
 
   /**
-   * Format byte count to human-readable string.
-   * @param {number} bytes
-   * @returns {string}
-   */
-  function formatSize(bytes) {
-    if (!bytes) return '—';
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(1) + ' MB';
-  }
-
-  /**
    * Get top-k most frequent values per column via DuckDB GROUP BY.
    * @param {string} column
    * @param {number} k
@@ -1892,7 +1880,6 @@ Structra.engine = (() => {
     collectArrayItems,
     profileFields,
     computeQuality,
-    formatSize,
     // Phase H: DuckDB schema
     getSchemaDb,
     // Phase D: Distribution analysis

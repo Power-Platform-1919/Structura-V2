@@ -11,9 +11,6 @@
   Structra.log.info('App', '=== Structra V2 Bootstrap ===');
   Structra.log.info('App', 'Log mode: ' + Structra.log.getMode() + ' (change via Structra.log.setMode("dev"))');
 
-  // Apply saved theme
-  Structra.applyTheme();
-
   // Create initial tab
   Structra.log.info('App', 'Creating initial tab');
   Structra.tabs.list.push({
@@ -68,7 +65,7 @@
   });
 
   // Theme toggle on overlay (kept for when overlay is manually opened)
-  document.getElementById('overlayThemeToggle').addEventListener('click', () => Structra.toggleTheme());
+  document.getElementById('overlayThemeToggle').addEventListener('click', () => Structra.theme.toggle());
 
   // Canvas data-dependent visibility: views vs empty input panel
   function _updateCanvasVisibility(hasData) {

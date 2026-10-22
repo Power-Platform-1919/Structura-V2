@@ -102,7 +102,8 @@ class StructraStatus extends StructraElement {
 
   _updatePath() {
     const el = this.$('#statusPath');
-    if (el) el.textContent = Structra.state.currentPath || '$';
+    const path = Structra.state.currentPath;
+    if (el) el.textContent = path && path !== '$' ? path : '';
   }
 
   _updateFile() {

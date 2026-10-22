@@ -251,7 +251,7 @@ Structra.createWorkerPool = function(config) {
    (about 1.5 s against 0.33 s for a 37 MB file). */
 Structra.parseJsonAsync = async function (text) {
   var t0 = performance.now();
-  await new Promise(function (resolve) { setTimeout(resolve, 0); });   // let the loading message paint first
+  await Structra.util.nextTick();   // let the loading message paint first
   var src = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
   try {
     var data = JSON.parse(src);

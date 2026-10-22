@@ -1,0 +1,197 @@
+/* ============================================================
+   STRUCTRA V2 — Design Tokens
+   One source of truth for colour, type, space, shape and motion.
+
+   Themes only set the BASE colours (the ones marked "base").
+   Everything else is derived from them with color-mix(), so a custom
+   theme needs about 17 values. Structra.theme (src/core/theme.js) writes
+   the base values onto :root; the defaults below are the two built-in
+   themes so the first paint is already correct.
+   ============================================================ */
+
+:root {
+  color-scheme: light;
+
+  /* ===== FONTS ===== */
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'SF Mono', Consolas, monospace;
+
+  /* ===== TYPE SCALE (one size knob: --structra-font-size) ===== */
+  --structra-font-size: 15px;
+  --fs-xxs: calc(var(--structra-font-size) - 5px);
+  --fs-xs:  calc(var(--structra-font-size) - 4px);
+  --fs-sm:  calc(var(--structra-font-size) - 3px);
+  --fs-base: calc(var(--structra-font-size) - 2px);
+  --fs-md:  calc(var(--structra-font-size) - 1px);
+  --fs-lg:  var(--structra-font-size);
+  --fs-xl:  calc(var(--structra-font-size) + 2px);
+  --fs-2xl: calc(var(--structra-font-size) + 7px);
+  --lh-tight: 1.25;
+  --lh-base: 1.5;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  /* ===== SPACE ===== */
+  --sp-0: 2px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* ===== SHAPE ===== */
+  --radius-sm: 5px;
+  --radius: 8px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 999px;
+
+  /* ===== MOTION ===== */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --duration: 140ms;
+  --transition: var(--duration) var(--ease);
+
+  /* ===== SHELL SIZES ===== */
+  --header-h: 52px;
+  --tab-bar-h: 38px;
+  --rail-w: 52px;
+  --status-h: 28px;
+  --canvas-header-h: 44px;
+  --query-panel-w: 300px;
+  --context-panel-w: 320px;
+  --rail-w-sm: 44px;
+  --query-panel-w-sm: 240px;
+  --context-panel-w-sm: 260px;
+
+  /* ===== COMPONENT SIZES ===== */
+  --btn-icon-size: 32px;
+  --rail-btn-size: 38px;
+  --tab-max-w: 200px;
+  --tab-add-w: 36px;
+  --find-input-w: 220px;
+  --cmd-box-w: 580px;
+  --cmd-list-max-h: 360px;
+  --iz-textarea-max-w: 460px;
+  --iz-textarea-h: 140px;
+  --qp-input-h: 72px;
+  --cov-bar-min-w: 56px;
+  --icon-xs: 10px;
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+  --icon-xl: 48px;
+  --tree-indent: 20px;
+  --tree-line-h: 26px;
+  --drawer-collapsed: 38px;
+  --drawer-md: 220px;
+  --drawer-lg: 380px;
+  --loading-spinner-size: 22px;
+  --loading-radius: 10px;
+  --io-box-w: 620px;
+  --io-brand-icon: 28px;
+  --io-textarea-min-h: 160px;
+  --io-textarea-max-h: 320px;
+  --io-method-w: 96px;
+
+  /* ===== BASE COLOURS: Structra Light (a theme sets these) ===== */
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --surface-alt: #f5f7fb;
+  --border: #d9dfeb;
+  --text: #141b2d;
+  --text-sec: #475069;
+  --text-muted: #667189;
+  --accent: #3b5bdb;
+  --success: #12805c;
+  --warning: #b45309;
+  --danger: #c62a3a;
+  --info: #1769aa;
+  --syn-key: #6741d9;
+  --syn-string: #0b7a54;
+  --syn-number: #b45309;
+  --syn-boolean: #1c6fd1;
+  --syn-null: #8a94a8;
+  --text-on-accent: #ffffff;       /* chosen by Structra.theme from the accent's brightness */
+
+  /* ===== DERIVED COLOURS (do not set in themes) ===== */
+  --bg-alt: color-mix(in srgb, var(--bg) 70%, var(--surface));
+  --bg-card: var(--surface);
+  --surface-hover: color-mix(in srgb, var(--text) 5%, var(--surface));
+  --surface-active: color-mix(in srgb, var(--text) 9%, var(--surface));
+  --border-subtle: color-mix(in srgb, var(--border) 55%, var(--surface));
+  --border-strong: color-mix(in srgb, var(--text) 28%, var(--surface));
+  --text-faint: color-mix(in srgb, var(--text-muted) 55%, var(--surface));
+  --accent-hover: color-mix(in srgb, var(--accent) 86%, var(--text));
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  --accent-muted: color-mix(in srgb, var(--accent) 32%, var(--surface));
+  --success-soft: color-mix(in srgb, var(--success) 14%, var(--surface));
+  --warning-soft: color-mix(in srgb, var(--warning) 15%, var(--surface));
+  --danger-soft: color-mix(in srgb, var(--danger) 13%, var(--surface));
+  --info-soft: color-mix(in srgb, var(--info) 13%, var(--surface));
+  --error: var(--danger);
+  --error-soft: var(--danger-soft);
+  --syn-bracket: var(--text-muted);
+  --syn-escape: var(--danger);
+  --syn-key-hl-bg: color-mix(in srgb, var(--syn-key) 16%, transparent);
+  --syn-key-hl-ring: color-mix(in srgb, var(--syn-key) 34%, transparent);
+  --syn-schema-key: var(--syn-key);
+  --syn-schema-type: var(--info);
+  --focus-ring: color-mix(in srgb, var(--accent) 55%, transparent);
+  --log-dev: var(--info);
+  --log-normal: var(--success);
+
+  /* ===== ELEVATION ===== */
+  --overlay-bg: rgba(16, 24, 42, 0.42);
+  --shadow: 0 1px 2px rgba(16, 24, 42, 0.06);
+  --shadow-sm: 0 1px 2px rgba(16, 24, 42, 0.06);
+  --shadow-md: 0 4px 14px rgba(16, 24, 42, 0.08);
+  --shadow-lg: 0 10px 30px rgba(16, 24, 42, 0.12);
+  --shadow-xl: 0 20px 56px rgba(16, 24, 42, 0.18);
+}
+
+/* ===== BASE COLOURS: Structra Dark ===== */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0c1018;
+  --surface: #131925;
+  --surface-alt: #1a2232;
+  --border: #273149;
+  --text: #e8edf7;
+  --text-sec: #aab4ca;
+  --text-muted: #8591a9;
+  --accent: #7b94ff;
+  --success: #3ecf9a;
+  --warning: #f0b44c;
+  --danger: #ff6b7a;
+  --info: #62b4f5;
+  --syn-key: #b69cff;
+  --syn-string: #4fd6a4;
+  --syn-number: #f5b95f;
+  --syn-boolean: #6db3ff;
+  --syn-null: #7a859e;
+  --text-on-accent: #0b1020;
+
+  --overlay-bg: rgba(2, 5, 12, 0.66);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 56px rgba(0, 0, 0, 0.6);
+
+  /* Tints need a little more strength on dark surfaces */
+  --surface-hover: color-mix(in srgb, var(--text) 7%, var(--surface));
+  --surface-active: color-mix(in srgb, var(--text) 12%, var(--surface));
+  --accent-soft: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  --accent-muted: color-mix(in srgb, var(--accent) 38%, var(--surface));
+  --success-soft: color-mix(in srgb, var(--success) 18%, var(--surface));
+  --warning-soft: color-mix(in srgb, var(--warning) 18%, var(--surface));
+  --danger-soft: color-mix(in srgb, var(--danger) 18%, var(--surface));
+  --info-soft: color-mix(in srgb, var(--info) 18%, var(--surface));
+}

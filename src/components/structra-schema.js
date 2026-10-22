@@ -59,7 +59,7 @@ class StructraSchema extends StructraElement {
 
     container.innerHTML = lines.map(l =>
       `<div style="padding-left:${l.depth * 16}px">` +
-      `<span class="s-key">${this._esc(l.key)}</span>: ` +
+      `<span class="s-key">${Structra.util.esc(l.key)}</span>: ` +
       `<span class="s-type">${l.type}</span>` +
       (l.required ? ' <span class="s-req">required</span>' : '') +
       `</div>`
@@ -108,9 +108,6 @@ class StructraSchema extends StructraElement {
     return typeof val;
   }
 
-  _esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
 }
 
 customElements.define('structra-schema', StructraSchema);

@@ -2,13 +2,13 @@
    STRUCTRA V2 — Settings Manager
    Persistent user preferences via localStorage.
 
-   Loads SYNCHRONOUSLY before first paint — no flash of wrong theme.
+   Loads SYNCHRONOUSLY before first paint.
    All keys prefixed with 'structra.' in localStorage.
 
    API:
-     Structra.settings.get('theme')          → 'dark'
-     Structra.settings.set('theme', 'dark')  → persists + emits event
-     Structra.settings.getAll()              → {theme:'dark', logMode:'normal', ...}
+     Structra.settings.get('pageSize')       → 50
+     Structra.settings.set('pageSize', 100)  → persists + emits event
+     Structra.settings.getAll()              → {logMode:'normal', pageSize:50, ...}
      Structra.settings.reset()               → restore all defaults
      Structra.settings.export()              → JSON string
      Structra.settings.import(json)          → bulk restore
@@ -18,7 +18,7 @@
 
    Console:
      Structra.settings.getAll()
-     Structra.settings.set('theme', 'dark')
+     Structra.settings.set('pageSize', 100)
      Structra.settings.reset()
    ============================================================ */
 
@@ -29,7 +29,6 @@ Structra.settings = (() => {
 
   /* --- Defaults --- */
   const DEFAULTS = {
-    theme:        'light',       // 'light' | 'dark' | 'system'
     logMode:      'normal',      // 'dev' | 'normal' | 'off'
     fontSize:     14,            // px
     pageSize:     50,            // table rows per page
@@ -102,18 +101,6 @@ Structra.settings = (() => {
     return true;
   }
 
-  /* --- Theme helper (applied before first paint) --- */
-  function applyTheme() {
-    const theme = get('theme');
-    let effective = theme;
-    if (theme === 'system') {
-      effective = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    }
-    document.documentElement.setAttribute('data-theme', effective === 'dark' ? 'dark' : '');
-  }
-
-  // Apply theme immediately on load (before any component renders)
-  applyTheme();
 
   /* --- Public API --- */
   return {
@@ -123,7 +110,6 @@ Structra.settings = (() => {
     reset,
     export: exportSettings,
     import: importSettings,
-    applyTheme,
     DEFAULTS,
   };
 })();

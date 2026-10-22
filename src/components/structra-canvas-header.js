@@ -93,7 +93,7 @@ class StructraCanvasHeader extends StructraElement {
     const data = Structra.state.jsonData;
     if (!data) { Structra.toast('No data to copy'); return; }
     const text = JSON.stringify(data, null, 2);
-    navigator.clipboard.writeText(text).then(() => Structra.toast('JSON copied'));
+    Structra.util.copy(text, 'JSON copied');
   }
 }
 

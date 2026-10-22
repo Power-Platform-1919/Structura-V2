@@ -9,12 +9,17 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="src/css/variables.css">
+  <link rel="stylesheet" href="src/css/tokens.css">
+  <link rel="stylesheet" href="src/css/base.css">
+  <link rel="stylesheet" href="src/css/ui.css">
   <link rel="stylesheet" href="src/css/layout.css">
+  <link rel="stylesheet" href="src/css/shell.css">
+  <link rel="stylesheet" href="src/css/stats.css">
   <link rel="stylesheet" href="src/css/components.css">
+  <link rel="stylesheet" href="src/css/theme-panel.css">
 </head>
 <body>
   <!-- App splash screen — visible immediately, hidden when ready -->
@@ -84,6 +89,7 @@
   <structra-workspace></structra-workspace>
   <structra-heatmap></structra-heatmap>
   <structra-validate></structra-validate>
+  <structra-theme></structra-theme>
   <structra-charts></structra-charts>
   <structra-zoom></structra-zoom>
   <structra-autocomplete></structra-autocomplete>
@@ -97,8 +103,11 @@
 
   <!-- Scripts: core first, then components -->
   <script src="src/core/logger.js"></script>
+  <script src="src/core/util.js"></script>
   <script src="src/core/settings.js"></script>
+  <script src="src/core/theme.js"></script>
   <script src="src/core/base.js"></script>
+  <script src="src/core/overlay.js"></script>
   <script src="src/core/state.js"></script>
   <!-- Worker sources registered for Blob URL fallback on file:// -->
   <script src="src/workers/xml-parse-worker.js"></script>
@@ -183,6 +192,7 @@
   <script src="src/components/structra-workspace.js"></script>
   <script src="src/components/structra-heatmap.js"></script>
   <script src="src/components/structra-validate.js"></script>
+  <script src="src/components/structra-theme.js"></script>
   <script src="src/components/structra-charts.js"></script>
   <script src="src/components/structra-zoom.js"></script>
   <script src="src/components/structra-autocomplete.js"></script>

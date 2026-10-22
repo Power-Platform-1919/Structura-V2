@@ -129,7 +129,7 @@ class StructraSnippets extends StructraElement {
 
   _copySnippet(idx) {
     const snip = this._snippets[idx];
-    if (snip) navigator.clipboard.writeText(snip.content).then(() => Structra.toast('Copied'));
+    if (snip) Structra.util.copy(snip.content, 'Copied');
   }
 
   _renderList() {
@@ -142,10 +142,10 @@ class StructraSnippets extends StructraElement {
     container.innerHTML = this._snippets.map((s, i) => `
       <div class="snip-item" data-snip-idx="${i}">
         <div class="snip-item-top">
-          <span class="snip-item-name">${this._esc(s.name)}</span>
-          <span class="snip-item-size">${this._formatSize(s.size)}</span>
+          <span class="snip-item-name">${Structra.util.esc(s.name)}</span>
+          <span class="snip-item-size">${Structra.util.formatBytes(s.size)}</span>
         </div>
-        <div class="snip-item-preview">${this._esc(s.content.slice(0, 80))}</div>
+        <div class="snip-item-preview">${Structra.util.esc(s.content.slice(0, 80))}</div>
         <div class="snip-item-actions">
           <button class="snip-act" data-action="use-snippet" data-idx="${i}">Load</button>
           <button class="snip-act" data-action="copy-snippet" data-idx="${i}">Copy</button>
@@ -162,12 +162,7 @@ class StructraSnippets extends StructraElement {
     });
   }
 
-  _formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    return (bytes / 1024).toFixed(1) + ' KB';
-  }
 
-  _esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 }
 
 customElements.define('structra-snippets', StructraSnippets);

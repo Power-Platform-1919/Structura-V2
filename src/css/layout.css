@@ -1,9 +1,10 @@
 /* ============================================================
-   STRUCTRA V2 — Layout Shell
-   IDE-style grid: header | tab-bar | [rail | query? | canvas | context?] | status
+   STRUCTRA V2 — Layout
+   The page grid: header | tab bar | [rail | query? | canvas | context?] | status
+   Colours and sizes come from tokens.css.
    ============================================================ */
 
-/* ===== APP SPLASH SCREEN ===== */
+/* ===== SPLASH ===== */
 .app-splash {
   position: fixed;
   inset: 0;
@@ -11,51 +12,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg, #1a1a2e);
+  background: var(--bg);
   transition: opacity 0.3s ease, visibility 0.3s ease;
 }
-.app-splash.hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-.app-splash-inner {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
+.app-splash.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.app-splash-inner { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); text-align: center; }
 .app-splash-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(124, 77, 255, 0.2);
-  border-top-color: #7c4dff;
+  width: 36px; height: 36px;
+  border: 3px solid var(--accent-soft);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: splash-spin 0.8s linear infinite;
 }
-@keyframes splash-spin {
-  to { transform: rotate(360deg); }
-}
-.app-splash-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text, #e0e0e0);
-  font-family: 'Inter', sans-serif;
-}
-.app-splash-msg {
-  font-size: 13px;
-  color: var(--text-muted, #888);
-  font-family: 'Inter', sans-serif;
-  transition: opacity 0.2s;
-}
+@keyframes splash-spin { to { transform: rotate(360deg); } }
+.app-splash-title { font-size: var(--fs-2xl); font-weight: var(--fw-semibold); color: var(--text); }
+.app-splash-msg { font-size: var(--fs-base); color: var(--text-muted); }
 
-/* Custom elements that float/overlay should not affect layout */
-structra-find, structra-toast, structra-command, structra-loading, structra-input-panel {
+/* Elements that float or overlay should not take part in the layout */
+structra-find, structra-toast, structra-command, structra-loading, structra-input-panel,
+structra-validate, structra-theme, structra-charts, structra-diff, structra-typedef, structra-shortcuts,
+structra-snippets, structra-workspace, structra-pivot, structra-nullfinder, structra-minimap,
+structra-heatmap, structra-zoom, structra-autocomplete {
   display: contents;
 }
 
-/* ===== APP SHELL ===== */
+/* ===== APP GRID ===== */
 .app {
   display: grid;
   grid-template-rows: var(--header-h) var(--tab-bar-h) 1fr var(--status-h);
@@ -65,217 +46,85 @@ structra-find, structra-toast, structra-command, structra-loading, structra-inpu
   background: var(--bg);
 }
 
-/* ===== HEADER ===== */
-.app-header {
-  display: flex;
-  align-items: center;
-  padding: 0 var(--sp-3);
-  gap: var(--sp-3);
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  z-index: 50;
-}
+.app-header { display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-4); background: var(--surface); border-bottom: 1px solid var(--border); z-index: 50; }
+.app-tab-bar { display: flex; align-items: stretch; background: var(--bg); border-bottom: 1px solid var(--border); overflow: hidden; }
+.app-workspace { display: flex; min-height: 0; overflow: hidden; }
 
-/* ===== TAB BAR ===== */
-.app-tab-bar {
-  display: flex;
-  align-items: stretch;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  overflow: hidden;
-}
-
-/* ===== MAIN WORKSPACE ===== */
-.app-workspace {
-  display: flex;
-  overflow: hidden;
-  min-height: 0;
-}
-
-/* ===== RAIL (left icon strip) ===== */
 .app-rail {
   width: var(--rail-w);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--sp-2) 0;
   gap: var(--sp-1);
+  padding: var(--sp-3) 0;
   background: var(--surface);
   border-right: 1px solid var(--border);
   flex-shrink: 0;
 }
 
-/* ===== QUERY/FILTER PANEL (togglable) ===== */
-.app-query-panel {
-  width: var(--query-panel-w);
+/* ===== SIDE PANELS ===== */
+.app-query-panel,
+.app-context-panel {
+  position: relative;
   display: none;
   flex-direction: column;
   background: var(--surface);
-  border-right: 1px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;
 }
+.app-query-panel { width: var(--query-panel-w); border-right: 1px solid var(--border); }
+.app-context-panel { width: var(--context-panel-w); border-left: 1px solid var(--border); }
+.app-query-panel.show,
+.app-context-panel.show { display: flex; }
 
-.app-query-panel.show {
-  display: flex;
-}
-
-/* ===== CANVAS (main content area) ===== */
-.app-canvas {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  position: relative;
-}
-
-/* Canvas header (view tabs + toolbar) */
+/* ===== CANVAS ===== */
+.app-canvas { position: relative; flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .app-canvas-header {
   display: flex;
   align-items: center;
-  padding: 0 var(--sp-3);
-  height: var(--canvas-header-h);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
   gap: var(--sp-2);
+  height: var(--canvas-header-h);
+  padding: 0 var(--sp-3);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
+.app-view { flex: 1; min-height: 0; overflow: hidden; }
+.app-empty-state { flex: 1; min-height: 0; display: flex; overflow: auto; }
 
-/* View area (tree, table, graph, etc.) */
-.app-view {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
-
-/* Empty state — shown when no data is loaded in active tab */
-.app-empty-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 0;
-}
-
-/* Bottom drawer */
+/* ===== BOTTOM DRAWER ===== */
 .app-drawer {
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   background: var(--surface);
   border-top: 1px solid var(--border);
   overflow: hidden;
   transition: height var(--transition);
 }
-
-.app-drawer.collapsed {
-  height: var(--drawer-collapsed);
-}
-
-.app-drawer.medium {
-  height: var(--drawer-md);
-}
-
-.app-drawer.expanded {
-  height: var(--drawer-lg);
-}
-
-/* When user drags the resize bar, inline height overrides class heights */
-.app-drawer.resizing {
-  height: auto;
-  transition: none;
-}
-
-/* ===== CONTEXT PANEL (right detail panel, togglable) ===== */
-.app-context-panel {
-  width: var(--context-panel-w);
-  display: none;
-  flex-direction: column;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.app-context-panel.show {
-  display: flex;
-}
+.app-drawer.collapsed { height: var(--drawer-collapsed); }
+.app-drawer.medium { height: var(--drawer-md); }
+.app-drawer.expanded { height: var(--drawer-lg); }
+.app-drawer.resizing { height: auto; transition: none; }
 
 /* ===== STATUS BAR ===== */
 .app-status-bar {
   display: flex;
   align-items: center;
-  padding: 0 var(--sp-3);
-  gap: var(--sp-4);
-  font-size: var(--fs-sm);
-  color: var(--text-muted);
+  gap: var(--sp-3);
+  padding: 0 var(--sp-4);
   background: var(--surface);
   border-top: 1px solid var(--border);
-}
-
-.st-duck {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: 1px var(--sp-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: var(--fs-xs);
-  font-family: var(--font-mono);
-  line-height: 1.6;
-  transition: color var(--transition), border-color var(--transition), opacity var(--transition);
-}
-.st-duck[data-state="loading"] {
+  font-size: var(--fs-sm);
   color: var(--text-muted);
-  border-color: var(--border);
 }
-.st-duck[data-state="loading"] .st-duck-icon {
-  display: inline-block;
-  animation: g-spin 1.2s linear infinite;
-}
-.st-duck[data-state="ready"] {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.st-duck[data-state="failed"] {
-  color: var(--text-muted);
-  border-color: var(--border);
-  opacity: .6;
-}
-.st-duck-label { letter-spacing: .5px; font-weight: 600; }
 
-.st-sep { width: 1px; height: var(--icon-sm); background: var(--border); }
-
-.st-log-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  padding: 1px var(--sp-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
-  font-family: var(--font-mono);
-  cursor: pointer;
-  transition: background var(--transition), color var(--transition), border-color var(--transition);
-  line-height: 1.6;
-}
-.st-log-toggle:hover { background: var(--surface-hover); }
-.st-log-toggle[data-mode="dev"]    { color: var(--log-dev); border-color: var(--log-dev); }
-.st-log-toggle[data-mode="normal"] { color: var(--log-normal); border-color: var(--log-normal); }
-.st-log-toggle[data-mode="off"]    { color: var(--text-muted); border-color: var(--border); }
-.st-log-icon { font-size: var(--fs-sm); }
-.st-log-label { letter-spacing: .5px; font-weight: 600; }
-
-/* ===== RESPONSIVE: hide panels on narrow screens ===== */
+/* ===== NARROW SCREENS ===== */
 @media (max-width: 768px) {
   .app-rail { width: var(--rail-w-sm); }
   .app-query-panel { width: var(--query-panel-w-sm); }
   .app-context-panel { width: var(--context-panel-w-sm); }
 }
-
 @media (max-width: 600px) {
   .app-context-panel.show { display: none; }
 }

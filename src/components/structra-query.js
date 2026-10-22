@@ -104,7 +104,7 @@ class StructraQuery extends StructraElement {
     const container = this.$('#transformPresets');
     if (!container) return;
     container.innerHTML = presets.map(p =>
-      `<button class="qp-preset-btn" data-preset="${this._esc(p.expr)}" title="${this._esc(p.expr)}">${p.label}</button>`
+      `<button class="qp-preset-btn" data-preset="${Structra.util.esc(p.expr)}" title="${Structra.util.esc(p.expr)}">${p.label}</button>`
     ).join('');
   }
 
@@ -122,10 +122,10 @@ class StructraQuery extends StructraElement {
       const lines = preview.split('\n');
       const truncated = lines.length > 50 ? lines.slice(0, 50).join('\n') + '\n…' : preview;
       results.innerHTML = `<div class="qp-summary">Transform result (${typeof output === 'object' && Array.isArray(output) ? output.length + ' items' : typeof output})</div>
-        <pre class="qp-transform-output">${this._esc(truncated)}</pre>`;
+        <pre class="qp-transform-output">${Structra.util.esc(truncated)}</pre>`;
       Structra.toast(`Transform: ${Array.isArray(output) ? output.length + ' items' : 'done'}`);
     } catch (err) {
-      results.innerHTML = `<div class="qp-summary" style="color:var(--danger)">Error: ${this._esc(err.message)}</div>`;
+      results.innerHTML = `<div class="qp-summary" style="color:var(--danger)">Error: ${Structra.util.esc(err.message)}</div>`;
     }
   }
 
@@ -149,9 +149,9 @@ class StructraQuery extends StructraElement {
       } else {
         results.innerHTML = `<div class="qp-summary">${matches.length} match${matches.length > 1 ? 'es' : ''}</div>` +
           matches.slice(0, 100).map(m =>
-            `<div class="qp-result" data-path="${this._esc(m.path)}" style="cursor:pointer;padding:var(--sp-1) 0;font-size:var(--fs-xs);font-family:var(--font-mono)">
-              <span style="color:var(--accent)">${this._esc(m.path)}</span>
-              <span style="color:var(--text-muted);margin-left:var(--sp-2)">${this._esc(this._preview(m.value))}</span>
+            `<div class="qp-result" data-path="${Structra.util.esc(m.path)}" style="cursor:pointer;padding:var(--sp-1) 0;font-size:var(--fs-xs);font-family:var(--font-mono)">
+              <span style="color:var(--accent)">${Structra.util.esc(m.path)}</span>
+              <span style="color:var(--text-muted);margin-left:var(--sp-2)">${Structra.util.esc(this._preview(m.value))}</span>
             </div>`
           ).join('');
 
@@ -165,7 +165,7 @@ class StructraQuery extends StructraElement {
 
       Structra.toast(`${matches.length} match${matches.length > 1 ? 'es' : ''}`);
     } catch (err) {
-      results.innerHTML = `<div class="qp-summary" style="color:var(--danger)">Error: ${this._esc(err.message)}</div>`;
+      results.innerHTML = `<div class="qp-summary" style="color:var(--danger)">Error: ${Structra.util.esc(err.message)}</div>`;
     }
   }
 
@@ -245,9 +245,6 @@ class StructraQuery extends StructraElement {
     return String(val);
   }
 
-  _esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 }
 
 customElements.define('structra-query', StructraQuery);

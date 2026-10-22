@@ -189,9 +189,9 @@ class StructraNullfinder extends StructraElement {
     const max = 200;
     const showing = this._results.slice(0, max);
     container.innerHTML = showing.map((r, i) => `
-      <div class="nf-item" data-nf-path="${this._esc(r.path)}" data-nf-idx="${i}">
+      <div class="nf-item" data-nf-path="${Structra.util.esc(r.path)}" data-nf-idx="${i}">
         <span class="nf-badge nf-badge-${r.type}">${r.type}</span>
-        <span class="nf-path">${this._esc(r.path)}</span>
+        <span class="nf-path">${Structra.util.esc(r.path)}</span>
       </div>`).join('') + (this._results.length > max ? `<div class="nf-more">…and ${this._results.length - max} more</div>` : '');
   }
 
@@ -207,7 +207,6 @@ class StructraNullfinder extends StructraElement {
     this.querySelectorAll('.nf-item').forEach(el => el.classList.toggle('nf-active', parseInt(el.dataset.nfIdx) === this._idx));
   }
 
-  _esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 }
 
 customElements.define('structra-nullfinder', StructraNullfinder);

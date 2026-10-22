@@ -436,7 +436,7 @@ class StructraInputPanel extends StructraElement {
       const cls = resp.status < 300 ? 'ok' : resp.status < 400 ? 'redirect' : 'error';
       statusEl.innerHTML =
         `<span class="io-status-badge io-status-${cls}">${resp.status} ${resp.statusText}</span>` +
-        `<span class="io-status-meta">${elapsed}ms \xB7 ${this._formatBytes(size)}</span>`;
+        `<span class="io-status-meta">${elapsed}ms \xB7 ${Structra.util.formatBytes(size)}</span>`;
 
       if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
       // Detect format from content-type header or URL extension
@@ -553,7 +553,7 @@ class StructraInputPanel extends StructraElement {
           if (btn.dataset.copy === 'header') text = JSON.stringify(header, null, 2);
           else if (btn.dataset.copy === 'payload') text = JSON.stringify(payload, null, 2);
           else text = JSON.stringify({ header, payload }, null, 2);
-          navigator.clipboard.writeText(text).then(() => {
+          Structra.util.copy(text, null).then(() => {
             const orig = btn.textContent;
             btn.textContent = 'Copied!';
             setTimeout(() => btn.textContent = orig, 1500);
@@ -561,14 +561,14 @@ class StructraInputPanel extends StructraElement {
         });
       });
     } catch (e) {
-      claimsEl.innerHTML = `<div class="io-jwt-error">${this._esc(e.message)}</div>`;
+      claimsEl.innerHTML = `<div class="io-jwt-error">${Structra.util.esc(e.message)}</div>`;
     }
   }
 
   _jwtSection(label, obj, copyKey) {
     return `<div class="io-jwt-section">
       <div class="io-jwt-section-header"><span class="io-jwt-label">${label}</span><button class="io-jwt-copy" data-copy="${copyKey}" type="button">Copy</button></div>
-      <pre class="io-jwt-json">${this._esc(JSON.stringify(obj, null, 2))}</pre>
+      <pre class="io-jwt-json">${Structra.util.esc(JSON.stringify(obj, null, 2))}</pre>
     </div>`;
   }
 
@@ -593,9 +593,9 @@ class StructraInputPanel extends StructraElement {
     }
     list.innerHTML = recent.map((r, i) => `
       <div class="io-recent-item" data-idx="${i}">
-        <div class="io-recent-name">${this._esc(r.name)}</div>
-        <div class="io-recent-meta">${this._formatBytes(r.size)} &middot; ${this._formatTime(r.ts)}</div>
-        <div class="io-recent-preview">${this._esc(r.preview)}</div>
+        <div class="io-recent-name">${Structra.util.esc(r.name)}</div>
+        <div class="io-recent-meta">${Structra.util.formatBytes(r.size)} &middot; ${Structra.util.timeAgo(r.ts)}</div>
+        <div class="io-recent-preview">${Structra.util.esc(r.preview)}</div>
       </div>`).join('') +
       '<div class="io-recent-clear"><button class="io-btn-clear" data-action="clear-recent">Clear History</button></div>';
 
@@ -672,7 +672,7 @@ class StructraInputPanel extends StructraElement {
     }
     const preview = text.substring(0, 60).replace(/\s+/g, ' ');
     banner.innerHTML = `
-      <span>\ud83d\udccb JSON on clipboard: <em>${this._esc(preview)}...</em></span>
+      <span>\ud83d\udccb JSON on clipboard: <em>${Structra.util.esc(preview)}...</em></span>
       <button class="io-clip-load">Load</button>
       <button class="io-clip-dismiss">\u2715</button>`;
     banner.style.display = 'flex';
@@ -692,7 +692,7 @@ class StructraInputPanel extends StructraElement {
   _showError(msg, rawText) {
     const el = this.$('[data-role="error"]');
     if (rawText) {
-      el.innerHTML = `${this._esc(msg)} <button class="io-btn-repair" data-action="repair">\ud83d\udd27 Auto-Repair</button>`;
+      el.innerHTML = `${Structra.util.esc(msg)} <button class="io-btn-repair" data-action="repair">\ud83d\udd27 Auto-Repair</button>`;
       el.querySelector('[data-action="repair"]').addEventListener('click', async () => {
         try {
           const fixed = await Structra.jsonTools.repair(rawText);
@@ -717,26 +717,8 @@ class StructraInputPanel extends StructraElement {
   }
 
   /* ======== UTILS ======== */
-  _formatBytes(b) {
-    if (!b) return '0 B';
-    if (b < 1024) return b + ' B';
-    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-    return (b / 1048576).toFixed(1) + ' MB';
-  }
 
-  _formatTime(ts) {
-    if (!ts) return '';
-    const d = new Date(ts);
-    const diff = Date.now() - ts;
-    if (diff < 60000) return 'just now';
-    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
-    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-    return d.toLocaleDateString();
-  }
 
-  _esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 }
 
 customElements.define('structra-input-panel', StructraInputPanel);

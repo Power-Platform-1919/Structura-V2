@@ -37,7 +37,7 @@ class StructraSchemaGen extends StructraElement {
       if (!e.target.closest('[data-action="copy"]')) return;
       const text = this.$('#sgOutput').dataset.schema;
       if (!text) { Structra.toast('No schema to copy'); return; }
-      navigator.clipboard.writeText(text).then(() => Structra.toast('Schema copied'));
+      Structra.util.copy(text, 'Schema copied');
     });
     this.addEventListener('change', (e) => {
       if (!e.target.matches('[data-action="all-items"]')) return;

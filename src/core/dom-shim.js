@@ -18,21 +18,7 @@ Structra.dom = (() => {
 
   const toast = msg => Structra.toast(msg);
 
-  const ESC_RE = /[&<>"']/g;
-  const escReplacer = c => {
-    switch (c) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      case "'": return '&#39;';
-      default: return c;
-    }
-  };
-  const esc = s => {
-    if (s == null) return '';
-    return String(s).replace(ESC_RE, escReplacer);
-  };
+  const esc = Structra.util.esc;
 
   let _loadingEl = null;
   function _getLoading() {

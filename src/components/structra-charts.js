@@ -6,36 +6,28 @@
    Drawn as inline SVG, no chart library.
    ============================================================ */
 
-class StructraCharts extends StructraElement {
+class StructraCharts extends StructraOverlay {
   static get MAX_BARS() { return 12; }
   static get BINS() { return 20; }
   static get TREND_POINTS() { return 300; }
   static get VALUE_COLUMN() { return '(value)'; }
 
   init() {
+    super.init();
     this._sources = [];       // [{ path, label, rows }]
     this.on('charts:open', (d) => this._open(d || {}));
-    this.on('overlay:close', () => this._close());
   }
 
   render() {
-    this.innerHTML = `
-      <div class="ch-overlay" id="chOverlay">
-        <div class="ch-box" role="dialog" aria-label="Charts">
-          <div class="ch-head">
-            <span class="ch-title">Charts</span>
-            <label class="ch-field">Array <select id="chSource"></select></label>
-            <label class="ch-field">Column <select id="chColumn"></select></label>
-            <button class="ch-close" data-action="close" aria-label="Close">&times;</button>
-          </div>
-          <div class="ch-body" id="chBody"></div>
-        </div>
-      </div>`;
-
-    this.addEventListener('click', (e) => {
-      if (e.target.id === 'chOverlay' || e.target.closest('[data-action="close"]')) this._close();
+    this.mount({
+      title: 'Charts',
+      size: 'lg',
+      head: `
+        <label class="ch-field">Array <select id="chSource"></select></label>
+        <label class="ch-field">Column <select id="chColumn"></select></label>`,
+      body: '<div class="ch-body" id="chBody"></div>',
     });
-    this.addEventListener('change', (e) => {
+    this.root.addEventListener('change', (e) => {
       if (e.target.id === 'chSource') { this._fillColumns(); this._draw(); }
       else if (e.target.id === 'chColumn') this._draw();
     });
@@ -52,7 +44,7 @@ class StructraCharts extends StructraElement {
       .map((a) => ({ path: a.path, label: `${a.path} (${a.data.length.toLocaleString()})`, rows: a.data }));
     if (!this._sources.length) { Structra.toast('No arrays to chart in this document'); return; }
 
-    const esc = Structra.dom.esc;
+    const esc = Structra.util.esc;
     this.$('#chSource').innerHTML = this._sources
       .map((s, i) => `<option value="${i}">${esc(s.label)}</option>`).join('');
 
@@ -62,13 +54,8 @@ class StructraCharts extends StructraElement {
     this.$('#chSource').value = String(Math.max(0, idx));
 
     this._fillColumns(column);
-    this.$('#chOverlay').classList.add('show');
+    this.open();
     this._draw();
-  }
-
-  _close() {
-    const o = this.$('#chOverlay');
-    if (o) o.classList.remove('show');
   }
 
   _isObjectRows(rows) {

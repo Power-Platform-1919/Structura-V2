@@ -104,7 +104,7 @@ class StructraPivot extends StructraElement {
     const container = this.$('#pivotFields');
     if (!container) return;
     container.innerHTML = this._fields.map(f =>
-      `<span class="pivot-chip" data-field="${this._esc(f)}">${this._esc(f)}</span>`
+      `<span class="pivot-chip" data-field="${Structra.util.esc(f)}">${Structra.util.esc(f)}</span>`
     ).join('');
   }
 
@@ -129,7 +129,7 @@ class StructraPivot extends StructraElement {
 
   _renderZones() {
     const chip = (field, zone) =>
-      `<span class="pivot-zone-chip">${this._esc(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${this._esc(field)}">✕</span></span>`;
+      `<span class="pivot-zone-chip">${Structra.util.esc(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.util.esc(field)}">✕</span></span>`;
     this.$('#pivotRows').innerHTML = this._rows.map(f => chip(f, 'rows')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';
     this.$('#pivotCols').innerHTML = this._cols.map(f => chip(f, 'cols')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';
     this.$('#pivotValues').innerHTML = this._values.map(f => chip(f, 'values')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';
@@ -219,17 +219,16 @@ class StructraPivot extends StructraElement {
 
     const cols = data.columns;
     let html = '<table class="pivot-table"><thead><tr>';
-    html += cols.map(c => `<th>${this._esc(c)}</th>`).join('');
+    html += cols.map(c => `<th>${Structra.util.esc(c)}</th>`).join('');
     html += '</tr></thead><tbody>';
     for (const row of data.rows.slice(0, 500)) {
-      html += '<tr>' + cols.map(c => `<td>${row[c] != null ? this._esc(String(row[c])) : ''}</td>`).join('') + '</tr>';
+      html += '<tr>' + cols.map(c => `<td>${row[c] != null ? Structra.util.esc(String(row[c])) : ''}</td>`).join('') + '</tr>';
     }
     html += '</tbody></table>';
     if (data.rows.length > 500) html += `<div class="pivot-more">Showing 500 of ${data.rows.length} rows</div>`;
     el.innerHTML = html;
   }
 
-  _esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 }
 
 customElements.define('structra-pivot', StructraPivot);

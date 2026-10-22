@@ -142,7 +142,7 @@ class StructraContext extends StructraElement {
     section.style.display = '';
     preview.innerHTML = detections.map(d => `<div class="ctx-detection">
       <span class="ctx-det-badge ctx-det-${d.type}">${d.type}</span>
-      <span class="ctx-det-value">${d.html || this._esc(d.display || val.slice(0, 80))}</span>
+      <span class="ctx-det-value">${d.html || Structra.util.esc(d.display || val.slice(0, 80))}</span>
     </div>`).join('');
   }
 
@@ -152,7 +152,7 @@ class StructraContext extends StructraElement {
 
     // URL
     if (/^https?:\/\/.+/i.test(s)) {
-      detections.push({ type: 'url', html: `<a href="${this._esc(s)}" target="_blank" rel="noopener" class="ctx-link">${this._esc(s.slice(0, 60))}</a>` });
+      detections.push({ type: 'url', html: `<a href="${Structra.util.esc(s)}" target="_blank" rel="noopener" class="ctx-link">${Structra.util.esc(s.slice(0, 60))}</a>` });
     }
 
     // Email
@@ -215,8 +215,7 @@ class StructraContext extends StructraElement {
     const val = this._resolve(data, this._currentPath);
     if (val == null) { Structra.toast('No value to mock', 'warning'); return; }
     const mocked = Structra.mockGen.generate(val, 3);
-    navigator.clipboard.writeText(JSON.stringify(mocked, null, 2))
-      .then(() => Structra.toast('Mock data copied to clipboard'));
+    Structra.util.copy(JSON.stringify(mocked, null, 2), 'Mock data copied to clipboard');
   }
 
   _resolve(data, path) {
@@ -232,17 +231,14 @@ class StructraContext extends StructraElement {
 
   _copyValue() {
     const text = this.$('#ctxValue').textContent;
-    navigator.clipboard.writeText(text).then(() => Structra.toast('Value copied'));
+    Structra.util.copy(text, 'Value copied');
   }
 
   _copyPath() {
     const text = this.$('#ctxPath').textContent;
-    navigator.clipboard.writeText(text).then(() => Structra.toast('Path copied'));
+    Structra.util.copy(text, 'Path copied');
   }
 
-  _esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 }
 
 customElements.define('structra-context', StructraContext);

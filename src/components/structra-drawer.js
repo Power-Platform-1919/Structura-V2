@@ -36,16 +36,15 @@ class StructraDrawer extends StructraElement {
 
     this.innerHTML = `
       <div class="drawer-resize-bar" id="drawerResizeBar"></div>
-      <div class="drawer-handle" data-action="cycle">
-        <svg class="drawer-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
-        <div class="drawer-stats">
-          <span style="color:var(--text-muted)">Expressions · Schema Gen</span>
+      <div class="drawer-bar">
+        <button class="drawer-toggle" type="button" data-action="cycle" aria-label="Expand or collapse the panel" title="Expand or collapse">
+          <svg class="drawer-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <div class="tabs drawer-tabs" role="tablist">
+          ${tabs.map((t, i) => `<button class="tab ${i === 0 ? 'active' : ''}" type="button" role="tab" data-tab="${t.id}">${t.label}</button>`).join('')}
         </div>
       </div>
       <div class="drawer-body">
-        <div class="drawer-nav">
-          ${tabs.map((t, i) => `<button class="drawer-nav-btn ${i === 0 ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('')}
-        </div>
         ${tabs.map((t, i) => `<div class="drawer-panel ${i === 0 ? 'active' : ''}" data-panel="${t.id}" id="dp-${t.id}">${panelTag[t.id] ? `<${panelTag[t.id]}></${panelTag[t.id]}>` : ''}</div>`).join('')}
       </div>`;
 
@@ -119,7 +118,13 @@ class StructraDrawer extends StructraElement {
   }
 
   _switchTab(id) {
-    this.$$('.drawer-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+    this.$$('.drawer-tabs .tab').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+    // Choosing a tab while the drawer is folded away opens it
+    if (this.classList.contains('collapsed')) {
+      this._stateIdx = 1;
+      Structra.set('drawerState', Structra.constants.DRAWER_STATES[1]);
+      this._applyState();
+    }
     this.$$('.drawer-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === id));
     Structra.events.emit('drawer:tab-switched', id);
   }

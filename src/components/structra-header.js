@@ -57,12 +57,16 @@ class StructraHeader extends StructraElement {
       <span class="sep"></span>
 
       <div class="header-right">
-        <button class="toolbar-btn" data-action="toggle-theme" title="Toggle theme">
+        <button class="toolbar-btn" data-action="appearance" title="Appearance and themes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9z"/></svg>
+        </button>
+        <button class="toolbar-btn" data-action="toggle-theme" title="Switch light and dark">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
-        <button class="toolbar-btn" data-action="command-palette" title="Commands (Ctrl+K)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
-          <kbd>⌘K</kbd>
+        <button class="toolbar-btn" data-action="command-palette" title="Search commands">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Commands</span>
+          <kbd>${/Mac|iPhone|iPad/.test(navigator.platform) ? '\u2318 K' : 'Ctrl K'}</kbd>
         </button>
       </div>`;
 
@@ -74,7 +78,8 @@ class StructraHeader extends StructraElement {
       else if (action === 'back') Structra.nav.back();
       else if (action === 'forward') Structra.nav.forward();
       else if (action === 'bookmark') this._toggleBookmark();
-      else if (action === 'toggle-theme') Structra.toggleTheme();
+      else if (action === 'toggle-theme') Structra.theme.toggle();
+      else if (action === 'appearance') Structra.events.emit('theme:open');
       else if (action === 'command-palette') Structra.events.emit('command-palette:toggle');
     });
 
@@ -96,7 +101,7 @@ class StructraHeader extends StructraElement {
   _copyPath() {
     const path = this.$('#pathInput').value;
     if (path) {
-      navigator.clipboard.writeText(path).then(() => Structra.toast('Path copied'));
+      Structra.util.copy(path, 'Path copied');
     }
   }
 }

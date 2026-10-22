@@ -68,7 +68,7 @@ class StructraDrawerStats extends StructraElement {
 
     // Quality bar (if available)
     if (q) {
-      const color = q.overall >= 80 ? '#22c55e' : q.overall >= 50 ? '#f59e0b' : '#ef4444';
+      const color = q.overall >= 80 ? 'var(--success)' : q.overall >= 50 ? 'var(--warning)' : 'var(--danger)';
       html += `<div class="ds-quality">
         <div class="ds-q-header"><span>Data Quality</span><span class="ds-q-score" style="color:${color}">${q.overall}%</span></div>
         <div class="ds-q-track"><div class="ds-q-fill" style="width:${q.overall}%;background:${color}"></div></div>
@@ -82,12 +82,12 @@ class StructraDrawerStats extends StructraElement {
 
     // Type summary (compact)
     const types = [
-      { l: 'str', c: s.strings, cl: '#3b82f6' },
-      { l: 'num', c: s.numbers, cl: '#8b5cf6' },
-      { l: 'bool', c: s.booleans, cl: '#f59e0b' },
-      { l: 'null', c: s.nulls, cl: '#ef4444' },
-      { l: 'obj', c: s.objects, cl: '#22c55e' },
-      { l: 'arr', c: s.arrays, cl: '#0891b2' },
+      { l: 'str', c: s.strings, cl: 'var(--syn-string)' },
+      { l: 'num', c: s.numbers, cl: 'var(--syn-number)' },
+      { l: 'bool', c: s.booleans, cl: 'var(--syn-boolean)' },
+      { l: 'null', c: s.nulls, cl: 'var(--syn-null)' },
+      { l: 'obj', c: s.objects, cl: 'var(--syn-key)' },
+      { l: 'arr', c: s.arrays, cl: 'var(--accent)' },
     ].filter(t => t.c > 0);
     if (types.length > 0) {
       html += '<div class="ds-types">';

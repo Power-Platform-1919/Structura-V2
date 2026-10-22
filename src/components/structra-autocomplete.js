@@ -36,10 +36,7 @@ class StructraAutocomplete extends StructraElement {
 
   /* ---------- suggestions ---------- */
 
-  _typeOf(v) {
-    if (v === null) return 'null';
-    return Array.isArray(v) ? 'array' : typeof v;
-  }
+  _typeOf(v) { return Structra.util.typeOf(v); }
 
   _join(parent, key) {
     if (/^[A-Za-z_$][\w$]*$/.test(key)) return parent ? parent + '.' + key : key;

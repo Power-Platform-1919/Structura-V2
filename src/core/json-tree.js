@@ -33,22 +33,7 @@ Structra.jsonTree = (() => {
 
   const CHUNK_SIZE = 100;
   const OFFSCREEN_MARGIN = 3000;
-  const ESC_RE = /[&<>"']/g;
-
-  /* --- Escape HTML --- */
-  function esc(s) {
-    if (s == null) return '';
-    return String(s).replace(ESC_RE, c => {
-      switch (c) {
-        case '&': return '&amp;';
-        case '<': return '&lt;';
-        case '>': return '&gt;';
-        case '"': return '&quot;';
-        case "'": return '&#39;';
-        default: return c;
-      }
-    });
-  }
+  const esc = Structra.util.esc;
 
   /* ============================
      RENDER STATE (per container)
@@ -894,7 +879,7 @@ Structra.jsonTree = (() => {
   }
 
   /* --- Utility --- */
-  function tick() { return new Promise(r => setTimeout(r, 0)); }
+  const tick = Structra.util.nextTick;
 
   /* ============================
      PUBLIC API

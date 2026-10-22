@@ -42,6 +42,7 @@ class StructraCommand extends StructraElement {
       { id: 'minify-json', label: 'Minify JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="12" x2="20" y2="12"/>' },
       { id: 'charts',     label: 'Charts for a Column',              kbd: '',             cat: 'Analysis', icon: '<rect x="4" y="14" width="4" height="6"/><rect x="10" y="8" width="4" height="12"/><rect x="16" y="4" width="4" height="16"/>' },
       { id: 'dup-keys',  label: 'Find Duplicate Keys',              kbd: '',             cat: 'Analysis', icon: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' },
+      { id: 'appearance', label: 'Appearance and Themes',          kbd: '',             cat: 'UI',       icon: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-.99 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.96-4.49-9-10-9z"/>' },
       { id: 'find',       label: 'Find in JSON',                   kbd: 'Ctrl+F',       cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
       { id: 'filter',     label: 'Filter Data',                   kbd: 'Ctrl+Shift+F', cat: 'Search',   icon: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>' },
       { id: 'fuzzy',      label: 'Fuzzy Search (DuckDB)',          kbd: '',             cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
@@ -53,7 +54,7 @@ class StructraCommand extends StructraElement {
       { id: 'undo',       label: 'Undo',                           kbd: 'Ctrl+Z',       cat: 'Edit',     icon: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>' },
       { id: 'redo',       label: 'Redo',                           kbd: 'Ctrl+Y',       cat: 'Edit',     icon: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/>' },
       // UI
-      { id: 'theme',      label: 'Toggle Dark/Light Theme',        kbd: 'Alt+T',        cat: 'UI',       icon: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/>' },
+      { id: 'theme',      label: 'Switch Light / Dark',             kbd: 'Alt+T',        cat: 'UI',       icon: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/>' },
       { id: 'shortcuts',  label: 'Keyboard Shortcuts',             kbd: '?',            cat: 'Help',     icon: '<rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="8" x2="6" y2="8"/>' },
       // Phase 5 features
       { id: 'diff',       label: 'Diff / Compare JSON',            kbd: 'Ctrl+D',       cat: 'Analysis', icon: '<rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>' },
@@ -128,7 +129,7 @@ class StructraCommand extends StructraElement {
       .map((c, i) =>
         `<div class="cmd-item ${i === this._selectedIdx ? 'selected' : ''}" data-cmd="${c.id}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${c.icon}</svg>
-          <span class="cmd-text">${this._esc(c.label)}</span>
+          <span class="cmd-text">${Structra.util.esc(c.label)}</span>
           <span class="cmd-cat">${c.cat || ''}</span>
           ${c.kbd ? `<kbd>${c.kbd}</kbd>` : ''}
         </div>`
@@ -242,14 +243,14 @@ class StructraCommand extends StructraElement {
       case 'export-csv': {
         if (!data) { Structra.toast('No data to export'); return; }
         Structra.engine.exportData('csv').then(csv => {
-          this._download(csv, 'export.csv', 'text/csv');
+          Structra.util.download(csv, 'export.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         }).catch(() => {
           // JS fallback for non-array data
           const rows = Array.isArray(data) ? data : [data];
           const keys = [...new Set(rows.flatMap(r => Object.keys(r)))];
           const csv = [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
-          this._download(csv, 'export.csv', 'text/csv');
+          Structra.util.download(csv, 'export.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         });
         break;
@@ -257,7 +258,7 @@ class StructraCommand extends StructraElement {
       case 'export-yaml': {
         if (!data) { Structra.toast('No data'); return; }
         Structra.convert.jsonToYaml(data).then(yaml => {
-          this._download(yaml, 'export.yaml', 'text/yaml');
+          Structra.util.download(yaml, 'export.yaml', 'text/yaml');
           Structra.toast('YAML downloaded');
         }).catch(e => Structra.toast('YAML conversion failed: ' + e.message));
         break;
@@ -266,7 +267,7 @@ class StructraCommand extends StructraElement {
         if (!data) { Structra.toast('No data'); return; }
         try {
           const xml = Structra.convert.jsonToXml(data);
-          this._download(xml, 'export.xml', 'text/xml');
+          Structra.util.download(xml, 'export.xml', 'text/xml');
           Structra.toast('XML downloaded');
         } catch (e) { Structra.toast('XML conversion failed: ' + e.message); }
         break;
@@ -313,8 +314,7 @@ class StructraCommand extends StructraElement {
       case 'share-url': {
         if (!data) { Structra.toast('No data to share'); return; }
         Structra.share.createUrl(data)
-          .then((url) => navigator.clipboard.writeText(url))
-          .then(() => Structra.toast('Share link copied'))
+          .then((url) => Structra.util.copy(url, 'Share link copied'))
           .catch((e) => Structra.toast(e.message));
         break;
       }
@@ -361,6 +361,9 @@ class StructraCommand extends StructraElement {
       }
 
       /* ---- UI ---- */
+      case 'appearance':
+        Structra.events.emit('theme:open');
+        break;
       case 'theme':
         Structra.events.emit('theme:toggle');
         break;
@@ -394,14 +397,6 @@ class StructraCommand extends StructraElement {
     Structra.engine.ingest(tabId, data, meta);
   }
 
-  _download(content, filename, mime) {
-    const blob = new Blob([content], { type: mime });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
 
   _showCodeGen(lang) {
     const ds = Structra.engine.getActive();
@@ -453,9 +448,6 @@ class StructraCommand extends StructraElement {
     return result;
   }
 
-  _esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
 }
 
 customElements.define('structra-command', StructraCommand);

@@ -173,7 +173,7 @@ class StructraFilter extends StructraElement {
 
     // Field selector
     const fieldOpts = this._columns.map(c =>
-      `<option value="${this._esc(c)}">${this._esc(c)}</option>`
+      `<option value="${Structra.util.esc(c)}">${Structra.util.esc(c)}</option>`
     ).join('');
 
     // Operator selector
@@ -291,9 +291,6 @@ class StructraFilter extends StructraElement {
 
   /* ======== UTILS ======== */
 
-  _esc(s) {
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 }
 
 customElements.define('structra-filter', StructraFilter);

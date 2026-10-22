@@ -73,7 +73,7 @@ Structra.jsonTools = (() => {
 
       // Large files: give the page a turn about every 12 ms
       if ((i & 0xFFFF) === 0xFFFF && performance.now() - lastYield > 12) {
-        await new Promise((resolve) => setTimeout(resolve, 0));
+        await Structra.util.yieldToBrowser();
         lastYield = performance.now();
       }
     }

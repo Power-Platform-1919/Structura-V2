@@ -73,7 +73,7 @@ class StructraWorkspace extends StructraElement {
         const key = localStorage.key(i);
         if (key.startsWith('structra_setting_')) ws.settings[key] = localStorage.getItem(key);
       }
-      ws.theme = Structra.state.theme;
+      ws.theme = Structra.theme.snapshot();
       ws.fontSize = Structra.state.fontSize;
     }
     if (this.$('#wsExpHistory')?.checked !== false) {
@@ -87,13 +87,7 @@ class StructraWorkspace extends StructraElement {
     }
 
     const json = JSON.stringify(ws, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `structra-workspace-${new Date().toISOString().slice(0, 10)}.structra`;
-    a.click();
-    URL.revokeObjectURL(url);
+    Structra.util.download(json, `structra-workspace-${new Date().toISOString().slice(0, 10)}.structra`, 'application/json');
     Structra.toast('Workspace exported');
   }
 
@@ -128,7 +122,7 @@ class StructraWorkspace extends StructraElement {
       if (ws.settings) {
         for (const [k, v] of Object.entries(ws.settings)) localStorage.setItem(k, v);
       }
-      if (ws.theme) Structra.set('theme', ws.theme);
+      if (ws.theme) Structra.theme.restore(ws.theme);
       if (ws.fontSize) Structra.set('fontSize', ws.fontSize);
 
       // Restore query history

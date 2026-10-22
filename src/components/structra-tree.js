@@ -185,23 +185,23 @@ class StructraTree extends StructraElement {
   async _execCtxAction(action, path, val, lang) {
     switch (action) {
       case 'copy-path':
-        navigator.clipboard.writeText(path).then(() => Structra.toast('Path copied'));
+        Structra.util.copy(path, 'Path copied');
         break;
       case 'copy-value': {
         const text = val === null ? 'null' : typeof val === 'object' ? JSON.stringify(val) : String(val);
-        navigator.clipboard.writeText(text).then(() => Structra.toast('Value copied'));
+        Structra.util.copy(text, 'Value copied');
         break;
       }
       case 'copy-subtree': {
         const json = JSON.stringify(val, null, 2);
-        navigator.clipboard.writeText(json).then(() => Structra.toast('Subtree copied'));
+        Structra.util.copy(json, 'Subtree copied');
         break;
       }
       case 'gen': {
         if (!lang) break;
         try {
           const code = Structra.codeGen.generate(lang, val, 'Data');
-          navigator.clipboard.writeText(code).then(() => Structra.toast(`Copied as ${lang}`));
+          Structra.util.copy(code, `Copied as ${lang}`);
         } catch (e) {
           Structra.toast('Code gen failed: ' + e.message, 'error');
         }
@@ -231,8 +231,7 @@ class StructraTree extends StructraElement {
       case 'mock': {
         try {
           const mocked = Structra.mockGen.generate(val, 3);
-          navigator.clipboard.writeText(JSON.stringify(mocked, null, 2))
-            .then(() => Structra.toast('Mock data copied'));
+          Structra.util.copy(JSON.stringify(mocked, null, 2), 'Mock data copied');
         } catch { Structra.toast('Mock generation failed', 'error'); }
         break;
       }

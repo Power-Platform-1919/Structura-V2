@@ -321,10 +321,10 @@ class StructraTable extends StructraElement {
     };
     const filterIcon = (col) => {
       const isFiltered = this._colFilters && this._colFilters[col];
-      return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${this._esc(col)}" title="Filter column">⫧</span>`;
+      return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${Structra.util.esc(col)}" title="Filter column">⫧</span>`;
     };
     head.innerHTML = '<tr>' + visibleKeys.map(k =>
-      `<th data-col="${this._esc(k)}"><span class="th-label">${this._esc(k)}${sortIcon(k)}</span>${filterIcon(k)}</th>`
+      `<th data-col="${Structra.util.esc(k)}"><span class="th-label">${Structra.util.esc(k)}${sortIcon(k)}</span>${filterIcon(k)}</th>`
     ).join('') + '</tr>';
     this._visibleKeys = visibleKeys;
   }
@@ -423,7 +423,7 @@ class StructraTable extends StructraElement {
         const v = r ? r[visibleKeys[k]] : undefined;
         cells += `<td>${this._formatCell(v)}</td>`;
       }
-      html += path ? `<tr data-path="${this._esc(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
+      html += path ? `<tr data-path="${Structra.util.esc(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
     }
     return html;
   }
@@ -468,13 +468,10 @@ class StructraTable extends StructraElement {
       return '<span class="tree-bracket">{…}</span>';
     }
     const s = String(val);
-    if (s.length > 120) return this._esc(s.slice(0, 117)) + '…';
-    return this._esc(s);
+    if (s.length > 120) return Structra.util.esc(s.slice(0, 117)) + '…';
+    return Structra.util.esc(s);
   }
 
-  _esc(s) {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
 
   /* ======== COLUMN CONTEXT MENU (right-click) ======== */
 
@@ -498,7 +495,7 @@ class StructraTable extends StructraElement {
       ${hasFilter ? '<div class="col-ctx-item" data-col-action="clear-filter">✕ Clear Filter</div>' : ''}
       <div class="col-ctx-sep"></div>
       ${hasObjects ? '<div class="col-ctx-item" data-col-action="expand">⊞ Expand Object Column…</div>' : ''}
-      ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">⊟ Collapse "${this._esc(this._expandParent.get(col))}"</div>` : ''}
+      ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">⊟ Collapse "${Structra.util.esc(this._expandParent.get(col))}"</div>` : ''}
       <div class="col-ctx-item" data-col-action="move-left">◀ Move Left</div>
       <div class="col-ctx-item" data-col-action="move-right">▶ Move Right</div>
       <div class="col-ctx-item" data-col-action="hide">⊘ Hide Column</div>
@@ -632,7 +629,7 @@ class StructraTable extends StructraElement {
       }
       case 'copy-col': {
         const vals = (this._rows || []).map(r => r ? String(r[col] ?? '') : '').join('\n');
-        navigator.clipboard.writeText(vals).then(() => Structra.toast(`${col} values copied`));
+        Structra.util.copy(vals, `${col} values copied`);
         break;
       }
     }
@@ -655,9 +652,9 @@ class StructraTable extends StructraElement {
     const box = document.createElement('div');
     box.className = 'col-pick';
     box.innerHTML = `
-      <div class="col-pick-title">Expand "${this._esc(col)}" into columns</div>
+      <div class="col-pick-title">Expand "${Structra.util.esc(col)}" into columns</div>
       <div class="col-pick-list">${keys.slice(0, 60).map((k, i) =>
-        `<label class="col-pick-item"><input type="checkbox" value="${this._esc(k)}" ${i < 12 ? 'checked' : ''}> ${this._esc(k)}</label>`).join('')}</div>
+        `<label class="col-pick-item"><input type="checkbox" value="${Structra.util.esc(k)}" ${i < 12 ? 'checked' : ''}> ${Structra.util.esc(k)}</label>`).join('')}</div>
       ${keys.length > 60 ? `<div class="col-pick-note">Showing the 60 most common of ${keys.length} keys</div>` : ''}
       <div class="col-pick-actions">
         <button class="btn btn-primary" data-pick="ok">Expand</button>
@@ -705,7 +702,7 @@ class StructraTable extends StructraElement {
     panel.className = 'col-filter-panel';
     panel.innerHTML = `
       <div class="cfp-header">
-        <span class="cfp-title">Filter: ${this._esc(col)}</span>
+        <span class="cfp-title">Filter: ${Structra.util.esc(col)}</span>
         <button class="cfp-close" data-cfp="close">✕</button>
       </div>
       <div class="cfp-tabs">
@@ -721,8 +718,8 @@ class StructraTable extends StructraElement {
         <div class="cfp-list" id="cfpList">
           ${uniqueValues.slice(0, 200).map(([val, cnt]) => `
             <label class="cfp-row">
-              <input type="checkbox" class="cfp-cb" value="${this._esc(val)}" checked>
-              <span class="cfp-val">${this._esc(val.length > 40 ? val.slice(0, 37) + '…' : val)}</span>
+              <input type="checkbox" class="cfp-cb" value="${Structra.util.esc(val)}" checked>
+              <span class="cfp-val">${Structra.util.esc(val.length > 40 ? val.slice(0, 37) + '…' : val)}</span>
               <span class="cfp-cnt">${cnt}</span>
             </label>`).join('')}
         </div>
@@ -861,8 +858,8 @@ class StructraTable extends StructraElement {
     dropdown.className = 'col-filter-dropdown';
     dropdown.style.cssText = `position:absolute;top:${top}px;left:${left}px;z-index:900`;
     dropdown.innerHTML = `
-      <div class="cfd-header">${this._esc(col)}</div>
-      <input type="text" class="cfd-input" placeholder="Filter value…" value="${this._esc(currentVal)}" autofocus>
+      <div class="cfd-header">${Structra.util.esc(col)}</div>
+      <input type="text" class="cfd-input" placeholder="Filter value…" value="${Structra.util.esc(currentVal)}" autofocus>
       <div class="cfd-actions">
         <button class="cfd-btn cfd-apply">Apply</button>
         <button class="cfd-btn cfd-clear">Clear</button>

@@ -1,0 +1,205 @@
+/* ============================================================
+   STRUCTRA V2 — Shared UI Patterns
+   The building blocks several screens reuse. Write a pattern here once;
+   do not redefine it inside a component.
+
+     .ov / .ov-box      dialog on top of the app (see core/overlay.js)
+     .seg               segmented control (Light | Dark | System)
+     .tabs / .tab       underline tabs
+     .field             label + control row
+     .card              raised container
+     .empty             empty or placeholder state
+     .tag               small label (type, status)
+     .menu / .menu-item floating menu (context menus, dropdowns)
+   ============================================================ */
+
+/* ===== OVERLAY (dialog) ===== */
+.ov {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(var(--sp-4), 8vh, 96px) var(--sp-4) var(--sp-4);
+  background: var(--overlay-bg);
+  backdrop-filter: blur(2px);
+}
+.ov.show { display: flex; animation: ov-in var(--duration) var(--ease); }
+@keyframes ov-in { from { opacity: 0; } to { opacity: 1; } }
+
+.ov-box {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  animation: ov-rise 180ms var(--ease);
+}
+@keyframes ov-rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+.ov-sm { max-width: 26rem; }
+.ov-md { max-width: 40rem; }
+.ov-lg { max-width: 56rem; }
+.ov-xl { max-width: 72rem; }
+
+.ov-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.ov-title { margin-right: auto; font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
+.ov-close { margin-left: var(--sp-2); }
+.ov-body { padding: var(--sp-4); overflow: auto; min-height: 0; }
+.ov-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-alt);
+  flex-shrink: 0;
+}
+
+/* ===== SEGMENTED CONTROL ===== */
+.seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-alt);
+}
+.seg-btn {
+  min-height: 28px;
+  padding: 0 var(--sp-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-sec);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  transition: background var(--transition), color var(--transition);
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn.active, .seg-btn[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== TABS ===== */
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.tab {
+  position: relative;
+  padding: var(--sp-2) var(--sp-3);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  transition: color var(--transition);
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); }
+.tab.active::after {
+  content: '';
+  position: absolute;
+  left: var(--sp-2);
+  right: var(--sp-2);
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* ===== FIELDS ===== */
+.field { display: flex; flex-direction: column; gap: var(--sp-1); }
+.field > label, .field-label { font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--text-sec); }
+.hint { font-size: var(--fs-xs); color: var(--text-muted); }
+.row { display: flex; align-items: center; gap: var(--sp-2); }
+.row-wrap { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.grow { flex: 1; min-width: 0; }
+
+/* ===== CARD ===== */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===== EMPTY STATE ===== */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-8) var(--sp-4);
+  color: var(--text-muted);
+  font-size: var(--fs-base);
+  text-align: center;
+}
+.empty-title { color: var(--text); font-size: var(--fs-lg); font-weight: var(--fw-semibold); }
+
+/* ===== TAGS ===== */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  background: var(--surface-alt);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-sec);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+}
+.tag-accent { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+.tag-success { background: var(--success-soft); border-color: transparent; color: var(--success); }
+.tag-warning { background: var(--warning-soft); border-color: transparent; color: var(--warning); }
+.tag-danger { background: var(--danger-soft); border-color: transparent; color: var(--danger); }
+
+/* Data type tags share the colours used by the tree */
+.tag-string { color: var(--syn-string); }
+.tag-number { color: var(--syn-number); }
+.tag-boolean { color: var(--syn-boolean); }
+.tag-null { color: var(--syn-null); }
+.tag-object, .tag-array { color: var(--syn-key); }
+
+/* ===== FLOATING MENU ===== */
+.menu {
+  position: fixed;
+  z-index: 1200;
+  min-width: 11rem;
+  padding: var(--sp-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--fs-base);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.menu-item:hover { background: var(--accent-soft); color: var(--accent); }
+.menu-sep { height: 1px; margin: var(--sp-1) var(--sp-1); background: var(--border-subtle); }

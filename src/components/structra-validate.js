@@ -5,39 +5,36 @@
    Click an error to jump to that path in the tree.
    ============================================================ */
 
-class StructraValidate extends StructraElement {
+class StructraValidate extends StructraOverlay {
   static get MAX_SHOWN() { return 200; }
 
   init() {
+    super.init();
     this.on('validate:open', () => this._open());
-    this.on('overlay:close', () => this._close());
   }
 
   render() {
-    this.innerHTML = `
-      <div class="val-overlay" id="valOverlay">
-        <div class="val-box" role="dialog" aria-label="Validate JSON Schema">
-          <div class="val-head">
-            <span class="val-title">Validate against a JSON Schema</span>
-            <button class="val-close" data-action="close" aria-label="Close">&times;</button>
-          </div>
+    this.mount({
+      title: 'Validate against a JSON Schema',
+      size: 'lg',
+      body: `
+        <div class="field">
+          <label for="valSchema">JSON Schema</label>
           <textarea class="val-schema" id="valSchema" spellcheck="false" placeholder='Paste a JSON Schema, for example {"type":"object","required":["id"]}'></textarea>
-          <div class="val-actions">
-            <button class="btn btn-primary" data-action="validate">Validate</button>
-            <button class="btn" data-action="infer">Use inferred schema</button>
-            <span class="val-summary" id="valSummary"></span>
-          </div>
-          <div class="val-results" id="valResults"></div>
         </div>
-      </div>`;
+        <div class="row val-actions">
+          <button class="btn btn-primary" type="button" data-action="validate">Validate</button>
+          <button class="btn" type="button" data-action="infer">Use inferred schema</button>
+          <span class="val-summary" id="valSummary" aria-live="polite"></span>
+        </div>
+        <div class="val-results" id="valResults"></div>`,
+    });
 
-    this.addEventListener('click', (e) => {
-      if (e.target.id === 'valOverlay') { this._close(); return; }
+    this.root.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
       const a = btn.dataset.action;
-      if (a === 'close') this._close();
-      else if (a === 'infer') this._infer();
+      if (a === 'infer') this._infer();
       else if (a === 'validate') this._run();
       else if (a === 'goto') this._goto(btn.dataset.path);
     });
@@ -45,13 +42,7 @@ class StructraValidate extends StructraElement {
 
   _open() {
     if (!Structra.state.jsonData) { Structra.toast('Load JSON first'); return; }
-    this.$('#valOverlay').classList.add('show');
-    this.$('#valSchema').focus();
-  }
-
-  _close() {
-    const o = this.$('#valOverlay');
-    if (o) o.classList.remove('show');
+    this.open();
   }
 
   _infer() {
@@ -84,12 +75,12 @@ class StructraValidate extends StructraElement {
       if (valid) { this._summary('Valid. The data matches the schema.', 'ok'); return; }
 
       const shown = errors.slice(0, StructraValidate.MAX_SHOWN);
-      const esc = Structra.dom.esc;
+      const esc = Structra.util.esc;
       this._summary(errors.length + ' problem' + (errors.length === 1 ? '' : 's') + ' found'
         + (errors.length > shown.length ? ' (showing the first ' + shown.length + ')' : ''), 'bad');
       results.innerHTML = shown.map((e) => `
         <div class="val-err">
-          <button class="val-path" data-action="goto" data-path="${esc(e.path)}" title="Show in tree">${esc(e.path || 'root')}</button>
+          <button class="val-path" type="button" data-action="goto" data-path="${esc(e.path)}" title="Show in tree">${esc(e.path || 'root')}</button>
           <span class="val-msg">${esc(e.message)}</span>
         </div>`).join('');
     } catch (err) {
@@ -99,7 +90,7 @@ class StructraValidate extends StructraElement {
   }
 
   _goto(path) {
-    this._close();
+    this.close();
     Structra.set('activeView', 'tree');
     Structra.set('currentPath', path || '$');
   }

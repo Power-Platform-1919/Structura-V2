@@ -71,11 +71,7 @@ Structra.capture = (() => {
     const canvas = await window.html2canvas(element, { backgroundColor: bg, scale: Math.min(2, window.devicePixelRatio || 1) });
     await new Promise((resolve, reject) => canvas.toBlob((blob) => {
       if (!blob) { reject(new Error('Could not create the image')); return; }
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = fileName || 'structra.png';
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      Structra.util.download(blob, fileName || 'structra.png');
       resolve();
     }, 'image/png'));
   }

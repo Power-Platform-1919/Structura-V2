@@ -17,11 +17,7 @@ window.Structra = window.Structra || {};
 Structra.expressions = (() => {
   const row = (label, code) => ({ label, code });
 
-  const kindOf = (v) => {
-    if (v === null) return 'null';
-    if (Array.isArray(v)) return 'array';
-    return typeof v; // object | string | number | boolean
-  };
+  const kindOf = Structra.util.typeOf;
 
   const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
   const looksLikeDate = (s) => /\d{4}-\d{2}-\d{2}/.test(s) || /\d{2}\/\d{2}\/\d{4}/.test(s);
