@@ -238,8 +238,8 @@ class StructraInputPanel extends StructraElement {
     Structra.set('fileName', name);
     Structra.set('fileSize', byteSize);
     Structra.set('currentPath', '$');
-    // A new document opens on its overview, unless it is big enough that computing it would make the first view wait
-    if (byteSize <= 25 * 1048576) Structra.set('activeView', 'overview');
+    // A new document opens on its overview, unless it is so big that computing it would make the first view wait (measured: 88 MB is ready in under 2 s)
+    if (byteSize <= 120 * 1048576) Structra.set('activeView', 'overview');
 
     // Duplicate keys are invisible after parsing (JSON.parse keeps the last one), so scan the text
     // This runs in the background and yields to the page, so it never delays the first paint.
