@@ -1103,6 +1103,16 @@
           "id": "13.120",
           "title": "Wording is inconsistent across entry points: 'Try a sample', 'try a sample', 'Load Sample', 'Load & Explore', 'Open a file or a recent one'; pick one verb per action",
           "status": "todo"
+        },
+        {
+          "id": "13.121",
+          "title": "Workspace export saves only the active tab's data (995 B file with one 'data' list), not the other open tabs, the current view, expressions source, chosen columns or loop name; it is the only way to keep a session and it cannot restore one. The dialog stays open after export and gives no hint where the file went",
+          "status": "todo"
+        },
+        {
+          "id": "13.122",
+          "title": "Workspace import replaces the active tab's data with no confirmation and no summary of what was restored (tabs, bookmarks, snippets); the toast 'Workspace imported successfully' is all the feedback, and the file picker is the unstyled browser 'Choose File' control with a separate Import button",
+          "status": "todo"
         }
       ]
     }
