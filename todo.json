@@ -908,6 +908,56 @@
           "id": "13.81",
           "title": "Status bar 'NORMAL' button flips to 'DEV' when clicked with no explanation (log level); keep it out of the normal interface",
           "status": "todo"
+        },
+        {
+          "id": "13.82",
+          "title": "Rail Explorer button opens a new empty tab on every click (Untitled 2, Untitled 3 ...); reuse an existing empty tab. Its highlight also disappears or sticks inconsistently",
+          "status": "todo"
+        },
+        {
+          "id": "13.83",
+          "title": "Recent list: the entry order and 'just now' labels work, but the entries have no remove button (only Clear History) and no keyboard focus ring; clicking opens on Overview which hides the file name from the tab strip until loaded",
+          "status": "todo"
+        },
+        {
+          "id": "13.84",
+          "title": "Bottom drawer: the chevron cycles through three states (medium, tall, collapsed) with no change of arrow, so users cannot predict it; use two clear states plus a separate size handle",
+          "status": "todo"
+        },
+        {
+          "id": "13.85",
+          "title": "Bottom drawer can be dragged to about 80% of the window height, leaving the canvas a thin strip; cap it (for example 60%) and keep the canvas at a minimum height",
+          "status": "todo"
+        },
+        {
+          "id": "13.86",
+          "title": "Drawer resize handle is covered by the empty-state card when the drawer is tall (the card intercepts the double click that should reset the size); fix stacking, and remember the chosen size per user",
+          "status": "todo"
+        },
+        {
+          "id": "13.87",
+          "title": "With no document open, Power Platform and Schema Gen drawer tabs are shown: Power Platform says 'Select a path in the tree' (there is no tree) and Copy schema is enabled with nothing to copy; show 'Open a file first' with the Open and Sample buttons",
+          "status": "todo"
+        },
+        {
+          "id": "13.88",
+          "title": "Schema Gen options row (three checkboxes and a hint) is cramped at small type size; the hint 'Paste into the Parse JSON action' reads like a fourth option",
+          "status": "todo"
+        },
+        {
+          "id": "13.89",
+          "title": "Node panel 'Filter' only opens the filter bar with an empty condition; it should prefill 'Status.Value equals Closed' for the selected value. 'Copy Value' and 'Mock' give feedback only through a short toast, and Mock does not show what it copied",
+          "status": "todo"
+        },
+        {
+          "id": "13.90",
+          "title": "Node panel has no Power Platform section, no 'Copy as expression' buttons, and no way to see all bookmarks except while a node is selected",
+          "status": "todo"
+        },
+        {
+          "id": "13.91",
+          "title": "Snippet Library: Save with an empty name does nothing and shows no message (should highlight the field or say 'Enter a name'); the saved size '8 B' and the Load/Copy/Delete buttons are tiny and Delete has no confirm or undo; the Save form sits below the list with a hairline that looks like a second dialog",
+          "status": "todo"
         }
       ]
     }
