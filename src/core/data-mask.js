@@ -5,7 +5,12 @@ Structra.dataMask = (() => {
 
   const PATTERNS = [
     { type: 'email', regex: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, mask: v => v[0] + '***@' + v.split('@')[1].replace(/./g, (c, i) => i < 2 ? c : '*') },
-    { type: 'phone', regex: /^[\+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{7,}$/, mask: v => v.replace(/\d(?=\d{4})/g, '*') },
+    { type: 'phone', regex: /^[\+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{7,}$/, mask: v => {
+      // Hide every digit except the last four: 555-123-4567 → ***-***-4567
+      const total = (v.match(/\d/g) || []).length;
+      let seen = 0;
+      return v.replace(/\d/g, (d) => (++seen <= total - 4 ? '*' : d));
+    } },
     { type: 'uuid', regex: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, mask: () => '********-****-****-****-************' },
     { type: 'ip', regex: /^(\d{1,3}\.){3}\d{1,3}$/, mask: v => v.split('.').map((p, i) => i < 2 ? p : '***').join('.') },
     { type: 'creditcard', regex: /^\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}$/, mask: v => '**** **** **** ' + v.replace(/[\s-]/g, '').slice(-4) },

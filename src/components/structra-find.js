@@ -234,13 +234,23 @@ class StructraFind extends StructraElement {
 
   /* ======== REPLACE ======== */
 
+  /** Replace in the open document, keeping the original so Ctrl+Z can bring it back */
+  _replace(findText, replaceText, all) {
+    const ds = Structra.engine.getActive();
+    const tabId = Structra.tabs.activeId;
+    const kept = ds ? Structra.undoStack.push(ds.raw, 'Before replace', tabId) : false;
+    const result = Structra.engine.replaceInData(findText, replaceText, all);
+    if (result.replaced > 0 && kept) Structra.undoStack.push(ds.raw, `Replace "${findText}" with "${replaceText}"`, tabId);
+    return { ...result, undoable: kept };
+  }
+
   _replaceOne() {
     const findText = this._getInput();
     const replaceText = (this.$('#replaceInput') || {}).value || '';
     if (!findText) return;
-    const result = Structra.engine.replaceInData(findText, replaceText, false);
+    const result = this._replace(findText, replaceText, false);
     if (result.replaced > 0) {
-      Structra.toast(`Replaced 1 occurrence`);
+      Structra.toast('Replaced 1 occurrence.' + (result.undoable ? ' Ctrl+Z undoes it.' : ''));
       this._refreshAfterReplace(findText);
     } else {
       Structra.toast('No match found', 'warning');
@@ -251,8 +261,9 @@ class StructraFind extends StructraElement {
     const findText = this._getInput();
     const replaceText = (this.$('#replaceInput') || {}).value || '';
     if (!findText) return;
-    const result = Structra.engine.replaceInData(findText, replaceText, true);
-    Structra.toast(`Replaced ${result.replaced} occurrence(s)`);
+    const result = this._replace(findText, replaceText, true);
+    if (!result.replaced) { Structra.toast('No match found', 'warning'); return; }
+    Structra.toast(`Replaced ${result.replaced} occurrence${result.replaced === 1 ? '' : 's'}.` + (result.undoable ? ' Ctrl+Z undoes it.' : ''));
     this._refreshAfterReplace(findText);
   }
 

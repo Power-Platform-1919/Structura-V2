@@ -191,59 +191,45 @@ class StructraCommand extends StructraElement {
       /* ---- Data Operations ---- */
       case 'sort': {
         if (!data || typeof data !== 'object') { Structra.toast('No data to sort'); return; }
-        Structra.undoStack.push(data, 'Sort Keys A→Z');
-        const sorted = this._sortKeysDeep(data);
-        this._reingest(sorted, 'Sorted');
-        Structra.toast('Keys sorted A→Z');
+        this._edit('Sort keys A→Z', data, this._sortKeysDeep(data), 'Keys sorted A→Z');
         break;
       }
       case 'flatten': {
         if (!data || typeof data !== 'object') { Structra.toast('No data to flatten'); return; }
-        Structra.undoStack.push(data, 'Flatten');
-        const flat = this._flattenObj(data);
-        this._reingest(flat, 'Flattened');
-        Structra.toast('JSON flattened to dot notation');
+        this._edit('Flatten', data, this._flattenObj(data), 'JSON flattened to dot notation');
         break;
       }
       case 'unflatten': {
         if (!data || typeof data !== 'object') { Structra.toast('No data'); return; }
-        Structra.undoStack.push(data, 'Unflatten');
-        const nested = this._unflattenObj(data);
-        this._reingest(nested, 'Unflattened');
-        Structra.toast('JSON unflattened');
+        this._edit('Unflatten', data, this._unflattenObj(data), 'JSON unflattened');
         break;
       }
       case 'mask': {
         if (!data) { Structra.toast('No data to mask'); return; }
-        Structra.undoStack.push(data, 'Mask PII');
-        if (!this._maskBackups) this._maskBackups = new Map();
-        if (!this._maskBackups.has(Structra.state.activeTab)) this._maskBackups.set(Structra.state.activeTab, data);
         const masked = Structra.dataMask.maskData(data);
-        this._reingest(masked.data, 'Masked');
-        Structra.toast(`Masked ${masked.count} sensitive value${masked.count !== 1 ? 's' : ''}`);
+        if (!masked.count) { Structra.toast('Nothing to mask: no emails, phone numbers or other personal values found'); return; }
+        // Keep the original of this tab, so Unmask can bring it back even after other edits
+        if (!this._maskBackups) this._maskBackups = new Map();
+        const tabId = Structra.tabs.activeId;
+        if (!this._maskBackups.has(tabId)) this._maskBackups.set(tabId, data);
+        this._edit('Mask personal data', data, masked.data, `Masked ${masked.count} sensitive value${masked.count !== 1 ? 's' : ''}`);
         break;
       }
       case 'mock': {
         if (!data) { Structra.toast('No data — load JSON first to generate mock data from its structure'); return; }
         const mockData = Structra.mockGen.generate(data);
-        this._reingest(mockData, 'Mock');
-        Structra.toast('Mock data generated from structure');
+        const rows = Array.isArray(mockData) ? mockData.length : 1;
+        this._openInNewTab(mockData, this._baseName() + ' (mock)')
+          .then((opened) => { if (opened) Structra.toast(`Mock data made from the structure: ${rows} ${rows === 1 ? 'record' : 'records'}, opened in a new tab`); });
         break;
       }
       case 'sample': {
         if (!Array.isArray(data)) { Structra.toast('Sample requires an array dataset'); return; }
         const n = Math.min(10, data.length);
-        Structra.engine.sampleData(n).then(sampled => {
-          if (sampled && sampled.length) {
-            this._reingest(sampled, 'Sampled');
-            Structra.toast(`Sampled ${sampled.length} random rows`);
-          }
-        }).catch(() => {
-          // JS fallback
-          const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, n);
-          this._reingest(shuffled, 'Sampled');
-          Structra.toast(`Sampled ${shuffled.length} random rows`);
-        });
+        const open = (rows) => this._openInNewTab(rows, this._baseName() + ' (sample)')
+          .then((opened) => { if (opened) Structra.toast(`${rows.length} random rows, opened in a new tab`); });
+        const shuffle = () => [...data].sort(() => Math.random() - 0.5).slice(0, n);
+        Structra.engine.sampleData(n).then((sampled) => open(sampled && sampled.length ? sampled : shuffle())).catch(() => open(shuffle()));
         break;
       }
 
@@ -313,7 +299,7 @@ class StructraCommand extends StructraElement {
         break;
       case 'dup-keys': {
         const src = Structra.engine.getActive() && Structra.engine.getActive()._rawSource;
-        if (!src) { Structra.toast('The original text of this document is not available'); return; }
+        if (!src) { Structra.toast('No duplicate keys. This document was not read from JSON text (CSV, edited or generated data), so a key cannot repeat.'); return; }
         Structra.toast('Checking for duplicate keys...');
         // Duplicates only exist in the original text (parsing keeps the last value)
         (typeof src === 'string' ? Promise.resolve(src) : src.text())
@@ -364,15 +350,17 @@ class StructraCommand extends StructraElement {
 
       /* ---- Undo/Redo ---- */
       case 'undo': {
+        const label = Structra.undoStack.nextUndoLabel();
         const prev = Structra.undoStack.undo();
-        if (prev) { this._reingest(prev, 'Undo'); Structra.toast('Undo'); }
-        else Structra.toast('Nothing to undo');
+        if (prev) this._reingest(prev).then(() => Structra.toast('Undid: ' + label));
+        else Structra.toast('Nothing to undo in this tab');
         break;
       }
       case 'redo': {
+        const label = Structra.undoStack.nextRedoLabel();
         const next = Structra.undoStack.redo();
-        if (next) { this._reingest(next, 'Redo'); Structra.toast('Redo'); }
-        else Structra.toast('Nothing to redo');
+        if (next) this._reingest(next).then(() => Structra.toast('Redid: ' + label));
+        else Structra.toast('Nothing to redo in this tab');
         break;
       }
 
@@ -422,11 +410,11 @@ class StructraCommand extends StructraElement {
         setTimeout(() => Structra.events.emit('input:show-tab', 'url'), 50);
         break;
       case 'unmask': {
-        const backup = this._maskBackups && this._maskBackups.get(Structra.state.activeTab);
+        const tabId = Structra.tabs.activeId;
+        const backup = this._maskBackups && this._maskBackups.get(tabId);
         if (!backup) { Structra.toast('Nothing masked in this tab'); break; }
-        this._maskBackups.delete(Structra.state.activeTab);
-        this._reingest(backup, 'Unmasked');
-        Structra.toast('Original values restored');
+        this._maskBackups.delete(tabId);
+        this._edit('Unmask', data, backup, 'Original values restored');
         break;
       }
 
@@ -436,14 +424,53 @@ class StructraCommand extends StructraElement {
   }
 
   /* ---- Helpers ---- */
-  _reingest(data, label) {
+  /** Show new data in the open tab: the engine and every view (Tree, Table, Overview...) switch to it together */
+  async _reingest(data) {
     const ds = Structra.engine.getActive();
-    const tabId = ds ? ds.id : Structra.state.activeTab;
-    const text = JSON.stringify(data);
-    const meta = { filename: (ds?.meta?.filename || 'data.json') + ` (${label})`, size: text.length };
-    Structra.engine.ingest(tabId, data, meta);
+    const tabId = ds ? ds.id : Structra.tabs.activeId;
+    const size = JSON.stringify(data).length;
+    await Structra.engine.ingest(tabId, data, {
+      fileName: (ds && ds.meta.fileName) || Structra.state.fileName || 'data.json',
+      fileSize: size,
+    });
+    Structra.set('jsonData', data);
+    Structra.set('fileSize', size);
+    const tab = Structra.tabs.list.find((t) => t.id === tabId);
+    if (tab) { tab.modified = true; Structra.events.emit('tabs:changed'); }
   }
 
+  /**
+   * Change the open document in a way that can be undone: the original is kept first, then the result.
+   * @param {string} label  what the change is called in Undo messages
+   */
+  async _edit(label, before, after, message) {
+    const tabId = Structra.tabs.activeId;
+    const kept = Structra.undoStack.push(before, 'Before ' + label, tabId);
+    await this._reingest(after);
+    if (kept) Structra.undoStack.push(after, label, tabId);
+    Structra.toast(kept ? message + '. Ctrl+Z undoes it.' : message + ' (too large to undo)');
+  }
+
+  /** The name of the open file without its extension, for naming files made from it */
+  _baseName() {
+    return (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '');
+  }
+
+  /** Open generated data in a new tab, so the user's own file is never replaced. Resolves false when no tab could be made. */
+  async _openInNewTab(data, name) {
+    const before = Structra.tabs.list.length;
+    Structra.events.emit('tabs:add');
+    if (Structra.tabs.list.length === before) return false;           // the tab limit was reached (the tab bar already said so)
+    const tabId = Structra.tabs.activeId;
+    const size = JSON.stringify(data).length;
+    await Structra.engine.ingest(tabId, data, { fileName: name, fileSize: size });
+    Structra.set('jsonData', data);
+    Structra.set('fileName', name);
+    Structra.set('fileSize', size);
+    Structra.set('currentPath', '$');
+    Structra.set('activeView', 'tree');
+    return true;
+  }
 
   _showCodeGen(lang) {
     const ds = Structra.engine.getActive();
