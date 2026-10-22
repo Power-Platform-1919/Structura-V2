@@ -1038,6 +1038,11 @@
           "id": "13.107",
           "title": "Editor Repair works well (single quotes, trailing comma, comment, True) but the repair message for hopeless input is jargon ('Unexpected end of json string at position 1'); also no diff of what was repaired",
           "status": "todo"
+        },
+        {
+          "id": "13.108",
+          "title": "Toolbar 'Edit' just switches to the Editor tab, which is already in the view tabs; two entries for one place, and 'Copy' at the far right is not explained (copies what: whole document, selection, or path?)",
+          "status": "todo"
         }
       ]
     }
