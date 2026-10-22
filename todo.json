@@ -395,7 +395,7 @@
     {
       "id": "11",
       "title": "One icon system (Lucide, ISC licence, bundled locally)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "About 70 inline SVGs were hand-copied across components (the close X alone appeared 9 times) plus glyph icons. Now every icon comes from the Lucide library (ISC licence) through one small wrapper, Structra.icons. The library loads from the jsDelivr CDN with a bundled copy as the offline fallback; only icon artwork is fetched, data processing stays local.",
       "subtasks": [
         {
@@ -431,11 +431,69 @@
         {
           "id": "11.7",
           "title": "Shared icon sizing: CSS size rules per container plus one baseline rule; fix remaining oversized icons",
-          "status": "in_progress"
+          "status": "done"
         },
         {
           "id": "11.8",
           "title": "Check every screen in dark and light; run the 30-fixture smoke test",
+          "status": "done"
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "title": "Audit: leftover V1 compatibility and missing V1 features",
+      "status": "todo",
+      "brief": "Audit done from source, not from the .md files. No window.App shims remain. Findings below.",
+      "subtasks": [
+        {
+          "id": "12.1",
+          "title": "Remove Structra.dom proxy (dom-shim.js): esc is an alias of Structra.util.esc and toast is a one-line proxy; keep only showLoading/hideLoading in a loading component",
+          "status": "todo"
+        },
+        {
+          "id": "12.2",
+          "title": "Remove token aliases kept for old names: --radius-md and --error (unused), --bg-card and --shadow (4 uses to move to current tokens)",
+          "status": "todo"
+        },
+        {
+          "id": "12.3",
+          "title": "src/utils/* (code-gen, data-mask, format-convert, mock-gen, primitives, transform-ops, undo-stack) are V1 files with only the namespace renamed (3 to 20 changed lines each). Rewrite into src/core with the V2 style, drop duplicate helpers (primitives.formatSize, formatTime)",
+          "status": "todo"
+        },
+        {
+          "id": "12.4",
+          "title": "format-convert.js is loaded but no V2 code calls it; wire it to a Convert Format command or delete it",
+          "status": "todo"
+        },
+        {
+          "id": "12.5",
+          "title": "Missing V1 feature: Collapse to depth 3 (V1 had D1, D2, D3; V2 has D1, D2)",
+          "status": "todo"
+        },
+        {
+          "id": "12.6",
+          "title": "Missing V1 feature: Zoom to fit window (V1 zoom.js fit())",
+          "status": "todo"
+        },
+        {
+          "id": "12.7",
+          "title": "Missing V1 feature: customize toolbar (pin or unpin buttons, overflow menu); decide whether to rebuild or drop",
+          "status": "todo"
+        },
+        {
+          "id": "12.8",
+          "title": "Missing V1 feature: Mask toggles back to the original (V1 kept a backup); V2 relies on Undo. Add an Unmask action",
+          "status": "todo"
+        },
+        {
+          "id": "12.9",
+          "title": "V1 palette entries without a V2 command: Load from URL, New Tab, Clear and Load New, Collapse/Expand All, Toggle Word Wrap, Copy Current Path, Bookmark Path, Navigate Back/Forward, Zoom Fit. Add them so the palette matches the buttons",
+          "status": "todo"
+        },
+        {
+          "id": "12.10",
+          "title": "Confirmed not missing: V1 unmask, applyPatch, sortArray and table setHighlight were never called by V1 UI code; Convert Format in V1 was YAML and XML only, both present in V2",
           "status": "todo"
         }
       ]
