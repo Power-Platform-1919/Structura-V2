@@ -2088,3 +2088,11 @@ structra-schemagen {
 
 .fb-btn[data-action="apply"] { padding: 0 var(--sp-3); background: var(--accent); color: var(--text-on-accent); font-weight: var(--fw-semibold); }
 .fb-btn[data-action="apply"]:hover { background: var(--accent); filter: brightness(1.1); color: var(--text-on-accent); }
+
+/* ===== EXPRESSIONS: source bar and flow action blocks ===== */
+.expr-source { display: flex; flex-wrap: wrap; gap: var(--sp-3); align-items: flex-end; padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border-subtle); }
+.expr-src-field { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-xs); color: var(--text-muted); }
+.expr-src-field input, .expr-src-field select { min-height: 28px; min-width: 9rem; font-size: var(--fs-sm); color: var(--text); }
+.expr-block { margin: var(--sp-3); padding: var(--sp-3); background: var(--surface-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius); }
+.expr-block-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.expr-block pre { margin: var(--sp-2) 0 0; max-height: 14rem; overflow: auto; font-family: var(--font-mono); font-size: var(--fs-xs); white-space: pre; color: var(--text); }

@@ -14,6 +14,7 @@ class StructraExpressions extends StructraElement {
     this._path = '';
     this.on('state:currentPath', (d) => { this._path = Structra.paths.strip(d.value); this._refresh(); });
     this.on('state:jsonData', () => this._refresh());
+    this.on('expressions:source-changed', () => this._refresh());
     this.on('tabs:switched', () => this._refresh());
     this.on('drawer:tab-switched', (id) => { if (id === 'expressions') this._refresh(); });
     this._path = Structra.paths.strip(Structra.state.currentPath);
@@ -24,22 +25,78 @@ class StructraExpressions extends StructraElement {
       <div class="tabs expr-subtabs">
         <button class="tab expr-subtab active" type="button" data-sub="automate">Power Automate</button>
         <button class="tab expr-subtab" type="button" data-sub="canvas">Canvas app</button>
+        <button class="tab expr-subtab" type="button" data-sub="flow">Flow actions</button>
         <button class="tab expr-subtab" type="button" data-sub="helpers">Helpers</button>
         <span class="expr-path" id="exprPath"></span>
       </div>
+      <div class="expr-source" id="exprSource"></div>
       <div class="expr-pane active" data-pane="automate"></div>
       <div class="expr-pane" data-pane="canvas"></div>
+      <div class="expr-pane" data-pane="flow"></div>
       <div class="expr-pane" data-pane="helpers"></div>`;
 
     this.addEventListener('click', (e) => {
       const tab = e.target.closest('.expr-subtab');
       if (tab) { this._switch(tab.dataset.sub); return; }
+      const copyAll = e.target.closest('[data-copy-block]');
+      if (copyAll) { Structra.util.copy(copyAll.closest('.expr-block').querySelector('pre').textContent, 'Action copied'); return; }
       const code = e.target.closest('.ecode');
       if (code) {
         Structra.util.copy(code.textContent, 'Copied');
       }
     });
+    this.addEventListener('change', (e) => {
+      const kind = e.target.closest('[data-src="kind"]');
+      if (kind) { Structra.expressions.setSource({ kind: kind.value }); return; }
+      const full = e.target.closest('[data-src="full"]');
+      if (full) Structra.expressions.setSource({ fullOutput: full.value === 'auto' ? 'auto' : full.value === 'yes' });
+    });
+    this.addEventListener('input', (e) => {
+      const name = e.target.closest('[data-src="name"]');
+      if (name) { this._keepFocus = 'name'; Structra.expressions.setSource({ name: name.value }); return; }
+      const v = e.target.closest('[data-src="fxvar"]');
+      if (v) { this._keepFocus = 'fxvar'; Structra.expressions.setSource({ fxVar: v.value || 'jsonText' }); }
+    });
     this._refresh();
+  }
+
+  /** Where does this JSON come from? The expressions start there. */
+  _renderSource() {
+    const el = this.$('#exprSource');
+    if (!el) return;
+    if (this._tab === 'helpers') { el.hidden = true; return; }
+    el.hidden = false;
+    const src = Structra.expressions.getSource();
+    const esc = Structra.util.esc;
+    if (this._tab === 'canvas') {
+      el.innerHTML = `<label class="expr-src-field">Text variable that holds the JSON
+        <input type="text" data-src="fxvar" value="${esc(src.fxVar)}" spellcheck="false"></label>`;
+    } else {
+      const named = src.kind === 'action' || src.kind === 'item' || src.kind === 'custom';
+      const label = src.kind === 'custom' ? 'Expression' : src.kind === 'item' ? 'Loop name' : 'Action name';
+      const sel = (v, cur) => (v === cur ? ' selected' : '');
+      el.innerHTML = `
+        <label class="expr-src-field">The JSON is
+          <select data-src="kind">
+            <option value="action"${sel('action', src.kind)}>An action output</option>
+            <option value="trigger"${sel('trigger', src.kind)}>The trigger body</option>
+            <option value="item"${sel('item', src.kind)}>The current loop item</option>
+            <option value="custom"${sel('custom', src.kind)}>A custom expression</option>
+          </select></label>
+        ${named ? `<label class="expr-src-field">${label}
+          <input type="text" data-src="name" value="${esc(src.name)}" spellcheck="false"></label>` : ''}
+        <label class="expr-src-field">Whole action output
+          <select data-src="full" title="A whole output has statusCode, headers and body. Its body is the root, so it is not repeated.">
+            <option value="auto"${sel('auto', src.fullOutput)}>Detect</option>
+            <option value="yes"${src.fullOutput === true ? ' selected' : ''}>Yes, skip body</option>
+            <option value="no"${src.fullOutput === false ? ' selected' : ''}>No</option>
+          </select></label>`;
+    }
+    if (this._keepFocus) {
+      const f = el.querySelector(`[data-src="${this._keepFocus}"]`);
+      if (f) { f.focus(); const n = f.value.length; f.setSelectionRange(n, n); }
+      this._keepFocus = null;
+    }
   }
 
   _switch(id) {
@@ -53,6 +110,7 @@ class StructraExpressions extends StructraElement {
   _refresh() {
     if (!this._mounted) return;
     const data = Structra.state.jsonData;
+    this._renderSource();
     const label = this.$('#exprPath');
     if (label) label.textContent = this._tab === 'helpers' ? '' : this._path;
 
@@ -64,7 +122,7 @@ class StructraExpressions extends StructraElement {
     }
 
     const make = this._tab === 'automate' ? Structra.expressions.powerAutomate : Structra.expressions.powerFx;
-    const kind = this._tab === 'automate' ? 'Power Automate' : 'Power Fx';
+    const kind = this._tab === 'automate' ? 'Power Automate' : this._tab === 'flow' ? 'flow action' : 'Power Fx';
     if (!data || !this._path) {
       this._fill(this._tab, this._empty('Select a path in the tree to see ' + kind + ' expressions'));
       return;
@@ -74,7 +132,28 @@ class StructraExpressions extends StructraElement {
       this._fill(this._tab, this._empty('No value at this path'));
       return;
     }
+    if (this._tab === 'flow') {
+      this._fill('flow', this._blocks(() => Structra.expressions.flowActions(this._path, value)));
+      return;
+    }
     this._fill(this._tab, this._sections(() => [{ rows: make(this._path, value) }]));
+  }
+
+  /** Action JSON: a titled block with its own copy button */
+  _blocks(build) {
+    let items;
+    try { items = build(); } catch (err) {
+      Structra.log.error('Expressions', 'Could not build flow actions', err);
+      return this._empty('Could not build flow actions for this data');
+    }
+    const esc = Structra.util.esc;
+    return '<p class="expr-note">Paste into a cloud flow with Peek code or the code view, under "actions".</p>' + items.map((it) => `
+      <section class="expr-block">
+        <header class="expr-block-head"><strong>${esc(it.label)}</strong>
+          <button class="btn btn-sm" type="button" data-copy-block>Copy</button></header>
+        <p class="expr-note">${esc(it.note)}</p>
+        <pre>${esc(it.code)}</pre>
+      </section>`).join('');
   }
 
   _fill(pane, html) {
