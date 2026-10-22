@@ -336,8 +336,6 @@
   font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-sec);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
   position: sticky;
   top: 0;
   z-index: 2;

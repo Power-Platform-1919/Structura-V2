@@ -1,0 +1,70 @@
+/* The Table view: headers keep the case of the keys (they are case-sensitive in expressions),
+   and nested SharePoint fields (Choice, Person, lists of choices) show their useful value.
+
+   Run:  node tests/smoke/table.js          (PW_CHANNEL=msedge uses the installed Edge)
+*/
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+let chromium;
+try { ({ chromium } = require('playwright')); } catch {
+  console.error('Playwright is not installed. Run: npm install --save-dev playwright && npx playwright install chromium');
+  process.exit(2);
+}
+
+const ROOT = path.join(__dirname, '..', '..');
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
+
+function serve() {
+  const server = http.createServer((req, res) => {
+    const url = decodeURIComponent(req.url.split('?')[0]);
+    const file = path.join(ROOT, url === '/' ? 'index.html' : url);
+    if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end(); return; }
+    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+    fs.createReadStream(file).pipe(res);
+  });
+  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
+}
+
+(async () => {
+  const server = await serve();
+  const base = `http://127.0.0.1:${server.address().port}/index.html`;
+  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const page = await (await browser.newContext({ viewport: { width: 1360, height: 800 } })).newPage();
+  const failures = [];
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
+
+  try {
+    await page.goto(base);
+    await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
+    await page.keyboard.press('Escape');
+    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => Structra.set('activeView', 'table'));
+    await page.waitForTimeout(800);
+
+    const t = await page.evaluate(() => {
+      const heads = [...document.querySelectorAll('structra-table th')].map((h) => ({ text: h.textContent.replace(/\s+/g, ' ').trim(), transform: getComputedStyle(h).textTransform }));
+      const rows = [...document.querySelectorAll('structra-table tbody tr')].map((tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent.replace(/\s+/g, ' ').trim()));
+      return { heads, rows };
+    });
+    if (!t.heads.length) failures.push('the Table drew no headers');
+    if (t.heads.some((h) => h.transform === 'uppercase')) failures.push('headers are forced to UPPERCASE; keys are case-sensitive, so they must show as written');
+    if (!t.heads.some((h) => h.text.startsWith('ItemInternalId'))) failures.push('the header for ItemInternalId is not shown as written: ' + t.heads.map((h) => h.text).join(' | '));
+    const flat = t.rows.map((r) => r.join(' | ')).join('\n');
+    if (/\{…\}/.test(flat)) failures.push('a nested field still shows as {…}:\n' + flat.slice(0, 300));
+    if (!flat.includes('Ann Lee')) failures.push('the Person field does not show its display name (Ann Lee)');
+    if (!flat.includes('Open')) failures.push('the Choice field does not show its value (Open)');
+    if (!flat.includes('IT, Hardware')) failures.push('the list of choices does not show "IT, Hardware"');
+  } catch (err) {
+    failures.push('crashed: ' + err.message.slice(0, 200));
+  }
+  if (errors.length) failures.push('page errors: ' + [...new Set(errors)].join(' | '));
+
+  await browser.close();
+  server.close();
+  if (failures.length) { console.log('FAIL\n  ' + failures.join('\n  ')); process.exit(1); }
+  console.log('table smoke test: ok');
+})();

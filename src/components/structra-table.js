@@ -463,13 +463,41 @@ class StructraTable extends StructraElement {
   _formatCell(val) {
     if (val === null || val === undefined) return '<span class="tree-null">null</span>';
     if (typeof val === 'boolean') return `<span class="bool-badge ${val ? 'bool-true' : 'bool-false'}">${val}</span>`;
-    if (typeof val === 'object') {
-      if (Array.isArray(val)) return `<span class="tree-bracket">[${val.length}]</span>`;
-      return '<span class="tree-bracket">{…}</span>';
-    }
+    if (typeof val === 'object') return this._formatNested(val);
     const s = String(val);
     if (s.length > 120) return Structra.util.esc(s.slice(0, 117)) + '…';
     return Structra.util.esc(s);
+  }
+
+  /**
+   * A cell that holds an object or a list. SharePoint Choice, Person and Lookup fields are objects whose
+   * useful part is one field (Value, DisplayName, Title...), so show that instead of "{…}".
+   */
+  _formatNested(val) {
+    const esc = Structra.util.esc;
+    const FRIENDLY = ['Value', 'DisplayName', 'Title', 'Name', 'Email', 'value', 'displayName', 'title', 'name', 'label', 'text'];
+    const brief = (o) => {
+      if (o === null || o === undefined) return 'null';
+      if (typeof o !== 'object') return String(o);
+      const k = FRIENDLY.find((f) => o[f] !== undefined && o[f] !== null && typeof o[f] !== 'object');
+      return k === undefined ? null : String(o[k]);
+    };
+    const full = esc(JSON.stringify(val).slice(0, 300));
+
+    if (Array.isArray(val)) {
+      if (!val.length) return '<span class="tree-null">[ ] empty</span>';
+      const parts = val.slice(0, 3).map(brief);
+      if (parts.every((p) => p !== null)) {
+        const more = val.length > 3 ? ` <span class="tree-bracket">+${val.length - 3}</span>` : '';
+        return `<span title="${full}">${esc(parts.join(', '))}${more}</span>`;
+      }
+      return `<span class="tree-bracket" title="${full}">[${val.length} ${val.length === 1 ? 'item' : 'items'}]</span>`;
+    }
+    const one = brief(val);
+    if (one !== null) return `<span title="${full}">${esc(one)}</span>`;
+    const keys = Object.keys(val).filter((k) => !k.startsWith('@'));
+    if (!keys.length) return '<span class="tree-null">{ } empty</span>';
+    return `<span class="tree-bracket" title="${full}">{ ${esc(keys.slice(0, 3).join(', '))}${keys.length > 3 ? ', …' : ''} }</span>`;
   }
 
 

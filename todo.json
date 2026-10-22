@@ -542,7 +542,7 @@
         {
           "id": "13.8",
           "title": "Tree prints a string that contains quotes without escaping (value \"3\" shows as \"\"3\"\")",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.9",
@@ -577,12 +577,12 @@
         {
           "id": "13.15",
           "title": "Table headers are forced to UPPERCASE (ITEMINTERNALID), but key names are case-sensitive in expressions; show them exactly as written",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.16",
           "title": "Table shows nested Choice and Person cells as {…}; show their useful value (Value, DisplayName, Email) and join list values",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.17",
@@ -837,7 +837,7 @@
         {
           "id": "13.67",
           "title": "Tree line numbers repeat after the closing bracket of an array of plain values ('$select': [id, displayName] then ], takes number 12 again) so every later line is numbered one too low; the fold arrow for arrays is drawn over the key text instead of after the colon. Seen with tests/fixtures/edge_odata.json in the Tree",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.68",
@@ -1167,7 +1167,7 @@
         {
           "id": "13.133",
           "title": "Overview for a file that is just 'true' (edge_bool.json) says 'A single value.' but Type distribution shows '1 Objects' and the bottom chip says '1 obj'; a boolean must be counted as a boolean. Check the same for a top level null, number and string",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.134",

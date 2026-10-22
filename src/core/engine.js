@@ -1076,6 +1076,13 @@ Structra.engine = (() => {
       s.totalNodes++;
       if (d > s.depth) s.depth = d;
 
+      // A document that is just one value (true, 42, "text", null) is that value, not an object
+      if (val === null || typeof val !== 'object') {
+        const t = typeof val;
+        if (t === 'string') s.strings++; else if (t === 'number') s.numbers++; else if (t === 'boolean') s.booleans++; else if (val === null) s.nulls++;
+        continue;
+      }
+
       if (Array.isArray(val)) {
         s.arrays++;
         const n = val.length;

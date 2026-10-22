@@ -106,10 +106,11 @@ Structra.jsonTree = (() => {
     if (typeof val === 'string') {
       const escaped = esc(
         val.replace(/\\/g, '\\\\')
+           .replace(/"/g, '\\"')
            .replace(/\n/g, '\\n')
            .replace(/\r/g, '\\r')
            .replace(/\t/g, '\\t')
-      ).replace(/\\[nrt\\]/g, m => `<span class="j-esc">${m}</span>`);
+      ).replace(/\\(?:[nrt\\]|&quot;)/g, m => `<span class="j-esc">${m}</span>`);
       return `<span class="j-str" data-path="${esc(path)}">&quot;${escaped}&quot;</span>`;
     }
     if (typeof val === 'number') return `<span class="j-num" data-path="${esc(path)}">${val}</span>`;
@@ -152,6 +153,8 @@ Structra.jsonTree = (() => {
       // Render first chunk inline
       const renderCount = Math.min(obj.length, CHUNK_SIZE);
       const chunkHtml = buildChunkLines(st, obj, path, indent, 0, renderCount, obj.length, chunkStartLine);
+      // The lines of the items are numbered inside buildChunkLines; carry on from the last one
+      if (chunkHtml.endLine != null) st.fileLine = chunkHtml.endLine;
 
       // Wrap in recyclable container
       const cid = 'jchunk' + (st.chunkId++);
@@ -241,6 +244,7 @@ Structra.jsonTree = (() => {
         lines.push(`<span class="j-line" data-path="${esc(cp)}" data-ln="${currentLine}">${innerPad}${valSpan(item, cp)}${comma}</span>`);
       }
     }
+    lines.endLine = currentLine;
     return lines;
   }
 
