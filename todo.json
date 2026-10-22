@@ -1113,6 +1113,16 @@
           "id": "13.122",
           "title": "Workspace import replaces the active tab's data with no confirmation and no summary of what was restored (tabs, bookmarks, snippets); the toast 'Workspace imported successfully' is all the feedback, and the file picker is the unstyled browser 'Choose File' control with a separate Import button",
           "status": "todo"
+        },
+        {
+          "id": "13.123",
+          "title": "Export View as Image fails with the toast 'Image export failed: Attempting to parse an unsupported color function \"color\"': the image library cannot read the CSS color-mix and color() tokens used by the V2 themes, so the feature is broken in every view",
+          "status": "todo"
+        },
+        {
+          "id": "13.124",
+          "title": "Convert to XML writes invalid XML: null values become <qty xsi:nil=\"true\"/> but the xsi namespace is never declared on <root>, so any parser fails with 'unbound prefix' (confirmed with a CSV of 3 rows). Convert to YAML output is correct. Both exports use fixed names (export.yaml, export.xml) instead of the document name",
+          "status": "todo"
         }
       ]
     }
