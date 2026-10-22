@@ -1268,6 +1268,41 @@
           "id": "13.153",
           "title": "Find counts look wrong: 'contoso' appears in 6 strings of the sample but the bar says '1 found'; and the case-sensitive 'Aa' toggle is on by default so a maker typing 'laptop' finds nothing. The three mode buttons are tiny symbols (Aa, ~, .*) with only a hover title, the replace pencil has no label, and the box floats over the top right of the Tree and its scrollbar",
           "status": "todo"
+        },
+        {
+          "id": "13.154",
+          "title": "Helpers tab, 'Apply to each' block: the nested list Tags uses items('Apply_to_each')?['Id'] for its own fields, the same loop name as the outer loop; the inner loop over items('Apply_to_each')?['Tags'] should be named Apply_to_each_2 and read items('Apply_to_each_2')?['Value']; the first row for the Tags list itself is body('Parse_JSON')?['value']?[0]?['Tags'] (a fixed index) instead of items('Apply_to_each')?['Tags']",
+          "status": "todo"
+        },
+        {
+          "id": "13.155",
+          "title": "Helpers tab 'Compose and variables' rows give body('Parse_JSON')?['keyName'] and ?['arrayName'] as examples; these are placeholder names that do not exist in the data, so a maker copying them gets null. Use the first real key of the data or hide the rows",
+          "status": "todo"
+        },
+        {
+          "id": "13.156",
+          "title": "Flow actions tab for a single scalar value offers only 'Compose: this value' with a fixed index (value?[1]); for a value inside a list item it should also offer Condition on this field, Set variable and an Apply to each that reads the same field",
+          "status": "todo"
+        },
+        {
+          "id": "13.157",
+          "title": "Keyboard Shortcuts dialog shows 'Alt + –' for both Back and Forward (a dash instead of the left and right arrow keys), so the two rows look identical; it also omits Ctrl+= / Ctrl+- / Ctrl+0 (zoom), Alt+Left and Alt+Right as written in the palette, and '?' itself, and the dialog has no search",
+          "status": "todo"
+        },
+        {
+          "id": "13.158",
+          "title": "Back and Forward buttons next to the path bar work (history of selected paths) but only change the breadcrumb and Expressions: the Tree does not move to the node, so the buttons look dead for a maker who only watches the document",
+          "status": "todo"
+        },
+        {
+          "id": "13.159",
+          "title": "Alt+W (and the tab x button) closes a tab at once with no confirmation even when the tab holds edited, masked or mocked data, and there is no 'Reopen closed tab' (Ctrl+Shift+T) or Undo toast; after closing, the path bar falls back to '$' without telling which tab is now shown",
+          "status": "todo"
+        },
+        {
+          "id": "13.160",
+          "title": "Schema Gen works well and matches Power Automate Parse JSON needs (nullable types as lists, required keys, items for arrays, copy toast), so it should be the single source for the Schema view and the Type Definitions dialog, which both disagree with it",
+          "status": "todo"
         }
       ]
     }
