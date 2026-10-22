@@ -958,6 +958,16 @@
           "id": "13.91",
           "title": "Snippet Library: Save with an empty name does nothing and shows no message (should highlight the field or say 'Enter a name'); the saved size '8 B' and the Load/Copy/Delete buttons are tiny and Delete has no confirm or undo; the Save form sits below the list with a hairline that looks like a second dialog",
           "status": "todo"
+        },
+        {
+          "id": "13.92",
+          "title": "Gear at the bottom of the rail opens only 'Appearance'; there is no real Settings (default panel layout, toolbar, SQL on/off, shortcuts, clear data), so the gear label is misleading",
+          "status": "todo"
+        },
+        {
+          "id": "13.93",
+          "title": "Appearance dialog: Mode hint always reads 'System follows your operating system' even when Light is selected; the hint should describe the chosen mode",
+          "status": "todo"
         }
       ]
     }
