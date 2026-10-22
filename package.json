@@ -6,7 +6,8 @@
     "test": "node tests/unit/run.js",
     "test:unit": "node tests/unit/run.js",
     "test:smoke": "node tests/smoke/fixtures.js",
-    "serve": "python -m http.server 8765"
+    "serve": "python -m http.server 8765",
+    "test:tabs": "node tests/smoke/tabs.js"
   },
   "devDependencies": {
     "playwright": "^1.64.1"

@@ -98,7 +98,6 @@ class StructraWorkspace extends StructraOverlay {
         Structra.set('fileName', ws.fileName || 'imported.json');
         Structra.set('rawText', JSON.stringify(ws.data));
         Structra.set('fileSize', JSON.stringify(ws.data).length);
-        Structra.engine.ingest(ws.data, ws.fileName || 'imported.json', JSON.stringify(ws.data).length);
       }
 
       // Restore bookmarks

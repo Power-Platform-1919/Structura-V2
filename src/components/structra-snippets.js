@@ -104,7 +104,6 @@ class StructraSnippets extends StructraOverlay {
       Structra.set('rawText', snip.content);
       Structra.set('fileName', snip.name + '.json');
       Structra.set('fileSize', snip.content.length);
-      Structra.engine.ingest(data, snip.name + '.json', snip.content.length);
       this.close();
       Structra.toast(`Loaded snippet: ${snip.name}`);
     } catch (e) { Structra.toast('Failed to load: ' + e.message, 'error'); }

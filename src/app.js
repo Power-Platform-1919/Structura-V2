@@ -28,6 +28,9 @@
   // Tab-state coordination: sync global state <-> tab objects
   Structra.events.on('tabs:switched', (tab) => {
     Structra.log.info('App', 'Tab switched: ' + tab.label + ' (id=' + tab.id + ')');
+    // The engine must point at this tab before any view reacts to the new state below.
+    // Views read the active dataset (analysis, columns, SQL table) while they render.
+    Structra.engine.setActive(tab.id);
     // Clear active query so stale results don't bleed into new tab
     Structra.engine.clearQuery();
     Structra.set('jsonData', tab.data || null);
@@ -235,11 +238,7 @@
 
   /* --- Engine Integration --- */
 
-  // Wire tab events to engine
-  Structra.events.on('tabs:switched', (tab) => {
-    Structra.engine.setActive(tab.id);
-  });
-
+  // Wire tab close to engine (the engine follows tab switches in the handler above)
   Structra.events.on('tabs:closed', (tabId) => {
     Structra.engine.remove(tabId);
   });
