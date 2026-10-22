@@ -210,6 +210,11 @@ class StructraInputPanel extends StructraElement {
 
   /* ======== LOAD SUCCESS ======== */
   async _loadSuccess(data, text, name) {
+    const unopenable = Structra.describeUnopenable(data);
+    if (unopenable) {
+      Structra.toast(name + ' contains only ' + unopenable + ', so there is nothing to explore');
+      return;
+    }
     Structra.log.info('InputPanel', '_loadSuccess: ' + name + ' (' + (text.length / 1024).toFixed(1) + ' KB text)');
     const t0 = performance.now();
 

@@ -64,6 +64,19 @@ Structra.state = {
 };
 
 /* ===== STATE HELPERS ===== */
+
+/**
+ * "No document" is represented by a falsy jsonData, so a file whose whole content is
+ * null, false, 0 or "" cannot be opened. Callers use this to say so instead of showing nothing.
+ */
+Structra.describeUnopenable = (data) => {
+  if (data === null) return 'null';
+  if (data === false) return 'false';
+  if (data === 0) return '0';
+  if (data === '') return 'an empty string';
+  return null;
+};
+
 Structra.set = (key, value) => {
   const old = Structra.state[key];
   if (old === value) return;

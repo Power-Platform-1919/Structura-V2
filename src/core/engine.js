@@ -1053,16 +1053,21 @@ Structra.engine = (() => {
       const ds = getActive();
       data = ds ? ds.raw : null;
     }
-    if (!data) return null;
-    path = path || '$';
-    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && data[0] !== null && !Array.isArray(data[0])) {
-      return { rows: data, path };
+    return _firstObjectArray(data, path || '$');
+  }
+
+  // Recursive part. A null child is just a null value, never "the whole document".
+  function _firstObjectArray(data, path) {
+    if (!data || typeof data !== 'object') return null;
+    if (Array.isArray(data)) {
+      const first = data[0];
+      return data.length > 0 && first !== null && typeof first === 'object' && !Array.isArray(first)
+        ? { rows: data, path }
+        : null;
     }
-    if (data && typeof data === 'object' && !Array.isArray(data)) {
-      for (const k of Object.keys(data)) {
-        const result = findFirstObjectArray(data[k], `${path}.${k}`);
-        if (result) return result;
-      }
+    for (const k of Object.keys(data)) {
+      const result = _firstObjectArray(data[k], `${path}.${k}`);
+      if (result) return result;
     }
     return null;
   }
@@ -1079,14 +1084,17 @@ Structra.engine = (() => {
       const ds = getActive();
       obj = ds ? ds.raw : null;
     }
-    if (!obj) return [];
-    const seen = _seen || new Set();
+    return _allArrays(obj, path || '$', _seen || new Set());
+  }
+
+  // Recursive part. A null child is just a null value, never "the whole document".
+  function _allArrays(obj, path, seen) {
+    if (!obj || typeof obj !== 'object') return [];
     if (obj && typeof obj === 'object') {
       if (seen.has(obj)) return [];
       seen.add(obj);
     }
     const result = [];
-    path = path || '$';
     if (Array.isArray(obj)) {
       result.push({ path, count: obj.length, data: obj });
       for (let i = 0; i < obj.length; i++) {
@@ -1096,7 +1104,7 @@ Structra.engine = (() => {
             if (v && typeof v === 'object') {
               const cp = `${path}[*].${k}`;
               if (!result.some(r => r.path === cp)) {
-                const sub = findAllArrays(v, cp, seen);
+                const sub = _allArrays(v, cp, seen);
                 for (const s of sub) {
                   if (!result.some(r => r.path === s.path)) result.push(s);
                 }
@@ -1107,7 +1115,7 @@ Structra.engine = (() => {
       }
     } else if (obj && typeof obj === 'object') {
       for (const [k, v] of Object.entries(obj)) {
-        const sub = findAllArrays(v, path === '$' ? k : `${path}.${k}`, seen);
+        const sub = _allArrays(v, path === '$' ? k : `${path}.${k}`, seen);
         for (const s of sub) result.push(s);
       }
     }

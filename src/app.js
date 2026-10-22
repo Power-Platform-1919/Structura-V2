@@ -207,6 +207,8 @@
           Structra.log.info('App', 'Parsing dropped JSON (' + (reader.result.length / 1024).toFixed(1) + ' KB)...');
           data = await Structra.parseJsonAsync(reader.result);
         }
+        const unopenable = Structra.describeUnopenable(data);
+        if (unopenable) { Structra.toast(file.name + ' contains only ' + unopenable + ', so there is nothing to explore'); return; }
         Structra.log.info('App', 'Drop parse success — setting state');
         Structra.set('jsonData', data);
         Structra.set('fileName', file.name);
@@ -306,6 +308,7 @@
   // Open a document shared through the URL hash (#share=...)
   Structra.share.readHash().then((shared) => {
     if (!shared) return;
+    if (Structra.describeUnopenable(shared.data)) { Structra.toast('This share link holds an empty document'); return; }
     Structra.set('jsonData', shared.data);
     Structra.set('fileName', 'Shared JSON');
     Structra.set('fileSize', JSON.stringify(shared.data).length);
