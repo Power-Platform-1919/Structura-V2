@@ -526,7 +526,7 @@ Structra.engine = (() => {
 
     // DuckDB path: any registered dataset
     if (_canUseDuck(ds)) {
-      const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+      const tableName = _tableOf(ds);
       const cols = _getDuckColumnNames(ds);
       if (cols.length === 0) return _findInMemory(ds, text);
 
@@ -644,7 +644,7 @@ Structra.engine = (() => {
 
     // DuckDB path — works for all registered shapes
     if (_canUseDuck(ds)) {
-      const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+      const tableName = _tableOf(ds);
       const cols = _getDuckColumnNames(ds);
       const sqlWhere = _conditionsToSql(conditions, cols);
       if (!sqlWhere) return _filterInMemory(ds, conditions);
@@ -880,6 +880,11 @@ Structra.engine = (() => {
      ================================================================ */
 
   /** Can we run SQL on this dataset? (DuckDB ready + not failed + dataset registered) */
+  /** The DuckDB table a dataset was registered under, safe to put inside a quoted SQL name */
+  function _tableOf(ds) {
+    return ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+  }
+
   function _canUseDuck(ds) {
     return _duckReady && !_duckFailed && !!Structra.duckdb && _isDuckRegistered(ds);
   }
@@ -905,7 +910,7 @@ Structra.engine = (() => {
     const ds = getActive();
     if (!ds || !_duckAvailable()) return [];
     if (ds._duckColumns) return ds._duckColumns;
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     const cols = await Structra.duckdb.getTableColumns(tableName);
     ds._duckColumns = cols;
     return cols;
@@ -920,7 +925,7 @@ Structra.engine = (() => {
   async function jsonExtract(path) {
     const ds = getActive();
     if (!ds || !_canUseDuck(ds)) return [];
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
 
     // Convert dot path to DuckDB json_extract path: address.city → $.address.city
     const jsonPath = path.startsWith('$') ? path : '$.' + path;
@@ -960,7 +965,7 @@ Structra.engine = (() => {
   async function unnest(column) {
     const ds = getActive();
     if (!ds || !_canUseDuck(ds)) return [];
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     try {
       return await Structra.duckdb.query(`SELECT UNNEST("${column}") AS item FROM "${tableName}"`);
     } catch (err) {
@@ -1503,7 +1508,7 @@ Structra.engine = (() => {
   async function topKValues(column, k = 10) {
     const ds = getActive();
     if (!ds || !_canUseDuck(ds)) return [];
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     try {
       return await Structra.duckdb.query(
         `SELECT UNNEST(approx_top_k("${column}", ${k})) AS val FROM "${tableName}"`
@@ -1589,7 +1594,7 @@ Structra.engine = (() => {
   async function analyzeDistribution(column) {
     const ds = getActive();
     if (!ds || !(await enableSql())) return null;
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     try {
       const result = await Structra.duckdb.query(`
         SELECT
@@ -1641,7 +1646,7 @@ Structra.engine = (() => {
   async function correlation(col1, col2) {
     const ds = getActive();
     if (!ds || !(await enableSql())) return null;
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     try {
       const result = await Structra.duckdb.query(`SELECT corr("${col1}", "${col2}") AS r FROM "${tableName}"`);
       return result[0]?.r ?? null;
@@ -1662,7 +1667,7 @@ Structra.engine = (() => {
   async function fuzzySearch(text, threshold = 0.8) {
     const ds = getActive();
     if (!ds || !(await enableSql())) return [];
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     const cols = (ds._duckColumns || []).filter(c =>
       c.type && (c.type.toUpperCase() === 'VARCHAR' || c.type.toUpperCase().includes('TEXT'))
     ).map(c => c.name);
@@ -1688,7 +1693,7 @@ Structra.engine = (() => {
   async function regexSearch(pattern) {
     const ds = getActive();
     if (!ds || !(await enableSql())) return [];
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     const cols = (ds._duckColumns || []).filter(c =>
       c.type && (c.type.toUpperCase() === 'VARCHAR' || c.type.toUpperCase().includes('TEXT'))
     ).map(c => c.name);
@@ -1723,22 +1728,12 @@ Structra.engine = (() => {
       // JS fallback: export raw data as JSON
       return ds ? JSON.stringify(ds.raw, null, 2) : null;
     }
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     try {
       if (format === 'csv') {
         const rows = await Structra.duckdb.query(`SELECT * FROM "${tableName}"`);
         if (!rows || rows.length === 0) return '';
-        const headers = Object.keys(rows[0]);
-        const csvLines = [headers.join(',')];
-        for (const r of rows) {
-          csvLines.push(headers.map(h => {
-            const v = r[h];
-            if (v == null) return '';
-            const s = String(v);
-            return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
-          }).join(','));
-        }
-        return csvLines.join('\n');
+        return Structra.convert.generateCsv(rows, Object.keys(rows[0]));
       }
       // JSON export
       const rows = await Structra.duckdb.query(`SELECT * FROM "${tableName}"`);
@@ -1768,7 +1763,7 @@ Structra.engine = (() => {
       }
       return [];
     }
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     try {
       return await Structra.duckdb.query(`SELECT * FROM "${tableName}" USING SAMPLE ${n} ROWS`);
     } catch (err) {
@@ -1787,7 +1782,7 @@ Structra.engine = (() => {
   async function pivotData(onCol, valueCol, aggFn = 'count') {
     const ds = getActive();
     if (!ds || !(await enableSql())) return [];
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     try {
       return await Structra.duckdb.query(
         `PIVOT "${tableName}" ON "${onCol}" USING ${aggFn}("${valueCol}")`
@@ -1816,7 +1811,7 @@ Structra.engine = (() => {
   async function summarizeTable() {
     const ds = getActive();
     if (!ds || !_canUseDuck(ds)) return [];
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    const tableName = _tableOf(ds);
     try {
       return await Structra.duckdb.query(`SUMMARIZE "${tableName}"`);
     } catch (err) {

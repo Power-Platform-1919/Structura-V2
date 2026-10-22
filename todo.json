@@ -382,8 +382,8 @@
         },
         {
           "id": "10.11",
-          "title": "Remove duplicate JS and DuckDB code paths: one engine contract, one place per rule",
-          "status": "todo"
+          "title": "Engine duplicates removed: one _tableOf(ds) instead of 14 copies, CSV export reuses Structra.convert.generateCsv (it also handles nested values correctly). Fixed a bug found on the way: SQL find results broke the tree filter because it expected a Set but got a list. The JavaScript and DuckDB paths themselves stay: DuckDB is optional and loads on demand, so the JavaScript path is the fallback by design",
+          "status": "done"
         },
         {
           "id": "10.12",

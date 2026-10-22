@@ -763,7 +763,8 @@ Structra.jsonTree = (() => {
   async function setFilter(container, matchedPaths) {
     const st = getState(container);
     if (!st) return;
-    st.filterMatchedPaths = matchedPaths;
+    // Search returns a list of paths; the filter looks paths up, so it keeps them as a Set
+    st.filterMatchedPaths = matchedPaths instanceof Set ? matchedPaths : new Set(matchedPaths);
     st.filterPathRegex = null;
     if (st.loadObserver) st.loadObserver.disconnect();
     Structra.events.emit('loading:show', 'Applying filter…');
