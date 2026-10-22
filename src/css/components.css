@@ -486,6 +486,12 @@
 .s-key { color: var(--syn-schema-key); }
 .s-type { color: var(--syn-schema-type); font-weight: 500; }
 .s-req { color: var(--danger); font-size: var(--fs-xs); font-family: var(--font-sans); }
+.s-null { color: var(--text-muted); font-weight: 400; }
+.s-or { color: var(--text-muted); }
+.s-line { cursor: pointer; border-radius: var(--radius-sm); }
+.s-line:hover { background: var(--surface-hover, color-mix(in srgb, var(--accent) 8%, transparent)); }
+.s-line.selected { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.s-more { padding: var(--sp-3) 0; color: var(--text-muted); font-family: var(--font-sans); font-size: var(--fs-sm); }
 
 /* ===== EDITOR VIEW ===== */
 .editor-container { flex: 1; display: flex; flex-direction: column; }

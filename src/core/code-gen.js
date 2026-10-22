@@ -5,6 +5,50 @@ Structra.codeGen = (() => {
 
   const { typeOf, capitalize, camelCase, pascalCase, snakeCase } = Structra.util;
 
+  /**
+   * The generators below read one example of each record. To be right for every record, a list is first
+   * reduced to one merged example: each field takes its first real value (so a field that is empty in
+   * the first record but "HR" in the second is a string), and a field that is null or missing in any record
+   * is remembered as nullable under NULLABLE.
+   */
+  const NULLABLE = Symbol('nullable');
+  const isNullable = (parent, key, val) => val === null || !!(parent && parent[NULLABLE] && parent[NULLABLE].has(key));
+  const isPlain = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+
+  function mergeRecords(records) {
+    const out = {};
+    const nullable = new Set();
+    const keys = [];
+    records.forEach((r) => Object.keys(r).forEach((k) => { if (!keys.includes(k)) keys.push(k); }));
+    for (const k of keys) {
+      const values = records.map((r) => r[k]);
+      if (values.some((v) => v === null || v === undefined)) nullable.add(k);
+      const real = values.filter((v) => v !== null && v !== undefined);
+      if (!real.length) out[k] = null;
+      else if (real.every(isPlain)) out[k] = mergeRecords(real.map((r) => r));
+      else if (real.every(Array.isArray)) out[k] = normalize(real.flat());
+      else out[k] = real[0];
+    }
+    out[NULLABLE] = nullable;
+    return out;
+  }
+
+  function normalize(v) {
+    if (Array.isArray(v)) {
+      const records = v.filter(isPlain);
+      if (records.length) return [mergeRecords(records)];
+      const nested = v.filter(Array.isArray);
+      if (nested.length) return [normalize(nested.flat())];
+      return v.length ? [v.find((x) => x !== null && x !== undefined) ?? null] : v;
+    }
+    if (isPlain(v)) {
+      const out = {};
+      for (const [k, x] of Object.entries(v)) out[k] = normalize(x);
+      return out;
+    }
+    return v;
+  }
+
   // === TypeScript ===
   function toTypeScript(val, name = 'Root') {
     const interfaces = [];
@@ -22,8 +66,9 @@ Structra.codeGen = (() => {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
           const type = walk(val, pascalCase(k));
-          const optional = val === null ? '?' : '';
-          fields.push(`  ${k}${optional}: ${type};`);
+          // A field that can be empty reads "T | null": it is there, but may hold nothing
+          const orNull = isNullable(v, k, val) && type !== 'null' ? ' | null' : '';
+          fields.push(`  ${k}: ${type}${orNull};`);
         }
         interfaces.push(`interface ${iName} {\n${fields.join('\n')}\n}`);
         return iName;
@@ -60,8 +105,8 @@ Structra.codeGen = (() => {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
           const type = walk(val, pascalCase(k));
-          const optional = val === null ? `Optional[${type}]` : type;
-          fields.push(`    ${snakeCase(k)}: ${val === null ? optional : type}`);
+          const optional = isNullable(v, k, val) ? `Optional[${type}]` : type;
+          fields.push(`    ${snakeCase(k)}: ${isNullable(v, k, val) ? optional : type}`);
         }
         classes.push(`@dataclass\nclass ${cName}:\n${fields.join('\n')}`);
         return cName;
@@ -98,7 +143,7 @@ Structra.codeGen = (() => {
         const props = [];
         for (const [k, val] of Object.entries(v)) {
           const type = walk(val, pascalCase(k));
-          const nullable = val === null ? '?' : '';
+          const nullable = isNullable(v, k, val) ? '?' : '';
           props.push(`    public ${type}${nullable} ${pascalCase(k)} { get; set; }`);
         }
         classes.push(`public class ${cName}\n{\n${props.join('\n')}\n}`);
@@ -136,7 +181,7 @@ Structra.codeGen = (() => {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
           const type = walk(val, pascalCase(k));
-          const ptr = val === null ? '*' : '';
+          const ptr = isNullable(v, k, val) ? '*' : '';
           fields.push(`\t${pascalCase(k)} ${ptr}${type} \`json:"${k}"\``);
         }
         structs.push(`type ${sName} struct {\n${fields.join('\n')}\n}`);
@@ -174,8 +219,8 @@ Structra.codeGen = (() => {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
           const type = walk(val, pascalCase(k));
-          const opt = val === null ? `Option<${type}>` : type;
-          fields.push(`    pub ${snakeCase(k)}: ${val === null ? opt : type},`);
+          const opt = isNullable(v, k, val) ? `Option<${type}>` : type;
+          fields.push(`    pub ${snakeCase(k)}: ${isNullable(v, k, val) ? opt : type},`);
         }
         structs.push(`#[derive(Debug, Serialize, Deserialize)]\npub struct ${sName} {\n${fields.join('\n')}\n}`);
         return sName;
@@ -385,7 +430,7 @@ Structra.codeGen = (() => {
     const key = aliases[lang] || lang;
     const gen = generators[key];
     if (!gen) return '';
-    return gen.fn(val, name || 'Root');
+    return gen.fn(normalize(val), name || 'Root');
   }
 
   function getLanguages() {

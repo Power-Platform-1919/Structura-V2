@@ -587,7 +587,7 @@
         {
           "id": "13.17",
           "title": "Schema view reads only the first record, so Department shows 'null' although the second record has a string; merge across rows and show nullable and optional",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.18",
@@ -607,7 +607,7 @@
         {
           "id": "13.21",
           "title": "Find: searching 'Open' reports '1 found' but the tree area goes completely blank (no matched line, no filtered tree). A search must show the match in its context and highlight it",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.22",
@@ -627,7 +627,7 @@
         {
           "id": "13.25",
           "title": "Regression guard: the smoke test never searches; add a Find check (type text, a match is visible and highlighted, the tree is not blank). The blank-tree bug came from a path-format mismatch ($.a[0] versus a[0]) that only a real search shows",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.26",
@@ -872,7 +872,7 @@
         {
           "id": "13.74",
           "title": "Transform presets insert expressions with placeholder field names (.[] | {name, email}, sort_by(.name)) that rarely match the data; offer presets built from the real keys of the main list",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.75",
@@ -902,7 +902,7 @@
         {
           "id": "13.80",
           "title": "Tool results should be undoable and visible: after Sort, Flatten or Mask the tab should show a 'Modified' marker and an Undo link in the toast",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.81",
@@ -1092,7 +1092,7 @@
         {
           "id": "13.118",
           "title": "Type Definitions: for a pasted CSV where qty and price are empty in some rows, TypeScript says 'qty: number; price: number;' (should be number | null or optional); same for the other languages. The Overview already flagged both as 33% null, so the two views disagree",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.119",
@@ -1227,7 +1227,7 @@
         {
           "id": "13.145",
           "title": "Schema view reads types from the first record only: Requester.Department and JobTitle show 'null' although rows 2 and 3 hold 'HR' and 'Facilities' (should be 'string, nullable'), Picture shows 'string' although row 2 is null; 'required' appears only on the top two keys and never on item fields, so the Schema view contradicts the Schema Gen tab that already handles nullable and required",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.146",
@@ -1237,7 +1237,7 @@
         {
           "id": "13.147",
           "title": "Schema view rows are not clickable: clicking 'Email' does nothing and the Expressions tab keeps saying 'Select a path in the tree' although the user is in the Schema view; the Schema view is where a maker sees the field list, so a click should select the field and show its expressions",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.148",
@@ -1327,7 +1327,7 @@
         {
           "id": "13.165",
           "title": "LIKELY ROOT CAUSE of the SQL failures (Find blank, Distinct Values, Column Stats, Fuzzy): after several tabs are opened, closed and reopened, the engine looks for table tab_5 but only tab_3 exists ('Catalog Error: Table with name tab_5 does not exist! Did you mean tab_3?' in the console during Find and Replace All); engine tab tables are registered once and never re-registered or renamed when tabs change. Fix the table registry first, then retest all four features",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.166",
@@ -1347,7 +1347,7 @@
         {
           "id": "13.169",
           "title": "Re-checked after +All and D2: the tree controls work, but the Analyze drawer still shows the wrong document's numbers (6 nodes) while the Tree shows the 2 email rows, so the stale analysis persists until the tab is reloaded; the Explorer rail button again opens a new empty tab ('Untitled 7' after 'Untitled 5', so the counter also skips numbers) and the rail shows both Explorer-style and Query buttons as active",
-          "status": "todo"
+          "status": "done"
         }
       ]
     }

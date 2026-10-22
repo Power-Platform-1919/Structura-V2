@@ -28,15 +28,21 @@ class StructraSchema extends StructraElement {
   render() {
     this.innerHTML = '<div class="schema-container" id="schemaContainer"></div>';
     this.renderSchema();
+    // A field is a place in the document: click it to see its expressions, like a node in the Tree
+    this.addEventListener('click', (e) => {
+      const line = e.target.closest('.s-line');
+      if (!line || !line.dataset.path || line.dataset.path === '$') return;
+      this.querySelectorAll('.s-line.selected').forEach((l) => l.classList.remove('selected'));
+      line.classList.add('selected');
+      Structra.set('currentPath', line.dataset.path);
+    });
   }
 
   renderSchema() {
     this._stale = false;
-    Structra.log.info('Schema', 'renderSchema()');
     const t0 = performance.now();
     const container = this.$('#schemaContainer');
 
-    // Prefer engine schema if available
     const dataset = Structra.engine.getActive();
     const data = dataset ? dataset.raw : Structra.state.jsonData;
     if (!data) {
@@ -44,70 +50,64 @@ class StructraSchema extends StructraElement {
       return;
     }
 
-    // Try engine.getSchema() for cached result
-    let lines;
-    if (dataset) {
-      const engineSchema = Structra.engine.getSchema();
-      if (engineSchema && engineSchema.lines) {
-        lines = engineSchema.lines;
+    // The same schema the Schema Gen tab copies, so the two never disagree: every record is read,
+    // a field that is sometimes empty is "string | null", and a field present in every record is "required"
+    const schema = Structra.schemaGen.smart(data, { integers: true, required: true });
+    const lines = [];
+    this._collect(schema, 'root', 0, false, lines);
+
+    const MAX = 3000;
+    const shown = lines.slice(0, MAX);
+    container.innerHTML = shown.map((l) => {
+      const nullable = l.types.includes('null');
+      const types = l.types.map((t) => `<span class="s-type${t === 'null' ? ' s-null' : ''}">${Structra.util.esc(t)}</span>`).join('<span class="s-or"> | </span>');
+      return `<div class="s-line" data-path="${Structra.util.esc(l.path)}" style="padding-left:${l.depth * 16}px">` +
+        `<span class="s-key">${Structra.util.esc(l.key)}</span>: ${types}` +
+        (l.required ? ' <span class="s-req">required</span>' : '') +
+        (nullable ? '' : '') +
+        `</div>`;
+    }).join('') + (lines.length > MAX ? `<div class="s-more">${(lines.length - MAX).toLocaleString()} more fields are not shown. Copy the schema from the Schema Gen tab to get all of it.</div>` : '');
+    Structra.log.perf('Schema', 'render', performance.now() - t0);
+  }
+
+  /** What a schema node is called: 'string', 'string | null', 'object | array', or 'any' when only empty values were seen */
+  _typesOf(node) {
+    const out = [];
+    const add = (t) => { if (t && !out.includes(t)) out.push(t); };
+    const read = (n) => {
+      if (!n) return;
+      if (Array.isArray(n.type)) n.type.forEach(add);
+      else if (n.type) add(n.type);
+      if (Array.isArray(n.anyOf)) n.anyOf.forEach(read);
+    };
+    read(node);
+    return out.length ? out : ['any'];
+  }
+
+  /** Flatten a JSON Schema into display lines: { key, types, depth, required, path } */
+  _collect(node, key, depth, required, lines, path = '$') {
+    if (lines.length > 20000) return;
+    lines.push({ key, types: this._typesOf(node), depth, required, path });
+    // A node can be an object in some records and a list in others: show the children of both
+    const variants = [node, ...(Array.isArray(node && node.anyOf) ? node.anyOf : [])];
+    const seenKeys = new Set();
+    for (const v of variants) {
+      if (v && v.properties) {
+        const req = new Set(v.required || []);
+        for (const [k, child] of Object.entries(v.properties)) {
+          if (seenKeys.has(k)) continue;
+          seenKeys.add(k);
+          this._collect(child, k, depth + 1, req.has(k), lines, path === '$' ? `$.${k}` : `${path}.${k}`);
+        }
       }
     }
-    if (!lines) {
-      lines = [];
-      this._inferSchema(data, 'root', 0, lines, new Set());
-    }
-
-    container.innerHTML = lines.map(l =>
-      `<div style="padding-left:${l.depth * 16}px">` +
-      `<span class="s-key">${Structra.util.esc(l.key)}</span>: ` +
-      `<span class="s-type">${l.type}</span>` +
-      (l.required ? ' <span class="s-req">required</span>' : '') +
-      `</div>`
-    ).join('');
-  }
-
-  _inferSchema(val, key, depth, lines, seen) {
-    const type = this._typeOf(val);
-    const required = depth === 1;
-    lines.push({ key, type, depth, required });
-
-    if (type === 'object' && val) {
-      const entries = Object.entries(val);
-      for (const [k, v] of entries) {
-        this._inferSchema(v, k, depth + 1, lines, seen);
-      }
-    } else if (type === 'array' && val && val.length > 0) {
-      // Infer item schema from first element
-      const sample = val[0];
-      if (sample && typeof sample === 'object') {
-        // Merge keys from all items for a more accurate schema
-        const merged = this._mergeArrayItems(val);
-        this._inferSchema(merged, '[item]', depth + 1, lines, seen);
-      } else {
-        lines.push({ key: '[item]', type: this._typeOf(sample), depth: depth + 1, required: false });
+    for (const v of variants) {
+      if (v && v.items && !seenKeys.has('[item]')) {
+        seenKeys.add('[item]');
+        this._collect(v.items, '[item]', depth + 1, false, lines, path + '[0]');
       }
     }
   }
-
-  _mergeArrayItems(arr) {
-    const merged = {};
-    arr.forEach(item => {
-      if (item && typeof item === 'object' && !Array.isArray(item)) {
-        Object.entries(item).forEach(([k, v]) => {
-          if (!(k in merged)) merged[k] = v;
-        });
-      }
-    });
-    return merged;
-  }
-
-  _typeOf(val) {
-    if (val === null) return 'null';
-    if (Array.isArray(val)) return 'array';
-    if (typeof val === 'number') return Number.isInteger(val) ? 'integer' : 'number';
-    return typeof val;
-  }
-
 }
 
 customElements.define('structra-schema', StructraSchema);
