@@ -10,6 +10,11 @@
      Structra.expressions.powerAutomate(path, value) → rows
      Structra.expressions.powerFx(path, value)       → rows
      Structra.expressions.helpers(data)              → sections
+     Structra.expressions.flowActions(path, value)   → [{ label, note, code }]  action JSON for a cloud flow
+     Structra.expressions.getSource() / setSource({...})
+        where the JSON comes from, so expressions start at the right place:
+        { kind: 'action' | 'trigger' | 'item' | 'custom', name, fxVar, fullOutput: 'auto' | true | false }
+        Changing it emits 'expressions:source-changed'.
    ============================================================ */
 
 window.Structra = window.Structra || {};
@@ -27,11 +32,53 @@ Structra.expressions = (() => {
     (arr.length && arr[0] && typeof arr[0] === 'object' && !Array.isArray(arr[0])) ? Object.keys(arr[0]) : null;
 
   /* ========================================================
+     SOURCE: where the JSON came from in the flow or app
+     ======================================================== */
+
+  const SOURCE_KEY = 'structra.ppSource';
+  const DEFAULT_SOURCE = { kind: 'action', name: 'Parse_JSON', fxVar: 'jsonText', fullOutput: 'auto' };
+
+  function loadSource() {
+    try { return { ...DEFAULT_SOURCE, ...JSON.parse(localStorage.getItem(SOURCE_KEY) || '{}') }; } catch { return { ...DEFAULT_SOURCE }; }
+  }
+  let source = loadSource();
+
+  const getSource = () => ({ ...source });
+
+  function setSource(patch) {
+    source = { ...source, ...patch };
+    try { localStorage.setItem(SOURCE_KEY, JSON.stringify(source)); } catch { /* not saved in a private window */ }
+    if (Structra.events) Structra.events.emit('expressions:source-changed', getSource());
+  }
+
+  /** The expression a Power Automate path starts from */
+  function rootExpression() {
+    const name = (source.name || '').trim();
+    switch (source.kind) {
+      case 'trigger': return 'triggerBody()';
+      case 'item': return `items('${name || 'Apply_to_each'}')`;
+      case 'custom': return name || "body('Parse_JSON')";
+      default: return `body('${name || 'Parse_JSON'}')`;
+    }
+  }
+
+  /** A whole action output ({ statusCode, headers, body }) already starts at body, so skip that key */
+  function dropsBody(data) {
+    if (source.fullOutput === true) return true;
+    if (source.fullOutput === false) return false;
+    return !!data && typeof data === 'object' && !Array.isArray(data)
+      && !!data.body && typeof data.body === 'object' && ('statusCode' in data || 'headers' in data);
+  }
+
+  const pa = (path) => Structra.paths.powerAutomate(path, { root: rootExpression(), dropBody: dropsBody(Structra.state && Structra.state.jsonData) });
+  const fx = (path) => Structra.paths.powerFx(path, { variable: source.fxVar || 'jsonText' });
+
+  /* ========================================================
      POWER AUTOMATE
      ======================================================== */
 
   function powerAutomate(path, value) {
-    const p = Structra.paths.powerAutomate(path);
+    const p = pa(path);
     const rows = [row('Access value', p)];
     const add = (label, code) => rows.push(row(label, code));
 
@@ -40,8 +87,8 @@ Structra.expressions = (() => {
         add('Count (length)', `length(${p})`);
         add('First item', `first(${p})`);
         add('Last item', `last(${p})`);
-        add('Get item [0]', `${p}[0]`);
-        add('Is empty?', `equals(length(${p}), 0)`);
+        add('Get item [0]', `${p}?[0]`);
+        add('Is empty?', `empty(${p})`);
         add('Is not empty?', `greater(length(${p}), 0)`);
         add('Apply to each (input)', p);
         add('Current item', `items('Apply_to_each')`);
@@ -52,13 +99,13 @@ Structra.expressions = (() => {
         add('Union with another', `union(${p}, variables('otherArray'))`);
         add('Intersection', `intersection(${p}, variables('otherArray'))`);
         add('To JSON string', `string(${p})`);
-        add('Create array', `createArray(${p}[0], ${p}[1])`);
+        add('Create array', `createArray(${p}?[0], ${p}?[1])`);
 
         const keys = firstObjectKeys(value);
         if (keys) {
           const k = keys[0];
           if (k) {
-            add(`[0].${k}`, `${p}[0]?['${k}']`);
+            add(`[0].${k}`, `${p}?[0]?['${k}']`);
             add(`Current .${k}`, `items('Apply_to_each')?['${k}']`);
             add('Sort ascending', `sort(${p}, '${k}')`);
             add('Sort descending', `reverse(sort(${p}, '${k}'))`);
@@ -68,7 +115,7 @@ Structra.expressions = (() => {
             add('Select: Map', `item()?['${k}']`);
           }
           if (keys[1]) {
-            add(`[0].${keys[1]}`, `${p}[0]?['${keys[1]}']`);
+            add(`[0].${keys[1]}`, `${p}?[0]?['${keys[1]}']`);
             add(`Current .${keys[1]}`, `items('Apply_to_each')?['${keys[1]}']`);
           }
         } else if (value.length && typeof value[0] === 'string') {
@@ -92,13 +139,12 @@ Structra.expressions = (() => {
         add('Add property', `addProperty(${p}, 'newKey', 'newValue')`);
         add('Remove property', `removeProperty(${p}, '${k0}')`);
         add('Set property', `setProperty(${p}, '${k0}', 'newValue')`);
-        add('Key count (approx.)', `length(string(${p}))`);
         for (const k of keys.slice(0, 10)) {
           const v = value[k];
           const at = `${p}?['${k}']`;
           if (Array.isArray(v)) {
             add(`${k} (length)`, `length(${at})`);
-            add(`${k}[0]`, `${at}[0]`);
+            add(`${k}[0]`, `${at}?[0]`);
             add(`${k} first`, `first(${at})`);
           } else if (v === null) {
             add(`${k} (null)`, at);
@@ -222,8 +268,44 @@ Structra.expressions = (() => {
      POWER FX (Canvas apps)
      ======================================================== */
 
+  /* ---- Power Fx: pick the right conversion for each column from the values it really holds ---- */
+
+  const SIMPLE_FX_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+  const fxName = (k) => (SIMPLE_FX_NAME.test(k) ? k : `'${k.replace(/'/g, "''")}'`);
+  const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+  const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+
+  /** What do the first rows hold under this key? → { kind, convert(expr), sample } */
+  function fxColumn(rows, key) {
+    const seen = new Set();
+    let allDate = true;
+    let allDateTime = true;
+    let n = 0;
+    for (const r of rows.slice(0, 50)) {
+      if (!r || typeof r !== 'object' || !(key in r) || r[key] === null) continue;
+      const v = r[key];
+      seen.add(kindOf(v));
+      if (typeof v === 'string') {
+        n++;
+        if (!ISO_DATE.test(v)) allDate = false;
+        if (!ISO_DATETIME.test(v)) allDateTime = false;
+      }
+    }
+    const ref = `ThisRecord.${fxName(key)}`;
+    if (seen.size === 1) {
+      const t = [...seen][0];
+      if (t === 'number') return { kind: 'number', value: `Value(${ref})`, literal: '0' };
+      if (t === 'boolean') return { kind: 'boolean', value: `Boolean(${ref})`, literal: 'true' };
+      if (t === 'string' && n && allDateTime) return { kind: 'datetime', value: `DateTimeValue(${ref})`, literal: 'Now()' };
+      if (t === 'string' && n && allDate) return { kind: 'date', value: `DateValue(${ref})`, literal: 'Today()' };
+      if (t === 'string') return { kind: 'text', value: `Text(${ref})`, literal: '"value"' };
+    }
+    // nothing but null, a nested object or array, or mixed types: leave it out of a typed table
+    return { kind: seen.size ? 'other' : 'text', value: `Text(${ref})`, literal: '"value"', skip: seen.has('object') || seen.has('array') };
+  }
+
   function powerFx(path, value) {
-    const p = Structra.paths.powerFx(path);
+    const p = fx(path);
     const table = `ForAll(${p}, ThisRecord)`;
     const rows = [row('Access (ParseJSON)', p)];
     const add = (label, code) => rows.push(row(label, code));
@@ -244,32 +326,37 @@ Structra.expressions = (() => {
 
         const keys = firstObjectKeys(value);
         if (keys) {
-          const k = keys[0];
-          if (k) {
-            const typed = `ForAll(${p}, {${k}: Text(ThisRecord.${k})})`;
-            add(`[1].${k} as text`, `Text(Index(${p}, 1).${k})`);
-            add(`[1].${k} as number`, `Value(Index(${p}, 1).${k})`);
-            add('Gallery column', `Text(ThisItem.${k})`);
-            add('Filter (not blank)', `Filter(ForAll(${p}, {val: Text(ThisRecord.${k})}), !IsBlank(val))`);
-            add('Filter (equals)', `Filter(${typed}, ${k} = "value")`);
+          // Every column is converted by what it holds: numbers with Value, flags with Boolean, ISO dates with DateValue
+          const cols = keys.map((c) => ({ key: c, ...fxColumn(value, c) })).filter((c) => !c.skip);
+          const colExpr = (c) => `${fxName(c.key)}: ${c.value}`;
+          const typedAll = cols.length ? `ForAll(${p}, {${cols.slice(0, 40).map(colExpr).join(', ')}})` : null;
+          if (typedAll) {
+            add('Typed table (all columns)', typedAll);
+            add('Collect typed table', `ClearCollect(colData, ${typedAll})`);
+          }
+          const first = cols[0];
+          if (first) {
+            const k = first.key;
+            const col = fxName(k);
+            const typed = `ForAll(${p}, {${colExpr(first)}})`;
+            add(`[1].${k}`, first.value.replace('ThisRecord', `Index(${p}, 1)`));
+            add('Gallery column', first.kind === 'text' ? `ThisItem.${col}` : `Text(ThisItem.${col})`);
+            add('Filter (not blank)', `Filter(${typed}, !IsBlank(${col}))`);
+            add('Filter (equals)', `Filter(${typed}, ${col} = ${first.literal})`);
             add('Sort ascending', `SortByColumns(${typed}, "${k}", SortOrder.Ascending)`);
             add('Sort descending', `SortByColumns(${typed}, "${k}", SortOrder.Descending)`);
-            add('LookUp', `LookUp(${typed}, ${k} = "value")`);
-            add('CountIf', `CountIf(${typed}, !IsBlank(${k}))`);
-            add('Distinct', `Distinct(${typed}, ${k})`);
-            add('Search', `Search(${typed}, txtSearch.Text, "${k}")`);
+            add('LookUp', `LookUp(${typed}, ${col} = ${first.literal})`);
+            add('CountIf', `CountIf(${typed}, !IsBlank(${col}))`);
+            add('Distinct', `Distinct(${typed}, ${col})`);
+            if (first.kind === 'text') add('Search', `Search(${typed}, txtSearch.Text, "${k}")`);
             add('AddColumns', `AddColumns(${typed}, "Extra", "value")`);
           }
-          if (keys[1]) {
-            add(`[1].${keys[1]} as text`, `Text(Index(${p}, 1).${keys[1]})`);
-            add(`Gallery .${keys[1]}`, `Text(ThisItem.${keys[1]})`);
+          if (cols[1]) {
+            add(`[1].${cols[1].key}`, cols[1].value.replace('ThisRecord', `Index(${p}, 1)`));
+            add(`Gallery .${cols[1].key}`, cols[1].kind === 'text' ? `ThisItem.${fxName(cols[1].key)}` : `Text(ThisItem.${fxName(cols[1].key)})`);
           }
-          if (keys.length) {
-            const cols = keys.slice(0, 5).map((c) => `${c}: Text(ThisRecord.${c})`).join(', ');
-            add('Typed table', `ForAll(${p}, {${cols}})`);
-          }
-          if (keys.length >= 2) {
-            add('GroupBy', `GroupBy(ForAll(${p}, {${keys[0]}: Text(ThisRecord.${keys[0]}), ${keys[1]}: Text(ThisRecord.${keys[1]})}), "${keys[0]}", "Items")`);
+          if (cols.length >= 2) {
+            add('GroupBy', `GroupBy(ForAll(${p}, {${colExpr(cols[0])}, ${colExpr(cols[1])}}), "${cols[0].key}", "Items")`);
           }
         } else if (value.length && typeof value[0] === 'string') {
           const vals = `ForAll(${p}, {Value: Text(ThisRecord)})`;
@@ -522,6 +609,67 @@ Structra.expressions = (() => {
     },
   ];
 
+  /* ========================================================
+     FLOW ACTIONS: action JSON to paste into a cloud flow
+     (Peek code / code view, under "actions"). Expressions start with @.
+     ======================================================== */
+
+  const j = (obj) => JSON.stringify(obj, null, 2);
+  const fa = (label, note, name, action) => ({ label, note, code: j({ [name]: { ...action, runAfter: {} } }) });
+
+  /** "Has a value": empty() only accepts text, lists and objects, so numbers and flags are checked against null */
+  function hasValue(expr, sample) {
+    return ['string', 'array', 'object'].includes(kindOf(sample)) ? `not(empty(${expr}))` : `not(equals(${expr}, null))`;
+  }
+
+  function flowActions(path, value) {
+    const p = pa(path);
+    const at = (expr) => '@' + expr;
+    const out = [];
+
+    switch (kindOf(value)) {
+      case 'array': {
+        const keys = firstObjectKeys(value);
+        const k = keys && keys[0];
+        out.push(fa('Compose: number of items', 'Shows how many items the list holds.', 'Count_items',
+          { type: 'Compose', inputs: at(`length(${p})`) }));
+        if (keys && k) {
+          const map = {};
+          keys.slice(0, 8).forEach((c) => { map[c] = at(`item()?['${c}']`); });
+          out.push(fa('Select: keep chosen columns', 'Builds a smaller list with only these columns.', 'Select',
+            { type: 'Select', inputs: { from: at(p), select: map } }));
+          out.push(fa('Filter array: drop rows where a column is empty', `Keeps items where "${k}" has a value.`, 'Filter_array',
+            { type: 'Query', inputs: { from: at(p), where: at(hasValue(`item()?['${k}']`, value.find((r) => r && r[k] != null) ? value.find((r) => r && r[k] != null)[k] : null)) } }));
+          out.push(fa('Apply to each: work with one item at a time', 'Runs the inner actions once per item.', 'Apply_to_each',
+            { type: 'Foreach', foreach: at(p), actions: {
+              Compose_current: { type: 'Compose', inputs: at(`items('Apply_to_each')?['${k}']`), runAfter: {} } } }));
+        } else {
+          out.push(fa('Apply to each: work with one item at a time', 'Runs the inner actions once per item.', 'Apply_to_each',
+            { type: 'Foreach', foreach: at(p), actions: {
+              Compose_current: { type: 'Compose', inputs: at("items('Apply_to_each')"), runAfter: {} } } }));
+        }
+        out.push(fa('Condition: only continue when the list has items', 'Add actions under "actions" for the yes path.', 'Condition',
+          { type: 'If', expression: { and: [{ greater: [at(`length(${p})`), 0] }] }, actions: {}, else: { actions: {} } }));
+        break;
+      }
+      case 'object': {
+        const k = Object.keys(value)[0];
+        out.push(fa('Compose: this object', 'Keeps the object for later steps.', 'Compose', { type: 'Compose', inputs: at(p) }));
+        if (k) {
+          out.push(fa(`Condition: "${k}" has a value`, 'Add actions under "actions" for the yes path.', 'Condition',
+            { type: 'If', expression: { and: [{ equals: [at(hasValue(`${p}?['${k}']`, value[k])), true] }] }, actions: {}, else: { actions: {} } }));
+        }
+        break;
+      }
+      default: {
+        out.push(fa('Compose: this value', 'Keeps the value for later steps.', 'Compose', { type: 'Compose', inputs: at(p) }));
+        out.push(fa('Condition: value is not empty', 'Add actions under "actions" for the yes path.', 'Condition',
+          { type: 'If', expression: { and: [{ equals: [at(hasValue(p, value)), true] }] }, actions: {}, else: { actions: {} } }));
+      }
+    }
+    return out;
+  }
+
   /** Guess which connector produced this JSON */
   function connectorShape(data) {
     if (Array.isArray(data)) return 'Direct array response (no wrapper)';
@@ -570,5 +718,5 @@ Structra.expressions = (() => {
     return sections;
   }
 
-  return { powerAutomate, powerFx, helpers, connectorShape };
+  return { powerAutomate, powerFx, helpers, flowActions, connectorShape, getSource, setSource };
 })();

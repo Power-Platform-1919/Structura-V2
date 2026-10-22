@@ -105,22 +105,35 @@ Structra.paths = (() => {
     return 'data';
   }
 
-  function powerAutomate(path) {
-    let out = "body('Parse_JSON')";
-    for (const t of tokenize(path)) {
-      if (t.type === 'key') out += `?['${t.value}']`;
-      else out += `[${t.type === 'wildcard' ? 0 : t.value}]`;
+  /**
+   * Power Automate expression for a path.
+   * opts.root        the expression the document starts at, default body('Parse_JSON')
+   * opts.dropBody    the document is a whole action output ({ statusCode, headers, body }): the
+   *                  leading "body" key is the root itself, so it is not repeated
+   * Every step is null-safe (?['key'], ?[0]) so a missing branch gives null instead of a failed run.
+   */
+  function powerAutomate(path, opts = {}) {
+    let out = opts.root || "body('Parse_JSON')";
+    const tokens = tokenize(path);
+    if (opts.dropBody && tokens.length && tokens[0].type === 'key' && tokens[0].value === 'body') tokens.shift();
+    for (const t of tokens) {
+      if (t.type === 'key') out += `?['${t.value.replace(/'/g, "''")}']`;
+      else out += `?[${t.type === 'wildcard' ? 0 : t.value}]`;
     }
     return out;
   }
 
-  function powerFx(path) {
-    let out = 'ParseJSON(jsonText)';
+  /**
+   * Power Fx expression for a path, read from a text variable that holds the JSON.
+   * opts.variable  the variable (or any text expression), default jsonText
+   * Power Fx tables are 1-based, so index 0 becomes 1.
+   */
+  function powerFx(path, opts = {}) {
+    let out = `ParseJSON(${opts.variable || 'jsonText'})`;
     for (const t of tokenize(path)) {
       if (t.type === 'key') {
-        out += SIMPLE_FX_KEY.test(t.value) ? `.${t.value}` : `.'${t.value}'`;
+        out += SIMPLE_FX_KEY.test(t.value) ? `.${t.value}` : `.'${t.value.replace(/'/g, "''")}'`;
       } else {
-        // Power Fx tables are 1-based
         out = `Index(${out}, ${t.type === 'wildcard' ? 1 : t.value + 1})`;
       }
     }
