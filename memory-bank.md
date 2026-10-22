@@ -102,7 +102,7 @@ Views, sort, flatten, unflatten, mask, mock, sample, type generation (TypeScript
 
 ## 10. Test results (V1 vs V2, 2026-10-22)
 All 30 small V1 fixtures plus perf_100k and perf_150k_complex were loaded through each app's real file input. V2 matches V1 line counts everywhere V1 renders, with no view errors. V1 itself threw page errors on test7_mixed and test9_edge.
-Bugs found and fixed in V2: infinite recursion in  on null values, a blank screen for documents that are just null, and the broken virtual-scroll table.
+Bugs found and fixed in V2: infinite recursion in `findFirstObjectArray` on null values, a blank screen for documents that are just null, and the broken virtual-scroll table.
 Timings (first tree render): perf_100k V2 4.8 s vs V1 2.9 s, perf_150k V2 12.2 s vs V1 13.7 s. Heap on perf_150k: V2 562 MB, V1 454 MB.
 Stats view is the slow spot in V2: about 6.7 s on 100k rows and 17.7 s on 150k rows.
 
