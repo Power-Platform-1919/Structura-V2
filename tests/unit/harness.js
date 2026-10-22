@@ -30,17 +30,30 @@ function load(names) {
 }
 
 const results = { passed: 0, failed: 0 };
+const queue = [];
 
+/** Register a test. fn may be async; tests run one after another once the file has loaded. */
 function test(name, fn) {
-  try {
-    fn();
-    results.passed++;
-    console.log('  ok    ' + name);
-  } catch (err) {
-    results.failed++;
-    console.log('  FAIL  ' + name + '\n        ' + String(err.message).split('\n').join('\n        '));
-  }
+  queue.push({ name, fn });
 }
+
+async function runAll() {
+  for (const { name, fn } of queue) {
+    try {
+      await fn();
+      results.passed++;
+      console.log('  ok    ' + name);
+    } catch (err) {
+      results.failed++;
+      const detail = String(err.message).split('\n').join('\n        ');
+      console.log('  FAIL  ' + name + '\n        ' + detail);
+    }
+  }
+  console.log('  ' + results.passed + ' passed, ' + results.failed + ' failed\n');
+  if (results.failed) process.exitCode = 1;
+}
+
+setImmediate(runAll);
 
 function eq(actual, expected, note) {
   const a = JSON.stringify(actual);
@@ -51,10 +64,5 @@ function eq(actual, expected, note) {
 function truthy(value, note) {
   if (!value) throw new Error(note || 'expected a truthy value, got ' + JSON.stringify(value));
 }
-
-process.on('exit', () => {
-  console.log(`  ${results.passed} passed, ${results.failed} failed\n`);
-  if (results.failed) process.exitCode = 1;
-});
 
 module.exports = { load, test, eq, truthy, results };

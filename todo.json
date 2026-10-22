@@ -322,7 +322,7 @@
     {
       "id": "10",
       "title": "Product direction: overview-first analyzer with a built-in Power Platform add-on",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Structra is a fully local JSON analyzer for everyone. The Power Platform tools (expressions, Parse JSON schema, Power Fx, flow actions) ship built in as an always-visible add-on for makers using canvas apps and cloud flows. Main job: understand an unknown payload in under a minute. Look: calm workbench.",
       "subtasks": [
         {
@@ -372,8 +372,8 @@
         },
         {
           "id": "10.9",
-          "title": "Node unit tests: npm test (schema generation, expressions and paths, insights); the engine's analysis functions still need tests",
-          "status": "in_progress"
+          "title": "Node unit tests: npm test runs 47 tests (engine analysis, schema generation, expressions and paths, insights). The test runner now waits for async tests; before that an async failure could have printed ok",
+          "status": "done"
         },
         {
           "id": "10.10",
@@ -504,11 +504,10 @@
     "V2 should end up better and different from V1, not a copy."
   ],
   "followUps": [
-    "Stats view is slow on big files: about 6.7 s for 100k rows and 17.7 s for 150k rows (V1 had no such step). Compute off the main thread or use DuckDB SUMMARIZE.",
-    "Tree first paint: 4.8 s vs V1 2.9 s on perf_100k (similar on perf_150k: 12.2 s vs 13.7 s). Heap on perf_150k: 562 MB vs 454 MB.",
-    "Top-level null, false, 0 and empty string documents cannot be opened (about 40 falsy checks use jsonData as the has-data flag). V2 now shows a clear message instead.",
     "Session restore works (tabs, view, path, stored original). It only saves the stored copy once the page is idle, so a reload within a few seconds of opening a file restores an empty tab.",
     "Fixture smoke test (30 small V1 fixtures, all six views each) passed with zero page errors after the redesign. It is run by hand through Playwright; task 10.8 turns it into a committed script.",
-    "Task 12 smoke run: 30 of 30 fixtures opened in all six views with zero page errors, and TypeScript generation checked on jsonobject.json."
+    "Task 12 smoke run: 30 of 30 fixtures opened in all six views with zero page errors, and TypeScript generation checked on jsonobject.json.",
+    "Top-level null, false, 0 and empty string documents cannot be opened (jsonData doubles as the has-data flag). The app shows a clear message instead.",
+    "Large files (above 120 MB) open on the tree, and there is no cancel button. Parsing stays on the main thread because copying data to a worker cost more than parsing it."
   ]
 }

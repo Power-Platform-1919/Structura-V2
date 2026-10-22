@@ -26,7 +26,7 @@ A local JSON analyzer for everyone, with a built-in Power Platform add-on for ma
 ## 3. Run and test
 
 - Serve over HTTP: `npm run serve` (python on port 8765). Browsers cache scripts, so when testing by hand reload changed files with `fetch(url, { cache: 'reload' })` and open the page with a new query string.
-- `npm test` runs the Node unit tests (`tests/unit`: schema generation, expressions and paths, insights). The harness loads the pure modules from `src/core` into Node.
+- `npm test` runs the Node unit tests (`tests/unit`: engine analysis, schema generation, expressions and paths, insights). The harness loads the pure modules from `src/core` into Node.
 - `npm run test:smoke` opens all 30 fixtures in `tests/fixtures` in a real browser, visits six views each, opens and closes ten dialogs, and fails on any page error. `PW_CHANNEL=msedge` uses the installed Edge instead of downloading Chromium.
 - `node tests/perf/large.js <file.json> [overview]` measures time to first view and the longest page freeze. Large fixtures live in `..\structra-v1\Tests` (`perf_100k.json` 37 MB, `perf_150k_complex.json` 88 MB).
 - Push: plain `git push` picks the wrong GitHub login. Use `git -c credential.helper= -c "credential.helper=!gh auth git-credential" push origin main`.
@@ -80,7 +80,7 @@ Workers: `src/workers` (csv, yaml, toml, xml parsers, engine worker). JSON itsel
 ## 9. Known gaps and ideas
 
 - No cancel button for very large files, and no progress beyond the loading overlay steps.
-- Unit tests cover schema generation, expressions, paths and insights; the engine's analysis functions are not unit tested yet.
+- Unit tests (47) cover engine analysis, schema generation, expressions, paths and insights. The DuckDB paths and the views are covered only by the browser smoke test.
 - Share links are limited to about 30 KB of encoded data.
 - The font size default is 14 px in `structra-zoom.js` but 15 px in `tokens.css`; layout was tuned at 14.
 - `components.css` is still large (view styles for tree, table, graph and the input panel); more can move to the shared patterns.
