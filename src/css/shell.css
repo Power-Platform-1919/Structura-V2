@@ -53,6 +53,11 @@
 .app-header [data-action="command-palette"]:hover { border-color: var(--border-strong); }
 
 .toolbar-group, .canvas-right { display: flex; align-items: center; gap: var(--sp-1); }
+/* The toolbar adapts to its own width: when it is tight, buttons keep their icon and lose their text */
+structra-canvas-header { container-type: inline-size; }
+.not-tree .tree-only { display: none; }
+@container (max-width: 1060px) { .tb-label { display: none; } }
+@container (max-width: 700px) { .view-tab { padding-left: var(--sp-2); padding-right: var(--sp-2); } }
 .canvas-right { margin-left: auto; }
 
 /* ===== DOCUMENT TABS ===== */
@@ -202,9 +207,9 @@
 }
 .drawer-toggle:hover { background: var(--surface-hover); color: var(--text); }
 .drawer-chevron { width: var(--icon-sm); height: var(--icon-sm); transition: transform var(--transition); }
-.collapsed .drawer-chevron { transform: rotate(180deg); }
-.medium .drawer-chevron { transform: rotate(0deg); }
-.expanded .drawer-chevron { transform: rotate(0deg); }
+.collapsed .drawer-chevron { transform: rotate(0deg); }
+.medium .drawer-chevron { transform: rotate(180deg); }
+.expanded .drawer-chevron { transform: rotate(180deg); }
 .drawer-tabs { border-bottom: none; height: 100%; }
 .drawer-tabs .tab { height: 100%; padding: 0 var(--sp-3); }
 .drawer-tabs .tab.active::after { bottom: 0; }

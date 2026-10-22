@@ -7,7 +7,7 @@ class StructraCanvasHeader extends StructraElement {
   static get observedAttributes() { return ['active-view']; }
 
   /** Buttons a person may hide. View tabs and Find always stay. */
-  static HIDEABLE = ['expand-all', 'collapse-all', 'depth-1', 'depth-2', 'depth-3', 'filter', 'wrap', 'edit', 'copy-json'];
+  static HIDEABLE = ['expand-all', 'collapse-all', 'depth-1', 'depth-2', 'depth-3', 'filter', 'wrap', 'copy-json'];
   static HIDDEN_KEY = 'structra.toolbarHidden';
 
   init() {
@@ -16,6 +16,8 @@ class StructraCanvasHeader extends StructraElement {
       this.props.activeView = d.value;
       this._updateTabs();
     });
+    this.on('state:findBarOpen', (d) => this.$('[data-action="find"]')?.classList.toggle('active', !!d.value));
+    this.on('state:filterBarOpen', (d) => this.$('[data-action="filter"]')?.classList.toggle('active', !!d.value));
   }
 
   render() {
@@ -28,41 +30,40 @@ class StructraCanvasHeader extends StructraElement {
 
     this.innerHTML = `
       <div class="view-tabs">${viewTabs}</div>
-      <span class="sep"></span>
-      <div class="toolbar-group">
-        <button class="toolbar-btn" data-action="expand-all" title="Expand All">
+      <span class="sep tree-only"></span>
+      <div class="toolbar-group tree-only">
+        <button class="toolbar-btn" data-action="expand-all" title="Expand all levels" aria-label="Expand all levels">
           ${Structra.icons.svg('maximize-2')}
-          +All
+          <span class="tb-label">Expand</span>
         </button>
-        <button class="toolbar-btn" data-action="collapse-all" title="Collapse All">
+        <button class="toolbar-btn" data-action="collapse-all" title="Collapse all levels" aria-label="Collapse all levels">
           ${Structra.icons.svg('minimize-2')}
-          −All
+          <span class="tb-label">Collapse</span>
         </button>
-        <button class="toolbar-btn" data-action="depth-1">D1</button>
-        <button class="toolbar-btn" data-action="depth-2">D2</button>
-        <button class="toolbar-btn" data-action="depth-3">D3</button>
+        <button class="toolbar-btn" data-action="depth-1" title="Show only the first level" aria-label="Show only the first level">1</button>
+        <button class="toolbar-btn" data-action="depth-2" title="Show two levels" aria-label="Show two levels">2</button>
+        <button class="toolbar-btn" data-action="depth-3" title="Show three levels" aria-label="Show three levels">3</button>
       </div>
       <span class="sep"></span>
       <div class="canvas-right">
         <button class="toolbar-btn" data-action="more" title="Hidden toolbar buttons" aria-haspopup="menu" hidden>
           ${Structra.icons.svg('ellipsis')}
         </button>
-        <button class="toolbar-btn" data-action="find" title="Find (Ctrl+F)">
+        <button class="toolbar-btn" data-action="find" title="Find text in the document (Ctrl+F)" aria-label="Find">
           ${Structra.icons.svg('search')}
-          Find
+          <span class="tb-label">Find</span>
         </button>
-        <button class="toolbar-btn" data-action="filter" title="Filter (Ctrl+Shift+F)">
+        <button class="toolbar-btn" data-action="filter" title="Filter rows by a condition (Ctrl+Shift+F)" aria-label="Filter">
           ${Structra.icons.svg('filter')}
-          Filter
+          <span class="tb-label">Filter</span>
         </button>
-        <button class="toolbar-btn" data-action="wrap">Wrap</button>
-        <button class="toolbar-btn" data-action="edit">
-          ${Structra.icons.svg('pencil')}
-          Edit
+        <button class="toolbar-btn tree-only" data-action="wrap" title="Wrap long values onto several lines" aria-label="Wrap long values">
+          ${Structra.icons.svg('wrap-text')}
+          <span class="tb-label">Wrap</span>
         </button>
-        <button class="toolbar-btn" data-action="copy-json">
+        <button class="toolbar-btn" data-action="copy-json" title="Copy the whole document as JSON" aria-label="Copy the document as JSON">
           ${Structra.icons.svg('copy')}
-          Copy
+          <span class="tb-label">Copy JSON</span>
         </button>
       </div>`;
 
@@ -87,7 +88,6 @@ class StructraCanvasHeader extends StructraElement {
         case 'depth-2':      Structra.log.info('CanvasHeader', 'Action: depth-2'); Structra.events.emit('tree:collapse-depth', 2); break;
         case 'depth-3':      Structra.log.info('CanvasHeader', 'Action: depth-3'); Structra.events.emit('tree:collapse-depth', 3); break;
         case 'wrap':         Structra.log.info('CanvasHeader', 'Action: wrap'); Structra.events.emit('tree:toggle-wrap'); Structra.toast('Word wrap toggled'); break;
-        case 'edit':         Structra.log.info('CanvasHeader', 'Action: edit'); Structra.set('activeView', 'editor'); break;
         case 'copy-json':    Structra.log.info('CanvasHeader', 'Action: copy-json'); this._copyJson(); break;
         case 'more':         this._showMoreMenu(actionBtn); break;
         case 'find':         Structra.set('findBarOpen', true); break;
@@ -176,6 +176,10 @@ class StructraCanvasHeader extends StructraElement {
     this.$$('.view-tab').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.view === active);
     });
+    // Expand, Collapse, levels and Wrap act on the Tree only; elsewhere they would be buttons that do nothing
+    this.classList.toggle('not-tree', active !== 'tree');
+    // When the tab row is cut short by a narrow window, keep the open view's tab in sight
+    this.$('.view-tab.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }
 
   _copyJson() {

@@ -15,6 +15,7 @@ class StructraDrawer extends StructraElement {
       this._applyState();
     });
     this.on('state:jsonData', (d) => {
+      this.hidden = !d.value;
       if (d.value && this._stateIdx === 0) {
         Structra.log.debug('Drawer', 'Data loaded — expanding to medium');
         this._stateIdx = 1;
@@ -38,7 +39,7 @@ class StructraDrawer extends StructraElement {
     this.innerHTML = `
       <div class="drawer-resize-bar" id="drawerResizeBar"></div>
       <div class="drawer-bar">
-        <button class="drawer-toggle" type="button" data-action="cycle" aria-label="Expand or collapse the panel" title="Expand or collapse">
+        <button class="drawer-toggle" type="button" data-action="cycle" aria-label="Hide the panel" title="Hide the panel" aria-expanded="true">
           ${Structra.icons.svg('chevron-up', { cls: 'drawer-chevron' })}
         </button>
         <div class="tabs drawer-tabs" role="tablist">
@@ -49,6 +50,7 @@ class StructraDrawer extends StructraElement {
         ${tabs.map((t, i) => `<div class="drawer-panel ${i === 0 ? 'active' : ''}" data-panel="${t.id}" id="dp-${t.id}">${panelTag[t.id] ? `<${panelTag[t.id]}></${panelTag[t.id]}>` : ''}</div>`).join('')}
       </div>`;
 
+    this.hidden = !Structra.state.jsonData;
     this._applyState();
     this._initResize();
 
@@ -69,7 +71,7 @@ class StructraDrawer extends StructraElement {
     let startY, startH;
     const onMove = (e) => {
       const delta = startY - e.clientY;
-      const newH = Math.max(36, Math.min(window.innerHeight * 0.8, startH + delta));
+      const newH = Math.max(36, Math.min(window.innerHeight * 0.6, startH + delta));
       this.style.height = newH + 'px';
     };
     const onUp = () => {
@@ -102,7 +104,8 @@ class StructraDrawer extends StructraElement {
 
   _cycle() {
     const states = Structra.constants.DRAWER_STATES;
-    this._stateIdx = (this._stateIdx + 1) % states.length;
+    // Open ⇄ folded away. (A taller drawer is made by dragging the bar above the tabs.)
+    this._stateIdx = this._stateIdx === 0 ? 1 : 0;
     Structra.set('drawerState', states[this._stateIdx]);
     // Exit custom resize mode when cycling
     this.classList.remove('resizing');
@@ -116,6 +119,13 @@ class StructraDrawer extends StructraElement {
     // Remove all state classes, add current (matches layout.css: collapsed/medium/expanded)
     this.classList.remove('collapsed', 'medium', 'expanded');
     this.classList.add(state);
+    const toggle = this.$('.drawer-toggle');
+    if (toggle) {
+      const label = state === 'collapsed' ? 'Show the panel' : 'Hide the panel';
+      toggle.setAttribute('aria-label', label);
+      toggle.title = label;
+      toggle.setAttribute('aria-expanded', String(state !== 'collapsed'));
+    }
   }
 
   _switchTab(id) {

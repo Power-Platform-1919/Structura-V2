@@ -19,6 +19,7 @@ class StructraFilter extends StructraElement {
 
     this.on('state:filterBarOpen', (d) => {
       this.props.open = d.value ? 'true' : '';
+      if (d.value && Structra.state.findBarOpen) Structra.set('findBarOpen', false);
       this._toggle(d.value);
     });
     this.on('overlay:close', () => this._close());

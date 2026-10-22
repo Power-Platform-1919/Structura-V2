@@ -63,6 +63,88 @@ function serve() {
       const moved = await page.evaluate(() => document.querySelector('structra-overview .stats-view').scrollTop);
       if (moved <= 0) failures.push('Overview: the mouse wheel does not scroll it');
     }
+
+    // ---- Toolbar: every button stays inside the toolbar at normal and narrow widths, with the side panels open ----
+    await page.evaluate(() => { Structra.set('activeView', 'tree'); Structra.set('queryPanelOpen', true); Structra.set('contextPanelOpen', true); });
+    await page.evaluate(() => Structra.events.emit('tree:node-selected', '$.value[0].Title'));
+    for (const width of [1440, 1100, 900, 820]) {
+      await page.setViewportSize({ width, height: 760 });
+      await page.waitForTimeout(400);
+      const bar = await page.evaluate(() => {
+        const header = document.querySelector('structra-canvas-header');
+        const hr = header.getBoundingClientRect();
+        // The row of view tabs may scroll when the window is narrow; every other button must stay inside the toolbar
+        const outside = [...header.querySelectorAll('.toolbar-btn, .view-tabs')]
+          .filter((b) => b.offsetParent !== null)
+          .filter((b) => b.getBoundingClientRect().right > hr.right + 1)
+          .map((b) => (b.dataset.action || 'view tabs'));
+        const active = header.querySelector('.view-tab.active');
+        const strip = header.querySelector('.view-tabs');
+        if (active && strip) {
+          const a = active.getBoundingClientRect(), s = strip.getBoundingClientRect();
+          if (a.right > s.right + 1 || a.left < s.left - 1) outside.push('the open view tab');
+        }
+        const find = header.querySelector('[data-action="find"]');
+        return { outside, findVisible: !!find && find.offsetParent !== null && find.getBoundingClientRect().right <= hr.right + 1 };
+      });
+      if (bar.outside.length) failures.push(`Toolbar at ${width}px: ${bar.outside.join(', ')} are cut off by the edge`);
+      if (!bar.findVisible) failures.push(`Toolbar at ${width}px: the Find button is not reachable`);
+    }
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.waitForTimeout(300);
+
+    // Buttons that only act on the Tree are not shown in the other views
+    for (const view of ['table', 'graph', 'schema', 'editor', 'overview']) {
+      await page.evaluate((v) => Structra.set('activeView', v), view);
+      await page.waitForTimeout(150);
+      const shown = await page.evaluate(() => [...document.querySelectorAll('structra-canvas-header .tree-only')].filter((e) => e.offsetParent !== null).length);
+      if (shown) failures.push(`Toolbar: ${shown} tree-only button(s) are shown in the ${view} view`);
+    }
+    await page.evaluate(() => Structra.set('activeView', 'tree'));
+
+    // ---- Find and Filter never sit on top of each other, and Find's X closes it ----
+    await page.evaluate(() => Structra.set('findBarOpen', true));
+    await page.waitForTimeout(150);
+    await page.evaluate(() => Structra.set('filterBarOpen', true));
+    await page.waitForTimeout(150);
+    const both = await page.evaluate(() => ({ find: document.querySelector('.find-bar').classList.contains('show'), filter: document.querySelector('.filter-panel').classList.contains('show') }));
+    if (both.find && both.filter) failures.push('Find and Filter are open at the same time');
+    await page.evaluate(() => Structra.set('filterBarOpen', false));
+    await page.evaluate(() => Structra.set('findBarOpen', true));
+    await page.waitForTimeout(150);
+    await page.locator('structra-find [data-action="close-find"]').click();
+    await page.waitForTimeout(150);
+    if (await page.evaluate(() => document.querySelector('.find-bar').classList.contains('show'))) failures.push('the X on the Find bar did not close it');
+
+    // ---- Drawer: nothing without a document, one click folds it, and it can never take over the window ----
+    const drawer = await page.evaluate(async () => {
+      const d = document.querySelector('structra-drawer');
+      const h0 = d.getBoundingClientRect().height;
+      d.querySelector('[data-action="cycle"]').click();
+      await new Promise((r) => setTimeout(r, 400));
+      const folded = d.getBoundingClientRect().height;
+      d.querySelector('[data-action="cycle"]').click();
+      await new Promise((r) => setTimeout(r, 400));
+      const reopened = d.getBoundingClientRect().height;
+      return { open: h0, folded, reopened, window: innerHeight, hiddenBefore: false };
+    });
+    if (!(drawer.folded < 60)) failures.push(`Drawer: one click on the arrow should fold it away, it is ${drawer.folded}px`);
+    if (Math.abs(drawer.reopened - drawer.open) > 4) failures.push(`Drawer: a second click should bring it back to ${drawer.open}px, it is ${drawer.reopened}px`);
+    if (drawer.open > drawer.window * 0.6) failures.push(`Drawer: ${drawer.open}px is more than 60% of the window (${drawer.window}px)`);
+    await page.evaluate(() => { const bar = document.querySelector('#drawerResizeBar'); const r = bar.getBoundingClientRect(); window.__bar = { x: r.left + r.width / 2, y: r.top + 2 }; });
+    const pt = await page.evaluate(() => window.__bar);
+    await page.mouse.move(pt.x, pt.y);
+    await page.mouse.down();
+    await page.mouse.move(pt.x, 5, { steps: 6 });
+    await page.mouse.up();
+    const dragged = await page.evaluate(() => ({ h: document.querySelector('structra-drawer').getBoundingClientRect().height, w: innerHeight }));
+    if (dragged.h > dragged.w * 0.61) failures.push(`Drawer: dragging it to the top gave ${dragged.h}px, more than 60% of ${dragged.w}px`);
+
+    // ---- With no document open there is no drawer to get in the way ----
+    await page.evaluate(() => Structra.set('jsonData', null));
+    await page.waitForTimeout(300);
+    const noDoc = await page.evaluate(() => document.querySelector('structra-drawer').offsetParent !== null);
+    if (noDoc) failures.push('the drawer is still shown when no document is open');
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 200));
   }

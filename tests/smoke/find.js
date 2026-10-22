@@ -84,7 +84,7 @@ function serve() {
         if (/^0|error/i.test(seen.count.trim())) failures.push(`${label}: the count says "${seen.count}"`);
 
         // clear before the next round
-        await page.evaluate(() => document.querySelector('structra-find').$('[data-action="clear"]')?.click());
+        await page.evaluate(() => Structra.set('findBarOpen', false));
         await page.waitForTimeout(400);
       }
 

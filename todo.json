@@ -517,7 +517,7 @@
         {
           "id": "13.3",
           "title": "Expressions drawer is crushed: the sub-tabs plus the Source bar leave about 1.5 rows visible. Open the drawer larger when Expressions is chosen and collapse the Source bar to one summary line",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.4",
@@ -622,7 +622,7 @@
         {
           "id": "13.24",
           "title": "Find bar clear button and the Filter bar clear button share data-action='clear' (two elements match); scope or rename so each acts only on its own bar",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.25",
@@ -632,12 +632,12 @@
         {
           "id": "13.26",
           "title": "Find and Filter floating panels can be open together and overlap, hiding the Filter tabs and fields; opening one must close the other",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.27",
           "title": "Find bar's X button only clears the text; it does not close the bar (only Escape does). Make X close it, and keep a separate clear if needed",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.28",
@@ -682,7 +682,7 @@
         {
           "id": "13.36",
           "title": "With no document open, the bottom drawer still shows the Analyze, Expressions and Schema Gen tabs and the rail buttons do nothing; hide the drawer until data is open and disable the rail buttons that need data",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.37",
@@ -727,7 +727,7 @@
         {
           "id": "13.45",
           "title": "Tree-only toolbar buttons (+All, -All, D1, D2, D3, Wrap) stay enabled in Table, Graph, Overview, Schema and Editor where they do nothing (Wrap even lights up); disable or hide the ones the current view cannot use",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.46",
@@ -807,7 +807,7 @@
         {
           "id": "13.61",
           "title": "Not responsive: at 900 px the right toolbar buttons (Find, Filter, Wrap, Edit, Copy) are clipped with no overflow menu; at 640 px the header Commands button, the table and the status bar are cut off and the page overflows sideways. Collapse the toolbar into a More menu, stack or hide secondary header items, and make panels overlay instead of squeezing",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.62",
@@ -922,22 +922,22 @@
         {
           "id": "13.84",
           "title": "Bottom drawer: the chevron cycles through three states (medium, tall, collapsed) with no change of arrow, so users cannot predict it; use two clear states plus a separate size handle",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.85",
           "title": "Bottom drawer can be dragged to about 80% of the window height, leaving the canvas a thin strip; cap it (for example 60%) and keep the canvas at a minimum height",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.86",
           "title": "Drawer resize handle is covered by the empty-state card when the drawer is tall (the card intercepts the double click that should reset the size); fix stacking, and remember the chosen size per user",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.87",
           "title": "With no document open, Power Platform and Schema Gen drawer tabs are shown: Power Platform says 'Select a path in the tree' (there is no tree) and Copy schema is enabled with nothing to copy; show 'Open a file first' with the Open and Sample buttons",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.88",
@@ -1042,7 +1042,7 @@
         {
           "id": "13.108",
           "title": "Toolbar 'Edit' just switches to the Editor tab, which is already in the view tabs; two entries for one place, and 'Copy' at the far right is not explained (copies what: whole document, selection, or path?)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.109",
@@ -1247,7 +1247,7 @@
         {
           "id": "13.149",
           "title": "Expressions tab with the drawer at its default height shows only about two and a half rows (the third row 'Access value' is cut in half); the rows are the useful part, so the drawer should show at least 5 rows or open taller when a value is selected",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.150",
@@ -1257,7 +1257,7 @@
         {
           "id": "13.151",
           "title": "At 820 x 700 the layout is cramped: the left panel keeps 300 px so the Tree gets about 470 px and only 140 px of height (the bottom drawer takes the rest); the view toolbar is cut off after '+All' so D1 to D3, Find, Filter, Wrap, Edit and Copy cannot be reached and there is no overflow menu; the Expressions sub tabs wrap onto two lines ('Power Automate', 'Flow actions') and expression text breaks in the middle of words (Index(ParseJSON(jsonTe / xt)...)); tabs end in a clipped 'Pasted JS'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.152",
@@ -1312,7 +1312,7 @@
         {
           "id": "13.162",
           "title": "With the Node panel open the view toolbar loses Edit and Copy at 1440 px wide (three panels: left 300, Node 320, drawer) and Wrap sits against the panel edge; the Tree gets about 760 px; the Node panel needs to be a overlay or the toolbar needs an overflow menu",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.163",

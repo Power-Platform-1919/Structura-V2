@@ -88,8 +88,8 @@
   --tree-indent: 20px;
   --tree-line-h: 26px;
   --drawer-collapsed: 38px;
-  --drawer-md: 220px;
-  --drawer-lg: 380px;
+  --drawer-md: clamp(220px, 34vh, 340px);     /* tall enough for several expression rows on a normal screen */
+  --drawer-lg: clamp(300px, 52vh, 520px);
   --loading-spinner-size: 22px;
   --loading-radius: 10px;
   --io-box-w: 620px;

@@ -18,6 +18,7 @@ class StructraFind extends StructraElement {
     this.on('state:findBarOpen', (d) => {
       Structra.log.info('Find', 'findBar ' + (d.value ? 'opened' : 'closed'));
       this.props.open = d.value ? 'true' : '';
+      if (d.value && Structra.state.filterBarOpen) Structra.set('filterBarOpen', false);
       this._toggle(d.value);
     });
     this.on('overlay:close', () => this._close());
@@ -34,9 +35,9 @@ class StructraFind extends StructraElement {
       <div class="find-bar" id="findBar">
         <div class="find-row">
           <div class="find-modes">
-            <button class="fb-mode active" data-mode="text" title="Text search">Aa</button>
-            <button class="fb-mode" data-mode="fuzzy" title="Fuzzy search (DuckDB)">~</button>
-            <button class="fb-mode" data-mode="regex" title="Regex search">.*</button>
+            <button class="fb-mode active" data-mode="text" title="Find the exact text">Text</button>
+            <button class="fb-mode" data-mode="fuzzy" title="Find close matches, so a small typo still finds the value">Fuzzy</button>
+            <button class="fb-mode" data-mode="regex" title="Find by pattern, for example \d{3}-\d{4}">Pattern</button>
           </div>
           <input type="text" class="find-input" id="findInput"
             placeholder="Find… (text, /regex/, key:name, $.path, SELECT…)" autocomplete="off">
@@ -50,7 +51,7 @@ class StructraFind extends StructraElement {
           <button class="fb-btn" data-action="toggleReplace" title="Toggle Replace (Ctrl+H)">
             ${Structra.icons.svg('pencil')}
           </button>
-          <button class="fb-btn" data-action="clear" title="Clear">
+          <button class="fb-btn" data-action="close-find" title="Close (Esc)" aria-label="Close find">
             ${Structra.icons.svg('x')}
           </button>
         </div>
@@ -104,7 +105,7 @@ class StructraFind extends StructraElement {
       const a = btn.dataset.action;
       if (a === 'prev') this._prev();
       else if (a === 'next') this._next();
-      else if (a === 'clear') this._clearSearch();
+      else if (a === 'close-find') Structra.set('findBarOpen', false);
       else if (a === 'toggleReplace') this._toggleReplace();
       else if (a === 'replaceOne') this._replaceOne();
       else if (a === 'replaceAll') this._replaceAll();

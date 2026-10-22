@@ -134,7 +134,7 @@
 .filter-panel {
   display: none;
   position: absolute;
-  top: 0;
+  top: var(--canvas-header-h);          /* hangs from the toolbar's lower edge, never over its buttons */
   right: var(--sp-4);
   z-index: 59;
   background: var(--surface);
