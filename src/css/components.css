@@ -545,7 +545,7 @@ structra-table,
 structra-graph,
 structra-schema,
 structra-editor,
-structra-stats {
+structra-overview {
   display: flex;
   flex-direction: column;
   flex: 1;

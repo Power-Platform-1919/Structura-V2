@@ -742,7 +742,7 @@
         {
           "id": "13.48",
           "title": "CRITICAL: the Overview cannot scroll. components.css line 548 still styles structra-stats (renamed to structra-overview), so the Overview element is inline with auto height; its 1,983 px of content (Details, quality, arrays, coverage, profiler, distributions) is clipped with no scrollbar and PageDown does nothing. Rename the selector; add a smoke check that every view's scroll area is reachable",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.49",
