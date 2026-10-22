@@ -1028,6 +1028,16 @@
           "id": "13.105",
           "title": "Editor view keeps the Tree toolbar (+All, -All, D1 to D3, Wrap, Filter, Find, Edit) although most do nothing in the Editor; the toolbar should change per view and Wrap should apply to the editor",
           "status": "todo"
+        },
+        {
+          "id": "13.106",
+          "title": "After Apply in the Editor the tab keeps the name 'sample-data.json' with no 'edited' dot, so a maker cannot tell the file no longer matches what was opened; there is no Revert to original or Save as file",
+          "status": "todo"
+        },
+        {
+          "id": "13.107",
+          "title": "Editor Repair works well (single quotes, trailing comma, comment, True) but the repair message for hopeless input is jargon ('Unexpected end of json string at position 1'); also no diff of what was repaired",
+          "status": "todo"
         }
       ]
     }
