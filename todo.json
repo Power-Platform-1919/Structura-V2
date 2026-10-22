@@ -230,6 +230,94 @@
         }
       ],
       "note": "Ctrl+T and Ctrl+W replaced by Alt+N and Alt+W; the shortcuts overlay is now generated from Structra.constants.SHORTCUTS. Side-by-side pass on all 32 V1 fixtures (30 small, perf_100k, perf_150k_complex): V2 matches V1 line counts and shows no view errors. Fixed three V2 bugs found: infinite recursion on null values (test_case3), silent blank screen for null documents (edge_null, test_case6), and the table virtual scroll."
+    },
+    {
+      "id": "9",
+      "title": "Redesign look and feel (themes, layout, shared code)",
+      "status": "in_progress",
+      "subtasks": [
+        {
+          "id": "9.1",
+          "title": "Design tokens (colour, type scale, spacing, radii, shell sizes) in tokens.css",
+          "status": "done"
+        },
+        {
+          "id": "9.2",
+          "title": "Theme engine: light/dark/system mode, 8 built-in themes, custom themes, JSON export/import, contrast check",
+          "status": "done"
+        },
+        {
+          "id": "9.3",
+          "title": "Appearance dialog (live preview editor, fonts, contrast, save/export/import)",
+          "status": "done"
+        },
+        {
+          "id": "9.4",
+          "title": "Shared code: Structra.util, StructraOverlay base, ui.css primitives, base.css",
+          "status": "done"
+        },
+        {
+          "id": "9.5",
+          "title": "Restyle shell: header, doc tabs, rail, view tabs, breadcrumb, drawer, status bar",
+          "status": "done"
+        },
+        {
+          "id": "9.6",
+          "title": "Restyle Stats view and drawer Analyze strip (stats.css), tokens for type colours",
+          "status": "done"
+        },
+        {
+          "id": "9.7",
+          "title": "Restyle Query/Transform panel and Node panel (panels.css), shared tabs and seg buttons",
+          "status": "done"
+        },
+        {
+          "id": "9.8",
+          "title": "Restyle command palette and Find/Replace bar (overlays.css); crowded toolbar scrolls",
+          "status": "done"
+        },
+        {
+          "id": "9.9",
+          "title": "Graph node colours from tokens (readable in light and dark); centre the empty-state card",
+          "status": "done"
+        },
+        {
+          "id": "9.10",
+          "title": "Restyle remaining input panel (io-*) and filter bar/table filter panels",
+          "status": "todo"
+        },
+        {
+          "id": "9.11",
+          "title": "Restyle tree rows, table toolbar, editor toolbar, schema view details",
+          "status": "todo"
+        },
+        {
+          "id": "9.12",
+          "title": "Migrate remaining overlays (shortcuts, typedef, diff, nullfinder, pivot, minimap, snippets, workspace, heatmap, zoom) to StructraOverlay + ui.css",
+          "status": "todo"
+        },
+        {
+          "id": "9.13",
+          "title": "Unify leftover tab/segment patterns (expr-subtab, io-tab, filter modes) into .tabs/.seg",
+          "status": "todo"
+        },
+        {
+          "id": "9.14",
+          "title": "Replace remaining hard-coded hex colours in components.css and JS (heatmap, minimap, drawer)",
+          "status": "todo"
+        },
+        {
+          "id": "9.15",
+          "title": "Verify every view in light, dark and a custom theme (export JSON, re-import)",
+          "status": "todo"
+        },
+        {
+          "id": "9.16",
+          "title": "Re-run fixture smoke test after the redesign; update memory-bank.md",
+          "status": "todo"
+        }
+      ],
+      "note": "Foundation, shell, stats, side panels, command palette, find bar and graph are done and checked in the browser (dark, and light for empty state and tree). Remaining: input panel internals, filter panels, remaining overlays, hex colours, full light/dark/custom pass."
     }
   ],
   "principles": [
@@ -240,7 +328,7 @@
     "Stats view is slow on big files: about 6.7 s for 100k rows and 17.7 s for 150k rows (V1 had no such step). Compute off the main thread or use DuckDB SUMMARIZE.",
     "Tree first paint: 4.8 s vs V1 2.9 s on perf_100k (similar on perf_150k: 12.2 s vs 13.7 s). Heap on perf_150k: 562 MB vs 454 MB.",
     "Top-level null, false, 0 and empty string documents cannot be opened (about 40 falsy checks use jsonData as the has-data flag). V2 now shows a clear message instead.",
-    "Session restore is still a stub.",
-    "Add a Playwright smoke test that runs the V1 fixtures."
+    "Add a Playwright smoke test that runs the V1 fixtures.",
+    "Session restore works (tabs, view, path, stored original). It only saves the stored copy once the page is idle, so a reload within a few seconds of opening a file restores an empty tab."
   ]
 }

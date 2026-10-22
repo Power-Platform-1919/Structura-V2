@@ -18,27 +18,27 @@ class StructraQuery extends StructraElement {
     const modes = Structra.constants.QUERY_MODES;
 
     this.innerHTML = `
-      <div class="qp-header">
-        Query &amp; Filter
-        <button class="qp-close" data-action="close">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <div class="panel-head">
+        <span class="panel-title">Query &amp; Filter</span>
+        <button class="btn btn-icon btn-ghost" type="button" data-action="close" aria-label="Close panel" title="Close">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div class="qp-tabs">
-        <button class="qp-tab active" data-qtab="query">Query</button>
-        <button class="qp-tab" data-qtab="transform">Transform</button>
+      <div class="tabs qp-tabs" role="tablist">
+        <button class="tab active" type="button" role="tab" data-qtab="query">Query</button>
+        <button class="tab" type="button" role="tab" data-qtab="transform">Transform</button>
       </div>
       <div class="qp-tab-body" id="qpQueryBody">
-        <div class="qp-modes">
-          ${modes.map(m => `<span class="qp-mode ${m === this._mode ? 'active' : ''}" data-mode="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</span>`).join('')}
+        <div class="seg qp-modes">
+          ${modes.map(m => `<button class="seg-btn ${m === this._mode ? 'active' : ''}" type="button" data-mode="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</button>`).join('')}
         </div>
-        <textarea class="qp-input" id="queryInput" placeholder="*.email\nor $..name\nor /^[A-Z]/\nor =data.filter(x => x.active)"></textarea>
-        <button class="btn btn-primary qp-run" data-action="run">&#9654; Run Query</button>
+        <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder="*.email\nor $..name\nor /^[A-Z]/\nor =data.filter(x => x.active)"></textarea>
+        <button class="btn btn-primary qp-run" type="button" data-action="run">Run query</button>
       </div>
-      <div class="qp-tab-body" id="qpTransformBody" style="display:none">
+      <div class="qp-tab-body" id="qpTransformBody" hidden>
         <div class="qp-transform-presets" id="transformPresets"></div>
-        <textarea class="qp-input" id="transformInput" placeholder="Enter jq-style expression: .[] | select(.active) | .name"></textarea>
-        <button class="btn btn-primary qp-run" data-action="runTransform">&#9654; Run Transform</button>
+        <textarea class="qp-input" id="transformInput" spellcheck="false" placeholder="jq-style expression: .[] | select(.active) | .name"></textarea>
+        <button class="btn btn-primary qp-run" type="button" data-action="runTransform">Run transform</button>
       </div>
       <div class="qp-results" id="queryResults">
         <div class="qp-summary">Type a query and press Run</div>
@@ -60,7 +60,7 @@ class StructraQuery extends StructraElement {
       const mode = e.target.closest('[data-mode]');
       if (mode) {
         this._mode = mode.dataset.mode;
-        this.$$('.qp-mode').forEach(m => m.classList.toggle('active', m.dataset.mode === this._mode));
+        this.$$('.seg-btn').forEach(m => m.classList.toggle('active', m.dataset.mode === this._mode));
         return;
       }
       const action = e.target.closest('[data-action]');
@@ -85,9 +85,9 @@ class StructraQuery extends StructraElement {
   }
 
   _switchTab(tab) {
-    this.querySelectorAll('.qp-tab').forEach(t => t.classList.toggle('active', t.dataset.qtab === tab));
-    this.$('#qpQueryBody').style.display = tab === 'query' ? '' : 'none';
-    this.$('#qpTransformBody').style.display = tab === 'transform' ? '' : 'none';
+    this.querySelectorAll('.tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.qtab === tab));
+    this.$('#qpQueryBody').hidden = tab !== 'query';
+    this.$('#qpTransformBody').hidden = tab !== 'transform';
   }
 
   _renderTransformPresets() {
@@ -125,7 +125,7 @@ class StructraQuery extends StructraElement {
         <pre class="qp-transform-output">${Structra.util.esc(truncated)}</pre>`;
       Structra.toast(`Transform: ${Array.isArray(output) ? output.length + ' items' : 'done'}`);
     } catch (err) {
-      results.innerHTML = `<div class="qp-summary" style="color:var(--danger)">Error: ${Structra.util.esc(err.message)}</div>`;
+      results.innerHTML = `<div class="qp-summary is-error">Error: ${Structra.util.esc(err.message)}</div>`;
     }
   }
 
@@ -149,9 +149,9 @@ class StructraQuery extends StructraElement {
       } else {
         results.innerHTML = `<div class="qp-summary">${matches.length} match${matches.length > 1 ? 'es' : ''}</div>` +
           matches.slice(0, 100).map(m =>
-            `<div class="qp-result" data-path="${Structra.util.esc(m.path)}" style="cursor:pointer;padding:var(--sp-1) 0;font-size:var(--fs-xs);font-family:var(--font-mono)">
-              <span style="color:var(--accent)">${Structra.util.esc(m.path)}</span>
-              <span style="color:var(--text-muted);margin-left:var(--sp-2)">${Structra.util.esc(this._preview(m.value))}</span>
+            `<div class="qp-result" data-path="${Structra.util.esc(m.path)}">
+              <span class="qp-result-path">${Structra.util.esc(m.path)}</span>
+              <span class="qp-result-value">${Structra.util.esc(this._preview(m.value))}</span>
             </div>`
           ).join('');
 
@@ -163,9 +163,9 @@ class StructraQuery extends StructraElement {
         });
       }
 
-      Structra.toast(`${matches.length} match${matches.length > 1 ? 'es' : ''}`);
+      Structra.toast(`${matches.length} match${matches.length === 1 ? '' : 'es'}`);
     } catch (err) {
-      results.innerHTML = `<div class="qp-summary" style="color:var(--danger)">Error: ${Structra.util.esc(err.message)}</div>`;
+      results.innerHTML = `<div class="qp-summary is-error">Error: ${Structra.util.esc(err.message)}</div>`;
     }
   }
 

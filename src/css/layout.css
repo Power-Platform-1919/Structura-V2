@@ -128,3 +128,8 @@ structra-heatmap, structra-zoom, structra-autocomplete {
 @media (max-width: 600px) {
   .app-context-panel.show { display: none; }
 }
+
+/* A crowded canvas toolbar scrolls sideways instead of clipping buttons */
+.app-canvas-header { overflow-x: auto; scrollbar-width: none; }
+.app-canvas-header::-webkit-scrollbar { display: none; }
+.app-canvas-header > *, .app-canvas-header .toolbar-btn { flex-shrink: 0; }

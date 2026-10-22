@@ -22,11 +22,11 @@ class StructraContext extends StructraElement {
 
   render() {
     this.innerHTML = `
-      <div class="ctx-header">
-        <span>Node</span>
-        <span class="ctx-path" id="ctxPath">—</span>
-        <button class="ctx-close" data-action="close">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      <div class="panel-head">
+        <span class="panel-title">Node</span>
+        <span class="panel-sub" id="ctxPath">—</span>
+        <button class="btn btn-icon btn-ghost" type="button" data-action="close" aria-label="Close panel" title="Close">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
       <div class="ctx-body">
@@ -34,7 +34,7 @@ class StructraContext extends StructraElement {
           <div class="ctx-label">Value</div>
           <div class="ctx-value" id="ctxValue">—</div>
         </div>
-        <div class="ctx-section" id="ctxPreviewSection" style="display:none">
+        <div class="ctx-section" id="ctxPreviewSection" hidden>
           <div class="ctx-label">Content Preview</div>
           <div class="ctx-preview" id="ctxPreview"></div>
         </div>
@@ -104,7 +104,7 @@ class StructraContext extends StructraElement {
 
     // Value preview
     const valEl = this.$('#ctxValue');
-    if (val === null) valEl.innerHTML = '<span style="color:var(--syn-null)">null</span>';
+    if (val === null) valEl.textContent = 'null';
     else if (typeof val === 'object') valEl.textContent = JSON.stringify(val, null, 2).slice(0, 200);
     else valEl.textContent = String(val);
 
@@ -129,17 +129,17 @@ class StructraContext extends StructraElement {
     if (!section || !preview) return;
 
     if (typeof val !== 'string' || val.length === 0) {
-      section.style.display = 'none';
+      section.hidden = true;
       return;
     }
 
     const detections = this._detectPatterns(val);
     if (detections.length === 0) {
-      section.style.display = 'none';
+      section.hidden = true;
       return;
     }
 
-    section.style.display = '';
+    section.hidden = false;
     preview.innerHTML = detections.map(d => `<div class="ctx-detection">
       <span class="ctx-det-badge ctx-det-${d.type}">${d.type}</span>
       <span class="ctx-det-value">${d.html || Structra.util.esc(d.display || val.slice(0, 80))}</span>

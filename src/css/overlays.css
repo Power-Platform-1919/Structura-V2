@@ -1,0 +1,96 @@
+/* ============================================================
+   STRUCTRA V2 — Quick overlays
+   Command palette and the Find / Replace bar. Both float above the
+   work area; dialogs live in ui.css (.ov).
+   ============================================================ */
+
+/* ===== COMMAND PALETTE ===== */
+.cmd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  background: var(--overlay-bg);
+}
+.cmd-overlay.show { display: flex; }
+
+.cmd-box {
+  display: flex;
+  flex-direction: column;
+  width: var(--cmd-box-w);
+  max-width: calc(100vw - 2 * var(--sp-4));
+  max-height: 70vh;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.cmd-search { display: flex; align-items: center; gap: var(--sp-3); padding: 0 var(--sp-4); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.cmd-search > svg { width: var(--icon-lg); height: var(--icon-lg); flex-shrink: 0; color: var(--text-muted); }
+.cmd-input {
+  flex: 1; min-width: 0;
+  height: 52px; padding: 0;
+  border: none; background: transparent;
+  color: var(--text); font-size: var(--fs-lg);
+  box-shadow: none;
+}
+.cmd-input:focus { outline: none; box-shadow: none; border: none; }
+.cmd-input::placeholder { color: var(--text-muted); }
+
+.cmd-group-title { padding: var(--sp-3) var(--sp-4) var(--sp-1); font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
+.cmd-list { flex: 1; min-height: 0; max-height: var(--cmd-list-max-h); overflow-y: auto; padding: 0 var(--sp-2) var(--sp-2); }
+.cmd-item {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius);
+  font-size: var(--fs-base);
+  cursor: pointer;
+}
+.cmd-item:hover, .cmd-item.selected, .cmd-item.active { background: var(--surface-hover); }
+.cmd-item.selected, .cmd-item.active { background: var(--accent-soft); }
+.cmd-item svg { width: var(--icon-md); height: var(--icon-md); color: var(--text-muted); flex-shrink: 0; }
+.cmd-item .cmd-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmd-item .cmd-cat { font-size: var(--fs-xxs); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.cmd-item kbd { margin-left: var(--sp-2); }
+.cmd-footer { display: flex; gap: var(--sp-4); padding: var(--sp-2) var(--sp-4); border-top: 1px solid var(--border-subtle); background: var(--surface-alt); font-size: var(--fs-xs); color: var(--text-muted); flex-shrink: 0; }
+
+/* ===== FIND / REPLACE BAR ===== */
+.find-bar {
+  display: none;
+  position: absolute;
+  top: calc(var(--canvas-header-h) + var(--sp-2));
+  right: var(--sp-4);
+  z-index: 60;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+.find-bar.show { display: flex; }
+.find-row, .replace-row { display: flex; align-items: center; gap: var(--sp-1); }
+.find-bar .find-input { width: var(--find-input-w); min-height: 30px; background: var(--surface-alt); }
+
+.find-modes { display: flex; gap: 2px; margin-right: var(--sp-1); padding: 2px; background: var(--surface-alt); border: 1px solid var(--border-subtle); border-radius: var(--radius); }
+.fb-mode { min-width: 26px; height: 24px; padding: 0 var(--sp-1); border: none; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); font-size: var(--fs-xs); font-weight: var(--fw-semibold); }
+.fb-mode:hover { color: var(--text); }
+.fb-mode.active { background: var(--accent); color: var(--text-on-accent); }
+
+.fb-count { min-width: 3.5rem; text-align: center; font-size: var(--fs-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.fb-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 28px; height: 28px; padding: 0 var(--sp-1);
+  border: none; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-sec);
+}
+.fb-btn:hover { background: var(--surface-hover); color: var(--text); }
+.fb-btn svg { width: var(--icon-md); height: var(--icon-md); }
+.fb-replace-btn { padding: 0 var(--sp-3); background: var(--surface-alt); border: 1px solid var(--border); font-size: var(--fs-sm); font-weight: var(--fw-medium); white-space: nowrap; }
+.fb-replace-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
