@@ -503,13 +503,24 @@
   align-items: center;
 }
 
-.ed-status { margin-left: auto; font-size: var(--fs-sm); }
-.ed-status.valid { color: var(--success); }
+.ed-status { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-1); max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: none; background: transparent; font-size: var(--fs-sm); font-family: inherit; }
+.ed-status.valid { color: var(--success); cursor: default; }
 .ed-status.error { color: var(--danger); }
+.ed-status.error:not(:disabled) { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.editor-body { flex: 1; min-height: 0; display: flex; }
+.editor-gutter {
+  flex-shrink: 0; min-width: 3.25rem; overflow: hidden; white-space: pre; text-align: right; user-select: none;
+  padding: var(--sp-3) var(--sp-2) var(--sp-3) var(--sp-3);
+  font-family: var(--font-mono); font-size: var(--fs-md); line-height: 1.8;
+  color: var(--text-muted); background: var(--surface-alt); border-right: 1px solid var(--border-subtle);
+}
 
 .editor-textarea {
   flex: 1;
+  min-width: 0;
   resize: none;
+  white-space: pre;
+  overflow: auto;
   border: none;
   outline: none;
   padding: var(--sp-3) var(--sp-4);

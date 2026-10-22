@@ -94,9 +94,14 @@ Structra.get = (key) => Structra.state[key];
 Structra.events.on('theme:toggle', () => Structra.theme.toggle());
 
 /* ===== TOAST (quick access) ===== */
-Structra.toast = (msg) => {
+/**
+ * Structra.toast('Saved')                                       a short message
+ * Structra.toast('Closed x', { action: { label: 'Reopen', run } })   with a button
+ * (A second argument that is a text or a number, from older calls, is ignored.)
+ */
+Structra.toast = (msg, options) => {
   Structra.log.info('App', 'Toast: ' + msg);
-  Structra.events.emit('toast', msg);
+  Structra.events.emit('toast', { msg, ...(options && typeof options === 'object' ? options : {}) });
 };
 
 /* ===== TAB STATE ===== */

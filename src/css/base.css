@@ -189,6 +189,8 @@ kbd {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
 .toast svg { width: var(--icon-sm); height: var(--icon-sm); color: var(--success); }
+.toast-action { margin-left: var(--sp-2); padding: 0 var(--sp-2); min-height: 24px; border: 1px solid color-mix(in srgb, currentColor 35%, transparent); border-radius: var(--radius-sm); background: transparent; color: inherit; font: inherit; font-weight: var(--fw-semibold); cursor: pointer; }
+.toast-action:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
 
 /* ===== SEPARATORS ===== */
 .sep { width: 1px; height: var(--icon-lg); background: var(--border); flex-shrink: 0; }

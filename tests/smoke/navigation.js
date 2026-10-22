@@ -16,6 +16,13 @@ try { ({ chromium } = require('playwright')); } catch {
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
+// The first-run welcome dialog opens a moment after load and would cover the page: tests start as a returning visitor
+async function newCtx(browser, options) {
+  const ctx = await browser.newContext(options);
+  await ctx.addInitScript(() => { try { localStorage.setItem('structra.welcomeSeen', '1'); } catch { /* storage blocked */ } });
+  return ctx;
+}
+
 function serve() {
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent(req.url.split('?')[0]);
@@ -31,7 +38,7 @@ function serve() {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
   const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
-  const context = await browser.newContext({ viewport: { width: 1360, height: 800 } });
+  const context = await newCtx(browser, { viewport: { width: 1360, height: 800 } });
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   const page = await context.newPage();
   const failures = [];

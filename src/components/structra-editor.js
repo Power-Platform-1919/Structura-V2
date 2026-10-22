@@ -32,12 +32,25 @@ class StructraEditor extends StructraElement {
           <button class="toolbar-btn" data-action="format">Format</button>
           <button class="toolbar-btn" data-action="minify">Minify</button>
           <button class="toolbar-btn" data-action="repair" title="Fix trailing commas, quotes, comments and other mistakes">Repair</button>
-          <span class="ed-status valid" id="edStatus">${Structra.icons.svg('check', { size: 14, color: 'success' })} Valid JSON</span>
+          <button type="button" class="ed-status valid" id="edStatus" disabled>${Structra.icons.svg('check', { size: 14, color: 'success' })} Valid JSON</button>
         </div>
-        <textarea class="editor-textarea" id="editorArea" spellcheck="false"></textarea>
+        <div class="editor-body">
+          <div class="editor-gutter" id="edGutter" aria-hidden="true"></div>
+          <textarea class="editor-textarea" id="editorArea" spellcheck="false" wrap="off" aria-label="JSON text"></textarea>
+        </div>
       </div>`;
 
-    this.$('#editorArea').addEventListener('input', () => this._validate());
+    const area = this.$('#editorArea');
+    area.addEventListener('input', () => { this._gutter(); this._validate(); });
+    area.addEventListener('scroll', () => { this.$('#edGutter').scrollTop = area.scrollTop; });
+    // The status names the problem; a click goes to it
+    this.$('#edStatus').addEventListener('click', () => {
+      if (this._errorAt == null) return;
+      area.focus();
+      area.setSelectionRange(this._errorAt, Math.min(area.value.length, this._errorAt + 1));
+      const line = area.value.slice(0, this._errorAt).split('\n').length;
+      area.scrollTop = Math.max(0, (line - 4) * parseFloat(getComputedStyle(area).lineHeight));
+    });
 
     this.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
@@ -57,7 +70,7 @@ class StructraEditor extends StructraElement {
     const area = this.$('#editorArea');
     if (!area) return;
     const data = Structra.state.jsonData;
-    if (!data) { area.value = ''; return; }
+    if (!data) { area.value = ''; this._gutter(); return; }
     // Guard: skip JSON.stringify for very large data to avoid "Invalid string length"
     const size = Structra.state.fileSize || 0;
     if (size > 10 * 1024 * 1024) {
@@ -76,19 +89,55 @@ class StructraEditor extends StructraElement {
       Structra.log.error('Editor', 'JSON.stringify failed: ' + e.message, e);
       area.value = '// Could not stringify data: ' + e.message;
     }
+    this._gutter();
+    this._validate();
+  }
+
+  /** Line numbers beside the text (up to 50,000 lines; beyond that the gutter would cost more than it helps) */
+  _gutter() {
+    const area = this.$('#editorArea');
+    const gutter = this.$('#edGutter');
+    if (!area || !gutter) return;
+    const lines = Math.min(area.value.split('\n').length, 50000);
+    if (this._lines !== lines) {
+      this._lines = lines;
+      let out = '';
+      for (let i = 1; i <= lines; i++) out += i + '\n';
+      gutter.textContent = out;
+    }
+    gutter.scrollTop = area.scrollTop;
   }
 
   async _validate() {
     const status = this.$('#edStatus');
     const area = this.$('#editorArea');
     if (!status || !area) return;
+    this._errorAt = null;
     try {
       await Structra.parseJsonAsync(area.value);
       status.innerHTML = Structra.icons.svg('check', { size: 14, color: 'success' }) + ' Valid JSON';
       status.className = 'ed-status valid';
+      status.disabled = true;
+      status.title = '';
     } catch (e) {
-      status.innerHTML = Structra.icons.svg('x', { size: 14, color: 'danger' }) + ' Invalid';
+      // Say what is wrong and where: the browser's own parser knows the position
+      let why = e.message;
+      try { JSON.parse(area.value); } catch (native) { why = native.message; }
+      const pos = /position\s+(\d+)/i.exec(why);
+      const lc = /line\s+(\d+)\s+column\s+(\d+)/i.exec(why);
+      let where = '';
+      if (pos) {
+        this._errorAt = Number(pos[1]);
+        const before = area.value.slice(0, this._errorAt);
+        where = `line ${before.split('\n').length}, column ${before.length - before.lastIndexOf('\n')}`;
+      } else if (lc) {
+        where = `line ${lc[1]}, column ${lc[2]}`;
+      }
+      const reason = why.replace(/\s*in JSON at position.*$/i, '').replace(/\s*\(line.*\)$/i, '').replace(/^JSON\.parse:\s*/i, '').trim();
+      status.innerHTML = `${Structra.icons.svg('x', { size: 14, color: 'danger' })} ${Structra.util.esc(where ? `Line ${where.slice(5)}: ` : '')}${Structra.util.esc(reason.slice(0, 90))}`;
       status.className = 'ed-status error';
+      status.disabled = this._errorAt == null;
+      status.title = this._errorAt == null ? '' : 'Click to go to the problem';
     }
   }
 
@@ -97,6 +146,7 @@ class StructraEditor extends StructraElement {
     try {
       const data = await Structra.parseJsonAsync(area.value);
       area.value = JSON.stringify(data, null, 2);
+      this._gutter();
       this._validate();
       Structra.toast('Formatted');
     } catch (e) {
@@ -109,6 +159,7 @@ class StructraEditor extends StructraElement {
     try {
       const data = await Structra.parseJsonAsync(area.value);
       area.value = JSON.stringify(data);
+      this._gutter();
       this._validate();
       Structra.toast('Minified');
     } catch (e) {
@@ -126,6 +177,7 @@ class StructraEditor extends StructraElement {
     } catch { /* invalid: fall through to repair */ }
     try {
       area.value = await Structra.jsonTools.repair(area.value);
+      this._gutter();
       await this._validate();
       Structra.toast('Repaired. Review it, then Apply.');
     } catch (e) {
@@ -137,10 +189,17 @@ class StructraEditor extends StructraElement {
     const area = this.$('#editorArea');
     try {
       const data = await Structra.parseJsonAsync(area.value);
+      // Keep the document as it was, so Ctrl+Z can bring it back, and mark the tab as changed
+      const tabId = Structra.tabs.activeId;
+      Structra.undoStack.push(Structra.state.jsonData, 'Before editing', tabId);
       Structra.set('jsonData', data);
-      Structra.toast('Changes applied');
+      Structra.undoStack.push(data, 'Edited in the Editor', tabId);
+      const tab = Structra.tabs.list.find((t) => t.id === tabId);
+      if (tab) { tab.modified = true; Structra.events.emit('tabs:changed'); }
+      Structra.toast('Changes applied. Ctrl+Z (outside this box) undoes them.');
     } catch (e) {
-      Structra.toast('Invalid JSON — cannot apply');
+      this._validate();
+      Structra.toast('These changes cannot be applied yet: ' + (this.$('#edStatus').textContent || 'the JSON is not valid').trim());
     }
   }
 }

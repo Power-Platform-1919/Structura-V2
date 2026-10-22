@@ -100,6 +100,10 @@ structra-canvas-header { container-type: inline-size; }
 .doc-tab .tab-close:hover { opacity: 1; background: var(--surface-active); }
 .doc-tab .tab-close svg { width: 10px; height: 10px; }
 
+.doc-tab.dragging { opacity: 0.5; }
+.doc-tab.drop-before { box-shadow: inset 2px 0 0 var(--accent); }
+.doc-tab.drop-after { box-shadow: inset -2px 0 0 var(--accent); }
+.doc-tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .doc-tab-add {
   display: flex; align-items: center; justify-content: center;
   align-self: center;

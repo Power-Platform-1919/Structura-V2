@@ -19,6 +19,13 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/ja
 // Three documents with different shapes, so a mix-up cannot go unnoticed
 const DOCS = ['jsonobject.json', 'test8_toplevel_array.json', 'edge_odata.json'];
 
+// The first-run welcome dialog opens a moment after load and would cover the page: tests start as a returning visitor
+async function newCtx(browser, options) {
+  const ctx = await browser.newContext(options);
+  await ctx.addInitScript(() => { try { localStorage.setItem('structra.welcomeSeen', '1'); } catch { /* storage blocked */ } });
+  return ctx;
+}
+
 function serve() {
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent(req.url.split('?')[0]);
@@ -50,7 +57,7 @@ const snapshot = (page) => page.evaluate(async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
   const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
-  const context = await browser.newContext();
+  const context = await newCtx(browser, );
   const page = await context.newPage();
   const errors = [];
   const failures = [];

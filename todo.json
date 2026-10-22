@@ -842,17 +842,17 @@
         {
           "id": "13.68",
           "title": "Editor: when the JSON is broken it only says 'Invalid' (no reason, line or column, no marker in the text); Apply and Repair give no visible response (no message when nothing can be repaired, no error on Apply). Show the parse error with its position, and say what Repair changed",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.69",
           "title": "Editor has no line numbers or syntax colours, and the text starts flush against the left edge of the panel",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.70",
           "title": "Toolbar actions (Mask, Repair, Apply) report their result only in a short toast that was not visible in screenshots taken a second later; keep results visible long enough or log them in a small activity area",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.71",
@@ -992,7 +992,7 @@
         {
           "id": "13.98",
           "title": "Reloading the page loses every open tab and all data (back to 'Untitled 1' empty); there is no session restore, no 'Restore last session' prompt, and no warning before leaving with unsaved work",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.99",
@@ -1022,7 +1022,7 @@
         {
           "id": "13.104",
           "title": "Editor view: the status says only 'Invalid' (and Apply says 'Invalid JSON — cannot apply') with no line, column or reason, and no marker in the text; there is no line-number gutter, and the text font is larger than the Tree's, so the two views look like different apps",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.105",
@@ -1032,12 +1032,12 @@
         {
           "id": "13.106",
           "title": "After Apply in the Editor the tab keeps the name 'sample-data.json' with no 'edited' dot, so a maker cannot tell the file no longer matches what was opened; there is no Revert to original or Save as file",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.107",
           "title": "Editor Repair works well (single quotes, trailing comma, comment, True) but the repair message for hopeless input is jargon ('Unexpected end of json string at position 1'); also no diff of what was repaired",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.108",
@@ -1087,7 +1087,7 @@
         {
           "id": "13.117",
           "title": "Accessibility: the document tabs and the bottom tabs have no accessible names or roles (file tab is a plain generic), line numbers are read as text '1 2 3 4 5 4 5 6', toolbar icon buttons like +All and -All have no labels, and the Graph nodes expose no role; keyboard-only use of rail, tabs and dialogs needs a pass",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.118",
@@ -1182,7 +1182,7 @@
         {
           "id": "13.136",
           "title": "Document tabs cannot be reordered by dragging, have no right-click menu (Close others, Close to the right, Duplicate, Rename), and every 'Load from URL', 'New tab' or palette load adds another 'Untitled N' tab instead of reusing an empty one; five tabs already crowd the strip with no overflow control",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.137",
@@ -1297,7 +1297,7 @@
         {
           "id": "13.159",
           "title": "Alt+W (and the tab x button) closes a tab at once with no confirmation even when the tab holds edited, masked or mocked data, and there is no 'Reopen closed tab' (Ctrl+Shift+T) or Undo toast; after closing, the path bar falls back to '$' without telling which tab is now shown",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.160",

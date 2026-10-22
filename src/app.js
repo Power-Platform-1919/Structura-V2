@@ -110,6 +110,12 @@
 
   // Panel toggling is handled by the components themselves via state events
 
+  // Edits (Mask, Sort, Editor changes...) live in the open tab only. A reload brings back the file as it was opened,
+  // so ask before leaving with changes that would be lost.
+  window.addEventListener('beforeunload', (e) => {
+    if (Structra.tabs.list.some((t) => t.modified)) { e.preventDefault(); e.returnValue = ''; }
+  });
+
   // Global keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     // While typing in a box, keys belong to the box (its own undo, and "?" is a character)

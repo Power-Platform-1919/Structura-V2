@@ -23,6 +23,13 @@ const DOC = [
   { zeta: 3, id: 3, email: 'cy@contoso.com', phone: '555-555-0000', name: 'Cy', nested: { b: 6, a: 5 } },
 ];
 
+// The first-run welcome dialog opens a moment after load and would cover the page: tests start as a returning visitor
+async function newCtx(browser, options) {
+  const ctx = await browser.newContext(options);
+  await ctx.addInitScript(() => { try { localStorage.setItem('structra.welcomeSeen', '1'); } catch { /* storage blocked */ } });
+  return ctx;
+}
+
 function serve() {
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent(req.url.split('?')[0]);
@@ -38,7 +45,7 @@ function serve() {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
   const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
-  const page = await (await browser.newContext()).newPage();
+  const page = await (await newCtx(browser, )).newPage();
   const failures = [];
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));

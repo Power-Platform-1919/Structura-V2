@@ -18,6 +18,13 @@ const FIXTURES = path.join(ROOT, 'tests', 'fixtures');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 const DOCS = ['sp_getitems.json', 'test8_toplevel_array.json', 'jsonobject.json'];
 
+// The first-run welcome dialog opens a moment after load and would cover the page: tests start as a returning visitor
+async function newCtx(browser, options) {
+  const ctx = await browser.newContext(options);
+  await ctx.addInitScript(() => { try { localStorage.setItem('structra.welcomeSeen', '1'); } catch { /* storage blocked */ } });
+  return ctx;
+}
+
 function serve() {
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent(req.url.split('?')[0]);
@@ -36,7 +43,7 @@ function serve() {
   const failures = [];
 
   for (const file of DOCS) {
-    const page = await (await browser.newContext({ viewport: { width: 1360, height: 800 } })).newPage();
+    const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
     try {
