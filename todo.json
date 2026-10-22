@@ -1,0 +1,228 @@
+{
+  "title": "Structra V2: pending items carried over from V1",
+  "basis": "Gap analysis done from source code only (the .md docs are treated as stale). Status values: todo, in_progress, done, blocked.",
+  "updated": "2026-10-22",
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Make V2 boot (blocker)",
+      "status": "in_progress",
+      "subtasks": [
+        {
+          "id": "1.1",
+          "title": "Fix engine.js export list: define or remove sql, summarizeTable, getSchemaDb",
+          "status": "done"
+        },
+        {
+          "id": "1.2",
+          "title": "Reload in Playwright and confirm zero console errors (favicon aside)",
+          "status": "done"
+        },
+        {
+          "id": "1.3",
+          "title": "Add favicon link and icons/icon.svg",
+          "status": "todo"
+        },
+        {
+          "id": "1.4",
+          "title": "Smoke test: load a V1 fixture, open tree/table/graph/schema/editor/stats",
+          "status": "in_progress"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "Power Platform expressions drawer (V1 core value, empty in V2)",
+      "status": "todo",
+      "subtasks": [
+        {
+          "id": "2.1",
+          "title": "Port power-platform.js (Power Automate + Power Fx) to Structra namespace as src/core/expressions-pp.js",
+          "status": "todo"
+        },
+        {
+          "id": "2.2",
+          "title": "Fill the Expressions drawer tab with PA / Canvas sub-tabs, driven by the selected path",
+          "status": "todo"
+        },
+        {
+          "id": "2.3",
+          "title": "Port helpers.js (Apply to each, connector shape detection) into the Expressions tab",
+          "status": "todo"
+        },
+        {
+          "id": "2.4",
+          "title": "Port schema-gen.js and fill the Schema Gen tab with Copy Schema",
+          "status": "todo"
+        },
+        {
+          "id": "2.5",
+          "title": "Add path builders (buildPAPath, buildFxPathFull) check against src/utils/path.js",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "title": "Path navigation",
+      "status": "todo",
+      "subtasks": [
+        {
+          "id": "3.1",
+          "title": "Path history back/forward buttons in header (Alt+Left / Alt+Right)",
+          "status": "todo"
+        },
+        {
+          "id": "3.2",
+          "title": "Breadcrumb bar under header, click to jump",
+          "status": "todo"
+        },
+        {
+          "id": "3.3",
+          "title": "Real bookmarks: store, toggle (Ctrl+B), highlight in tree, list panel, persist",
+          "status": "todo"
+        },
+        {
+          "id": "3.4",
+          "title": "Path autocomplete in header path input (component exists, wire it)",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "title": "Tree right-click context menu",
+      "status": "todo",
+      "subtasks": [
+        {
+          "id": "4.1",
+          "title": "Context menu component: copy path, value, subtree",
+          "status": "todo"
+        },
+        {
+          "id": "4.2",
+          "title": "Copy As (TypeScript, Python, C#, Go, Rust, Java, SQL) via code-gen",
+          "status": "todo"
+        },
+        {
+          "id": "4.3",
+          "title": "Bookmark and Generate mock data entries",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "title": "Data tools missing in V2",
+      "status": "todo",
+      "subtasks": [
+        {
+          "id": "5.1",
+          "title": "Repair JSON (jsonrepair) command and editor button",
+          "status": "todo"
+        },
+        {
+          "id": "5.2",
+          "title": "Real JSON Schema validation (Ajv) replacing the current schema-infer stub",
+          "status": "todo"
+        },
+        {
+          "id": "5.3",
+          "title": "Duplicate key detection on load with a badge",
+          "status": "todo"
+        },
+        {
+          "id": "5.4",
+          "title": "RFC 6902 JSON Patch export in the diff overlay",
+          "status": "todo"
+        },
+        {
+          "id": "5.5",
+          "title": "Compact/Expand (minify toggle) command",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "title": "Share and export",
+      "status": "todo",
+      "subtasks": [
+        {
+          "id": "6.1",
+          "title": "Share URL (hash-encoded) command",
+          "status": "todo"
+        },
+        {
+          "id": "6.2",
+          "title": "Load from URL hash on startup",
+          "status": "todo"
+        },
+        {
+          "id": "6.3",
+          "title": "Export view as image (html2canvas)",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "title": "Table and analysis gaps",
+      "status": "todo",
+      "subtasks": [
+        {
+          "id": "7.1",
+          "title": "Table: expand nested object column into new columns",
+          "status": "todo"
+        },
+        {
+          "id": "7.2",
+          "title": "Table: verify hide/reorder columns and value/condition filters match V1",
+          "status": "todo"
+        },
+        {
+          "id": "7.3",
+          "title": "Data charts (sparklines, bar charts for numeric arrays)",
+          "status": "todo"
+        },
+        {
+          "id": "7.4",
+          "title": "Panel resizer for query and context panels",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "title": "Cleanup and quality",
+      "status": "todo",
+      "subtasks": [
+        {
+          "id": "8.1",
+          "title": "Resolve shortcut collisions (Ctrl+T, Ctrl+W are browser-reserved)",
+          "status": "todo"
+        },
+        {
+          "id": "8.2",
+          "title": "Remove or archive unloaded V1 copies (src/ui, unused src/utils) once ported",
+          "status": "todo"
+        },
+        {
+          "id": "8.3",
+          "title": "Migrate remaining window.App usages (lib-loader, path) to Structra",
+          "status": "todo"
+        },
+        {
+          "id": "8.4",
+          "title": "Side-by-side V1 vs V2 test pass with V1 fixtures, record regressions",
+          "status": "todo"
+        },
+        {
+          "id": "8.5",
+          "title": "Refresh memory-bank.md to match the code after the work above",
+          "status": "todo"
+        }
+      ]
+    }
+  ]
+}

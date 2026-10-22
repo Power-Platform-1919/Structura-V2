@@ -1757,6 +1757,41 @@ Structra.engine = (() => {
     }
   }
 
+  /**
+   * Run raw SQL against DuckDB and return the rows.
+   * Unlike runSql, this does not touch the active query used by the views.
+   * @param {string} query
+   * @returns {Promise<Array<Object>>} rows, or [] when DuckDB is not ready
+   */
+  async function sql(query) {
+    if (!_duckAvailable()) return [];
+    return Structra.duckdb.query(query);
+  }
+
+  /**
+   * DuckDB SUMMARIZE for the active dataset (min, max, approx unique, nulls per column).
+   * @returns {Promise<Array<Object>>}
+   */
+  async function summarizeTable() {
+    const ds = getActive();
+    if (!ds || !_canUseDuck(ds)) return [];
+    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+    try {
+      return await Structra.duckdb.query(`SUMMARIZE "${tableName}"`);
+    } catch (err) {
+      Structra.log.warn('Engine', 'summarizeTable failed', err.message);
+      return [];
+    }
+  }
+
+  /**
+   * Column schema of the active dataset as seen by DuckDB.
+   * @returns {Promise<Array<{name, type, nested}>>}
+   */
+  async function getSchemaDb() {
+    return describeTable();
+  }
+
   /* --- Public API --- */
   return {
     ingest,
