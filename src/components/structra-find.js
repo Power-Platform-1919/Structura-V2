@@ -138,7 +138,8 @@ class StructraFind extends StructraElement {
     this._replaceOpen = !this._replaceOpen;
     const row = this.$('#replaceRow');
     if (row) row.style.display = this._replaceOpen ? 'flex' : 'none';
-    if (this._replaceOpen) this.$('#replaceInput').focus();
+    // Type the search first: the cursor goes to Find while it is empty, and to Replace once there is something to replace
+    if (this._replaceOpen) (this.$('#findInput').value ? this.$('#replaceInput') : this.$('#findInput')).focus();
   }
 
   _close() {

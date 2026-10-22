@@ -897,7 +897,7 @@
         {
           "id": "13.79",
           "title": "CRITICAL: data tools say they worked but no view changes. Palette 'Sort Keys A to Z' shows the toast 'Keys sorted A→Z', the engine copy is sorted ($metadata first), but Structra.state.jsonData and the Tree still show the original order. The tools call _reingest which updates only the engine dataset; check Flatten, Unflatten, Mask, Unmask, Mock, Sample the same way, set state.jsonData and re-render, and add a smoke check that the Tree changes after Sort Keys",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.80",
