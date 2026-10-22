@@ -83,7 +83,7 @@ class StructraContext extends StructraElement {
   _renderBookmarks() {
     const el = this.$('#ctxBookmarks');
     if (!el) return;
-    const esc = Structra.dom.esc;
+    const esc = Structra.util.esc;
     const items = Structra.bookmarks.list();
     el.innerHTML = items.length
       ? items.map((b) => `<div class="ctx-bm">

@@ -56,6 +56,19 @@ class StructraCommand extends StructraElement {
       // UI
       { id: 'theme',      label: 'Switch Light / Dark',             kbd: 'Alt+T',        cat: 'UI',       icon: 'sun-moon' },
       { id: 'welcome',    label: 'Welcome',                         kbd: '',             cat: 'Help',     icon: 'circle-help' },
+      { id: 'expand-all', label: 'Expand All Nodes',                  kbd: '',             cat: 'View',     icon: 'maximize-2' },
+      { id: 'collapse-all', label: 'Collapse All Nodes',               kbd: '',             cat: 'View',     icon: 'minimize-2' },
+      { id: 'depth-3',    label: 'Collapse to Depth 3',              kbd: '',             cat: 'View',     icon: 'chevrons-down-up' },
+      { id: 'wrap',       label: 'Toggle Word Wrap',                 kbd: '',             cat: 'View',     icon: 'wrap-text' },
+      { id: 'zoom-fit',   label: 'Zoom to Fit Window',               kbd: '',             cat: 'UI',       icon: 'scan' },
+      { id: 'unmask',     label: 'Unmask (restore the original)',    kbd: '',             cat: 'Tools',    icon: 'eye' },
+      { id: 'copy-path',  label: 'Copy Current Path',                kbd: '',             cat: 'Navigation', icon: 'copy' },
+      { id: 'bookmark',   label: 'Bookmark Current Path',            kbd: 'Ctrl+B',       cat: 'Navigation', icon: 'bookmark' },
+      { id: 'back',       label: 'Navigate Back',                    kbd: 'Alt+Left',     cat: 'Navigation', icon: 'arrow-left' },
+      { id: 'forward',    label: 'Navigate Forward',                 kbd: 'Alt+Right',    cat: 'Navigation', icon: 'arrow-right' },
+      { id: 'new-tab',    label: 'New Tab',                          kbd: 'Alt+N',        cat: 'File',     icon: 'plus' },
+      { id: 'load-url',   label: 'Load from URL',                    kbd: '',             cat: 'File',     icon: 'globe' },
+      { id: 'toolbar-reset', label: 'Show All Toolbar Buttons',        kbd: '',             cat: 'UI',       icon: 'panel-top' },
       { id: 'shortcuts',  label: 'Keyboard Shortcuts',             kbd: '?',            cat: 'Help',     icon: 'keyboard' },
       // Phase 5 features
       { id: 'diff',       label: 'Diff / Compare JSON',            kbd: 'Ctrl+D',       cat: 'Analysis', icon: 'git-compare' },
@@ -203,6 +216,8 @@ class StructraCommand extends StructraElement {
       case 'mask': {
         if (!data) { Structra.toast('No data to mask'); return; }
         Structra.undoStack.push(data, 'Mask PII');
+        if (!this._maskBackups) this._maskBackups = new Map();
+        if (!this._maskBackups.has(Structra.state.activeTab)) this._maskBackups.set(Structra.state.activeTab, data);
         const masked = Structra.dataMask.maskData(data);
         this._reingest(masked.data, 'Masked');
         Structra.toast(`Masked ${masked.count} sensitive value${masked.count !== 1 ? 's' : ''}`);
@@ -386,6 +401,34 @@ class StructraCommand extends StructraElement {
       case 'zoom-in':    Structra.events.emit('zoom:in'); break;
       case 'zoom-out':   Structra.events.emit('zoom:out'); break;
       case 'zoom-reset': Structra.events.emit('zoom:reset'); break;
+      case 'toolbar-reset': Structra.events.emit('toolbar:reset'); break;
+      case 'zoom-fit':   Structra.events.emit('zoom:fit'); break;
+      case 'expand-all':   Structra.events.emit('tree:expand-all'); break;
+      case 'collapse-all': Structra.events.emit('tree:collapse-all'); break;
+      case 'depth-3':      Structra.events.emit('tree:collapse-depth', 3); break;
+      case 'wrap':         Structra.events.emit('tree:toggle-wrap'); Structra.toast('Word wrap toggled'); break;
+      case 'copy-path':    Structra.util.copy(Structra.state.currentPath || '$', 'Path copied'); break;
+      case 'bookmark': {
+        const path = Structra.state.currentPath;
+        if (!path || path === '$') { Structra.toast('Select a path to bookmark'); break; }
+        Structra.toast(Structra.bookmarks.toggle(path) ? 'Bookmarked ' + path : 'Bookmark removed');
+        break;
+      }
+      case 'back':         Structra.nav.back(); break;
+      case 'forward':      Structra.nav.forward(); break;
+      case 'new-tab':      Structra.events.emit('tabs:add'); break;
+      case 'load-url':
+        Structra.events.emit('tabs:add');
+        setTimeout(() => Structra.events.emit('input:show-tab', 'url'), 50);
+        break;
+      case 'unmask': {
+        const backup = this._maskBackups && this._maskBackups.get(Structra.state.activeTab);
+        if (!backup) { Structra.toast('Nothing masked in this tab'); break; }
+        this._maskBackups.delete(Structra.state.activeTab);
+        this._reingest(backup, 'Unmasked');
+        Structra.toast('Original values restored');
+        break;
+      }
 
       default:
         Structra.events.emit('command:exec', cmdId);

@@ -28,7 +28,7 @@ class StructraBreadcrumb extends StructraElement {
       return;
     }
 
-    const esc = Structra.dom.esc;
+    const esc = Structra.util.esc;
     let running = '';
     const parts = [`<button class="bc-seg" data-path="$">root</button>`];
     tokens.forEach((t, i) => {

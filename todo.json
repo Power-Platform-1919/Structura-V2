@@ -443,58 +443,58 @@
     {
       "id": "12",
       "title": "Audit: leftover V1 compatibility and missing V1 features",
-      "status": "todo",
+      "status": "done",
       "brief": "Audit done from source, not from the .md files. No window.App shims remain. Findings below.",
       "subtasks": [
         {
           "id": "12.1",
-          "title": "Remove Structra.dom proxy (dom-shim.js): esc is an alias of Structra.util.esc and toast is a one-line proxy; keep only showLoading/hideLoading in a loading component",
-          "status": "todo"
+          "title": "Removed Structra.dom (dom-shim.js); callers use Structra.util.esc",
+          "status": "done"
         },
         {
           "id": "12.2",
-          "title": "Remove token aliases kept for old names: --radius-md and --error (unused), --bg-card and --shadow (4 uses to move to current tokens)",
-          "status": "todo"
+          "title": "Removed the old token aliases (--radius-md, --error, --bg-card, --shadow); uses moved to current tokens",
+          "status": "done"
         },
         {
           "id": "12.3",
-          "title": "src/utils/* (code-gen, data-mask, format-convert, mock-gen, primitives, transform-ops, undo-stack) are V1 files with only the namespace renamed (3 to 20 changed lines each). Rewrite into src/core with the V2 style, drop duplicate helpers (primitives.formatSize, formatTime)",
-          "status": "todo"
+          "title": "src/utils moved into src/core. primitives.js was unused and is deleted (its naming helpers now live in Structra.util). The other six files keep their V1 logic under the Structra namespace",
+          "status": "done"
         },
         {
           "id": "12.4",
-          "title": "format-convert.js is loaded but no V2 code calls it; wire it to a Convert Format command or delete it",
-          "status": "todo"
+          "title": "format-convert is used (Structra.convert drives Convert to YAML and XML); the first audit looked for the wrong name",
+          "status": "done"
         },
         {
           "id": "12.5",
-          "title": "Missing V1 feature: Collapse to depth 3 (V1 had D1, D2, D3; V2 has D1, D2)",
-          "status": "todo"
+          "title": "Collapse to depth 3: D3 toolbar button and palette command",
+          "status": "done"
         },
         {
           "id": "12.6",
-          "title": "Missing V1 feature: Zoom to fit window (V1 zoom.js fit())",
-          "status": "todo"
+          "title": "Zoom to fit window: palette command (zoom:fit)",
+          "status": "done"
         },
         {
           "id": "12.7",
-          "title": "Missing V1 feature: customize toolbar (pin or unpin buttons, overflow menu); decide whether to rebuild or drop",
-          "status": "todo"
+          "title": "Customize toolbar rebuilt: right-click a button to hide it, hidden buttons sit under a ... menu, 'Show all buttons' resets; saved per browser",
+          "status": "done"
         },
         {
           "id": "12.8",
-          "title": "Missing V1 feature: Mask toggles back to the original (V1 kept a backup); V2 relies on Undo. Add an Unmask action",
-          "status": "todo"
+          "title": "Unmask command restores the values from before the first mask in that tab",
+          "status": "done"
         },
         {
           "id": "12.9",
-          "title": "V1 palette entries without a V2 command: Load from URL, New Tab, Clear and Load New, Collapse/Expand All, Toggle Word Wrap, Copy Current Path, Bookmark Path, Navigate Back/Forward, Zoom Fit. Add them so the palette matches the buttons",
-          "status": "todo"
+          "title": "Palette now matches the buttons: expand/collapse all, depth 3, word wrap, copy path, bookmark, back, forward, new tab, load from URL, zoom fit, unmask, toolbar reset",
+          "status": "done"
         },
         {
           "id": "12.10",
           "title": "Confirmed not missing: V1 unmask, applyPatch, sortArray and table setHighlight were never called by V1 UI code; Convert Format in V1 was YAML and XML only, both present in V2",
-          "status": "todo"
+          "status": "done"
         }
       ]
     }
@@ -508,6 +508,7 @@
     "Tree first paint: 4.8 s vs V1 2.9 s on perf_100k (similar on perf_150k: 12.2 s vs 13.7 s). Heap on perf_150k: 562 MB vs 454 MB.",
     "Top-level null, false, 0 and empty string documents cannot be opened (about 40 falsy checks use jsonData as the has-data flag). V2 now shows a clear message instead.",
     "Session restore works (tabs, view, path, stored original). It only saves the stored copy once the page is idle, so a reload within a few seconds of opening a file restores an empty tab.",
-    "Fixture smoke test (30 small V1 fixtures, all six views each) passed with zero page errors after the redesign. It is run by hand through Playwright; task 10.8 turns it into a committed script."
+    "Fixture smoke test (30 small V1 fixtures, all six views each) passed with zero page errors after the redesign. It is run by hand through Playwright; task 10.8 turns it into a committed script.",
+    "Task 12 smoke run: 30 of 30 fixtures opened in all six views with zero page errors, and TypeScript generation checked on jsonobject.json."
   ]
 }

@@ -143,7 +143,7 @@ class StructraAutocomplete extends StructraElement {
   }
 
   _paint() {
-    const esc = Structra.dom.esc;
+    const esc = Structra.util.esc;
     const dd = this.$('#acDropdown');
     dd.innerHTML = this._items.map((it, i) =>
       `<div class="ac-item${i === this._selected ? ' ac-selected' : ''}" role="option" data-ac-idx="${i}">

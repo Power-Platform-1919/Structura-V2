@@ -66,7 +66,7 @@ class StructraCharts extends StructraOverlay {
   _fillColumns(preferred) {
     const src = this._sources[parseInt(this.$('#chSource').value, 10)];
     const sel = this.$('#chColumn');
-    const esc = Structra.dom.esc;
+    const esc = Structra.util.esc;
     let cols;
     if (this._isObjectRows(src.rows)) {
       const seen = new Map();
@@ -113,7 +113,7 @@ class StructraCharts extends StructraOverlay {
   }
 
   _stat(label, value) {
-    return `<div class="ch-stat"><span class="ch-stat-v">${Structra.dom.esc(value)}</span><span class="ch-stat-l">${Structra.dom.esc(label)}</span></div>`;
+    return `<div class="ch-stat"><span class="ch-stat-v">${Structra.util.esc(value)}</span><span class="ch-stat-l">${Structra.util.esc(label)}</span></div>`;
   }
 
   _fmt(n) {
@@ -187,7 +187,7 @@ class StructraCharts extends StructraOverlay {
     const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1]);
     const top = ranked.slice(0, StructraCharts.MAX_BARS);
     const peak = top[0][1];
-    const esc = Structra.dom.esc;
+    const esc = Structra.util.esc;
 
     const stats = [
       this._stat('values', values.length.toLocaleString()), this._stat('empty', nulls.toLocaleString()),

@@ -8,6 +8,7 @@
 class StructraInputPanel extends StructraElement {
   init() {
     this._activeTab = 'file';
+    this.on('input:show-tab', (tab) => { const btn = this.$(`.io-tab[data-tab="${tab}"]`); if (btn) btn.click(); });
   }
 
   render() {

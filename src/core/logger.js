@@ -63,7 +63,6 @@ Structra.log = (() => {
     'Status':         '#b0bec5',
     // UI modules
     'JsonView':       '#66bb6a',
-    'DomShim':        '#78909c',
     'Path':           '#8d6e63',
   };
 

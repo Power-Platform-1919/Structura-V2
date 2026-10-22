@@ -35,6 +35,12 @@ Structra.util = (() => {
     return typeof v;
   }
 
+  // Naming styles used when generating code
+  const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const camelCase = (s) => s.replace(/[-_](\w)/g, (_, c) => c.toUpperCase());
+  const pascalCase = (s) => capitalize(camelCase(s));
+  const snakeCase = (s) => s.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '').replace(/[-\s]+/g, '_');
+
   function formatBytes(n) {
     if (n === null || n === undefined || n === '' || Number.isNaN(Number(n))) return '—';
     n = Number(n);
@@ -111,5 +117,5 @@ Structra.util = (() => {
   let _uid = 0;
   const uid = (prefix = 'id') => prefix + '-' + (++_uid).toString(36) + Math.random().toString(36).slice(2, 6);
 
-  return { esc, typeOf, formatBytes, timeAgo, clamp, debounce, nextTick, yieldToBrowser, whenIdle, copy, download, uid };
+  return { esc, typeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, nextTick, yieldToBrowser, whenIdle, copy, download, uid };
 })();

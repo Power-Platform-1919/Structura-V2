@@ -14,6 +14,7 @@ class StructraZoom extends StructraElement {
     this.on('zoom:in', () => this._zoom(1));
     this.on('zoom:out', () => this._zoom(-1));
     this.on('zoom:reset', () => this._reset());
+    this.on('zoom:fit', () => this._fit());
 
     // Listen globally for Ctrl+/- keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -32,6 +33,16 @@ class StructraZoom extends StructraElement {
 
   _zoom(dir) {
     this._size = Math.max(this._min, Math.min(this._max, this._size + dir));
+    this._applySize();
+    this._showIndicator();
+  }
+
+  /** Pick the text size at which the widest line of the open view just fits the window */
+  _fit() {
+    const view = document.querySelector('.json-view, .j-scroll, structra-tree [class*="scroll"]') || document.querySelector('.app-view');
+    if (!view || !view.scrollWidth || !view.clientWidth) { Structra.toast('Nothing to fit yet'); return; }
+    const fitted = Math.floor(this._size * (view.clientWidth / view.scrollWidth));
+    this._size = Math.max(this._min, Math.min(this._max, fitted));
     this._applySize();
     this._showIndicator();
   }

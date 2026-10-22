@@ -3,8 +3,7 @@
  */
 Structra.codeGen = (() => {
 
-  const { typeOf } = Structra.typeHelpers;
-  const { capitalize, camelCase, pascalCase, snakeCase } = Structra.format;
+  const { typeOf, capitalize, camelCase, pascalCase, snakeCase } = Structra.util;
 
   // === TypeScript ===
   function toTypeScript(val, name = 'Root') {

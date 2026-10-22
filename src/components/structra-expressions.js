@@ -83,7 +83,7 @@ class StructraExpressions extends StructraElement {
   }
 
   _empty(msg) {
-    return `<div class="expr-empty">${Structra.dom.esc(msg)}</div>`;
+    return `<div class="expr-empty">${Structra.util.esc(msg)}</div>`;
   }
 
   _sections(build) {
@@ -94,7 +94,7 @@ class StructraExpressions extends StructraElement {
       Structra.log.error('Expressions', 'Could not build expressions', err);
       return this._empty('Could not build expressions for this data');
     }
-    const esc = Structra.dom.esc;
+    const esc = Structra.util.esc;
     return sections.map((s) => `
       <section class="expr-section">
         ${s.title ? `<h4 class="expr-title">${esc(s.title)}</h4>` : ''}
