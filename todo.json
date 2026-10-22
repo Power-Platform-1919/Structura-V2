@@ -1343,6 +1343,11 @@
           "id": "13.168",
           "title": "Charts dialog (Chart This Column) works with a stats row and histogram, but the label 'tallest bar:' is printed on top of the right bar and cut off, the 'In file order' line chart has no axis, labels or values, and 'Array $ (2)' is a cryptic name for the list being charted (should read 'Rows of the whole file (2)')",
           "status": "todo"
+        },
+        {
+          "id": "13.169",
+          "title": "Re-checked after +All and D2: the tree controls work, but the Analyze drawer still shows the wrong document's numbers (6 nodes) while the Tree shows the 2 email rows, so the stale analysis persists until the tab is reloaded; the Explorer rail button again opens a new empty tab ('Untitled 7' after 'Untitled 5', so the counter also skips numbers) and the rail shows both Explorer-style and Query buttons as active",
+          "status": "todo"
         }
       ]
     }
