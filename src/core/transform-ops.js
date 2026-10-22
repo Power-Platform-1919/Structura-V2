@@ -23,8 +23,10 @@ Structra.transformOps = (() => {
 
   // Operation registry — each entry: { pattern, exec(data, match) }
   const operations = [
+    // The data as it is
+    { pattern: /^\.$/, exec(data) { return data; } },
     // Navigate: .key or .key.subkey
-    { pattern: /^\.[a-zA-Z_$][\w$.]*/, exec(data, m) {
+    { pattern: /^\.[a-zA-Z_$][\w$.]*$/, exec(data, m) {
       const keys = m[0].slice(1).split('.');
       let result = data;
       for (const k of keys) { if (result == null) return undefined; result = result[k]; }
@@ -59,6 +61,30 @@ Structra.transformOps = (() => {
       if (!Array.isArray(data)) return data;
       const seen = new Set();
       return data.filter(item => { const key = JSON.stringify(item); if (seen.has(key)) return false; seen.add(key); return true; });
+    }},
+    // pick(a, b.c): keep only these fields of every item
+    { pattern: /^pick\(([\w$.,\s]+)\)$/, exec(data, m) {
+      const fields = m[1].split(',').map((f) => f.trim()).filter(Boolean);
+      const read = (obj, field) => field.split('.').reduce((v, k) => (v == null ? undefined : v[k]), obj);
+      const one = (item) => {
+        const out = {};
+        for (const f of fields) out[f] = read(item, f);
+        return out;
+      };
+      return Array.isArray(data) ? data.map(one) : one(data);
+    }},
+    // sortBy(field) or sortBy(-field) for descending
+    { pattern: /^sortBy\((-?)([\w$.]+)\)$/, exec(data, m) {
+      if (!Array.isArray(data)) return data;
+      const read = (obj) => m[2].split('.').reduce((v, k) => (v == null ? undefined : v[k]), obj);
+      const dir = m[1] ? -1 : 1;
+      return [...data].sort((a, b) => {
+        const x = read(a), y = read(b);
+        if (x === y) return 0;
+        if (x == null) return 1;
+        if (y == null) return -1;
+        return (x < y ? -1 : 1) * dir;
+      });
     }},
     // slice(start, end?)
     { pattern: /^slice\((-?\d+)(?:\s*,\s*(-?\d+))?\)$/, exec(data, m) {
@@ -137,8 +163,45 @@ Structra.transformOps = (() => {
       const m = step.match(op.pattern);
       if (m) return op.exec(data, m);
     }
-    throw new Error(`Unknown expression: ${step}`);
+    throw new Error(`Unknown step: ${step}`);
   }
 
-  return { executeStep, operations, validateExpression, buildFn1, buildFn2 };
+  /** Split on | that is not inside brackets, braces, parentheses or quotes ("||" stays in one piece) */
+  function splitSteps(input) {
+    const steps = [];
+    let depth = 0, quote = null, cur = '';
+    for (let i = 0; i < input.length; i++) {
+      const c = input[i];
+      if (quote) { cur += c; if (c === quote && input[i - 1] !== '\\') quote = null; continue; }
+      if (c === '"' || c === "'" || c === '`') { quote = c; cur += c; continue; }
+      if ('([{'.includes(c)) depth++;
+      else if (')]}'.includes(c)) depth--;
+      if (c === '|' && depth === 0 && input[i + 1] !== '|' && input[i - 1] !== '|') { steps.push(cur.trim()); cur = ''; continue; }
+      cur += c;
+    }
+    steps.push(cur.trim());
+    return steps.filter(Boolean);
+  }
+
+  /**
+   * Run a pipeline of steps joined with |, each step receiving the result of the one before:
+   *   .value | filter(x => x.Approved == true) | pick(Title, Cost) | sortBy(-Cost)
+   */
+  function evaluate(input, data) {
+    const steps = splitSteps(String(input || ''));
+    if (!steps.length) throw new Error('Type at least one step');
+    let result = data;
+    for (const step of steps) {
+      try { result = executeStep(result, step); }
+      catch (err) {
+        if (/^Unknown step/.test(err.message)) {
+          throw new Error(`${err.message}. Steps: .field  [0]  length  keys()  unique()  pick(a, b)  sortBy(field)  slice(0, 10)  map(x => x.a)  filter(x => x.a > 1)  groupBy(x => x.a)  sum(x => x.a)`);
+        }
+        throw new Error(`Step "${step}": ${err.message}`);
+      }
+    }
+    return result;
+  }
+
+  return { executeStep, evaluate, splitSteps, operations, validateExpression, buildFn1, buildFn2 };
 })();

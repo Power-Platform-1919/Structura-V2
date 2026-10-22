@@ -10,7 +10,9 @@
     "test:tabs": "node tests/smoke/tabs.js",
     "test:tools": "node tests/smoke/tools.js",
     "test:find": "node tests/smoke/find.js",
-    "test:layout": "node tests/smoke/layout.js"
+    "test:layout": "node tests/smoke/layout.js",
+    "test:transform": "node tests/smoke/transform.js",
+    "test:all": "npm test && node tests/smoke/tabs.js && node tests/smoke/tools.js && node tests/smoke/find.js && node tests/smoke/layout.js && node tests/smoke/transform.js"
   },
   "devDependencies": {
     "playwright": "^1.64.1"

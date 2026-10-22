@@ -867,7 +867,7 @@
         {
           "id": "13.73",
           "title": "CRITICAL: Transform is broken. Rail Transform or the Transform tab, any preset or expression, then Run transform shows 'Error: Structra.transformOps.evaluate is not a function' (the query panel calls evaluate, the module exports executeStep, operations, validateExpression, buildFn1, buildFn2). Implement evaluate or call the right function, and add a test",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.74",

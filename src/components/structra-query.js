@@ -46,6 +46,9 @@ class StructraQuery extends StructraElement {
       </div>`;
 
     this._renderTransformPresets();
+    // The presets name the open file's fields, so they follow the open document
+    this.on('state:jsonData', () => this._renderTransformPresets());
+    this.on('engine:ingested', () => this._renderTransformPresets());
 
     this.addEventListener('click', (e) => {
       const tab = e.target.closest('[data-qtab]');
@@ -69,6 +72,8 @@ class StructraQuery extends StructraElement {
       if (action.dataset.action === 'close') Structra.set('queryPanelOpen', false);
       else if (action.dataset.action === 'run') this._runQuery();
       else if (action.dataset.action === 'runTransform') this._runTransform();
+      else if (action.dataset.action === 'openTransform') this._openTransform();
+      else if (action.dataset.action === 'copyTransform') Structra.util.copy(JSON.stringify(this._lastTransform, null, 2), 'Result copied');
     });
 
     this.$('#queryInput').addEventListener('keydown', (e) => {
@@ -91,22 +96,71 @@ class StructraQuery extends StructraElement {
     this.$('#qpTransformBody').hidden = tab !== 'transform';
   }
 
+  /**
+   * One-click transforms built from the open file, so they always run: they name the file's real list and fields.
+   * Returns { presets: [{ label, expr }], example }
+   */
+  _transformPresets() {
+    const ds = Structra.engine.getActive();
+    const data = ds ? ds.raw : Structra.state.jsonData;
+    let rows = null;
+    let nav = '';
+    if (Array.isArray(data)) rows = data;
+    else if (data && typeof data === 'object') {
+      const first = Structra.engine.findFirstObjectArray ? Structra.engine.findFirstObjectArray(data) : null;
+      // Only a list reached through plain keys can be written as .a.b
+      if (first && first.path && /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(first.path.replace(/^\$\.?/, ''))) {
+        rows = first.rows;
+        nav = '.' + first.path.replace(/^\$\.?/, '');
+      }
+    }
+    const head = nav ? nav + ' | ' : '';
+    if (!rows || !rows.length || typeof rows[0] !== 'object' || rows[0] === null) {
+      return { presets: [{ label: 'Count items', expr: 'length' }, { label: 'Keys', expr: 'keys()' }], example: 'keys() | slice(0, 5)' };
+    }
+    const sample = rows.slice(0, 50).filter((r) => r && typeof r === 'object' && !Array.isArray(r));
+    const keys = [];
+    sample.forEach((r) => Object.keys(r).forEach((k) => { if (!keys.includes(k) && /^[A-Za-z_$][\w$]*$/.test(k) && !k.startsWith('@')) keys.push(k); }));
+    const kindOf = (k) => {
+      const vals = sample.map((r) => r[k]).filter((v) => v !== null && v !== undefined);
+      if (!vals.length) return null;
+      if (vals.every((v) => typeof v === 'boolean')) return 'boolean';
+      if (vals.every((v) => typeof v === 'number')) return 'number';
+      if (vals.every((v) => typeof v === 'string')) return 'string';
+      return null;
+    };
+    const text = keys.find((k) => kindOf(k) === 'string');
+    const num = keys.find((k) => kindOf(k) === 'number');
+    const flag = keys.find((k) => kindOf(k) === 'boolean');
+    const presets = [];
+    presets.push({ label: 'Count items', expr: head + 'length' });
+    if (keys.length >= 2) presets.push({ label: 'Pick fields', expr: `${head}pick(${keys.slice(0, 3).join(', ')})` });
+    if (text) presets.push({ label: 'Sort by ' + text, expr: `${head}sortBy(${text})` });
+    if (text) presets.push({ label: 'Unique ' + text, expr: `${head}map(x => x?.${text}) | unique()` });
+    if (flag) presets.push({ label: 'Only ' + flag, expr: `${head}filter(x => x?.${flag} == true)` });
+    if (num) presets.push({ label: 'Total ' + num, expr: `${head}sum(x => x?.${num})` });
+    if (num) presets.push({ label: 'Biggest ' + num, expr: `${head}sortBy(-${num}) | slice(0, 5)` });
+    if (text) presets.push({ label: 'Group by ' + text, expr: `${head}groupBy(x => x?.${text})` });
+    return { presets, example: presets[1] ? presets[1].expr : presets[0].expr };
+  }
+
   _renderTransformPresets() {
-    const presets = [
-      { label: 'Pick fields', expr: '.[] | {name, email}' },
-      { label: 'Filter active', expr: '.[] | select(.active == true)' },
-      { label: 'Sort by key', expr: 'sort_by(.name)' },
-      { label: 'Group by type', expr: 'group_by(.type)' },
-      { label: 'Count items', expr: 'length' },
-      { label: 'Unique values', expr: '[.[] .category] | unique' },
-      { label: 'Flatten arrays', expr: 'flatten' },
-      { label: 'Map values', expr: '.[] | .price * 1.1' },
-    ];
     const container = this.$('#transformPresets');
     if (!container) return;
+    const { presets, example } = this._transformPresets();
     container.innerHTML = presets.map(p =>
-      `<button class="qp-preset-btn" data-preset="${Structra.util.esc(p.expr)}" title="${Structra.util.esc(p.expr)}">${p.label}</button>`
+      `<button class="qp-preset-btn" type="button" data-preset="${Structra.util.esc(p.expr)}" title="${Structra.util.esc(p.expr)}">${Structra.util.esc(p.label)}</button>`
     ).join('');
+    const input = this.$('#transformInput');
+    if (input) input.placeholder = `Steps joined with |\nExample: ${example}`;
+  }
+
+  /** Keep the result of a transform: it opens in a new tab and the open file stays as it is */
+  _openTransform() {
+    const cmd = document.querySelector('structra-command');
+    if (this._lastTransform === undefined || !cmd) return;
+    const name = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '') + ' (transform)';
+    cmd._openInNewTab(this._lastTransform, name).then((opened) => { if (opened) Structra.toast('Result opened in a new tab'); });
   }
 
   async _runTransform() {
@@ -119,14 +173,23 @@ class StructraQuery extends StructraElement {
 
     try {
       const output = Structra.transformOps.evaluate(input, data);
+      this._lastTransform = output;
+      if (output === undefined) {
+        results.innerHTML = '<div class="qp-summary">The steps found nothing (a field in the steps does not exist here)</div>';
+        return;
+      }
       const preview = JSON.stringify(output, null, 2);
       const lines = preview.split('\n');
       const truncated = lines.length > 50 ? lines.slice(0, 50).join('\n') + '\n…' : preview;
-      results.innerHTML = `<div class="qp-summary">Transform result (${typeof output === 'object' && Array.isArray(output) ? output.length + ' items' : typeof output})</div>
-        <pre class="qp-transform-output">${Structra.util.esc(truncated)}</pre>`;
-      Structra.toast(`Transform: ${Array.isArray(output) ? output.length + ' items' : 'done'}`);
+      const kind = Array.isArray(output) ? output.length + (output.length === 1 ? ' item' : ' items') : (output && typeof output === 'object' ? 'an object' : typeof output);
+      results.innerHTML = `<div class="qp-summary">Result: ${kind}</div>
+        <pre class="qp-transform-output">${Structra.util.esc(truncated)}</pre>
+        <div class="qp-actions">
+          <button class="btn btn-sm" type="button" data-action="openTransform">Open result in a new tab</button>
+          <button class="btn btn-sm btn-ghost" type="button" data-action="copyTransform">Copy</button>
+        </div>`;
     } catch (err) {
-      results.innerHTML = `<div class="qp-summary is-error">Error: ${Structra.util.esc(err.message)}</div>`;
+      results.innerHTML = `<div class="qp-summary is-error">${Structra.util.esc(err.message)}</div>`;
     }
   }
 
