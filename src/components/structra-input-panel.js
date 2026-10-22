@@ -238,6 +238,8 @@ class StructraInputPanel extends StructraElement {
     Structra.set('fileName', name);
     Structra.set('fileSize', byteSize);
     Structra.set('currentPath', '$');
+    // A new document opens on its overview, unless it is big enough that computing it would make the first view wait
+    if (byteSize <= 25 * 1048576) Structra.set('activeView', 'overview');
 
     // Duplicate keys are invisible after parsing (JSON.parse keeps the last one), so scan the text
     // This runs in the background and yields to the page, so it never delays the first paint.
@@ -254,8 +256,8 @@ class StructraInputPanel extends StructraElement {
 
     // Hide loading overlay after UI has painted.
     // Double-rAF ensures one full paint cycle has completed.
-    // If stats view is active, wait for its async render to finish first (engine:analysisComplete).
-    if (Structra.state.activeView === 'stats') {
+    // If the overview is active, wait for its async render to finish first (engine:analysisComplete).
+    if (Structra.state.activeView === 'overview') {
       Structra.events.emit('loading:show', 'Computing statistics…');
       const _loadingTimeout = setTimeout(() => Structra.events.emit('loading:hide'), 8000);
       Structra.events.once('engine:analysisComplete', () => {

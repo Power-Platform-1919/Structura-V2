@@ -322,13 +322,13 @@
     {
       "id": "10",
       "title": "Product direction: overview-first analyzer with a built-in Power Platform add-on",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Structra is a fully local JSON analyzer for everyone. The Power Platform tools (expressions, Parse JSON schema, Power Fx, flow actions) ship built in as an always-visible add-on for makers using canvas apps and cloud flows. Main job: understand an unknown payload in under a minute. Look: calm workbench.",
       "subtasks": [
         {
           "id": "10.1",
-          "title": "Overview screen right after load: shape, size, depth, types, quality, largest arrays, suspicious fields; one click opens the tree at that spot",
-          "status": "todo"
+          "title": "Overview replaces Stats and opens first after load (files up to 25 MB; bigger files open on the tree): plain-language headline, key figures, 'worth a look' findings with one-click jumps, biggest lists grouped by pattern, then the existing detail tables. Logic in core/insights.js",
+          "status": "done"
         },
         {
           "id": "10.2",
@@ -342,8 +342,8 @@
         },
         {
           "id": "10.3",
-          "title": "Power Platform add-on stays prominent (rail icon and drawer tabs); highlights itself when the payload looks like a connector or OData response",
-          "status": "todo"
+          "title": "Power Platform add-on stays prominent (rail icon and drawer tabs); the Overview now flags connector or API-shaped payloads and jumps to the Expressions tab",
+          "status": "in_progress"
         },
         {
           "id": "10.4",

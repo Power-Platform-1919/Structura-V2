@@ -5,7 +5,7 @@
    ones the tree uses, so data types read the same everywhere.
    ============================================================ */
 
-/* ===== STATS VIEW ===== */
+/* ===== OVERVIEW SUMMARY ===== */
 .stats-view {
   height: 100%;
   overflow: auto;
@@ -164,3 +164,30 @@
 .ds-actions { display: flex; gap: var(--sp-2); }
 .ds-action-btn { padding: 0 var(--sp-3); min-height: 28px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: var(--fs-sm); font-weight: var(--fw-medium); }
 .ds-action-btn:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+
+.ovw-summary { padding: var(--sp-2) 0 var(--sp-1); }
+.ovw-headline { margin: 0 0 var(--sp-4); max-width: 46rem; font-size: var(--fs-2xl); font-weight: var(--fw-semibold); line-height: var(--lh-tight); letter-spacing: -0.01em; color: var(--text); }
+.ovw-facts { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-8); margin: 0; }
+.ovw-fact { display: flex; flex-direction: column; gap: 2px; }
+.ovw-fact dt { font-size: var(--fs-sm); color: var(--text-muted); }
+.ovw-fact dd { margin: 0; font-size: var(--fs-lg); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
+.ovw-columns { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: var(--sp-5); align-items: start; }
+@media (max-width: 900px) { .ovw-columns { grid-template-columns: minmax(0, 1fr); } }
+.ovw-findings, .ovw-lists { display: flex; flex-direction: column; gap: var(--sp-1); margin: 0; padding: 0; list-style: none; }
+.ovw-find, .ovw-list {
+  display: flex; align-items: center; gap: var(--sp-3); width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  background: transparent; border: 1px solid transparent; border-radius: var(--radius);
+  color: var(--text); text-align: left;
+}
+.ovw-find:hover, .ovw-list:hover { background: var(--surface-hover); border-color: var(--border-subtle); }
+.ovw-find > svg:first-child { flex-shrink: 0; }
+.ovw-find > svg:last-child { margin-left: auto; color: var(--text-muted); }
+.ovw-find-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: var(--fs-base); }
+.ovw-find-text strong { font-weight: var(--fw-semibold); }
+.ovw-find-text span { color: var(--text-sec); font-size: var(--fs-sm); }
+.ovw-list { justify-content: space-between; }
+.ovw-list code { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ovw-list span { flex-shrink: 0; color: var(--text-sec); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.ovw-clear { display: flex; align-items: center; gap: var(--sp-2); margin: 0; color: var(--text-sec); font-size: var(--fs-base); }
+.ovw-details-title { margin: var(--sp-4) 0 calc(-1 * var(--sp-2)); font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text-sec); }

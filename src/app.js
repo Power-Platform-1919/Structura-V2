@@ -34,7 +34,7 @@
     Structra.set('fileName', tab.fileName || '');
     Structra.set('fileSize', tab.fileSize || 0);
     Structra.set('currentPath', tab.path || '$');
-    Structra.set('activeView', tab.view || 'tree');
+    Structra.set('activeView', Structra.constants.VIEWS.includes(tab.view) ? tab.view : 'tree');
     if (!tab.data && tab.hash) openSavedTab(tab);
   });
 
@@ -93,7 +93,7 @@
       graph:  '<structra-graph></structra-graph>',
       schema: '<structra-schema></structra-schema>',
       editor: '<structra-editor></structra-editor>',
-      stats:  '<structra-stats></structra-stats>',
+      overview: '<structra-overview></structra-overview>',
     };
     Object.entries(views).forEach(([id, html]) => {
       const panel = viewSwitcher.querySelector(`[data-view="${id}"]`);
@@ -167,7 +167,7 @@
       case 'view-table':  Structra.set('activeView', 'table'); break;
       case 'view-graph':  Structra.set('activeView', 'graph'); break;
       case 'view-schema': Structra.set('activeView', 'schema'); break;
-      case 'view-stats':  Structra.set('activeView', 'stats'); break;
+      case 'view-overview':  Structra.set('activeView', 'overview'); break;
       case 'view-editor': Structra.set('activeView', 'editor'); break;
       // Tool shortcuts → delegate to command palette exec
       case 'sort':

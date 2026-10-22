@@ -6,7 +6,7 @@
 Structra.constants = {
   MAX_TABS: 8,
 
-  VIEWS: ['tree', 'table', 'graph', 'schema', 'editor', 'stats'],
+  VIEWS: ['overview', 'tree', 'table', 'graph', 'schema', 'editor'],
 
   DRAWER_STATES: ['collapsed', 'medium', 'expanded'],
 
@@ -14,7 +14,7 @@ Structra.constants = {
     { id: 'explorer',  title: 'Explorer',        icon: 'folder' },
     { id: 'query',     title: 'Query & Filter',  icon: 'filter' },
     { id: 'power',     title: 'Power Platform',  icon: 'zap' },
-    { id: 'stats',     title: 'Stats',           icon: 'bar-chart' },
+    { id: 'overview',  title: 'Overview',        icon: 'bar-chart' },
     { id: 'transform', title: 'Transform',       icon: 'wand' },
   ],
 
@@ -34,7 +34,7 @@ Structra.constants = {
     'ctrl+2':       'view-table',
     'ctrl+3':       'view-graph',
     'ctrl+4':       'view-schema',
-    'ctrl+5':       'view-stats',
+    'ctrl+5':       'view-overview',
     'ctrl+e':       'view-editor',
     'ctrl+shift+s': 'sort',
     'ctrl+shift+e': 'export-csv',

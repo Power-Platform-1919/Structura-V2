@@ -17,7 +17,7 @@ class StructraRail extends StructraElement {
       <button class="rail-btn" data-rail="power" title="Power Platform">
         ${Structra.icons.svg('zap')}
       </button>
-      <button class="rail-btn" data-rail="stats" title="Stats">
+      <button class="rail-btn" data-rail="overview" title="Overview">
         ${Structra.icons.svg('chart-column')}
         <span class="badge"></span>
       </button>
@@ -47,8 +47,8 @@ class StructraRail extends StructraElement {
       if (action === 'query') {
         const open = !Structra.state.queryPanelOpen;
         Structra.set('queryPanelOpen', open);
-      } else if (action === 'stats') {
-        Structra.set('activeView', 'stats');
+      } else if (action === 'overview') {
+        Structra.set('activeView', 'overview');
       } else if (action === 'settings') {
         Structra.toast('Settings');
       }

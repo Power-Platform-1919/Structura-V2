@@ -99,7 +99,7 @@ class StructraDrawerStats extends StructraElement {
 
     // Quick actions
     html += `<div class="ds-actions">
-      <button class="ds-action-btn" data-action="open-stats">Full Stats ↗</button>
+      <button class="ds-action-btn" data-action="open-overview">Open Overview</button>
       <button class="ds-action-btn" data-action="open-profiler">Field Profiler ↗</button>
     </div>`;
 
@@ -111,10 +111,10 @@ class StructraDrawerStats extends StructraElement {
     this.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
-      if (btn.dataset.action === 'open-stats') {
-        Structra.set('activeView', 'stats');
+      if (btn.dataset.action === 'open-overview') {
+        Structra.set('activeView', 'overview');
       } else if (btn.dataset.action === 'open-profiler') {
-        Structra.set('activeView', 'stats');
+        Structra.set('activeView', 'overview');
         // Scroll to profiler section after view switch
         requestAnimationFrame(() => {
           const prof = document.querySelector('.profiler-table');

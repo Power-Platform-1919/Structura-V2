@@ -15,7 +15,7 @@ class StructraCommand extends StructraElement {
       { id: 'graph',      label: 'Graph View',                   kbd: 'Ctrl+3',       cat: 'Views',    icon: 'network' },
       { id: 'schema',     label: 'Schema View',                  kbd: 'Ctrl+4',       cat: 'Views',    icon: 'braces' },
       { id: 'editor',     label: 'Editor',                       kbd: 'Ctrl+E',       cat: 'Views',    icon: 'pencil' },
-      { id: 'stats',      label: 'Stats & Analysis',             kbd: 'Ctrl+5',       cat: 'Views',    icon: 'chart-column' },
+      { id: 'overview',   label: 'Overview',             kbd: 'Ctrl+5',       cat: 'Views',    icon: 'chart-column' },
       // Data operations
       { id: 'sort',       label: 'Sort Keys A→Z',                kbd: 'Ctrl+Shift+S', cat: 'Tools',    icon: 'arrow-down-a-z' },
       { id: 'flatten',    label: 'Flatten (dot notation)',        kbd: '',             cat: 'Tools',    icon: 'layers' },

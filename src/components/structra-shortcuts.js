@@ -94,7 +94,7 @@ class StructraShortcuts extends StructraElement {
       'view-table': ['Views', 'Table view'],
       'view-graph': ['Views', 'Graph view'],
       'view-schema': ['Views', 'Schema view'],
-      'view-stats': ['Views', 'Stats view'],
+      'view-overview': ['Views', 'Overview'],
       'view-editor': ['Views', 'Editor view'],
       'sort': ['Tools', 'Sort keys A to Z'],
       'export-csv': ['Tools', 'Export as CSV'],

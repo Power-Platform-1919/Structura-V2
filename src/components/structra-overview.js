@@ -1,9 +1,10 @@
 /* ============================================================
-   STRUCTRA V2 — Stats View Component (Read-Only Full View)
-   <structra-stats> — comprehensive data analytics dashboard
+   STRUCTRA V2 — Overview
+   <structra-overview> — what this document is, what to look at first, and the details
 
    Sections:
-   1. Hero cards (rows, keys, gaps, depth, nulls, size)
+   0. Summary: one-sentence description, headline figures, findings worth a look, biggest lists
+      (all of it computed by Structra.insights)
    2. Type distribution (bar chart pills)
    3. Data quality score (donut + completeness/consistency/uniqueness)
    4. Arrays found (clickable paths, drill-into)
@@ -13,7 +14,7 @@
    All data from Structra.engine — zero window.App, zero DOM queries
    ============================================================ */
 
-class StructraStats extends StructraElement {
+class StructraOverview extends StructraElement {
   static get observedAttributes() { return ['compact']; }
 
   init() {
@@ -24,15 +25,16 @@ class StructraStats extends StructraElement {
     this.on('state:jsonData', () => {
       this._stale = true;
       this._drillStack = [];
-      if (Structra.state.activeView === 'stats') this.renderStats();
+      if (Structra.state.activeView === 'overview') this.renderStats();
     });
     this.on('view:switched', (view) => {
-      if (view === 'stats' && this._stale) this.renderStats();
+      if (view === 'overview' && this._stale) this.renderStats();
     });
+    this.on('state:duplicateKeys', () => { if (Structra.state.activeView === 'overview' && this._insights) this.renderStats(); });
     this.on('engine:ingested', () => {
       this._stale = true;
       this._drillStack = [];
-      if (Structra.state.activeView === 'stats') this.renderStats();
+      if (Structra.state.activeView === 'overview') this.renderStats();
     });
   }
 
@@ -57,7 +59,7 @@ class StructraStats extends StructraElement {
     const dataset = Structra.engine.getActive();
     const data = dataset ? dataset.raw : Structra.state.jsonData;
     if (!data) {
-      container.innerHTML = '<p style="color:var(--text-muted);padding:var(--sp-4)">Load JSON to see stats</p>';
+      container.innerHTML = '<p style="color:var(--text-muted);padding:var(--sp-4)">Open a file to see an overview of it.</p>';
       return;
     }
 
@@ -67,7 +69,14 @@ class StructraStats extends StructraElement {
     const fileSize = Structra.util.formatBytes(dataset ? dataset.meta.fileSize : Structra.state.fileSize);
     let html = '';
 
-    html += this._renderHero(s, fileSize, gaps);
+    this._insights = Structra.insights.build({
+      analysis,
+      meta: { fileSize: dataset ? dataset.meta.fileSize : Structra.state.fileSize },
+      data,
+      duplicateKeys: Structra.state.duplicateKeys || [],
+    });
+    html += this._renderSummary(this._insights);
+    html += '<h2 class="ovw-details-title">Details</h2>';
     html += this._renderTypes(s);
 
     if (firstArr) {
@@ -88,23 +97,62 @@ class StructraStats extends StructraElement {
   }
 
   /* ====================================================
-     HERO CARDS
+     SUMMARY (Structra.insights)
      ==================================================== */
 
-  _renderHero(s, fileSize, gap) {
-    const longest = s.longestArray || 0;
-    return `<div class="stats-hero">
-      ${this._heroCard(s.totalNodes, 'Total Nodes', 'all values')}
-      ${this._heroCard(s.keys, 'Total Keys', 'across objects')}
-      ${this._heroCard(s.depth, 'Max Depth', 'nesting levels')}
-      ${this._heroCard(s.arrays, 'Arrays', s.arraysDetail.length > 0 ? `longest: ${longest}` : 'none')}
-      ${this._heroCard(s.nulls, 'Nulls', s.nulls > 0 ? 'found' : 'none')}
-      ${this._heroCard(fileSize, 'Size', 'file size')}
-    </div>`;
+  _renderSummary(ins) {
+    const esc = Structra.util.esc;
+    const icons = Structra.icons;
+    const facts = ins.facts.map((f) => `<div class="ovw-fact"><dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd></div>`).join('');
+
+    const findings = ins.findings.length
+      ? `<ul class="ovw-findings">${ins.findings.map((f, i) => `
+          <li><button class="ovw-find sev-${f.severity}" type="button" data-action="go" data-i="${i}">
+            ${icons.svg(f.severity === 'info' ? 'info' : 'triangle-alert', { size: 18, color: f.severity === 'high' ? 'danger' : f.severity === 'med' ? 'warning' : 'info' })}
+            <span class="ovw-find-text"><strong>${esc(f.title)}</strong>${f.detail ? `<span>${esc(f.detail)}</span>` : ''}</span>
+            ${icons.svg('chevron-right', { size: 16 })}
+          </button></li>`).join('')}</ul>`
+      : `<p class="ovw-clear">${icons.svg('check', { size: 18, color: 'success' })} Nothing unusual found. Missing values, mixed types and repeated keys all look fine.</p>`;
+
+    const arrays = ins.arrays.length
+      ? `<ul class="ovw-lists">${ins.arrays.map((a) => `
+          <li><button class="ovw-list" type="button" data-action="go-list" data-path="${esc(a.path)}">
+            <code>${esc(a.pattern.replace(/^\$\.?/, '') || 'root')}</code>
+            <span>${a.lists > 1 ? `${a.lists.toLocaleString()} lists, ${a.items.toLocaleString()} items` : `${a.items.toLocaleString()} ${a.items === 1 ? 'item' : 'items'}`}</span>
+          </button></li>`).join('')}</ul>`
+      : '<p class="ovw-clear">This document has no lists.</p>';
+
+    return `
+      <section class="ovw-summary">
+        <h2 class="ovw-headline">${esc(ins.headline)}</h2>
+        <dl class="ovw-facts">${facts}</dl>
+      </section>
+      <div class="ovw-columns">
+        <section class="stats-section">
+          <div class="stats-section-title">Worth a look</div>
+          ${findings}
+        </section>
+        <section class="stats-section">
+          <div class="stats-section-title">Biggest lists</div>
+          ${arrays}
+        </section>
+      </div>`;
   }
 
-  _heroCard(value, label, sub) {
-    return `<div class="hero-card"><div class="hc-value">${value}</div><div class="hc-label">${label}</div><div class="hc-sub">${sub}</div></div>`;
+  /** Take the person from a finding or a list to the place in the data it talks about */
+  _go(go) {
+    if (go.path) {
+      Structra.set('currentPath', go.path);
+      Structra.set('activeView', 'tree');
+      Structra.events.emit('tree:node-selected', go.path);
+    } else if (go.view) {
+      Structra.set('activeView', go.view);
+    }
+    if (go.drawer) {
+      if (Structra.state.drawerState === 'collapsed') Structra.set('drawerState', 'medium');
+      const drawer = document.querySelector('structra-drawer');
+      if (drawer && drawer._switchTab) drawer._switchTab(go.drawer);
+    }
   }
 
   /* ====================================================
@@ -477,6 +525,15 @@ class StructraStats extends StructraElement {
     const act = action.dataset.action;
 
     switch (act) {
+      case 'go': {
+        const f = this._insights && this._insights.findings[Number(action.dataset.i)];
+        if (f) this._go(f.go);
+        break;
+      }
+      case 'go-list': {
+        this._go({ path: action.dataset.path });
+        break;
+      }
       case 'arr-tab': {
         const tab = action.dataset.arrTab;
         const content = this.$('#arrTabContent');
@@ -622,4 +679,4 @@ class StructraStats extends StructraElement {
 
 }
 
-customElements.define('structra-stats', StructraStats);
+customElements.define('structra-overview', StructraOverview);
