@@ -36,7 +36,7 @@ Structra.expressions = (() => {
      ======================================================== */
 
   const SOURCE_KEY = 'structra.ppSource';
-  const DEFAULT_SOURCE = { kind: 'action', name: 'Parse_JSON', fxVar: 'jsonText', fullOutput: 'auto' };
+  const DEFAULT_SOURCE = { kind: 'action', name: 'Parse_JSON', fxVar: 'jsonText', fullOutput: 'auto', loopName: 'Apply_to_each' };
 
   function loadSource() {
     try { return { ...DEFAULT_SOURCE, ...JSON.parse(localStorage.getItem(SOURCE_KEY) || '{}') }; } catch { return { ...DEFAULT_SOURCE }; }
@@ -81,6 +81,12 @@ Structra.expressions = (() => {
     const p = pa(path);
     const rows = [row('Access value', p)];
     const add = (label, code) => rows.push(row(label, code));
+    // Inside a list item the position does not matter: it is "the current item" of the loop
+    const inLoop = Structra.paths.powerAutomateInLoop(path, source.loopName);
+    if (inLoop) {
+      rows.unshift(row(`Inside Apply to each over ${inLoop.listPath}`, inLoop.expr));
+      rows.splice(1, 0, row('Inside Select, Filter array or Condition', Structra.paths.powerAutomateInItem(path).expr));
+    }
 
     switch (kindOf(value)) {
       case 'array': {
@@ -164,7 +170,6 @@ Structra.expressions = (() => {
       }
 
       case 'string': {
-        add('String value', p);
         add('To upper', `toUpper(${p})`);
         add('To lower', `toLower(${p})`);
         add('Length', `length(${p})`);
@@ -212,7 +217,6 @@ Structra.expressions = (() => {
       }
 
       case 'number': {
-        add('Number value', p);
         add('As integer', `int(${p})`);
         add('As float', `float(${p})`);
         add('As decimal', `decimal(string(${p}))`);
@@ -239,7 +243,6 @@ Structra.expressions = (() => {
       }
 
       case 'boolean': {
-        add('Boolean value', p);
         add('Negate', `not(${p})`);
         add('Is true?', `equals(${p}, true)`);
         add('Is false?', `equals(${p}, false)`);
@@ -275,33 +278,90 @@ Structra.expressions = (() => {
   const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
   const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 
-  /** What do the first rows hold under this key? → { kind, convert(expr), sample } */
-  function fxColumn(rows, key) {
+  /* ---- The columns a list of records can be built from (Select, typed tables) ---- */
+
+  /** Keys that carry plumbing, not business data: off by default, but still pickable */
+  const isNoise = (key) => key.startsWith('@') || key === 'ItemInternalId' || key === 'odata.etag';
+
+  /** How a Power Fx column is converted, from the values it really holds */
+  function fxConversion(values, ref) {
     const seen = new Set();
-    let allDate = true;
-    let allDateTime = true;
-    let n = 0;
-    for (const r of rows.slice(0, 50)) {
-      if (!r || typeof r !== 'object' || !(key in r) || r[key] === null) continue;
-      const v = r[key];
+    let dates = true;
+    let datetimes = true;
+    let strings = 0;
+    for (const v of values) {
+      if (v === null || v === undefined) continue;
       seen.add(kindOf(v));
       if (typeof v === 'string') {
-        n++;
-        if (!ISO_DATE.test(v)) allDate = false;
-        if (!ISO_DATETIME.test(v)) allDateTime = false;
+        strings++;
+        if (!ISO_DATE.test(v)) dates = false;
+        if (!ISO_DATETIME.test(v)) datetimes = false;
       }
     }
-    const ref = `ThisRecord.${fxName(key)}`;
-    if (seen.size === 1) {
-      const t = [...seen][0];
-      if (t === 'number') return { kind: 'number', value: `Value(${ref})`, literal: '0' };
-      if (t === 'boolean') return { kind: 'boolean', value: `Boolean(${ref})`, literal: 'true' };
-      if (t === 'string' && n && allDateTime) return { kind: 'datetime', value: `DateTimeValue(${ref})`, literal: 'Now()' };
-      if (t === 'string' && n && allDate) return { kind: 'date', value: `DateValue(${ref})`, literal: 'Today()' };
-      if (t === 'string') return { kind: 'text', value: `Text(${ref})`, literal: '"value"' };
+    if (seen.size !== 1) return { kind: seen.size ? 'mixed' : 'text', value: `Text(${ref})`, literal: '"value"' };
+    const t = [...seen][0];
+    if (t === 'number') return { kind: 'number', value: `Value(${ref})`, literal: '0' };
+    if (t === 'boolean') return { kind: 'boolean', value: `Boolean(${ref})`, literal: 'true' };
+    if (t === 'string' && strings && datetimes) return { kind: 'datetime', value: `DateTimeValue(${ref})`, literal: 'Now()' };
+    if (t === 'string' && strings && dates) return { kind: 'date', value: `DateValue(${ref})`, literal: 'Today()' };
+    return { kind: 'text', value: `Text(${ref})`, literal: '"value"' };
+  }
+
+  const peek = (rows, parts) => rows.slice(0, 50).map((r) => {
+    let v = r;
+    for (const p of parts) { if (v === null || typeof v !== 'object') return undefined; v = v[p]; }
+    return v;
+  });
+
+  /**
+   * Every column a list of records offers: the plain fields, and for fields that hold an object
+   * (SharePoint Choice and Person, lookups) their plain children as Parent.Child.
+   * Each column knows how to read itself in Power Automate (steps) and Power Fx (value).
+   */
+  function listColumns(rows) {
+    const cols = [];
+    const first = rows.slice(0, 50).filter((r) => r && typeof r === 'object' && !Array.isArray(r));
+    const keys = [];
+    first.forEach((r) => Object.keys(r).forEach((k) => { if (!keys.includes(k)) keys.push(k); }));
+    for (const key of keys) {
+      const values = peek(first, [key]);
+      const kinds = new Set(values.filter((v) => v !== null && v !== undefined).map(kindOf));
+      if (kinds.has('object') && kinds.size === 1) {
+        const children = [];
+        values.forEach((o) => { if (o && typeof o === 'object') Object.keys(o).forEach((c) => { if (!children.includes(c)) children.push(c); }); });
+        let n = 0;
+        for (const child of children) {
+          if (child.startsWith('@')) continue;
+          const cv = peek(first, [key, child]);
+          if (cv.some((v) => v !== null && v !== undefined && typeof v === 'object')) continue;   // deeper objects and lists stay out
+          if (n++ >= 6) break;
+          cols.push({ id: `${key}.${child}`, parts: [key, child], name: `${key}_${child}`, noise: false, ...fxConversion(cv, `ThisRecord.${fxName(key)}.${fxName(child)}`) });
+        }
+      } else if (!kinds.has('object') && !kinds.has('array')) {
+        cols.push({ id: key, parts: [key], name: key, noise: isNoise(key), ...fxConversion(values, `ThisRecord.${fxName(key)}`) });
+      }
     }
-    // nothing but null, a nested object or array, or mixed types: leave it out of a typed table
-    return { kind: seen.size ? 'other' : 'text', value: `Text(${ref})`, literal: '"value"', skip: seen.has('object') || seen.has('array') };
+    return cols;
+  }
+
+  /* Which columns the person switched off, per list. Kept for the session only. */
+  const columnOff = new Map();
+
+  /** listColumns plus the person's choice: each column carries on: true or false */
+  function pickedColumns(listPath, rows) {
+    const off = columnOff.get(listPath);
+    return listColumns(rows).map((c) => ({ ...c, on: off ? !off.has(c.id) : !c.noise }));
+  }
+
+  function setColumn(listPath, rows, id, on) {
+    let off = columnOff.get(listPath);
+    if (!off) {
+      // first change: start from the defaults (noise off) so the one change does not flip the rest
+      off = new Set(listColumns(rows).filter((c) => c.noise).map((c) => c.id));
+      columnOff.set(listPath, off);
+    }
+    if (on) off.delete(id); else off.add(id);
+    if (Structra.events) Structra.events.emit('expressions:columns-changed', listPath);
   }
 
   function powerFx(path, value) {
@@ -326,37 +386,32 @@ Structra.expressions = (() => {
 
         const keys = firstObjectKeys(value);
         if (keys) {
-          // Every column is converted by what it holds: numbers with Value, flags with Boolean, ISO dates with DateValue
-          const cols = keys.map((c) => ({ key: c, ...fxColumn(value, c) })).filter((c) => !c.skip);
-          const colExpr = (c) => `${fxName(c.key)}: ${c.value}`;
+          // Chosen columns, each converted by what it holds: numbers with Value, flags with Boolean, ISO dates with DateValue
+          const cols = pickedColumns(Structra.paths.strip(path), value).filter((c) => c.on);
+          const colExpr = (c) => `${fxName(c.name)}: ${c.value}`;
           const typedAll = cols.length ? `ForAll(${p}, {${cols.slice(0, 40).map(colExpr).join(', ')}})` : null;
           if (typedAll) {
-            add('Typed table (all columns)', typedAll);
+            add('Typed table (chosen columns)', typedAll);
             add('Collect typed table', `ClearCollect(colData, ${typedAll})`);
           }
           const first = cols[0];
           if (first) {
-            const k = first.key;
-            const col = fxName(k);
+            const col = fxName(first.name);
             const typed = `ForAll(${p}, {${colExpr(first)}})`;
-            add(`[1].${k}`, first.value.replace('ThisRecord', `Index(${p}, 1)`));
-            add('Gallery column', first.kind === 'text' ? `ThisItem.${col}` : `Text(ThisItem.${col})`);
+            add(`[1] ${first.id}`, first.value.replace('ThisRecord', `Index(${p}, 1)`));
+            add('Gallery column', first.kind === 'text' ? `ThisItem.${first.parts.map(fxName).join('.')}` : `Text(ThisItem.${first.parts.map(fxName).join('.')})`);
             add('Filter (not blank)', `Filter(${typed}, !IsBlank(${col}))`);
             add('Filter (equals)', `Filter(${typed}, ${col} = ${first.literal})`);
-            add('Sort ascending', `SortByColumns(${typed}, "${k}", SortOrder.Ascending)`);
-            add('Sort descending', `SortByColumns(${typed}, "${k}", SortOrder.Descending)`);
+            add('Sort ascending', `SortByColumns(${typed}, "${first.name}", SortOrder.Ascending)`);
+            add('Sort descending', `SortByColumns(${typed}, "${first.name}", SortOrder.Descending)`);
             add('LookUp', `LookUp(${typed}, ${col} = ${first.literal})`);
             add('CountIf', `CountIf(${typed}, !IsBlank(${col}))`);
             add('Distinct', `Distinct(${typed}, ${col})`);
-            if (first.kind === 'text') add('Search', `Search(${typed}, txtSearch.Text, "${k}")`);
+            if (first.kind === 'text') add('Search', `Search(${typed}, txtSearch.Text, "${first.name}")`);
             add('AddColumns', `AddColumns(${typed}, "Extra", "value")`);
           }
-          if (cols[1]) {
-            add(`[1].${cols[1].key}`, cols[1].value.replace('ThisRecord', `Index(${p}, 1)`));
-            add(`Gallery .${cols[1].key}`, cols[1].kind === 'text' ? `ThisItem.${fxName(cols[1].key)}` : `Text(ThisItem.${fxName(cols[1].key)})`);
-          }
           if (cols.length >= 2) {
-            add('GroupBy', `GroupBy(ForAll(${p}, {${colExpr(cols[0])}, ${colExpr(cols[1])}}), "${cols[0].key}", "Items")`);
+            add('GroupBy', `GroupBy(ForAll(${p}, {${colExpr(cols[0])}, ${colExpr(cols[1])}}), "${cols[0].name}", "Items")`);
           }
         } else if (value.length && typeof value[0] === 'string') {
           const vals = `ForAll(${p}, {Value: Text(ThisRecord)})`;
@@ -635,8 +690,10 @@ Structra.expressions = (() => {
           { type: 'Compose', inputs: at(`length(${p})`) }));
         if (keys && k) {
           const map = {};
-          keys.slice(0, 8).forEach((c) => { map[c] = at(`item()?['${c}']`); });
-          out.push(fa('Select: keep chosen columns', 'Builds a smaller list with only these columns.', 'Select',
+          pickedColumns(Structra.paths.strip(path), value).filter((c) => c.on).slice(0, 40).forEach((c) => {
+            map[c.name] = at(`item()${c.parts.map((x) => `?['${x.replace(/'/g, "''")}']`).join('')}`);
+          });
+          out.push(fa('Select: keep the chosen columns', 'Builds a smaller list with only the columns you chose.', 'Select',
             { type: 'Select', inputs: { from: at(p), select: map } }));
           out.push(fa('Filter array: drop rows where a column is empty', `Keeps items where "${k}" has a value.`, 'Filter_array',
             { type: 'Query', inputs: { from: at(p), where: at(hasValue(`item()?['${k}']`, value.find((r) => r && r[k] != null) ? value.find((r) => r && r[k] != null)[k] : null)) } }));
@@ -667,6 +724,33 @@ Structra.expressions = (() => {
           { type: 'If', expression: { and: [{ equals: [at(hasValue(p, value)), true] }] }, actions: {}, else: { actions: {} } }));
       }
     }
+    return out;
+  }
+
+  /**
+   * The few expressions a maker wants right after clicking a value, for the Node panel:
+   * [{ app: 'Power Automate' | 'Power Fx', label, code }]
+   */
+  function quick(path, value) {
+    const out = [];
+    const loop = Structra.paths.powerAutomateInLoop(path, source.loopName);
+    if (loop) {
+      out.push({ app: 'Power Automate', label: `In Apply to each over ${loop.listPath}`, code: loop.expr });
+      out.push({ app: 'Power Automate', label: 'In Select, Filter array or Condition', code: Structra.paths.powerAutomateInItem(path).expr });
+    }
+    out.push({ app: 'Power Automate', label: loop ? 'With the position in the list' : 'Expression', code: pa(path) });
+
+    const convert = (expr) => {
+      switch (kindOf(value)) {
+        case 'number': return `Value(${expr})`;
+        case 'boolean': return `Boolean(${expr})`;
+        case 'string': return ISO_DATETIME.test(value) ? `DateTimeValue(${expr})` : ISO_DATE.test(value) ? `DateValue(${expr})` : `Text(${expr})`;
+        default: return expr;
+      }
+    };
+    const fxLoop = Structra.paths.powerFxInRecord(path);
+    if (fxLoop) out.push({ app: 'Power Fx', label: `Inside ForAll over ${fxLoop.listPath}`, code: convert(fxLoop.expr) });
+    out.push({ app: 'Power Fx', label: fxLoop ? 'With the position in the list' : 'Formula', code: convert(fx(path)) });
     return out;
   }
 
@@ -718,5 +802,5 @@ Structra.expressions = (() => {
     return sections;
   }
 
-  return { powerAutomate, powerFx, helpers, flowActions, connectorShape, getSource, setSource };
+  return { powerAutomate, powerFx, helpers, flowActions, quick, connectorShape, getSource, setSource, pickedColumns, setColumn };
 })();

@@ -501,13 +501,13 @@
     {
       "id": "13",
       "title": "End-user walkthrough: problems found by using the app as a low-code maker (real clicks, layout, spacing)",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Found by using the app with a realistic SharePoint Get items response, through real clicks and screenshots. Each item is a gap to fix.",
       "subtasks": [
         {
           "id": "13.1",
-          "title": "Expressions: clicking a value inside a list item gives a first-row path (body('X')?['value']?[0]?['Requester']?['Email']); a maker inside Apply to each needs items('Apply_to_each')?['Requester']?['Email'], item()?[...] for Select/Filter and ThisRecord.x for ForAll. Add these as the top rows (core path functions already written in paths.js)",
-          "status": "todo"
+          "title": "Expressions: clicking a value inside a list item gives a first-row path (body('X')?['value']?[0]?['Requester']?['Email']); a maker inside Apply to each needs items('Apply_to_each')?['Requester']?['Email'], item()?[...] for Select/Filter and ThisRecord.x for ForAll. Add these as the top rows (core path functions already written in paths.js) [done: paths.js loop functions, expressions.js rows, 6 unit tests]",
+          "status": "done"
         },
         {
           "id": "13.2",
@@ -521,8 +521,8 @@
         },
         {
           "id": "13.4",
-          "title": "Expressions: 'Access value' and 'String value' rows repeat the same expression",
-          "status": "todo"
+          "title": "Expressions: 'Access value' and 'String value' rows repeat the same expression [done: the repeated first row is removed]",
+          "status": "done"
         },
         {
           "id": "13.5",
@@ -531,13 +531,13 @@
         },
         {
           "id": "13.6",
-          "title": "Power Fx typed table drops nested objects (Choice, Person) and includes noise like @odata.etag; flatten the useful children (Status_Value, Requester_Email) and skip @-prefixed keys",
-          "status": "todo"
+          "title": "Power Fx typed table drops nested objects (Choice, Person) and includes noise like @odata.etag; flatten the useful children (Status_Value, Requester_Email) and skip @-prefixed keys [done: nested Choice and Person fields become Parent_Child columns, @-keys and ItemInternalId off by default; unit tested]",
+          "status": "done"
         },
         {
           "id": "13.7",
-          "title": "No column picker: Select action, Power Fx typed table and the schema should be built from chosen columns",
-          "status": "todo"
+          "title": "No column picker: Select action, Power Fx typed table and the schema should be built from chosen columns [logic done and tested (pickedColumns, setColumn, used by Select and the typed table); the picker UI is still to do]",
+          "status": "in_progress"
         },
         {
           "id": "13.8",
@@ -627,6 +627,86 @@
         {
           "id": "13.25",
           "title": "Regression guard: the smoke test never searches; add a Find check (type text, a match is visible and highlighted, the tree is not blank). The blank-tree bug came from a path-format mismatch ($.a[0] versus a[0]) that only a real search shows",
+          "status": "todo"
+        },
+        {
+          "id": "13.26",
+          "title": "Find and Filter floating panels can be open together and overlap, hiding the Filter tabs and fields; opening one must close the other",
+          "status": "todo"
+        },
+        {
+          "id": "13.27",
+          "title": "Find bar's X button only clears the text; it does not close the bar (only Escape does). Make X close it, and keep a separate clear if needed",
+          "status": "todo"
+        },
+        {
+          "id": "13.28",
+          "title": "Filter panel is cramped: title row, Apply and Clear sit tight against the tabs, no spacing between sections",
+          "status": "todo"
+        },
+        {
+          "id": "13.29",
+          "title": "Command palette has no Power Platform commands: searching 'expression', 'parse json', 'power fx', 'select' or 'apply to each' finds nothing. Add: Copy Parse JSON schema, Copy Power Fx typed table, Copy Select action, Copy Filter array action, Open expressions for the selected value",
+          "status": "todo"
+        },
+        {
+          "id": "13.30",
+          "title": "Command palette shows an empty list under the COMMANDS heading when nothing matches; show 'No command matches' with a hint, and match on keywords (aliases) not only titles",
+          "status": "todo"
+        },
+        {
+          "id": "13.31",
+          "title": "Paths are written two ways: query results and the Overview use $.value[0].Email, the path bar, tree and Node panel use value[0].Email. Show one form everywhere (without the leading $, accept both when typed)",
+          "status": "todo"
+        },
+        {
+          "id": "13.32",
+          "title": "Query results only list path and value; a maker finding all emails cannot copy the matching Power Automate or Power Fx expression, or open a match from the list in the Node panel with one click and keep the list",
+          "status": "todo"
+        },
+        {
+          "id": "13.33",
+          "title": "Query matches are not highlighted in the tree",
+          "status": "todo"
+        },
+        {
+          "id": "13.34",
+          "title": "Empty state says nothing about where a maker gets the JSON. Add a short 'Where do I get JSON?' help: Power Automate run history (Show raw outputs, copy the body), Power Apps Monitor, an HTTP/API tool",
+          "status": "todo"
+        },
+        {
+          "id": "13.35",
+          "title": "Empty state copy is generic ('Explore your JSON, CSV, XML...'); say what the app does for a maker: paste a flow output or API response, get the expression, schema and formula",
+          "status": "todo"
+        },
+        {
+          "id": "13.36",
+          "title": "With no document open, the bottom drawer still shows the Analyze, Expressions and Schema Gen tabs and the rail buttons do nothing; hide the drawer until data is open and disable the rail buttons that need data",
+          "status": "todo"
+        },
+        {
+          "id": "13.37",
+          "title": "Two input panels exist at once: the visible empty-state one and a hidden #inputOverlay copy in index.html (with its own theme-toggle button); every selector matches twice and listeners are doubled. Keep one",
+          "status": "todo"
+        },
+        {
+          "id": "13.38",
+          "title": "Invalid JSON error text is technical and repeated ('JSON parse error: JSON parse error (40B): Unexpected token...'); say what is wrong in plain words with the line and column, and show the offending spot",
+          "status": "todo"
+        },
+        {
+          "id": "13.39",
+          "title": "Auto-Repair is a tiny chip under the error although fixing broken JSON (trailing commas, single quotes, run-history copies) is the usual fix; make it a clear primary action ('Fix and load') and tell the user what was fixed",
+          "status": "todo"
+        },
+        {
+          "id": "13.40",
+          "title": "Paste tab: no Ctrl+Enter to load, and no hint that pasting loads automatically where the text is valid JSON",
+          "status": "todo"
+        },
+        {
+          "id": "13.41",
+          "title": "The error message from the Paste tab stays visible when switching to Load URL or Upload; clear it when the tab changes or new input arrives",
           "status": "todo"
         }
       ]
