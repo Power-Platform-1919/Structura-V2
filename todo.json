@@ -657,7 +657,7 @@
         {
           "id": "13.31",
           "title": "Paths are written two ways: query results and the Overview use $.value[0].Email, the path bar, tree and Node panel use value[0].Email. Show one form everywhere (without the leading $, accept both when typed)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.32",
@@ -712,17 +712,17 @@
         {
           "id": "13.42",
           "title": "Path bar accepts a path that does not exist (value[0].name when only name.first and displayName exist): the breadcrumb and status bar show it with no warning. Say 'No value at this path' and suggest the closest keys",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.43",
           "title": "A path typed in the path bar while the Overview (or Stats-like view) is open shows nothing; entering a path should switch to the Tree and scroll to and select that node",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.44",
           "title": "Path autocomplete list stays open after Enter and covers the tab bar; close it on submit, on Escape and when focus leaves",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.45",
@@ -827,12 +827,12 @@
         {
           "id": "13.65",
           "title": "Tree right-click menu icons are colour emoji (clipboard, star, magnifier, target, bolt) and a blue square, not the Lucide set; use Structra.icons",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.66",
           "title": "Right-clicking a tree line opens the menu for that line but does not select it: the path bar, breadcrumb and Node panel keep showing the previous path",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.67",
@@ -1242,7 +1242,7 @@
         {
           "id": "13.148",
           "title": "Typing a path in the path bar and pressing Enter updates the breadcrumb and the Expressions tab but does not scroll the Tree to that node or highlight it (the Tree stayed at line 1 while the target Email is at line 18 of the first item and line 45 of the second), and the autocomplete suggestion list stays open over the document tabs",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.149",
@@ -1292,7 +1292,7 @@
         {
           "id": "13.158",
           "title": "Back and Forward buttons next to the path bar work (history of selected paths) but only change the breadcrumb and Expressions: the Tree does not move to the node, so the buttons look dead for a maker who only watches the document",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.159",
@@ -1307,7 +1307,7 @@
         {
           "id": "13.161",
           "title": "Tree: clicking a collapsed row such as '{ ...4 keys }' only selects it and opens the Node panel; it does not expand, so the maker must find the tiny triangle (about 8 px). A click on the row text of a collapsed node should expand it, and double click should too",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.162",

@@ -84,12 +84,39 @@ class StructraHeader extends StructraElement {
     });
 
     this.$('#pathInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        Structra.set('currentPath', e.target.value);
-      }
+      if (e.key === 'Enter') this._goToPath(e.target.value);
+      else if (e.key === 'Escape') { e.target.blur(); }
     });
+    this.$('#pathInput').addEventListener('input', (e) => e.target.classList.remove('invalid'));
 
     this._syncButtons();
+  }
+
+  /** Enter in the path bar: check the path exists, show it in a view that can show it, and move there */
+  _goToPath(raw) {
+    const input = this.$('#pathInput');
+    const text = String(raw || '').trim();
+    Structra.events.emit('autocomplete:hide');
+    if (!text) return;
+    const data = Structra.state.jsonData;
+    if (!data) { Structra.toast('Open a file first'); return; }
+    const path = Structra.paths.canonical(text);
+    let value;
+    try { value = path === '$' ? data : Structra.paths.resolve(data, path); } catch { value = undefined; }
+    if (value === undefined) {
+      input.classList.add('invalid');
+      Structra.toast(`Nothing at ${text}. Paths are case sensitive: check the spelling, or start typing to see suggestions.`);
+      return;
+    }
+    input.classList.remove('invalid');
+    // Overview, Editor and the others have no place to show a path: go to the Tree
+    if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.set('activeView', 'tree');
+    Structra.set('currentPath', path);
+    input.value = path;
+    setTimeout(() => {
+      Structra.events.emit('tree:navigate-path', path);
+      Structra.events.emit('tree:node-selected', path);
+    }, 80);
   }
 
   _toggleBookmark() {

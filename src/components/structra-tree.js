@@ -60,11 +60,15 @@ class StructraTree extends StructraElement {
     // Render using V2 json-tree renderer
     Structra.jsonTree.render(view, data, {
       onPathSelect: (path) => {
-        Structra.set('currentPath', path);
-        Structra.events.emit('tree:node-selected', path);
+        const p = Structra.paths.canonical(path);
+        Structra.set('currentPath', p);
+        Structra.events.emit('tree:node-selected', p);
       },
       onContextMenu: (x, y, path) => {
-        this._showContextMenu(x, y, path);
+        // A right-click selects the line first, so the path bar and the expressions follow the menu
+        const p = Structra.paths.canonical(path);
+        Structra.set('currentPath', p);
+        this._showContextMenu(x, y, p);
       },
     });
 
@@ -129,24 +133,25 @@ class StructraTree extends StructraElement {
       { id: 'sql', label: 'SQL' },
     ];
 
+    const ic = (name) => `<span class="tree-ctx-icon">${Structra.icons.svg(name, { size: 14 })}</span>`;
+    const scalar = val !== null && val !== undefined && !isObj;
     menu.innerHTML = `
-      <div class="tree-ctx-item" data-ctx="copy-path"><span>📋</span> Copy Path</div>
-      <div class="tree-ctx-item" data-ctx="copy-value"><span>📄</span> Copy Value</div>
-      ${isObj ? '<div class="tree-ctx-item" data-ctx="copy-subtree"><span>🌳</span> Copy Subtree (JSON)</div>' : ''}
+      <div class="tree-ctx-item" data-ctx="copy-path">${ic('copy')} Copy path</div>
+      <div class="tree-ctx-item" data-ctx="copy-value">${ic('clipboard')} Copy value</div>
+      ${isObj ? `<div class="tree-ctx-item" data-ctx="copy-subtree">${ic('braces')} Copy as JSON</div>` : ''}
       <div class="tree-ctx-sep"></div>
-      <div class="tree-ctx-item tree-ctx-sub-parent" data-ctx="copy-as"><span>💻</span> Copy As…
+      <div class="tree-ctx-item" data-ctx="copy-pa">${ic('zap')} Copy Power Automate expression</div>
+      <div class="tree-ctx-item" data-ctx="copy-fx">${ic('zap')} Copy Power Fx formula</div>
+      <div class="tree-ctx-item tree-ctx-sub-parent" data-ctx="copy-as">${ic('code-xml')} Copy as type definition
         <div class="tree-ctx-submenu">
           ${codeGenLangs.map(l => `<div class="tree-ctx-item" data-ctx="gen" data-lang="${l.id}">${l.label}</div>`).join('')}
         </div>
       </div>
       <div class="tree-ctx-sep"></div>
-      ${isObj ? `<div class="tree-ctx-item" data-ctx="expand-here"><span>🔍</span> Explore in Table</div>` : ''}
-      ${isArray ? `<div class="tree-ctx-item" data-ctx="array-stats"><span>📊</span> Array Stats (${val.length} items)</div>` : ''}
-      <div class="tree-ctx-item" data-ctx="mock"><span>⚡</span> Generate Mock Data</div>
-      <div class="tree-ctx-item" data-ctx="bookmark"><span>⭐</span> Bookmark</div>
-      <div class="tree-ctx-sep"></div>
-      <div class="tree-ctx-item" data-ctx="filter-to"><span>🔎</span> Filter to This</div>
-      <div class="tree-ctx-item" data-ctx="select"><span>🎯</span> Select in Context Panel</div>
+      ${isArray && val.length && val[0] && typeof val[0] === 'object' ? `<div class="tree-ctx-item" data-ctx="expand-here">${ic('table')} Show as a table</div>` : ''}
+      ${scalar ? `<div class="tree-ctx-item" data-ctx="find-value">${ic('search')} Find this value</div>` : ''}
+      <div class="tree-ctx-item" data-ctx="mock">${ic('dices')} Copy mock data</div>
+      <div class="tree-ctx-item" data-ctx="bookmark">${ic('bookmark')} ${Structra.bookmarks.has(path) ? 'Remove bookmark' : 'Bookmark'}</div>
     `;
 
     menu.addEventListener('click', (e) => {
@@ -188,7 +193,7 @@ class StructraTree extends StructraElement {
         Structra.util.copy(path, 'Path copied');
         break;
       case 'copy-value': {
-        const text = val === null ? 'null' : typeof val === 'object' ? JSON.stringify(val) : String(val);
+        const text = val === null ? 'null' : typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
         Structra.util.copy(text, 'Value copied');
         break;
       }
@@ -218,16 +223,6 @@ class StructraTree extends StructraElement {
         }
         break;
       }
-      case 'array-stats': {
-        if (!Array.isArray(val)) break;
-        try {
-          const types = {};
-          val.forEach(v => { const t = v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v; types[t] = (types[t] || 0) + 1; });
-          const typeStr = Object.entries(types).map(([t, c]) => `${t}:${c}`).join(', ');
-          Structra.toast(`Array[${val.length}]: ${typeStr}`, 'info', 4000);
-        } catch { Structra.toast(`Array with ${val.length} items`); }
-        break;
-      }
       case 'mock': {
         try {
           const mocked = Structra.mockGen.generate(val, 3);
@@ -236,31 +231,24 @@ class StructraTree extends StructraElement {
         break;
       }
       case 'bookmark':
-        Structra.events.emit('bookmark:add', { path, preview: this._preview(val) });
-        Structra.toast('Bookmarked: ' + path);
+        Structra.toast(Structra.bookmarks.toggle(path) ? 'Bookmarked ' + path : 'Bookmark removed');
         break;
-      case 'filter-to': {
-        // Set active view data to just this subtree
-        Structra.set('currentPath', path);
-        Structra.events.emit('tree:navigate-path', path);
-        Structra.toast('Filtered to ' + path);
+      case 'copy-pa':
+      case 'copy-fx': {
+        const want = action === 'copy-pa' ? 'Power Automate' : 'Power Fx';
+        const row = Structra.expressions.quick(path, val).filter((r) => r.app === want)[0];
+        if (row) Structra.util.copy(row.code, row.label + ' copied');
         break;
       }
-      case 'select':
-        Structra.events.emit('tree:node-selected', path);
+      case 'find-value':
+        if (val !== null && val !== undefined && typeof val !== 'object') Structra.events.emit('find:prefill', String(val));
         break;
     }
   }
 
   _resolve(data, path) {
     if (!data || !path || path === '$') return data;
-    const parts = path.replace(/^\$\.?/, '').replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
-    let cur = data;
-    for (const p of parts) {
-      if (cur == null) return undefined;
-      cur = Array.isArray(cur) ? cur[parseInt(p, 10)] : cur[p];
-    }
-    return cur;
+    return Structra.paths.resolve(data, path);
   }
 
   _preview(val) {

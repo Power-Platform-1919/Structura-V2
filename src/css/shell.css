@@ -128,6 +128,8 @@ structra-canvas-header { container-type: inline-size; }
 
 /* ===== CANVAS HEADER (view tabs) ===== */
 .view-tabs { display: flex; gap: 2px; }
+.search-bar input.invalid { color: var(--danger); text-decoration: underline wavy var(--danger); text-underline-offset: 3px; }
+.tree-ctx-icon { display: inline-flex; width: 18px; justify-content: center; color: var(--text-muted); }
 .view-tab {
   min-height: 30px;
   padding: 0 var(--sp-3);

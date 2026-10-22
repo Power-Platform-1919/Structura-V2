@@ -387,6 +387,11 @@ Structra.jsonTree = (() => {
     container.addEventListener('click', e => {
       const tog = e.target.closest('.j-toggle');
       if (tog) { e.stopPropagation(); toggleCollapse(container, tog); return; }
+      const ell = e.target.closest('.j-ellipsis');
+      if (ell && ell.dataset.block) {
+        const owner = container.querySelector(`.j-toggle[data-block="${ell.dataset.block}"]`);
+        if (owner) { e.stopPropagation(); toggleCollapse(container, owner); return; }
+      }
 
       const keyEl = e.target.closest('.j-key');
       if (keyEl) {
@@ -583,7 +588,7 @@ Structra.jsonTree = (() => {
     const st = getState(container);
     if (st && st.highlightedEl) { st.highlightedEl.classList.remove('highlighted'); st.highlightedEl = null; }
     if (!path) return;
-    const match = container.querySelector(`.j-line[data-path="${CSS.escape(path)}"]`);
+    const match = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.paths.strip(path))}"]`);
     if (match) {
       match.classList.add('highlighted');
       if (st) st.highlightedEl = match;
@@ -618,7 +623,7 @@ Structra.jsonTree = (() => {
     for (let i = 0; i < st.bookmarkedEls.length; i++) st.bookmarkedEls[i].classList.remove('bookmarked');
     st.bookmarkedEls = [];
     for (const b of bookmarks) {
-      const el = container.querySelector(`.j-line[data-path="${CSS.escape(b)}"]`);
+      const el = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.paths.strip(b))}"]`);
       if (el) { el.classList.add('bookmarked'); st.bookmarkedEls.push(el); }
     }
   }

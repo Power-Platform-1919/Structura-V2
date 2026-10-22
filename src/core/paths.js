@@ -185,5 +185,13 @@ Structra.paths = (() => {
     return { listPath: at.listPath, expr: out };
   }
 
-  return { tokenize, resolve, setNested, strip, lastKey, powerAutomate, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
+  /** The path as people see it everywhere: starting with $ (value[0].Email → $.value[0].Email, [0] → $[0]) */
+  function canonical(path) {
+    const p = String(path || '').trim();
+    if (!p || p === '$') return '$';
+    if (p.startsWith('$')) return p;
+    return p.startsWith('[') ? '$' + p : '$.' + p;
+  }
+
+  return { tokenize, resolve, setNested, strip, lastKey, canonical, powerAutomate, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
 })();

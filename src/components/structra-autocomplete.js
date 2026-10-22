@@ -16,6 +16,7 @@ class StructraAutocomplete extends StructraElement {
     this._items = [];          // [{ path, type }]
     this._selected = -1;
     this._input = null;
+    this.on('autocomplete:hide', () => this._hide());
   }
 
   render() {
@@ -121,10 +122,11 @@ class StructraAutocomplete extends StructraElement {
   _accept(i) {
     const item = this._items[i];
     if (!item) return;
-    this._input.value = item.path;
+    const path = Structra.paths.canonical(item.path);
+    this._input.value = path;
     this._hide();
-    Structra.set('currentPath', item.path);
-    Structra.events.emit('tree:navigate-path', item.path);
+    Structra.set('currentPath', path);
+    Structra.events.emit('tree:navigate-path', path);
   }
 
   _show() {
