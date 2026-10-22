@@ -31,7 +31,7 @@ class StructraDiff extends StructraElement {
           <button class="diff-btn" data-diff-mode="structural">Structural</button>
           <span class="diff-sep"></span>
           <button class="diff-btn" data-action="swap">⇄ Swap</button>
-          <button class="diff-btn" data-action="copy-diff">📋 Copy Diff</button>
+          <button class="diff-btn" data-action="copy-diff">Copy Diff</button>
           <button class="diff-btn" data-action="copy-patch" title="Copy the changes as an RFC 6902 JSON Patch">Copy JSON Patch</button>
         </div>
         <div class="diff-load-bar">

@@ -90,9 +90,9 @@
 }
 .seg-btn:hover { color: var(--text); }
 .seg-btn.active, .seg-btn[aria-pressed="true"] {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: var(--fw-semibold);
 }
 
 /* ===== TABS ===== */

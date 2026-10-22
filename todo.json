@@ -284,12 +284,12 @@
         {
           "id": "9.10",
           "title": "Restyle remaining input panel (io-*) and filter bar/table filter panels",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "9.11",
           "title": "Restyle tree rows, table toolbar, editor toolbar, schema view details",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "9.12",
@@ -304,12 +304,12 @@
         {
           "id": "9.14",
           "title": "Replace remaining hard-coded hex colours in components.css and JS (heatmap, minimap, drawer)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "9.15",
           "title": "Verify every view in light, dark and a custom theme (export JSON, re-import)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "9.16",
@@ -317,7 +317,7 @@
           "status": "todo"
         }
       ],
-      "note": "Foundation, shell, stats, side panels, command palette, find bar and graph are done and checked in the browser (dark, and light for empty state and tree). Remaining: input panel internals, filter panels, remaining overlays, hex colours, full light/dark/custom pass."
+      "note": "Foundation, shell, stats, side panels, command palette, find/filter bars, graph, input panel, minimap/heatmap and token colours are done and checked in the browser (dark and light, custom theme export/import round trip). Remaining: moving the older dialogs onto StructraOverlay (they already look consistent), folding the last tab/segment variants into .tabs/.seg, and the post-redesign smoke run + memory-bank refresh."
     }
   ],
   "principles": [

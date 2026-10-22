@@ -17,9 +17,9 @@ class StructraHeatmap extends StructraElement {
     this.innerHTML = `<div class="heatmap-indicator" id="heatmapIndicator" style="display:none">
       <span class="heatmap-badge">Heatmap ON</span>
       <div class="heatmap-legend">
-        <span class="heatmap-lg" style="background:#10b981">Small</span>
-        <span class="heatmap-lg" style="background:#f59e0b">Medium</span>
-        <span class="heatmap-lg" style="background:#ef4444">Large</span>
+        <span class="heatmap-lg" style="background:var(--success)">Small</span>
+        <span class="heatmap-lg" style="background:var(--warning)">Medium</span>
+        <span class="heatmap-lg" style="background:var(--danger)">Large</span>
       </div>
     </div>`;
   }

@@ -92,10 +92,12 @@ class StructraMinimap extends StructraElement {
 
   _colorForType(type) {
     const colors = {
-      string: '#3b82f6', number: '#8b5cf6', boolean: '#f59e0b',
-      null: '#ef4444', object: '#10b981', array: '#06b6d4'
+      string: 'var(--syn-string)', number: 'var(--syn-number)', boolean: 'var(--syn-boolean)',
+      null: 'var(--syn-null)', object: 'var(--syn-key)', array: 'var(--accent)'
     };
-    return colors[type] || '#6b7280';
+    // A canvas cannot read CSS variables, so resolve the token to its current colour
+    const token = (colors[type] || 'var(--text-muted)').slice(4, -1);
+    return getComputedStyle(document.documentElement).getPropertyValue(token).trim() || '#888';
   }
 
   _updateViewport() {

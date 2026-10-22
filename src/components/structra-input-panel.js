@@ -34,11 +34,11 @@ class StructraInputPanel extends StructraElement {
   /* ======== SHARED INNER CONTENT ======== */
   _innerContent() {
     return `
-      <div class="io-tabs">
-        <button class="io-tab active" data-tab="file">Upload File</button>
-        <button class="io-tab" data-tab="text">Paste Data</button>
-        <button class="io-tab" data-tab="url">Load URL</button>
-        <button class="io-tab" data-tab="recent">Recent</button>
+      <div class="seg io-tabs">
+        <button class="seg-btn io-tab active" type="button" data-tab="file">Upload File</button>
+        <button class="seg-btn io-tab" type="button" data-tab="text">Paste Data</button>
+        <button class="seg-btn io-tab" type="button" data-tab="url">Load URL</button>
+        <button class="seg-btn io-tab" type="button" data-tab="recent">Recent</button>
       </div>
 
       <div class="io-panel active" data-panel="file">
@@ -90,10 +90,10 @@ class StructraInputPanel extends StructraElement {
         </div>
 
         <div class="io-api-options">
-          <div class="io-api-tabs">
-            <button class="io-api-tab active" data-aptab="auth">Auth</button>
-            <button class="io-api-tab" data-aptab="headers">Headers</button>
-            <button class="io-api-tab" data-aptab="body">Body</button>
+          <div class="tabs io-api-tabs">
+            <button class="tab io-api-tab active" type="button" data-aptab="auth">Auth</button>
+            <button class="tab io-api-tab" type="button" data-aptab="headers">Headers</button>
+            <button class="tab io-api-tab" type="button" data-aptab="body">Body</button>
           </div>
 
           <div class="io-api-panel active" data-appanel="auth">
