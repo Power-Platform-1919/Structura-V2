@@ -238,6 +238,12 @@ class StructraInputPanel extends StructraElement {
     Structra.set('fileSize', byteSize);
     Structra.set('currentPath', '$');
 
+    // Duplicate keys are invisible after parsing (JSON.parse keeps the last one), so scan the text
+    const looksLikeJson = /^\s*[\[{]/.test(text);
+    const dupes = looksLikeJson && text.length <= 20 * 1048576 ? Structra.jsonTools.findDuplicateKeys(text) : [];
+    Structra.set('duplicateKeys', dupes);
+    if (dupes.length) Structra.toast(dupes.length + ' duplicate key' + (dupes.length === 1 ? '' : 's') + ' found');
+
     this._saveRecent(name, text, byteSize);
 
     // Hide loading overlay after UI has painted.
@@ -665,10 +671,7 @@ class StructraInputPanel extends StructraElement {
       el.innerHTML = `${this._esc(msg)} <button class="io-btn-repair" data-action="repair">\ud83d\udd27 Auto-Repair</button>`;
       el.querySelector('[data-action="repair"]').addEventListener('click', async () => {
         try {
-          let fixed = rawText
-            .replace(/,\s*([\]}])/g, '$1')
-            .replace(/'/g, '"')
-            .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
+          const fixed = await Structra.jsonTools.repair(rawText);
           const data = await Structra.parseJsonAsync(fixed);
           this._clearError();
           Structra.toast('JSON repaired successfully!');

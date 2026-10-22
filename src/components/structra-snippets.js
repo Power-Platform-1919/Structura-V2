@@ -72,7 +72,7 @@ class StructraSnippets extends StructraElement {
     const data = Structra.state.jsonData;
     // Pre-fill with current selection
     if (data && path !== '$') {
-      const val = Structra.path.resolve(data, path);
+      const val = Structra.paths.resolve(data, path);
       this.$('#snipContent').value = JSON.stringify(val, null, 2);
     } else if (data) {
       this.$('#snipContent').value = JSON.stringify(data, null, 2).slice(0, 2000);

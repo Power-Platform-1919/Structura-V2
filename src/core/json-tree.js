@@ -322,7 +322,7 @@ Structra.jsonTree = (() => {
     const startLine = parseInt(chunk.dataset.chunkstartline) || 0;
 
     const dataRef = st.data;
-    const actualArr = path ? Structra.path.resolve(dataRef, path) : dataRef;
+    const actualArr = path ? Structra.paths.resolve(dataRef, path) : dataRef;
     if (!actualArr || !Array.isArray(actualArr)) return;
 
     const lines = buildChunkLines(st, actualArr, path, indent, start, end, total, startLine);
@@ -341,7 +341,7 @@ Structra.jsonTree = (() => {
     const end = Math.min(start + CHUNK_SIZE, total);
 
     const dataRef = st.data;
-    const actualArr = path ? Structra.path.resolve(dataRef, path) : dataRef;
+    const actualArr = path ? Structra.paths.resolve(dataRef, path) : dataRef;
     if (!actualArr || !Array.isArray(actualArr)) { sentinel.remove(); return; }
 
     // Create chunk container
@@ -677,7 +677,7 @@ Structra.jsonTree = (() => {
     const data = st.data;
     if (!path || !data) return;
 
-    const currentVal = Structra.path.resolve(data, path);
+    const currentVal = Structra.paths.resolve(data, path);
     let displayVal;
     if (currentVal === null) displayVal = 'null';
     else if (typeof currentVal === 'string') displayVal = currentVal;
@@ -706,7 +706,7 @@ Structra.jsonTree = (() => {
       else if (raw !== '' && !isNaN(Number(raw)) && raw.trim() === raw) newVal = Number(raw);
       else newVal = raw;
 
-      Structra.path.setNested(data, path, newVal);
+      Structra.paths.setNested(data, path, newVal);
       Structra.events.emit('tree:inline-edit', { path, value: newVal });
     };
 

@@ -8,6 +8,9 @@ class StructraEditor extends StructraElement {
 
   init() {
     this._stale = false;
+    this.on('editor:repair', () => this._repair());
+    this.on('editor:format', () => this._format());
+    this.on('editor:minify', () => this._minify());
     this.on('state:jsonData', () => {
       this._stale = true;
       Structra.log.debug('Editor', 'jsonData changed — stale=true (activeView=' + Structra.state.activeView + ')');
@@ -28,6 +31,7 @@ class StructraEditor extends StructraElement {
           <button class="toolbar-btn" data-action="apply">▶ Apply</button>
           <button class="toolbar-btn" data-action="format">Format</button>
           <button class="toolbar-btn" data-action="minify">Minify</button>
+          <button class="toolbar-btn" data-action="repair" title="Fix trailing commas, quotes, comments and other mistakes">Repair</button>
           <span class="ed-status valid" id="edStatus">✓ Valid JSON</span>
         </div>
         <textarea class="editor-textarea" id="editorArea" spellcheck="false"></textarea>
@@ -42,6 +46,7 @@ class StructraEditor extends StructraElement {
       if (a === 'apply') this._apply();
       else if (a === 'format') this._format();
       else if (a === 'minify') this._minify();
+      else if (a === 'repair') this._repair();
     });
 
     this._loadData();
@@ -108,6 +113,23 @@ class StructraEditor extends StructraElement {
       Structra.toast('Minified');
     } catch (e) {
       Structra.toast('Invalid JSON');
+    }
+  }
+
+  async _repair() {
+    const area = this.$('#editorArea');
+    if (!area || !area.value.trim()) { Structra.toast('Nothing to repair'); return; }
+    try {
+      await Structra.parseJsonAsync(area.value);
+      Structra.toast('Already valid JSON');
+      return;
+    } catch { /* invalid: fall through to repair */ }
+    try {
+      area.value = await Structra.jsonTools.repair(area.value);
+      await this._validate();
+      Structra.toast('Repaired. Review it, then Apply.');
+    } catch (e) {
+      Structra.toast('Could not repair: ' + e.message);
     }
   }
 

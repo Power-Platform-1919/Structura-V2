@@ -297,6 +297,20 @@
     Structra.log.warn('App', 'Session restore failed', err.message);
   });
 
+  // Open a document shared through the URL hash (#share=...)
+  Structra.share.readHash().then((shared) => {
+    if (!shared) return;
+    Structra.set('jsonData', shared.data);
+    Structra.set('fileName', 'Shared JSON');
+    Structra.set('fileSize', JSON.stringify(shared.data).length);
+    Structra.set('currentPath', '$');
+    Structra.share.clearHash();
+    Structra.toast('Opened shared JSON');
+  }).catch((err) => {
+    Structra.log.warn('App', 'Share link could not be read', err.message);
+    Structra.toast('This share link could not be read');
+  });
+
   // Persist session on unload
   window.addEventListener('beforeunload', () => {
     const session = {

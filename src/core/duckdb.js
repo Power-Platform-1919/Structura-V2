@@ -41,10 +41,8 @@ Structra.duckdb = (() => {
   async function _doInit() {
     const t0 = performance.now();
     try {
-      Structra.log.info('DuckDB', 'Loading DuckDB WASM via lib-loader...');
-
-      // Load the ESM module via centralized lib-loader (handles CDN URLs + fallbacks)
-      const duckdb = await App.libLoader.require('duckdb');
+      Structra.log.info('DuckDB', 'Loading DuckDB WASM via Structra.libs...');
+      const duckdb = await Structra.libs.require('duckdb');
 
       // Auto-discover all bundle files (WASM binaries, workers) from jsdelivr
       const bundles = duckdb.getJsDelivrBundles();

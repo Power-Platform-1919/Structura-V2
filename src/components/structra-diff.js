@@ -32,6 +32,7 @@ class StructraDiff extends StructraElement {
           <span class="diff-sep"></span>
           <button class="diff-btn" data-action="swap">⇄ Swap</button>
           <button class="diff-btn" data-action="copy-diff">📋 Copy Diff</button>
+          <button class="diff-btn" data-action="copy-patch" title="Copy the changes as an RFC 6902 JSON Patch">Copy JSON Patch</button>
         </div>
         <div class="diff-load-bar">
           <div class="diff-load-side">
@@ -69,6 +70,7 @@ class StructraDiff extends StructraElement {
         if (a === 'close') this._close();
         else if (a === 'swap') this._swap();
         else if (a === 'copy-diff') this._copyDiff();
+        else if (a === 'copy-patch') this._copyPatch();
         else if (a === 'load-paste') this._loadPaste();
       }
       const mode = e.target.closest('[data-diff-mode]');
@@ -282,6 +284,14 @@ class StructraDiff extends StructraElement {
       return `~ ${d.path}: ${JSON.stringify(d.left)} → ${JSON.stringify(d.right)}`;
     }).join('\n');
     navigator.clipboard.writeText(text).then(() => Structra.toast('Diff copied'));
+  }
+
+  _copyPatch() {
+    if (this._left === undefined || this._right === undefined) { Structra.toast('Load both sides first'); return; }
+    const ops = Structra.jsonTools.patch(this._left, this._right);
+    if (!ops.length) { Structra.toast('No differences'); return; }
+    navigator.clipboard.writeText(JSON.stringify(ops, null, 2))
+      .then(() => Structra.toast('Copied ' + ops.length + ' patch operation' + (ops.length === 1 ? '' : 's')));
   }
 
   _preview(val) {

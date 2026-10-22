@@ -2,17 +2,14 @@
  * Format conversion & export — JSON ↔ YAML, JSON → XML, CSV export
  */
 Structra.convert = (() => {
-  const require = (name) => window.App.libLoader.require(name);
   const toast = (msg) => Structra.toast(msg);
 
   // --- YAML ---
   async function jsonToYaml(json) {
-    await require('jsyaml');
     return jsyaml.dump(json, { indent: 2, lineWidth: 120, noRefs: true });
   }
 
   async function yamlToJson(yamlStr) {
-    await require('jsyaml');
     return jsyaml.load(yamlStr);
   }
 

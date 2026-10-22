@@ -60,6 +60,7 @@ Structra.state = {
   queryPanelOpen: false,
   contextPanelOpen: false,
   findBarOpen: false,
+  duplicateKeys: [],          // [{ key, path, line }] found in the raw text of the open file
 };
 
 /* ===== STATE HELPERS ===== */

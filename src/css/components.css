@@ -3382,3 +3382,68 @@ structra-schemagen {
 }
 .ctx-bm-del:hover { color: var(--danger); }
 .ctx-bm-empty { color: var(--text-muted); font-size: var(--fs-xs); }
+
+/* ===== STATUS: duplicate keys badge ===== */
+.st-dupes {
+  color: var(--warning);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: help;
+}
+.st-dupes[hidden] { display: none; }
+
+/* ===== VALIDATE OVERLAY ===== */
+.val-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-bg);
+}
+.val-overlay.show { display: flex; }
+.val-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: min(52rem, 92vw);
+  max-height: 85vh;
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.val-head { display: flex; align-items: center; justify-content: space-between; }
+.val-title { font-size: var(--fs-md); font-weight: 600; }
+.val-close { border: none; background: transparent; color: var(--text-muted); font-size: var(--fs-xl); cursor: pointer; }
+.val-close:hover { color: var(--text); }
+.val-schema {
+  min-height: 10rem;
+  resize: vertical;
+  padding: var(--sp-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.val-actions { display: flex; align-items: center; gap: var(--sp-2); }
+.val-summary { font-size: var(--fs-sm); color: var(--text-sec); }
+.val-summary.ok { color: var(--success); }
+.val-summary.bad { color: var(--danger); }
+.val-results { overflow: auto; min-height: 0; }
+.val-err { display: flex; gap: var(--sp-3); align-items: baseline; padding: 2px 0; font-size: var(--fs-sm); }
+.val-path {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  text-align: left;
+  flex-shrink: 0;
+}
+.val-path:hover { text-decoration: underline; }
+.val-msg { color: var(--text-sec); }

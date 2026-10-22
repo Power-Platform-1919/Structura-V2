@@ -35,6 +35,11 @@ class StructraCommand extends StructraElement {
       { id: 'export-yaml',label: 'Convert to YAML',               kbd: '',             cat: 'Export',   icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' },
       { id: 'export-xml', label: 'Convert to XML',                kbd: '',             cat: 'Export',   icon: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>' },
       // Search & Filter
+      { id: 'share-url',  label: 'Copy Share Link',                 kbd: '',             cat: 'Export',   icon: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>' },
+      { id: 'export-image', label: 'Export View as Image',         kbd: '',             cat: 'Export',   icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>' },
+      { id: 'repair',     label: 'Repair JSON (in Editor)',        kbd: '',             cat: 'Tools',    icon: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>' },
+      { id: 'format-json', label: 'Format JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/>' },
+      { id: 'minify-json', label: 'Minify JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="12" x2="20" y2="12"/>' },
       { id: 'find',       label: 'Find in JSON',                   kbd: 'Ctrl+F',       cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
       { id: 'filter',     label: 'Filter Data',                   kbd: 'Ctrl+Shift+F', cat: 'Search',   icon: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>' },
       { id: 'fuzzy',      label: 'Fuzzy Search (DuckDB)',          kbd: '',             cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
@@ -284,11 +289,33 @@ class StructraCommand extends StructraElement {
       }
 
       /* ---- Analysis ---- */
-      case 'validate': {
-        if (!data) { Structra.toast('No data to validate'); return; }
-        const schema = Structra.engine.getSchema();
-        if (schema) Structra.toast('Schema valid ✓ — ' + (schema.type || 'object'));
-        else Structra.toast('Could not infer schema');
+      case 'validate':
+        Structra.events.emit('validate:open');
+        break;
+      case 'share-url': {
+        if (!data) { Structra.toast('No data to share'); return; }
+        Structra.share.createUrl(data)
+          .then((url) => navigator.clipboard.writeText(url))
+          .then(() => Structra.toast('Share link copied'))
+          .catch((e) => Structra.toast(e.message));
+        break;
+      }
+      case 'export-image': {
+        const panel = document.querySelector('.view-panel.active');
+        const view = Structra.state.activeView;
+        const base = (Structra.state.fileName || 'structra').replace(/\.[^.]+$/, '');
+        Structra.toast('Creating image...');
+        Structra.capture.png(panel, base + '-' + view + '.png')
+          .then(() => Structra.toast('Image saved'))
+          .catch((e) => Structra.toast('Image export failed: ' + e.message));
+        break;
+      }
+      case 'repair':
+      case 'format-json':
+      case 'minify-json': {
+        Structra.set('activeView', 'editor');
+        const evt = { 'repair': 'editor:repair', 'format-json': 'editor:format', 'minify-json': 'editor:minify' }[cmdId];
+        setTimeout(() => Structra.events.emit(evt), 80);
         break;
       }
       case 'distribution': {

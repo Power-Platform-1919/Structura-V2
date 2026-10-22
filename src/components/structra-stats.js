@@ -596,7 +596,7 @@ class StructraStats extends StructraElement {
         const path = action.dataset.path;
         const dataset = Structra.engine.getActive();
         const data = dataset ? dataset.raw : Structra.state.jsonData;
-        const resolved = Structra.path.resolve(data, path);
+        const resolved = Structra.paths.resolve(data, path);
         if (Array.isArray(resolved) && resolved.length > 0 && typeof resolved[0] === 'object') {
           this._drillStack = [];
           this._currentArr = { path, rows: resolved };

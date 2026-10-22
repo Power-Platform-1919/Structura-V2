@@ -10,6 +10,7 @@
    API:
      Structra.paths.tokenize(path)       → [{type:'key'|'index'|'wildcard', value}]
      Structra.paths.resolve(data, path)  → value, or undefined when missing
+     Structra.paths.setNested(data, path, value) → assign in place, true when set
      Structra.paths.strip(path)          → path without the leading "$"
      Structra.paths.lastKey(path)        → last key name, or 'data'
      Structra.paths.powerAutomate(path)  → body('Parse_JSON')?['a'][0]
@@ -83,6 +84,19 @@ Structra.paths = (() => {
     return tokens.length ? _walk(data, tokens, 0) : data;
   }
 
+  /** Assign a value at a path in place. Missing parents are not created. */
+  function setNested(data, path, value) {
+    const tokens = tokenize(path);
+    if (!tokens.length) return false;
+    let node = data;
+    for (let i = 0; i < tokens.length - 1; i++) {
+      node = node[tokens[i].value];
+      if (node === null || typeof node !== 'object') return false;
+    }
+    node[tokens[tokens.length - 1].value] = value;
+    return true;
+  }
+
   function lastKey(path) {
     const tokens = tokenize(path);
     for (let i = tokens.length - 1; i >= 0; i--) {
@@ -113,5 +127,5 @@ Structra.paths = (() => {
     return out;
   }
 
-  return { tokenize, resolve, strip, lastKey, powerAutomate, powerFx };
+  return { tokenize, resolve, setNested, strip, lastKey, powerAutomate, powerFx };
 })();

@@ -11,6 +11,7 @@ class StructraStatus extends StructraElement {
     this.on('state:fileName', () => this._updateFile());
     this.on('tabs:switched', () => this._updateAll());
     this.on('engine:duckdb-ready', () => this._updateDuckStatus('ready'));
+    this.on('state:duplicateKeys', () => this._updateDupes());
   }
 
   render() {
@@ -21,6 +22,7 @@ class StructraStatus extends StructraElement {
         <span class="st-dot"></span> Ready
       </span>
       <span class="st-file" id="statusFile"></span>
+      <span class="st-dupes" id="statusDupes" hidden></span>
       <span class="st-duck" id="statusDuck" data-state="${duckState}">
         <span class="st-duck-icon" id="duckIcon">${duckState === 'ready' ? '✓' : '⟳'}</span>
         <span class="st-duck-label" id="duckLabel">${duckState === 'ready' ? 'SQL' : 'DuckDB...'}</span>
@@ -75,6 +77,15 @@ class StructraStatus extends StructraElement {
     this._updatePath();
     this._updateFile();
     this._updateLogLabel();
+  }
+
+  _updateDupes() {
+    const el = this.$('#statusDupes');
+    if (!el) return;
+    const d = Structra.state.duplicateKeys || [];
+    el.hidden = d.length === 0;
+    el.textContent = d.length + ' duplicate key' + (d.length === 1 ? '' : 's');
+    el.title = d.slice(0, 20).map((x) => x.path + ' (line ' + x.line + ')').join('\n');
   }
 
   _updatePath() {
