@@ -1333,6 +1333,16 @@
           "id": "13.166",
           "title": "Ctrl+H opens Find and Replace with the cursor in the Replace box instead of the Find box, so typing goes to the wrong field. Replace All works ('Replaced 1 occurrence(s)') and the data changes, but Ctrl+Z only toasts 'Undo' and the value stays 'anna@' (undo does not revert a replace), and Replace gives no preview of what will change",
           "status": "todo"
+        },
+        {
+          "id": "13.167",
+          "title": "CRITICAL, wrong document analysed: on the tab 'Pasted JSON' the Table shows the 2 email rows, but the Analyze drawer (6 nodes, 3 keys, 1 str 2 num 1 bool) and the Overview ('An object with 3 top-level keys, 37 B, tags 2 items') describe a different document, the edited sample-data.json tab; opening Overview or the Field Profiler button on this tab shows that other file's summary. Happened after opening, closing (Alt+W), reopening from Recent and switching tabs; same family as the tab_5 / tab_3 table mismatch, so fix the per tab analysis cache and engine ids together and add a smoke test that opens three files, switches and closes tabs, and checks the Overview of each",
+          "status": "todo"
+        },
+        {
+          "id": "13.168",
+          "title": "Charts dialog (Chart This Column) works with a stats row and histogram, but the label 'tallest bar:' is printed on top of the right bar and cut off, the 'In file order' line chart has no axis, labels or values, and 'Array $ (2)' is a cryptic name for the list being charted (should read 'Rows of the whole file (2)')",
+          "status": "todo"
         }
       ]
     }
