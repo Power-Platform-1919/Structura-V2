@@ -4,7 +4,7 @@
 
    API:
      await Structra.jsonTools.repair(text)            → repaired JSON text
-     Structra.jsonTools.findDuplicateKeys(text)       → [{ key, path, line }]
+     await Structra.jsonTools.findDuplicateKeys(text) → [{ key, path, line }]
      Structra.jsonTools.patch(from, to)               → RFC 6902 operations
      await Structra.jsonTools.validate(data, schema)  → { valid, errors: [{ path, message, keyword }] }
    ============================================================ */
@@ -32,10 +32,11 @@ Structra.jsonTools = (() => {
    * Scan raw JSON text for objects that repeat a key. JSON.parse keeps only the
    * last value, so this has to look at the text. Iterative, so deep nesting is safe.
    */
-  function findDuplicateKeys(text) {
+  async function findDuplicateKeys(text) {
     const found = [];
     const stack = [];     // frames: { isObject, keys, path, expectKey, pendingKey, index }
     let line = 1;
+    let lastYield = performance.now();
 
     const childPath = () => {
       const top = stack[stack.length - 1];
@@ -68,6 +69,12 @@ Structra.jsonTools = (() => {
       } else if (ch === ',') {
         const top = stack[stack.length - 1];
         if (top) { if (top.isObject) top.expectKey = true; else top.index++; }
+      }
+
+      // Large files: give the page a turn about every 12 ms
+      if ((i & 0xFFFF) === 0xFFFF && performance.now() - lastYield > 12) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        lastYield = performance.now();
       }
     }
     return found;

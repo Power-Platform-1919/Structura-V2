@@ -37,9 +37,19 @@
     Structra.set('fileName', tab.fileName || '');
     Structra.set('fileSize', tab.fileSize || 0);
     Structra.set('currentPath', tab.path || '$');
+    Structra.set('activeView', tab.view || 'tree');
+    if (!tab.data && tab.hash) openSavedTab(tab);
   });
 
   // Mirror global state changes back to the active tab object
+  Structra.events.on('state:currentPath', (d) => {
+    const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
+    if (tab) tab.path = d.value;
+  });
+  Structra.events.on('state:activeView', (d) => {
+    const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
+    if (tab) tab.view = d.value;
+  });
   Structra.events.on('state:jsonData', (d) => {
     const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
     if (tab) tab.data = d.value;
@@ -252,58 +262,17 @@
     });
   });
 
-  // Start DuckDB async initialization (non-blocking)
-  const splashMsg = document.getElementById('splashMsg');
-  if (splashMsg) splashMsg.textContent = 'Initializing DuckDB…';
-
-  // Safety cap: 90s for first-time WASM download + compile on slow networks
-  const _splashTimeout = setTimeout(() => {
-    Structra.log.warn('App', 'DuckDB init exceeded 90s — showing app without SQL engine');
-    _hideSplash('DuckDB loading slowly — SQL available when ready');
-  }, 90000);
-
-  Structra.duckdb.init().then(() => {
-    clearTimeout(_splashTimeout);
-    _hideSplash();
-    Structra.toast('DuckDB SQL engine ready', 'success');
-  }).catch((err) => {
-    Structra.log.error('App', 'DuckDB init failed', err);
-    _hideSplash('DuckDB failed to load — running without SQL engine');
-  });
-
-  function _hideSplash(errorMsg) {
-    clearTimeout(_splashTimeout);
+  // Reveal the app now. The SQL engine (DuckDB) is large, so it starts on first use instead of
+  // delaying the first paint and competing with file parsing.
+  (() => {
     const splash = document.getElementById('appSplash');
     const appRoot = document.getElementById('appRoot');
-    if (splash && !splash.classList.contains('hidden')) {
-      if (appRoot) appRoot.style.visibility = 'visible';
-      if (errorMsg) {
-        // Show error briefly before dismissing
-        const msg = document.getElementById('splashMsg');
-        if (msg) {
-          msg.textContent = errorMsg;
-          msg.style.color = '#ef4444';
-        }
-        setTimeout(() => {
-          splash.classList.add('hidden');
-          setTimeout(() => splash.remove(), 400);
-          Structra.toast(errorMsg);
-        }, 2000);
-      } else {
-        splash.classList.add('hidden');
-        setTimeout(() => splash.remove(), 400);
-      }
+    if (appRoot) appRoot.style.visibility = 'visible';
+    if (splash) {
+      splash.classList.add('hidden');
+      setTimeout(() => splash.remove(), 400);
     }
-  }
-
-  // Restore session from IndexedDB (non-blocking)
-  Structra.persistence.session.load().then(session => {
-    if (!session) return;
-    Structra.log.info('App', 'Session restored (tabs: ' + (session.tabs ? session.tabs.length : 0) + ')');
-    // Session restore logic will be expanded in future phases
-  }).catch(err => {
-    Structra.log.warn('App', 'Session restore failed', err.message);
-  });
+  })();
 
   // Open a document shared through the URL hash (#share=...)
   Structra.share.readHash().then((shared) => {
@@ -320,19 +289,64 @@
     Structra.toast('This share link could not be read');
   });
 
-  // Persist session on unload
-  window.addEventListener('beforeunload', () => {
-    const session = {
-      tabs: Structra.tabs.list.map(t => ({
-        id: t.id, label: t.label, fileName: t.fileName,
-        path: t.path, view: t.view,
-      })),
-      activeId: Structra.tabs.activeId,
-      timestamp: Date.now(),
-    };
-    // Best-effort save (no await in beforeunload)
-    Structra.persistence.session.save(session);
-  });
+  /* --- Session: tabs, their view and path, and the stored original of each document --- */
+
+  let _sessionTimer = null;
+  function saveSession() {
+    const tabs = Structra.tabs.list.map((t) => {
+      const ds = Structra.engine.getDataset(t.id);
+      return {
+        id: t.id, label: t.label, fileName: t.fileName, fileSize: t.fileSize,
+        path: t.path, view: t.view, hash: (ds && ds.meta.hash) || t.hash || null,
+      };
+    });
+    Structra.persistence.session.save({
+      tabs, activeId: Structra.tabs.activeId, nextId: Structra.tabs.nextId, timestamp: Date.now(),
+    }).catch((err) => Structra.log.warn('App', 'Session save failed', err.message));
+  }
+  const scheduleSessionSave = () => {
+    clearTimeout(_sessionTimer);
+    _sessionTimer = setTimeout(saveSession, 1500);
+  };
+  ['tabs:changed', 'tabs:closed', 'state:currentPath', 'state:activeView', 'engine:persisted']
+    .forEach((ev) => Structra.events.on(ev, scheduleSessionSave));
+  window.addEventListener('pagehide', saveSession);                 // best effort on the way out
+
+  /** Load the stored original of a restored tab */
+  async function openSavedTab(tab) {
+    try {
+      const text = await Structra.persistence.raw.getText(tab.hash);
+      if (!text) throw new Error('the stored copy is missing');
+      const panel = document.querySelector('structra-input-panel');
+      await panel.loadText(text, tab.fileName || tab.label);
+      Structra.set('currentPath', tab.path || '$');
+      Structra.set('activeView', tab.view || 'tree');
+    } catch (err) {
+      Structra.log.warn('App', 'Could not restore ' + tab.label, err.message);
+      Structra.toast('Could not restore ' + tab.label);
+    }
+  }
+
+  async function restoreSession() {
+    if (/^#share=/.test(location.hash)) return;                     // an explicit link wins
+    const session = await Structra.persistence.session.load();
+    if (!session || !Array.isArray(session.tabs) || !session.tabs.some((t) => t.hash)) return;
+
+    Structra.tabs.list.length = 0;
+    for (const t of session.tabs) {
+      Structra.tabs.list.push({
+        id: t.id, label: t.label, data: null, fileName: t.fileName, fileSize: t.fileSize,
+        path: t.path || '$', view: t.view || 'tree', modified: false, hash: t.hash,
+      });
+    }
+    Structra.tabs.nextId = session.nextId || Math.max(...session.tabs.map((t) => t.id)) + 1;
+    const active = Structra.tabs.list.find((t) => t.id === session.activeId) || Structra.tabs.list[0];
+    Structra.tabs.activeId = active.id;
+    Structra.events.emit('tabs:changed');
+    Structra.events.emit('tabs:switched', active);                  // loads the active tab's document
+    Structra.log.info('App', 'Session restored (' + session.tabs.length + ' tab(s))');
+  }
+  restoreSession().catch((err) => Structra.log.warn('App', 'Session restore failed', err.message));
 
   Structra.log.info('App', '=== Bootstrap complete ===');
 })();

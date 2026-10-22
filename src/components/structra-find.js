@@ -216,10 +216,8 @@ class StructraFind extends StructraElement {
 
   /* --- SQL query --- */
   async _doSqlFind(query) {
-    if (!Structra.engine.duckReady) {
-      this.$('#findCount').textContent = 'SQL loading…';
-      return;
-    }
+    // The SQL engine starts on first use (runSql does that), so say so while it loads
+    if (!Structra.engine.duckReady) this.$('#findCount').textContent = 'Starting SQL…';
     try {
       const result = await Structra.engine.runSql(query);
       if (result.error) {

@@ -154,6 +154,9 @@ Structra.engine = (() => {
       dataset.indexes.columns = buildColumnIndex([data]);
     }
 
+    // Keep a handle on the original (a File costs nothing; small text is fine) for checks that need it
+    if (meta.rawSource && (typeof meta.rawSource !== 'string' || meta.rawSource.length <= 5242880)) dataset._rawSource = meta.rawSource;
+
     _datasets.set(tabId, dataset);
 
     // If this is the only dataset or active, set as active
@@ -164,11 +167,13 @@ Structra.engine = (() => {
     const duration = performance.now() - t0;
     Structra.log.info('Engine', `Ingested tab ${tabId}: ${dataset.meta.shape}, ${dataset.meta.rowCount || '?'} rows (${duration.toFixed(1)}ms)`);
 
-    // Persist raw text to IndexedDB (async, non-blocking)
-    if (meta.rawText) {
-      Structra.persistence.raw.put(meta.rawText, { format: meta.format, name: meta.name })
+    // Keep the original text for Recents. Not urgent, so wait until the page is idle.
+    if (meta.rawSource) {
+      new Promise((resolve) => (window.requestIdleCallback || setTimeout)(resolve, { timeout: 3000 }))
+        .then(() => Structra.persistence.raw.put(meta.rawSource, { format: meta.format, name: meta.name }))
         .then(hash => {
           dataset.meta.hash = hash;
+          Structra.events.emit('engine:persisted', { tabId });
           Structra.persistence.recents.add({
             name: meta.name,
             format: meta.format,
@@ -183,13 +188,11 @@ Structra.engine = (() => {
     // Emit immediately so views render without waiting for DuckDB
     Structra.events.emit('engine:ingested', { tabId, meta: dataset.meta, duration });
 
-    // Register with DuckDB in background (non-blocking — analytics use it when ready)
+    // SQL is optional and starts on demand (see enableSql). If it is already running, load this
+    // dataset into it in the background so SQL stays in step with the open document.
     if (_duckAvailable()) {
-      Structra.duckdb.registerDataset(dataset)
-        .then(() => {
-          Structra.log.info('Engine', `DuckDB registration complete for tab ${tabId}`);
-          Structra.events.emit('engine:duckdb-registered', { tabId });
-        })
+      dataset._duckPromise = Structra.duckdb.registerDataset(dataset)
+        .then(() => Structra.events.emit('engine:duckdb-registered', { tabId }))
         .catch(err => Structra.log.error('Engine', 'DuckDB register failed', err));
     }
 
@@ -461,12 +464,7 @@ Structra.engine = (() => {
     _duckReady = true;
     Structra.log.info('Engine', 'DuckDB WASM ready — SQL queries enabled');
     Structra.events.emit('engine:duckdb-ready');
-    // Register all existing datasets with DuckDB
-    for (const [, dataset] of _datasets) {
-      if (Structra.duckdb) {
-        Structra.duckdb.registerDataset(dataset).catch(() => {});
-      }
-    }
+    // The active dataset is registered by enableSql(); other tabs register when they become active
   }
 
   function onDuckDBFailed() {
@@ -477,6 +475,7 @@ Structra.engine = (() => {
   // Listen for DuckDB failure
   if (Structra.events) {
     Structra.events.on('engine:duckdb-failed', onDuckDBFailed);
+    Structra.events.on('engine:data-modified', () => { const ds = getActive(); if (ds) ds._analysis = null; });
   }
 
   /* --- Session Persistence (debounced) --- */
@@ -674,8 +673,8 @@ Structra.engine = (() => {
 
   /** Execute raw SQL, store as active query */
   async function runSql(sqlText) {
-    if (!_duckAvailable()) {
-      return { error: 'DuckDB not ready' };
+    if (!(await enableSql())) {
+      return { error: 'The SQL engine could not start' };
     }
     const t0 = performance.now();
     try {
@@ -1013,31 +1012,90 @@ Structra.engine = (() => {
    * @returns {{ keys, depth, arrays, objects, strings, numbers, booleans, nulls, totalNodes, arraysDetail }}
    */
   function analyze(data) {
+    return _analyze(data);
+  }
+
+  /** Yield to the browser so the UI stays responsive during long loops */
+  const _tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const _SLICE_MS = 12;
+
+  /**
+   * Whole-document statistics in one iterative pass (any depth). Path strings are only built
+   * for arrays. Yields to the browser about every 12 ms so the page never freezes.
+   */
+  async function _analyze(data) {
     if (data === undefined || data === null) {
       const ds = getActive();
       data = ds ? ds.raw : null;
     }
     if (!data) return null;
 
-    const s = { keys: 0, depth: 0, arrays: 0, objects: 0, strings: 0, numbers: 0, booleans: 0, nulls: 0, totalNodes: 0, arraysDetail: [] };
-    walk(data, (val, path, depth) => {
-      if (depth > s.depth) s.depth = depth;
+    const s = { keys: 0, depth: 0, arrays: 0, objects: 0, strings: 0, numbers: 0, booleans: 0, nulls: 0, totalNodes: 0, longestArray: 0, arraysDetail: [] };
+
+    const pathOf = (frame) => {
+      const parts = [];
+      for (let f = frame; f && f.parent; f = f.parent) parts.push(f.key);
+      let out = '';
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const k = parts[i];
+        out += typeof k === 'number' ? `[${k}]` : (out ? '.' + k : k);
+      }
+      return out || '(root)';
+    };
+
+    const stack = [{ val: data, parent: null, key: null, depth: 0 }];
+    let lastYield = performance.now();
+    let frames = 0;
+
+    while (stack.length) {
+      const f = stack.pop();
+      const val = f.val;
+      const d = f.depth;
       s.totalNodes++;
+      if (d > s.depth) s.depth = d;
+
       if (Array.isArray(val)) {
         s.arrays++;
+        const n = val.length;
+        if (n > s.longestArray) s.longestArray = n;
         s.arraysDetail.push({
-          path: path || '(root)',
-          count: val.length,
-          sample: val.length > 0 ? (typeof val[0] === 'object' && val[0] !== null ? 'object' : typeof val[0]) : 'empty',
+          path: pathOf(f),
+          count: n,
+          sample: n > 0 ? (typeof val[0] === 'object' && val[0] !== null ? 'object' : typeof val[0]) : 'empty',
         });
-      } else if (val && typeof val === 'object') {
+        for (let i = n - 1; i >= 0; i--) {
+          const c = val[i];
+          if (c !== null && typeof c === 'object') {
+            stack.push({ val: c, parent: f, key: i, depth: d + 1 });
+          } else {
+            s.totalNodes++;
+            if (d + 1 > s.depth) s.depth = d + 1;
+            const t = typeof c;
+            if (t === 'string') s.strings++; else if (t === 'number') s.numbers++; else if (t === 'boolean') s.booleans++; else if (c === null) s.nulls++;
+          }
+        }
+      } else {
         s.objects++;
-        s.keys += Object.keys(val).length;
-      } else if (typeof val === 'string') s.strings++;
-      else if (typeof val === 'number') s.numbers++;
-      else if (typeof val === 'boolean') s.booleans++;
-      else if (val === null) s.nulls++;
-    });
+        const keys = Object.keys(val);
+        s.keys += keys.length;
+        for (let i = keys.length - 1; i >= 0; i--) {
+          const c = val[keys[i]];
+          if (c !== null && typeof c === 'object') {
+            stack.push({ val: c, parent: f, key: keys[i], depth: d + 1 });
+          } else {
+            s.totalNodes++;
+            if (d + 1 > s.depth) s.depth = d + 1;
+            const t = typeof c;
+            if (t === 'string') s.strings++; else if (t === 'number') s.numbers++; else if (t === 'boolean') s.booleans++; else if (c === null) s.nulls++;
+          }
+        }
+      }
+
+      if ((++frames & 2047) === 0 && performance.now() - lastYield > _SLICE_MS) {
+        await _tick();
+        lastYield = performance.now();
+      }
+    }
     return s;
   }
 
@@ -1229,11 +1287,19 @@ Structra.engine = (() => {
   }
 
   /**
-   * Profile all fields across an array of objects.
-   * Returns per-field: coverage, null%, types, min/max/avg, unique count, top values.
+   * Profile every field of an array of objects in ONE pass over the rows.
+   * Returns per-field coverage, null %, types, min/max/avg, unique count, top values and a
+   * value distribution, plus key coverage (for the coverage table) and the number of gaps
+   * (missing keys). Yields to the browser about every 12 ms.
+   *
+   * Distinct values are tracked up to PROFILE_CAP per column to keep memory bounded.
    * @param {Array} arr — array of objects (or null → active dataset)
-   * @returns {{ fields, rowCount, fieldCount, quality } | null}
+   * @returns {Promise<{ fields, rowCount, fieldCount, quality, coverage, gaps } | null>}
    */
+  const PROFILE_CAP = 20000;
+  const OBJECT_UNIQUE_SAMPLE = 2000;
+  const DIST_BINS = 8;
+
   function profileFields(arr) {
     if (!arr) {
       const ds = getActive();
@@ -1243,151 +1309,149 @@ Structra.engine = (() => {
         arr = fa ? fa.rows : null;
       }
     }
-    if (!Array.isArray(arr) || arr.length === 0 || typeof arr[0] !== 'object') return null;
-
-    // DuckDB SUMMARIZE path (returns a Promise — callers must handle async)
-    const ds = getActive();
-    if (_canUseDuck(ds)) {
-      return _profileFieldsDuck(ds, arr);
-    }
-
-    // JS fallback path
-    return _profileFieldsJS(arr);
+    if (!Array.isArray(arr) || arr.length === 0 || typeof arr[0] !== 'object') return Promise.resolve(null);
+    return _profileRows(arr);
   }
 
-  /**
-   * DuckDB-powered field profiling via SUMMARIZE + approx_top_k.
-   */
-  async function _profileFieldsDuck(ds, arr) {
-    const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
-    try {
-      const summary = await Structra.duckdb.query(`SUMMARIZE "${tableName}"`);
-      if (!summary || summary.length === 0) return _profileFieldsJS(arr);
+  function _histogram(nums) {
+    let min = nums[0], max = nums[0];
+    for (let i = 1; i < nums.length; i++) { const n = nums[i]; if (n < min) min = n; if (n > max) max = n; }
+    const bins = Math.min(DIST_BINS, Math.max(3, Math.ceil(Math.sqrt(nums.length))));
+    const width = (max - min) / bins || 1;
+    const counts = new Array(bins).fill(0);
+    for (let i = 0; i < nums.length; i++) counts[Math.min(bins - 1, Math.floor((nums[i] - min) / width))]++;
+    return counts.map((count, i) => ({ label: (min + i * width).toFixed(1), count }));
+  }
 
-      const fields = [];
-      for (const row of summary) {
-        const field = {
-          key: row.column_name,
-          count: Number(row.count || 0),
-          total: arr.length,
-          coverage: ((1 - (Number(row.null_percentage || 0) / 100)) * 100).toFixed(0),
-          nullPct: String(row.null_percentage != null ? Number(row.null_percentage).toFixed(0) : '0'),
-          types: {},
-          primaryType: _duckTypeToJS(row.column_type),
-          min: row.min != null ? row.min : undefined,
-          max: row.max != null ? row.max : undefined,
-          avg: row.avg != null ? row.avg : undefined,
-          std: row.std != null ? row.std : undefined,
-          q25: row.q25 != null ? row.q25 : undefined,
-          q50: row.q50 != null ? row.q50 : undefined,
-          q75: row.q75 != null ? row.q75 : undefined,
-          unique: Number(row.approx_unique || 0),
-          uniquePct: ((Number(row.approx_unique || 0) / Math.max(Number(row.count || 1), 1)) * 100).toFixed(0),
-          columnType: row.column_type,
-        };
-        field.types[field.primaryType] = Number(row.count || 0);
-        fields.push(field);
-      }
+  async function _profileRows(rows) {
+    const total = rows.length;
+    const cols = new Map();
+    let lastYield = performance.now();
 
-      // Fetch top values for string columns
-      for (const f of fields) {
-        if (f.primaryType === 'string' || f.primaryType === 'boolean') {
-          const topK = await topKValues(f.key, 5);
-          if (topK.length > 0) {
-            f.topValues = topK.map(r => ({ val: r.val != null ? String(r.val) : '', cnt: Number(r.cnt || 0) }));
+    // Rows of one array nearly always list their keys in the same order, so remember which
+    // accumulator belongs to each key position and skip the Map lookup in the common case.
+    const posKeys = [];
+    const posAcc = [];
+
+    for (let i = 0; i < total; i++) {
+      const row = rows[i];
+      if (!row || typeof row !== 'object') continue;
+
+      let pos = 0;
+      for (const key in row) {
+        let c;
+        if (posKeys[pos] === key) {
+          c = posAcc[pos];
+        } else {
+          c = cols.get(key);
+          if (!c) {
+            c = { key, present: 0, empty: 0, nonNull: 0, nStr: 0, nNum: 0, nBool: 0, nNull: 0, nObj: 0, nArr: 0,
+                  min: 0, max: 0, sum: 0, freq: new Map(), uniq: new Set(), objSeen: 0, capped: false, numericLike: true, nums: [] };
+            cols.set(key, c);
           }
+          posKeys[pos] = key;
+          posAcc[pos] = c;
+        }
+        pos++;
+
+        const v = row[key];
+        c.present++;
+        if (v === null) { c.nNull++; c.empty++; continue; }
+
+        const t = typeof v;
+        if (t === 'string') {
+          c.nStr++;
+          if (v === '') { c.empty++; c.numericLike = false; c.nums = null; continue; }
+          c.nonNull++;
+          if (!c.capped) {
+            const n = c.freq.get(v);
+            if (n !== undefined) c.freq.set(v, n + 1);
+            else if (c.freq.size < PROFILE_CAP) c.freq.set(v, 1);
+            else c.capped = true;      // too many distinct values: stop counting them, the figures become "at least"
+          }
+          if (c.numericLike) {
+            const num = +v;
+            if (num !== num || v.trim() === '') { c.numericLike = false; c.nums = null; } else c.nums.push(num);
+          }
+        } else if (t === 'number') {
+          if (c.nNum === 0) { c.min = v; c.max = v; } else { if (v < c.min) c.min = v; if (v > c.max) c.max = v; }
+          c.nNum++;
+          c.nonNull++;
+          c.sum += v;
+          if (!c.capped) {
+            if (c.uniq.size < PROFILE_CAP) c.uniq.add(v); else if (!c.uniq.has(v)) c.capped = true;
+          }
+          if (c.numericLike) c.nums.push(v);
+        } else if (t === 'boolean') {
+          c.nBool++;
+          c.nonNull++;
+          const k = v ? 'true' : 'false';
+          c.freq.set(k, (c.freq.get(k) || 0) + 1);
+          c.numericLike = false; c.nums = null;
+        } else {
+          if (Array.isArray(v)) c.nArr++; else c.nObj++;
+          c.nonNull++;
+          c.numericLike = false; c.nums = null;
+          if (c.objSeen < OBJECT_UNIQUE_SAMPLE) { c.uniq.add(JSON.stringify(v)); c.objSeen++; }
         }
       }
 
-      Structra.log.info('Engine', `profileFields via SUMMARIZE: ${fields.length} columns`);
-      return { fields, rowCount: arr.length, fieldCount: fields.length, quality: computeQuality(fields), source: 'duckdb' };
-    } catch (err) {
-      Structra.log.warn('Engine', 'SUMMARIZE profileFields failed, using JS fallback', err.message);
-      return _profileFieldsJS(arr);
+      if ((i & 1023) === 1023 && performance.now() - lastYield > _SLICE_MS) {
+        await _tick();
+        lastYield = performance.now();
+      }
     }
-  }
-
-  /** Map DuckDB type string to JS type name */
-  function _duckTypeToJS(duckType) {
-    if (!duckType) return 'unknown';
-    const t = duckType.toUpperCase();
-    if (t.includes('INT') || t.includes('FLOAT') || t.includes('DOUBLE') || t.includes('DECIMAL') || t.includes('NUMERIC') || t === 'BIGINT' || t === 'UBIGINT' || t === 'HUGEINT' || t === 'SMALLINT' || t === 'TINYINT') return 'number';
-    if (t === 'VARCHAR' || t.includes('TEXT') || t === 'STRING') return 'string';
-    if (t === 'BOOLEAN' || t === 'BOOL') return 'boolean';
-    if (t.includes('TIMESTAMP') || t.includes('DATE') || t.includes('TIME')) return 'string';
-    if (t.includes('STRUCT')) return 'object';
-    if (t.includes('LIST') || t.includes('ARRAY') || t.startsWith('[')) return 'array';
-    if (t.includes('MAP')) return 'object';
-    if (t === 'JSON') return 'object';
-    return 'unknown';
-  }
-
-  /** JS-only field profiling (original implementation, used as fallback). */
-  function _profileFieldsJS(arr) {
 
     const fields = [];
-    const keySet = new Map();
-    const limit = Math.min(arr.length, 1000);
-    for (let i = 0; i < limit; i++) {
-      if (!arr[i] || typeof arr[i] !== 'object') continue;
-      for (const k of Object.keys(arr[i])) {
-        if (!keySet.has(k)) keySet.set(k, { key: k, present: 0, total: arr.length });
-        keySet.get(k).present++;
-      }
-    }
-
-    for (const [key, meta] of keySet) {
-      const values = arr.map(obj => (obj && obj[key] !== undefined) ? obj[key] : undefined);
-      const defined = values.filter(v => v !== undefined);
-      const nonNull = defined.filter(v => v !== null && v !== '');
-
+    const coverage = [];
+    let gaps = 0;
+    for (const c of cols.values()) {
+      const types = {};
+      if (c.nStr) types.string = c.nStr;
+      if (c.nNum) types.number = c.nNum;
+      if (c.nBool) types.boolean = c.nBool;
+      if (c.nNull) types.null = c.nNull;
+      if (c.nObj) types.object = c.nObj;
+      if (c.nArr) types.array = c.nArr;
+      const primaryType = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown';
+      const unique = c.freq.size + c.uniq.size;
       const field = {
-        key,
-        count: meta.present,
-        total: arr.length,
-        coverage: ((meta.present / arr.length) * 100).toFixed(0),
-        nullPct: (((meta.present - nonNull.length) / arr.length) * 100).toFixed(0),
-        types: {},
-        primaryType: 'unknown',
+        key: c.key,
+        count: c.present,
+        total,
+        coverage: ((c.present / total) * 100).toFixed(0),
+        nullPct: (((c.present - c.nonNull) / total) * 100).toFixed(0),
+        types,
+        primaryType,
+        unique,
+        uniqueCapped: c.capped,
+        uniquePct: ((unique / Math.max(c.nonNull, 1)) * 100).toFixed(0),
       };
-
-      for (const v of defined) {
-        const t = v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
-        field.types[t] = (field.types[t] || 0) + 1;
+      if (c.nNum > 0) { field.min = c.min; field.max = c.max; field.avg = (c.sum / c.nNum).toFixed(2); }
+      if ((primaryType === 'string' || primaryType === 'boolean') && c.freq.size) {
+        field.topValues = [...c.freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([val, cnt]) => ({ val, cnt }));
       }
-      field.primaryType = Object.entries(field.types).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown';
-
-      // Numeric stats
-      const nums = nonNull.filter(v => typeof v === 'number');
-      if (nums.length > 0) {
-        let mn = nums[0], mx = nums[0], sum = 0;
-        for (let i = 0; i < nums.length; i++) {
-          const n = nums[i];
-          if (n < mn) mn = n;
-          if (n > mx) mx = n;
-          sum += n;
-        }
-        field.min = mn;
-        field.max = mx;
-        field.avg = (sum / nums.length).toFixed(2);
+      // Value distribution for the stats view
+      if (c.numericLike && c.nums && c.nums.length) {
+        field.histogram = _histogram(c.nums);
+      } else if (c.freq.size && c.nonNull) {
+        field.distTop = [...c.freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([value, count]) => ({ value, count }));
+        field.distUnique = c.freq.size;
       }
-
-      // Unique values
-      const uniq = new Set(nonNull.map(v => typeof v === 'object' ? JSON.stringify(v) : String(v)));
-      field.unique = uniq.size;
-      field.uniquePct = ((uniq.size / Math.max(nonNull.length, 1)) * 100).toFixed(0);
-
-      // Top values (strings/booleans)
-      if (field.primaryType === 'string' || field.primaryType === 'boolean') {
-        const freq = {};
-        for (const v of nonNull) { const s = String(v); freq[s] = (freq[s] || 0) + 1; }
-        field.topValues = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([val, cnt]) => ({ val, cnt }));
-      }
-
       fields.push(field);
+
+      coverage.push({
+        key: c.key,
+        present: c.present,
+        missing: total - c.present,
+        empty: c.empty,
+        pct: Math.round((c.present / total) * 100),
+        types: new Set(Object.keys(types).filter((t) => t !== 'null')),
+      });
+      gaps += total - c.present;
     }
 
-    return { fields, rowCount: arr.length, fieldCount: keySet.size, quality: computeQuality(fields) };
+    return { fields, rowCount: total, fieldCount: cols.size, quality: computeQuality(fields), coverage, gaps };
   }
 
   /**
@@ -1431,27 +1495,6 @@ Structra.engine = (() => {
   }
 
   /**
-   * Count gaps (missing keys) across rows of an object array.
-   * @param {Array} rows
-   * @returns {number}
-   */
-  function countGaps(rows) {
-    if (!Array.isArray(rows) || rows.length === 0) return 0;
-    const allKeys = new Set();
-    for (const r of rows) {
-      if (r && typeof r === 'object') Object.keys(r).forEach(k => allKeys.add(k));
-    }
-    let gaps = 0;
-    for (const r of rows) {
-      if (!r || typeof r !== 'object') continue;
-      for (const k of allKeys) {
-        if (!Object.prototype.hasOwnProperty.call(r, k)) gaps++;
-      }
-    }
-    return gaps;
-  }
-
-  /**
    * Format byte count to human-readable string.
    * @param {number} bytes
    * @returns {string}
@@ -1488,58 +1531,60 @@ Structra.engine = (() => {
   }
 
   /**
-   * DuckDB-backed analysis: run aggregate queries when DuckDB is ready.
-   * Falls back to in-memory analyze() otherwise.
-   * @returns {Promise<Object>} — extended stats object
+   * Everything the stats views need, computed once per dataset and shared.
+   * Cached on the dataset (a new ingest or an edit drops it).
+   * @returns {Promise<{ stats, firstArr, profile, gaps } | null>}
    */
-  async function analyzeDb() {
+  function getAnalysis() {
     const ds = getActive();
-    if (!ds) return null;
+    if (!ds) return Promise.resolve(null);
+    if (!ds._analysis) {
+      ds._analysis = (async () => {
+        const t0 = performance.now();
+        await _tick();                          // let the page paint first
+        const stats = await _analyze(ds.raw);
+        const firstArr = findFirstObjectArray(ds.raw);
+        const profile = firstArr ? await _profileRows(firstArr.rows) : null;
+        Structra.log.perf('Engine', 'analysis', performance.now() - t0);
+        return { stats, firstArr, profile, gaps: profile ? profile.gaps : 0 };
+      })();
+    }
+    return ds._analysis;
+  }
 
-    // DuckDB path — uses SUMMARIZE for per-column stats
-    if (_canUseDuck(ds)) {
-      const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+  /* ============================ */
+  /*   SQL ENGINE (on demand)     */
+  /* ============================ */
+
+  let _duckStarting = null;
+
+  /**
+   * Start DuckDB the first time SQL is needed and load the open document into it.
+   * DuckDB is large, so it never starts at boot. Everything that can be done without SQL
+   * (find, filter, stats, pivot) works without it.
+   * @returns {Promise<boolean>} true when SQL can be used on the active dataset
+   */
+  async function enableSql() {
+    if (_duckFailed || !Structra.duckdb) return false;
+    if (!_duckReady) {
+      Structra.events.emit('engine:duckdb-starting');
+      if (!_duckStarting) _duckStarting = Structra.duckdb.init();
+      await _duckStarting;
+      if (!_duckReady) return false;
+    }
+    const ds = getActive();
+    if (!ds) return false;
+    if (!_isDuckRegistered(ds)) {
+      Structra.events.emit('loading:show', 'Loading data into the SQL engine…');
       try {
-        // SUMMARIZE gives us everything in one statement
-        const summary = await Structra.duckdb.query(`SUMMARIZE "${tableName}"`);
-        const countResult = await Structra.duckdb.query(`SELECT COUNT(*) AS cnt FROM "${tableName}"`);
-        const rowCount = Number(countResult[0]?.cnt || 0);
-
-        const fieldStats = (summary || []).map(r => ({
-          key: r.column_name,
-          type: r.column_type,
-          present: Number(r.count || 0),
-          nulls: Math.round(Number(r.null_percentage || 0) * rowCount / 100),
-          unique: Number(r.approx_unique || 0),
-          coverage: ((1 - Number(r.null_percentage || 0) / 100) * 100).toFixed(0),
-          nullPct: String(r.null_percentage != null ? Number(r.null_percentage).toFixed(0) : '0'),
-          min: r.min,
-          max: r.max,
-          avg: r.avg,
-          std: r.std,
-          q25: r.q25,
-          q50: r.q50,
-          q75: r.q75,
-        }));
-
-        // Also get in-memory stats for type distribution / depth (DuckDB doesn't track these)
-        const memStats = analyze(ds.raw);
-
-        return {
-          ...memStats,
-          rowCount,
-          fieldStats,
-          source: 'duckdb',
-        };
-      } catch (err) {
-        Structra.log.warn('Engine', 'DuckDB analyze failed, using in-memory', err.message);
+        if (!ds._duckPromise) ds._duckPromise = Structra.duckdb.registerDataset(ds);
+        await ds._duckPromise;
+        Structra.events.emit('engine:duckdb-registered', { tabId: ds.id });
+      } finally {
+        Structra.events.emit('loading:hide');
       }
     }
-
-    // Fallback
-    const memStats = analyze(ds.raw);
-    if (memStats) memStats.source = 'memory';
-    return memStats;
+    return _canUseDuck(ds);
   }
 
   /* ============================ */
@@ -1555,7 +1600,7 @@ Structra.engine = (() => {
    */
   async function analyzeDistribution(column) {
     const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return null;
+    if (!ds || !(await enableSql())) return null;
     const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
     try {
       const result = await Structra.duckdb.query(`
@@ -1607,7 +1652,7 @@ Structra.engine = (() => {
    */
   async function correlation(col1, col2) {
     const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return null;
+    if (!ds || !(await enableSql())) return null;
     const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
     try {
       const result = await Structra.duckdb.query(`SELECT corr("${col1}", "${col2}") AS r FROM "${tableName}"`);
@@ -1628,7 +1673,7 @@ Structra.engine = (() => {
    */
   async function fuzzySearch(text, threshold = 0.8) {
     const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return [];
+    if (!ds || !(await enableSql())) return [];
     const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
     const cols = (ds._duckColumns || []).filter(c =>
       c.type && (c.type.toUpperCase() === 'VARCHAR' || c.type.toUpperCase().includes('TEXT'))
@@ -1654,7 +1699,7 @@ Structra.engine = (() => {
    */
   async function regexSearch(pattern) {
     const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return [];
+    if (!ds || !(await enableSql())) return [];
     const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
     const cols = (ds._duckColumns || []).filter(c =>
       c.type && (c.type.toUpperCase() === 'VARCHAR' || c.type.toUpperCase().includes('TEXT'))
@@ -1753,7 +1798,7 @@ Structra.engine = (() => {
    */
   async function pivotData(onCol, valueCol, aggFn = 'count') {
     const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return [];
+    if (!ds || !(await enableSql())) return [];
     const tableName = ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
     try {
       return await Structra.duckdb.query(
@@ -1837,7 +1882,8 @@ Structra.engine = (() => {
     // Analysis (consolidated)
     walk,
     analyze,
-    analyzeDb,
+    getAnalysis,
+    enableSql,
     findFirstObjectArray,
     findAllArrays,
     collectKeys,
@@ -1846,7 +1892,6 @@ Structra.engine = (() => {
     collectArrayItems,
     profileFields,
     computeQuality,
-    countGaps,
     formatSize,
     // Phase H: DuckDB schema
     getSchemaDb,

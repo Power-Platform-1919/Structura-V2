@@ -104,6 +104,26 @@ Structra.persistence = (() => {
     return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  /**
+   * Fingerprint of a Blob. Small ones are hashed whole; for big files the size plus the first
+   * and last 256 KB are hashed, which avoids reading tens of MB just to make a key.
+   */
+  async function hashBlob(blob) {
+    const EDGE = 262144;
+    const parts = [new TextEncoder().encode(String(blob.size) + ':')];
+    if (blob.size <= EDGE * 4) {
+      parts.push(new Uint8Array(await blob.arrayBuffer()));
+    } else {
+      parts.push(new Uint8Array(await blob.slice(0, EDGE).arrayBuffer()));
+      parts.push(new Uint8Array(await blob.slice(blob.size - EDGE).arrayBuffer()));
+    }
+    const all = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+    let at = 0;
+    for (const p of parts) { all.set(p, at); at += p.length; }
+    const buffer = await crypto.subtle.digest('SHA-256', all);
+    return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   /* --- Recents --- */
   const recents = {
     async add(entry) {
@@ -148,10 +168,12 @@ Structra.persistence = (() => {
 
   /* --- Raw Files --- */
   const raw = {
-    async put(text, meta) {
+    /** @param {string|Blob} source — the text, or the File it came from (stored as is, no copy) */
+    async put(source, meta) {
       await open();
-      const hash = await hashText(text);
-      const blob = new Blob([text], { type: 'text/plain' });
+      const isBlob = typeof source !== 'string';
+      const blob = isBlob ? source : new Blob([source], { type: 'text/plain' });
+      const hash = isBlob || source.length > 1048576 ? await hashBlob(blob) : await hashText(source);
       const record = { blob, format: meta.format, originalName: meta.name, timestamp: Date.now() };
       tx('raw_files', 'readwrite').put(record, hash);
       return hash;

@@ -10,13 +10,15 @@ class StructraStatus extends StructraElement {
     this.on('state:currentPath', () => this._updatePath());
     this.on('state:fileName', () => this._updateFile());
     this.on('tabs:switched', () => this._updateAll());
+    this.on('engine:duckdb-starting', () => this._updateDuckStatus('loading'));
     this.on('engine:duckdb-ready', () => this._updateDuckStatus('ready'));
+    this.on('engine:duckdb-failed', () => this._updateDuckStatus('failed'));
     this.on('state:duplicateKeys', () => this._updateDupes());
   }
 
   render() {
     const mode = Structra.log.getMode();
-    const duckState = Structra.engine && Structra.engine.duckReady ? 'ready' : 'loading';
+    const duckState = Structra.engine && Structra.engine.duckReady ? 'ready' : 'idle';
     this.innerHTML = `
       <span class="st-ready">
         <span class="st-dot"></span> Ready
@@ -24,8 +26,8 @@ class StructraStatus extends StructraElement {
       <span class="st-file" id="statusFile"></span>
       <span class="st-dupes" id="statusDupes" hidden></span>
       <span class="st-duck" id="statusDuck" data-state="${duckState}">
-        <span class="st-duck-icon" id="duckIcon">${duckState === 'ready' ? '✓' : '⟳'}</span>
-        <span class="st-duck-label" id="duckLabel">${duckState === 'ready' ? 'SQL' : 'DuckDB...'}</span>
+        <span class="st-duck-icon" id="duckIcon">${duckState === 'ready' ? '✓' : '○'}</span>
+        <span class="st-duck-label" id="duckLabel">${duckState === 'ready' ? 'SQL' : 'SQL off'}</span>
       </span>
       <span style="flex:1"></span>
       <span class="st-path" id="statusPath"></span>
@@ -38,6 +40,9 @@ class StructraStatus extends StructraElement {
     this._updateAll();
 
     this.$('#logToggle').addEventListener('click', () => this._cycleLogMode());
+    this.$('#statusDuck').addEventListener('click', () => {
+      if (this.$('#statusDuck').dataset.state === 'idle') Structra.engine.enableSql();
+    });
   }
 
   _cycleLogMode() {
@@ -64,9 +69,16 @@ class StructraStatus extends StructraElement {
     const label = this.$('#duckLabel');
     if (!el) return;
     el.dataset.state = state;
+    el.title = state === 'idle' ? 'Click to start the SQL engine' : '';
     if (state === 'ready') {
       icon.textContent = '✓';
       label.textContent = 'SQL';
+    } else if (state === 'loading') {
+      icon.textContent = '⟳';
+      label.textContent = 'Starting SQL…';
+    } else if (state === 'idle') {
+      icon.textContent = '○';
+      label.textContent = 'SQL off';
     } else if (state === 'failed') {
       icon.textContent = '✗';
       label.textContent = 'No SQL';

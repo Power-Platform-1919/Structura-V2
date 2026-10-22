@@ -245,24 +245,22 @@ Structra.createWorkerPool = function(config) {
   return pool;
 };
 
-/* ---------- JSON Worker Pool ---------- */
-Structra._workerPool = Structra.createWorkerPool({
-  name: 'JSON',
-  workerUrl: 'src/workers/json-parse-worker.js',
-  workerCode: Structra._jsonWorkerSource,
-  maxWorkers: 4,
-  poolThreshold: 4,
-  taskTimeout: 60000,
-  transferThreshold: 10485760
-});
-
-Structra.parseJsonAsync = function(text) {
-  Structra.log.info('WorkerPool', 'parseJsonAsync (' + (text.length / 1024).toFixed(1) + ' KB)');
+/* ---------- JSON (main thread) ----------
+   A worker is slower for JSON here: the parsed result has to be copied back to the page
+   (structured clone), which costs several times more than the parse itself
+   (about 1.5 s against 0.33 s for a 37 MB file). */
+Structra.parseJsonAsync = async function (text) {
   var t0 = performance.now();
-  return Structra._workerPool.enqueue(text).then(function(msg) {
-    Structra.log.perf('WorkerPool', 'JSON parse', performance.now() - t0);
-    return msg.data;
-  });
+  await new Promise(function (resolve) { setTimeout(resolve, 0); });   // let the loading message paint first
+  var src = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  try {
+    var data = JSON.parse(src);
+    Structra.log.perf('Parse', 'JSON.parse (' + (text.length / 1024).toFixed(0) + ' KB)', performance.now() - t0);
+    return data;
+  } catch (err) {
+    var size = text.length > 1024 ? Math.round(text.length / 1024) + 'KB' : text.length + 'B';
+    throw new Error(err instanceof SyntaxError ? 'JSON parse error (' + size + '): ' + err.message : err.message);
+  }
 };
 
 /* ---------- CSV Worker Pool ---------- */

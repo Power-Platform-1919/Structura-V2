@@ -8,9 +8,18 @@
 class StructraSchemaGen extends StructraElement {
   init() {
     this._allItems = true;
-    this.on('state:jsonData', () => this._refresh());
-    this.on('tabs:switched', () => this._refresh());
-    this.on('drawer:tab-switched', (id) => { if (id === 'schema-gen') this._refresh(); });
+    this._stale = true;
+    this.on('state:jsonData', () => { this._stale = true; this._refresh(); });
+    this.on('tabs:switched', () => { this._stale = true; this._refresh(); });
+    this.on('drawer:tab-switched', () => this._refresh());
+    this.on('state:drawerState', () => this._refresh());
+  }
+
+  /** Generating a schema reads every array item, so only do it while this tab can be seen */
+  _visible() {
+    const panel = this.closest('.drawer-panel');
+    const drawer = this.closest('structra-drawer');
+    return !!panel && panel.classList.contains('active') && !!drawer && !drawer.classList.contains('collapsed');
   }
 
   render() {
@@ -33,13 +42,15 @@ class StructraSchemaGen extends StructraElement {
     this.addEventListener('change', (e) => {
       if (!e.target.matches('[data-action="all-items"]')) return;
       this._allItems = e.target.checked;
+      this._stale = true;
       this._refresh();
     });
     this._refresh();
   }
 
   _refresh() {
-    if (!this._mounted) return;
+    if (!this._mounted || !this._visible() || !this._stale) return;
+    this._stale = false;
     const out = this.$('#sgOutput');
     const data = Structra.state.jsonData;
     if (!out) return;

@@ -41,6 +41,7 @@ class StructraCommand extends StructraElement {
       { id: 'format-json', label: 'Format JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/>' },
       { id: 'minify-json', label: 'Minify JSON (in Editor)',       kbd: '',             cat: 'Tools',    icon: '<line x1="4" y1="12" x2="20" y2="12"/>' },
       { id: 'charts',     label: 'Charts for a Column',              kbd: '',             cat: 'Analysis', icon: '<rect x="4" y="14" width="4" height="6"/><rect x="10" y="8" width="4" height="12"/><rect x="16" y="4" width="4" height="16"/>' },
+      { id: 'dup-keys',  label: 'Find Duplicate Keys',              kbd: '',             cat: 'Analysis', icon: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' },
       { id: 'find',       label: 'Find in JSON',                   kbd: 'Ctrl+F',       cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
       { id: 'filter',     label: 'Filter Data',                   kbd: 'Ctrl+Shift+F', cat: 'Search',   icon: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>' },
       { id: 'fuzzy',      label: 'Fuzzy Search (DuckDB)',          kbd: '',             cat: 'Search',   icon: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>' },
@@ -293,6 +294,19 @@ class StructraCommand extends StructraElement {
       case 'validate':
         Structra.events.emit('validate:open');
         break;
+      case 'dup-keys': {
+        const src = Structra.engine.getActive() && Structra.engine.getActive()._rawSource;
+        if (!src) { Structra.toast('The original text of this document is not available'); return; }
+        Structra.toast('Checking for duplicate keys...');
+        // Duplicates only exist in the original text (parsing keeps the last value)
+        (typeof src === 'string' ? Promise.resolve(src) : src.text())
+          .then((text) => Structra.jsonTools.findDuplicateKeys(text))
+          .then((dupes) => {
+            Structra.set('duplicateKeys', dupes);
+            Structra.toast(dupes.length ? dupes.length + ' duplicate key' + (dupes.length === 1 ? '' : 's') + ' found' : 'No duplicate keys');
+          });
+        break;
+      }
       case 'charts':
         Structra.events.emit('charts:open');
         break;

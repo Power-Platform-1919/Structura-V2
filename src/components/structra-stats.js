@@ -34,10 +34,6 @@ class StructraStats extends StructraElement {
       this._drillStack = [];
       if (Structra.state.activeView === 'stats') this.renderStats();
     });
-    this.on('engine:duckdb-registered', () => {
-      this._stale = true;
-      if (Structra.state.activeView === 'stats') this.renderStats();
-    });
   }
 
   render() {
@@ -65,43 +61,22 @@ class StructraStats extends StructraElement {
       return;
     }
 
-    // Prefer DuckDB-powered analyze (falls back to in-memory internally)
-    const s = await Structra.engine.analyzeDb() || Structra.engine.analyze(data);
+    const analysis = await Structra.engine.getAnalysis();
+    if (!analysis) return;
+    const { stats: s, firstArr, profile, gaps } = analysis;
     const fileSize = Structra.engine.formatSize(dataset ? dataset.meta.fileSize : Structra.state.fileSize);
     let html = '';
 
-    // Source badge
-    const src = s.source === 'duckdb' ? '🦆 DuckDB' : '🧠 In-Memory';
-    html += `<div class="stats-source-badge" style="text-align:right;padding:4px 12px;font-size:11px;color:var(--text-muted)">Engine: ${src}</div>`;
-
-    // 1. Hero cards
-    html += this._renderHero(s, fileSize);
-
-    // 2. Type distribution
+    html += this._renderHero(s, fileSize, gaps);
     html += this._renderTypes(s);
 
-    // 3. Data quality (for array datasets)
-    const firstArr = Structra.engine.findFirstObjectArray(data);
     if (firstArr) {
       this._currentArr = firstArr;
-      const profile = await Structra.engine.profileFields(firstArr.rows);
-      if (profile) {
-        html += this._renderQuality(profile.quality);
-      }
-
-      // 4. Arrays found
+      if (profile) html += this._renderQuality(profile.quality);
       html += this._renderArraysFound(s.arraysDetail);
-
-      // 5. Key coverage
-      html += this._renderKeyCoverage(firstArr.path, firstArr.rows, []);
-
-      // 6. Field profiler table
-      if (profile) {
-        html += this._renderProfiler(profile);
-      }
-
-      // 7. Distribution analysis (column value distribution)
-      html += await this._renderDistribution(firstArr.rows);
+      html += this._renderKeyCoverage(firstArr.path, firstArr.rows, [], profile ? profile.coverage : null);
+      if (profile) html += this._renderProfiler(profile);
+      if (profile) html += this._renderDistribution(profile);
     } else {
       html += this._renderArraysFound(s.arraysDetail);
     }
@@ -116,14 +91,8 @@ class StructraStats extends StructraElement {
      HERO CARDS
      ==================================================== */
 
-  _renderHero(s, fileSize) {
-    const gap = this._currentArr ? Structra.engine.countGaps(this._currentArr.rows) : 0;
-    let longest = 0;
-    if (s.arraysDetail && s.arraysDetail.length > 0) {
-      for (let i = 0; i < s.arraysDetail.length; i++) {
-        if (s.arraysDetail[i].count > longest) longest = s.arraysDetail[i].count;
-      }
-    }
+  _renderHero(s, fileSize, gap) {
+    const longest = s.longestArray || 0;
     return `<div class="stats-hero">
       ${this._heroCard(s.totalNodes, 'Total Nodes', 'all values')}
       ${this._heroCard(s.keys, 'Total Keys', 'across objects')}
@@ -372,8 +341,8 @@ class StructraStats extends StructraElement {
      KEY COVERAGE TABLE (with nested drill)
      ==================================================== */
 
-  _renderKeyCoverage(path, rows, drillStack) {
-    const coverage = Structra.engine.analyzeKeys(rows);
+  _renderKeyCoverage(path, rows, drillStack, precomputed) {
+    const coverage = precomputed || Structra.engine.analyzeKeys(rows);
     if (coverage.length === 0) return '';
 
     const backBtn = drillStack.length > 0
@@ -431,14 +400,11 @@ class StructraStats extends StructraElement {
 
   _renderProfiler(profileData) {
     if (!profileData || !profileData.fields || profileData.fields.length === 0) return '';
-    const isDuck = profileData.source === 'duckdb';
 
     let html = `<div class="stats-section"><div class="stats-section-title">Field Profiler (${profileData.fieldCount} fields, ${profileData.rowCount} rows)`;
-    if (isDuck) html += ' <span style="font-size:11px;color:var(--text-muted)">🦆 DuckDB</span>';
     html += '</div>';
     html += '<div class="profiler-scroll"><table class="profiler-table"><thead><tr>';
     html += '<th>Field</th><th>Type</th><th>Coverage</th><th>Null%</th><th>Unique</th><th>Min</th><th>Max</th><th>Avg</th>';
-    if (isDuck) html += '<th>Std</th><th>Q25</th><th>Median</th><th>Q75</th>';
     html += '<th>Top Values</th>';
     html += '</tr></thead><tbody>';
 
@@ -449,16 +415,10 @@ class StructraStats extends StructraElement {
         <td><span class="pf-type pf-type-${f.primaryType}">${f.primaryType}</span></td>
         <td>${f.coverage}%</td>
         <td style="${parseFloat(f.nullPct) > 20 ? 'color:var(--danger);font-weight:600' : ''}">${f.nullPct}%</td>
-        <td>${f.unique} <small>(${f.uniquePct}%)</small></td>
+        <td>${f.uniqueCapped ? '\u2265 ' : ''}${f.unique} <small>(${f.uniquePct}%)</small></td>
         <td>${f.min != null ? f.min : '—'}</td>
         <td>${f.max != null ? f.max : '—'}</td>
         <td>${f.avg != null ? f.avg : '—'}</td>`;
-      if (isDuck) {
-        html += `<td>${f.std != null ? f.std : '—'}</td>`;
-        html += `<td>${f.q25 != null ? f.q25 : '—'}</td>`;
-        html += `<td>${f.q50 != null ? f.q50 : '—'}</td>`;
-        html += `<td>${f.q75 != null ? f.q75 : '—'}</td>`;
-      }
       html += `<td class="pf-top">${topStr}</td>
       </tr>`;
     }
@@ -470,96 +430,41 @@ class StructraStats extends StructraElement {
      DISTRIBUTION ANALYSIS (histogram per field)
      ==================================================== */
 
-  async _renderDistribution(rows) {
-    if (!rows || rows.length === 0) return '';
-    try {
-      // Collect columns from rows
-      const keys = [...new Set(rows.flatMap(r => r ? Object.keys(r) : []))];
-      const fields = [];
+  _renderDistribution(profile) {
+    const fields = profile.fields.filter((f) => f.histogram || f.distTop);
+    if (!fields.length) return '';
 
-      for (const col of keys) {
-        const values = rows.map(r => r ? r[col] : null).filter(v => v != null);
-        if (values.length === 0) continue;
-
-        const isNumeric = values.every(v => typeof v === 'number' || (typeof v === 'string' && !isNaN(Number(v)) && v.trim() !== ''));
-        if (isNumeric) {
-          const nums = values.map(Number).sort((a, b) => a - b);
-          const min = nums[0], max = nums[nums.length - 1];
-          const binCount = Math.min(8, Math.max(3, Math.ceil(Math.sqrt(nums.length))));
-          const binWidth = (max - min) / binCount || 1;
-          const histogram = [];
-          for (let i = 0; i < binCount; i++) {
-            const lo = min + i * binWidth;
-            const hi = lo + binWidth;
-            const count = nums.filter(n => i === binCount - 1 ? n >= lo && n <= hi : n >= lo && n < hi).length;
-            histogram.push({ label: lo.toFixed(1), count });
-          }
-          fields.push({ name: col, type: 'numeric', histogram });
-
-          // Try DuckDB for richer stats if available
-          if (Structra.engine.duckReady) {
-            try {
-              const dist = await Structra.engine.analyzeDistribution(col);
-              if (dist) { fields[fields.length - 1].duckStats = dist; }
-            } catch {}
-          }
-        } else {
-          // Categorical
-          const freq = {};
-          for (const v of values) { const s = String(v); freq[s] = (freq[s] || 0) + 1; }
-          const topValues = Object.entries(freq)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 8)
-            .map(([value, count]) => ({ value, count }));
-          fields.push({ name: col, type: 'categorical', topValues, uniqueCount: Object.keys(freq).length });
-        }
-      }
-
-      if (fields.length === 0) return '';
-
-      let html = `<div class="stats-section"><div class="stats-section-title">Value Distribution</div><div class="dist-grid">`;
-      for (const field of fields) {
-        html += `<div class="dist-card">
-          <div class="dist-card-title">${this._esc(field.name)} <span class="dist-card-type">${field.type}</span></div>`;
-
-        if (field.type === 'numeric' && field.histogram) {
-          // Horizontal bar histogram
-          const maxBin = Math.max(...field.histogram.map(b => b.count), 1);
-          html += '<div class="dist-histogram">';
-          for (const bin of field.histogram) {
-            const pct = Math.round(bin.count / maxBin * 100);
-            html += `<div class="dist-bin">
-              <span class="dist-bin-label">${bin.label}</span>
-              <div class="dist-bin-bar"><div class="dist-bin-fill" style="width:${pct}%"></div></div>
-              <span class="dist-bin-count">${bin.count}</span>
-            </div>`;
-          }
-          html += '</div>';
-        } else if (field.topValues) {
-          // Categorical: top value bars
-          const maxVal = Math.max(...field.topValues.map(v => v.count), 1);
-          html += '<div class="dist-categorical">';
-          for (const tv of field.topValues.slice(0, 8)) {
-            const pct = Math.round(tv.count / maxVal * 100);
-            html += `<div class="dist-cat-row">
-              <span class="dist-cat-label" title="${this._esc(String(tv.value))}">${this._esc(String(tv.value).slice(0, 24))}</span>
-              <div class="dist-cat-bar"><div class="dist-cat-fill" style="width:${pct}%"></div></div>
-              <span class="dist-cat-count">${tv.count}</span>
-            </div>`;
-          }
-          if (field.uniqueCount > 8) {
-            html += `<div class="dist-cat-more">+${field.uniqueCount - 8} more unique values</div>`;
-          }
-          html += '</div>';
+    let html = '<div class="stats-section"><div class="stats-section-title">Value Distribution</div><div class="dist-grid">';
+    for (const f of fields) {
+      html += `<div class="dist-card">
+        <div class="dist-card-title">${this._esc(f.key)} <span class="dist-card-type">${f.histogram ? 'numeric' : 'categorical'}</span></div>`;
+      if (f.histogram) {
+        const maxBin = Math.max(...f.histogram.map((b) => b.count), 1);
+        html += '<div class="dist-histogram">';
+        for (const bin of f.histogram) {
+          html += `<div class="dist-bin">
+            <span class="dist-bin-label">${bin.label}</span>
+            <div class="dist-bin-bar"><div class="dist-bin-fill" style="width:${Math.round(bin.count / maxBin * 100)}%"></div></div>
+            <span class="dist-bin-count">${bin.count}</span>
+          </div>`;
         }
         html += '</div>';
+      } else {
+        const maxVal = Math.max(...f.distTop.map((v) => v.count), 1);
+        html += '<div class="dist-categorical">';
+        for (const tv of f.distTop) {
+          html += `<div class="dist-cat-row">
+            <span class="dist-cat-label" title="${this._esc(String(tv.value))}">${this._esc(String(tv.value).slice(0, 24))}</span>
+            <div class="dist-cat-bar"><div class="dist-cat-fill" style="width:${Math.round(tv.count / maxVal * 100)}%"></div></div>
+            <span class="dist-cat-count">${tv.count}</span>
+          </div>`;
+        }
+        if (f.distUnique > f.distTop.length) html += `<div class="dist-cat-more">+${f.distUnique - f.distTop.length} more unique values</div>`;
+        html += '</div>';
       }
-      html += '</div></div>';
-      return html;
-    } catch (err) {
-      Structra.log.warn('Stats', 'Distribution analysis failed', err.message);
-      return '';
+      html += '</div>';
     }
+    return html + '</div></div>';
   }
 
   /* ====================================================

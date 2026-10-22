@@ -221,8 +221,13 @@ class StructraInputPanel extends StructraElement {
     // Show loading overlay — message updates at each step
     Structra.events.emit('loading:show', 'Parsing ' + name + '…');
 
-    Structra.log.debug('InputPanel', 'Computing file size...');
-    const byteSize = new Blob([text]).size;
+    // A File already knows its size; copying a huge string into a Blob just to measure it costs ~250 ms
+    const byteSize = this._knownBytes || new Blob([text]).size;
+    this._knownBytes = 0;
+    // Keep the original File for Recents when the text is exactly what it contained (no copy needed)
+    const rawSource = this._currentFile && this._fileText === text ? this._currentFile : text;
+    this._currentFile = null;
+    this._fileText = null;
     Structra.log.info('InputPanel', 'File size: ' + (byteSize / 1048576).toFixed(2) + ' MB');
 
     // Ingest into engine (indexes + DuckDB registration)
@@ -231,7 +236,7 @@ class StructraInputPanel extends StructraElement {
     await Structra.engine.ingest(tabId, data, {
       fileName: name,
       fileSize: byteSize,
-      rawText: text,
+      rawSource,
     });
 
     // Fire state events — triggers view rendering
@@ -244,10 +249,15 @@ class StructraInputPanel extends StructraElement {
     Structra.set('currentPath', '$');
 
     // Duplicate keys are invisible after parsing (JSON.parse keeps the last one), so scan the text
-    const looksLikeJson = /^\s*[\[{]/.test(text);
-    const dupes = looksLikeJson && text.length <= 20 * 1048576 ? Structra.jsonTools.findDuplicateKeys(text) : [];
-    Structra.set('duplicateKeys', dupes);
-    if (dupes.length) Structra.toast(dupes.length + ' duplicate key' + (dupes.length === 1 ? '' : 's') + ' found');
+    // This runs in the background and yields to the page, so it never delays the first paint.
+    Structra.set('duplicateKeys', []);
+    if (/^\s*[\[{]/.test(text) && text.length <= 8 * 1048576) {
+      Structra.jsonTools.findDuplicateKeys(text).then((dupes) => {
+        if (Structra.state.fileName !== name) return;            // another file was opened meanwhile
+        Structra.set('duplicateKeys', dupes);
+        if (dupes.length) Structra.toast(dupes.length + ' duplicate key' + (dupes.length === 1 ? '' : 's') + ' found');
+      });
+    }
 
     this._saveRecent(name, text, byteSize);
 
@@ -296,10 +306,13 @@ class StructraInputPanel extends StructraElement {
   /* ======== FILE UPLOAD ======== */
   _readFile(file) {
     Structra.log.info('InputPanel', '_readFile: ' + file.name + ' (' + (file.size / 1048576).toFixed(2) + ' MB)');
+    this._knownBytes = file.size;
+    this._currentFile = file;
     const reader = new FileReader();
     const ext = (file.name || '').split('.').pop().toLowerCase();
     reader.onload = async () => {
       const text = reader.result;
+      this._fileText = text;
       Structra.log.info('InputPanel', 'FileReader done — ' + text.length + ' chars (' + ext + ')');
       const format = this._detectFormat(text, ext);
       Structra.log.info('InputPanel', 'Detected format: ' + format);
@@ -314,6 +327,12 @@ class StructraInputPanel extends StructraElement {
       Structra.log.error('InputPanel', 'FileReader error:', reader.error);
     };
     reader.readAsText(file);
+  }
+
+  /** Open text from somewhere other than the file picker (used by session restore) */
+  async loadText(text, name) {
+    const ext = (name || '').split('.').pop().toLowerCase();
+    await this._parseByFormat(text, this._detectFormat(text, ext), name || 'Restored');
   }
 
   async _parseByFormat(text, format, name) {

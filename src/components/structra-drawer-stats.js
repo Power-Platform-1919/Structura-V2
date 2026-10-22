@@ -11,7 +11,6 @@ class StructraDrawerStats extends StructraElement {
     this._stale = true;
     this._renderTimer = null;
     this.on('engine:ingested', () => { this._stale = true; this._debouncedRender(); });
-    this.on('engine:duckdb-registered', () => { this._stale = true; this._debouncedRender(); });
     this.on('state:jsonData', () => { this._stale = true; this._debouncedRender(); });
     this.on('engine:active', () => { this._stale = true; this._debouncedRender(); });
     this.on('engine:data-modified', () => { this._stale = true; this._debouncedRender(); });
@@ -49,19 +48,13 @@ class StructraDrawerStats extends StructraElement {
       return;
     }
 
-    // Prefer DuckDB-powered analyze (falls back internally)
-    const s = await Structra.engine.analyzeDb() || Structra.engine.analyze(data);
-    const firstArr = Structra.engine.findFirstObjectArray(data);
-    const profile = firstArr ? await Structra.engine.profileFields(firstArr.rows) : null;
+    const analysis = await Structra.engine.getAnalysis();
+    if (!analysis) return;
+    const { stats: s, firstArr, profile, gaps } = analysis;
     const q = profile ? profile.quality : null;
     const rows = firstArr ? firstArr.rows.length : 0;
-    const gaps = firstArr ? Structra.engine.countGaps(firstArr.rows) : 0;
 
     let html = '';
-
-    // Source indicator
-    const src = s.source === 'duckdb' ? '🦆' : '🧠';
-    html += `<div style="text-align:right;font-size:10px;color:var(--text-muted);padding:2px 4px">${src} ${s.source || 'memory'}</div>`;
 
     // Mini grid
     html += `<div class="ds-mini-grid">
