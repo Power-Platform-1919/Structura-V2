@@ -1003,6 +1003,21 @@
           "id": "13.100",
           "title": "Share link: after opening it the hash is removed from the address bar, so refreshing loses the data; the shared tab also keeps no original file name",
           "status": "todo"
+        },
+        {
+          "id": "13.101",
+          "title": "Confirmed on the sample file: Ctrl+Shift+S (Sort Keys A to Z) shows the toast 'Keys sorted A→Z' but the Tree is unchanged (name, version, description still in original order); the success message is false and there is no Undo action offered",
+          "status": "todo"
+        },
+        {
+          "id": "13.102",
+          "title": "Overview 'Worth a look' and the bottom Analyze tab repeat the same numbers (nodes, keys, nulls, depth, type chips, data quality); two places for one fact, and the bottom Analyze tab stays open over every view",
+          "status": "todo"
+        },
+        {
+          "id": "13.103",
+          "title": "Two 'try a sample' controls exist in the DOM (welcome overlay with autofocus button and the empty-card link); hidden controls with the same label confuse keyboard and screen reader users",
+          "status": "todo"
         }
       ]
     }
