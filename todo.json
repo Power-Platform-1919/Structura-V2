@@ -1123,6 +1123,11 @@
           "id": "13.124",
           "title": "Convert to XML writes invalid XML: null values become <qty xsi:nil=\"true\"/> but the xsi namespace is never declared on <root>, so any parser fails with 'unbound prefix' (confirmed with a CSV of 3 rows). Convert to YAML output is correct. Both exports use fixed names (export.yaml, export.xml) instead of the document name",
           "status": "todo"
+        },
+        {
+          "id": "13.125",
+          "title": "Find Duplicate Keys on a pasted CSV (and on any data that was parsed, repaired, edited or loaded from a recent entry) only toasts 'The original text of this document is not available' instead of saying 'No duplicate keys' or running on the data; the message is jargon and the check has no result view",
+          "status": "todo"
         }
       ]
     }
