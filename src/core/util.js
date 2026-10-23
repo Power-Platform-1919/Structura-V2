@@ -130,8 +130,57 @@ Structra.util = (() => {
     return sa < sb ? -1 : sa > sb ? 1 : 0;
   }
 
+  /**
+   * A pattern with a repeat inside a repeat, such as (a+)+ or (.*)*, can take minutes on a longer text and
+   * freezes the page while it does. Such patterns are refused with a message instead.
+   */
+  function riskyRegex(source) {
+    const src = String(source);
+    return /\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d+,\d*\})/.test(src);
+  }
+  const RISKY_MESSAGE = 'This pattern can take extremely long on some text (a repeat inside a repeat, like (a+)+). Simplify it, for example a+ instead of (a+)+.';
+
+  /**
+   * Try some JavaScript on a copy of the data in a separate thread, and stop it after a few seconds.
+   * Resolves { ok: true } when it finished, { ok: false, error } when it failed or ran too long.
+   */
+  function tryInWorker(code, data, ms = 5000) {
+    return new Promise((resolve) => {
+      let worker, url, timer;
+      const done = (r) => { clearTimeout(timer); if (worker) worker.terminate(); if (url) URL.revokeObjectURL(url); resolve(r); };
+      try {
+        url = URL.createObjectURL(new Blob([`self.onmessage = (e) => { try { new Function('data', 'return ' + e.data.code)(e.data.data); self.postMessage({ ok: true }); } catch (err) { self.postMessage({ ok: false, error: String((err && err.message) || err) }); } };`], { type: 'text/javascript' }));
+        worker = new Worker(url);
+        worker.onmessage = (e) => done(e.data);
+        worker.onerror = (e) => done({ ok: false, error: e.message || 'it could not run' });
+        timer = setTimeout(() => done({ ok: false, timedOut: true, error: `It ran for more than ${ms / 1000} seconds and was stopped.` }), ms);
+        worker.postMessage({ code, data });
+      } catch (err) {
+        done({ ok: true });         // no worker available: run it where it is
+      }
+    });
+  }
+
+  /**
+   * Data nested more than `cap` levels deep freezes every view, so what lies deeper is replaced by a short text.
+   * Works without recursion, so a very deep document cannot overflow the stack. Returns how deep it was.
+   */
+  function capDepth(data, cap = 200) {
+    let deepest = 1;
+    const stack = [[data, 1, null, null]];
+    while (stack.length) {
+      const [v, d, parent, key] = stack.pop();
+      if (v === null || typeof v !== 'object') continue;
+      if (d > deepest) deepest = d;
+      if (d > cap) { parent[key] = '(nested too deep to show)'; continue; }
+      if (Array.isArray(v)) for (let i = 0; i < v.length; i++) stack.push([v[i], d + 1, v, i]);
+      else for (const k of Object.keys(v)) stack.push([v[k], d + 1, v, k]);
+    }
+    return { deepest, capped: deepest > cap };
+  }
+
   let _uid = 0;
   const uid = (prefix = 'id') => prefix + '-' + (++_uid).toString(36) + Math.random().toString(36).slice(2, 6);
 
-  return { esc, typeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, nextTick, yieldToBrowser, whenIdle, copy, download, compareValues, uid };
+  return { esc, typeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, nextTick, yieldToBrowser, whenIdle, copy, download, compareValues, riskyRegex, RISKY_MESSAGE, tryInWorker, capDepth, uid };
 })();

@@ -12,7 +12,7 @@
     "test:find": "node tests/smoke/find.js",
     "test:layout": "node tests/smoke/layout.js",
     "test:transform": "node tests/smoke/transform.js",
-    "test:all": "npm test && node tests/smoke/tabs.js && node tests/smoke/tools.js && node tests/smoke/find.js && node tests/smoke/layout.js && node tests/smoke/transform.js && node tests/smoke/exports.js && node tests/smoke/schema.js && node tests/smoke/table.js && node tests/smoke/query.js && node tests/smoke/powerplatform.js && node tests/smoke/shell.js && node tests/smoke/overview.js && node tests/smoke/navigation.js && node tests/smoke/editor.js && node tests/smoke/tabsui.js && node tests/smoke/datatools.js && node tests/smoke/inputs.js && node tests/smoke/graph.js && node tests/smoke/hostile.js && node tests/smoke/offline.js && node tests/smoke/robust.js",
+    "test:all": "npm test && node tests/smoke/tabs.js && node tests/smoke/tools.js && node tests/smoke/find.js && node tests/smoke/layout.js && node tests/smoke/transform.js && node tests/smoke/exports.js && node tests/smoke/schema.js && node tests/smoke/table.js && node tests/smoke/query.js && node tests/smoke/powerplatform.js && node tests/smoke/shell.js && node tests/smoke/overview.js && node tests/smoke/navigation.js && node tests/smoke/editor.js && node tests/smoke/tabsui.js && node tests/smoke/datatools.js && node tests/smoke/inputs.js && node tests/smoke/graph.js && node tests/smoke/hostile.js && node tests/smoke/offline.js && node tests/smoke/robust.js && node tests/smoke/stress.js",
     "test:exports": "node tests/smoke/exports.js",
     "test:schema": "node tests/smoke/schema.js",
     "test:table": "node tests/smoke/table.js",
@@ -35,7 +35,8 @@
     "test:hostile": "node tests/smoke/hostile.js",
     "test:offline": "node tests/smoke/offline.js",
     "test:fast": "node tests/run-smoke.js",
-    "test:robust": "node tests/smoke/robust.js"
+    "test:robust": "node tests/smoke/robust.js",
+    "test:stress": "node tests/smoke/stress.js"
   },
   "devDependencies": {
     "playwright": "^1.64.1"

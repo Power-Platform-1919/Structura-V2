@@ -249,7 +249,7 @@ class StructraTabs extends StructraElement {
       label.textContent = newName;
       const id = Number(tabEl.dataset.id);
       const tab = Structra.tabs.list.find(t => t.id === id);
-      if (tab) tab.label = newName;
+      if (tab) { tab.label = newName; if (newName !== old) tab.customLabel = true; }
     };
 
     label.addEventListener('blur', done, { once: true });

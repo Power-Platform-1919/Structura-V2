@@ -130,7 +130,8 @@ Structra.jsonTools = (() => {
     const valid = check(data);
     const errors = (check.errors || []).map((e) => ({
       path: pointerToPath(e.dataPath),
-      message: e.message,
+      // An enum says which values are allowed, not only that the value is not one of them
+      message: e.keyword === 'enum' && e.params && e.params.allowedValues ? 'should be one of: ' + e.params.allowedValues.map((v) => JSON.stringify(v)).join(', ') : e.message,
       keyword: e.keyword,
     }));
     return { valid: !!valid, errors };

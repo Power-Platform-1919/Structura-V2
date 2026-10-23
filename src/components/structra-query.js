@@ -242,7 +242,7 @@ class StructraQuery extends StructraElement {
     if (hint) hint.textContent = help.hint;
   }
 
-  _runQuery() {
+  async _runQuery() {
     const input = this.$('#queryInput').value.trim();
     const results = this.$('#queryResults');
     const help = StructraQuery.MODE_HELP[this._mode];
@@ -260,7 +260,12 @@ class StructraQuery extends StructraElement {
       let matches = [];
       if (this._mode === 'path' || this._mode === 'jsonpath') matches = Structra.jsonpath.query(data, input);
       else if (this._mode === 'regex') matches = this._queryRegex(data, input);
-      else if (this._mode === 'js') matches = this._queryJs(data, input);
+      else if (this._mode === 'js') {
+        // The code is tried first in a separate thread, so one that never ends cannot freeze the page
+        const probe = await Structra.util.tryInWorker(input.replace(/^=/, ''), data);
+        if (!probe.ok) throw new Error('The JavaScript did not run: ' + probe.error);
+        matches = this._queryJs(data, input);
+      }
       this._lastMatches = matches;
 
       if (matches.length === 0) {
@@ -318,7 +323,9 @@ class StructraQuery extends StructraElement {
   _queryRegex(data, pattern) {
     const matches = [];
     let re;
-    try { re = new RegExp(pattern.replace(/^\/|\/[a-z]*$/g, ''), 'i'); }
+    const source = pattern.replace(/^\/|\/[a-z]*$/g, '');
+    if (Structra.util.riskyRegex(source)) throw new Error(Structra.util.RISKY_MESSAGE);
+    try { re = new RegExp(source, 'i'); }
     catch (err) { throw new Error('That is not a valid pattern: ' + err.message.replace(/^Invalid regular expression: /, '')); }
     const walk = (val, path) => {
       if (typeof val === 'string' && re.test(val)) matches.push({ path, value: val });

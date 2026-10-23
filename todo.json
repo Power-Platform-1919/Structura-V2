@@ -1475,12 +1475,12 @@
         {
           "id": "14.24",
           "title": "Table: number columns are left aligned like text and empty values show as an italic 'null'; right-align numbers and call empty cells 'empty'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.25",
           "title": "Pivot: clicking fields assigns them in click order (the first two to Group by, the next to Then by), so choosing Region, Rep and Units puts Units under 'Then by' and gives a table of ones; put number fields in the totals zone by default, or let each field be placed with a choice",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.26",
@@ -1650,17 +1650,17 @@
         {
           "id": "14.59",
           "title": "Switching to a 30,000-row tab freezes the page for about 6 seconds (a small tab takes 0.8 s); keep each tab's views and draw lazily, or show a busy message",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.60",
           "title": "Validate against a JSON Schema lists 70,000 separate problems (200 shown), one per row; group by problem ('amount should be text: 30,000 rows') with a count and one example, and show the allowed values for an enum",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.61",
           "title": "Table pager on a large file says '30,000 rows (virtual scroll)' but still shows the 25/50/100 buttons and arrows; hide what does not apply and say '30,000 rows'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.62",
@@ -1785,12 +1785,12 @@
         {
           "id": "14.86",
           "title": "Deeply nested data freezes the page: 1,500 to 2,000 levels take 10 to 31 seconds to open, 18 s to draw the Tree and 12 s for the Overview, and the Schema view fails with 'Maximum call stack size exceeded'; set a depth limit (about 200 levels) with a clear message and walk the data without recursion",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.87",
           "title": "Pattern find and the Query Regex mode run on the page thread with no time limit: ^(a+)+$ on a 27-character value takes 2 seconds and doubles with every extra character, so a longer value freezes the tab for minutes; the Query Js mode (new Function) has the same problem with any loop and runs pasted code with access to saved data; run both in a worker with a time limit, and warn before running code",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.88",
@@ -1875,7 +1875,7 @@
         {
           "id": "14.104",
           "title": "A table with 1,500 columns takes 4.6 seconds to draw because every column is drawn at once; draw only the columns in view (or the first 100 with 'show more columns')",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.105",
@@ -1885,7 +1885,7 @@
         {
           "id": "14.106",
           "title": "Pivot results are cut at 500 rows ('Showing 500 of 30000 rows') with no way to copy or export the complete result; add Copy and Open in a new tab for the full pivot",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.107",

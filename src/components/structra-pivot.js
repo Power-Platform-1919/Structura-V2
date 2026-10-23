@@ -39,10 +39,10 @@ class StructraPivot extends StructraOverlay {
               <div class="pivot-zone-drop" id="pivotValues" data-zone="values"></div>
               <select class="pivot-agg" id="pivotAgg">
                 <option value="count">Count</option>
-                <option value="sum">Sum</option>
+                <option value="sum">Total</option>
                 <option value="avg">Average</option>
-                <option value="min">Min</option>
-                <option value="max">Max</option>
+                <option value="min">Smallest</option>
+                <option value="max">Largest</option>
               </select>
             </div>
           </div>
@@ -62,6 +62,8 @@ class StructraPivot extends StructraOverlay {
       if (field && !field.closest('.pivot-zone-drop')) {
         this._addFieldToZone(field.dataset.field);
       }
+      const act = e.target.closest('[data-pivot-act]');
+      if (act) { if (act.dataset.pivotAct === 'copy') this._copyAll(); else this._openAll(); return; }
       // Remove from zone
       const rm = e.target.closest('[data-rm-zone]');
       if (rm) {
@@ -94,7 +96,7 @@ class StructraPivot extends StructraOverlay {
     const help = this.$('#pivotHelp');
     if (help) {
       help.textContent = main
-        ? `Pivoting the ${main.rows.length.toLocaleString()} ${main.rows.length === 1 ? 'row' : 'rows'} of ${main.path === '$' ? 'the document' : main.path.replace(/^\$\./, '')}. Click a field to add it: the first two go to Group by, the next two to Then by, then to Count or total of. Click the x on a chip to remove it.`
+        ? `Pivoting the ${main.rows.length.toLocaleString()} ${main.rows.length === 1 ? 'row' : 'rows'} of ${main.path === '$' ? 'the document' : main.path.replace(/^\$\./, '')}. Click a field to add it: fields with numbers are totalled, other fields group the rows. Click the x on a chip to remove it.`
         : 'This document has no list of records to pivot.';
     }
     this._renderFields();
@@ -108,13 +110,31 @@ class StructraPivot extends StructraOverlay {
     ).join('');
   }
 
+  /** A field whose values are numbers is something to total; any other field is something to group by */
+  _isNumeric(field) {
+    const main = Structra.engine.mainList();
+    if (!main) return false;
+    let seen = 0;
+    for (const row of main.rows.slice(0, 200)) {
+      const v = Structra.engine.fieldValue(row, field);
+      if (v === null || v === undefined || v === '') continue;
+      if (typeof v !== 'number') return false;
+      seen++;
+    }
+    return seen > 0;
+  }
+
   _addFieldToZone(field) {
-    // Cycle: rows → cols → values (smart default based on type)
-    if (!this._rows.includes(field) && this._rows.length < 2) {
+    if (this._rows.includes(field) || this._cols.includes(field) || this._values.includes(field)) return;
+    if (this._isNumeric(field)) {
+      this._values.push(field);
+      // The first number chosen is totalled rather than counted
+      if (this._values.length === 1 && this._aggFn === 'count') { this._aggFn = 'sum'; const sel = this.$('#pivotAgg'); if (sel) sel.value = 'sum'; }
+    } else if (this._rows.length < 2) {
       this._rows.push(field);
-    } else if (!this._cols.includes(field) && this._cols.length < 2) {
+    } else if (this._cols.length < 2) {
       this._cols.push(field);
-    } else if (!this._values.includes(field)) {
+    } else {
       this._values.push(field);
     }
     this._renderZones();
@@ -183,21 +203,43 @@ class StructraPivot extends StructraOverlay {
 
   _renderPivotTable(data) {
     const el = this.$('#pivotResult');
-    if (!data || !data.rows || data.rows.length === 0) {
+    this._last = data && data.rows && data.rows.length ? data : null;
+    if (!this._last) {
       el.innerHTML = '<div class="pivot-empty">Nothing to show. This document has no list of records, or the chosen fields have no values.</div>';
       return;
     }
 
     const cols = data.columns;
-    let html = '<table class="pivot-table"><thead><tr>';
-    html += cols.map(c => `<th>${Structra.util.esc(c)}</th>`).join('');
+    const numeric = new Set(cols.filter((c) => data.rows.every((r) => r[c] === '' || r[c] === null || typeof r[c] === 'number')));
+    let html = `<div class="pivot-actions">
+        <span class="pivot-count">${data.rows.length.toLocaleString()} ${data.rows.length === 1 ? 'row' : 'rows'}</span>
+        <button class="btn btn-sm" type="button" data-pivot-act="copy" title="Copy every row, ready to paste into Excel">Copy all rows</button>
+        <button class="btn btn-sm" type="button" data-pivot-act="tab" title="Open every row as a table in a new tab">Open in a new tab</button>
+      </div>`;
+    html += '<table class="pivot-table"><thead><tr>';
+    html += cols.map(c => `<th${numeric.has(c) ? ' class="num"' : ''}>${Structra.util.esc(c)}</th>`).join('');
     html += '</tr></thead><tbody>';
     for (const row of data.rows.slice(0, 500)) {
-      html += '<tr>' + cols.map(c => `<td>${row[c] != null ? Structra.util.esc(String(row[c])) : ''}</td>`).join('') + '</tr>';
+      html += '<tr>' + cols.map(c => `<td${numeric.has(c) ? ' class="num"' : ''}>${row[c] != null ? Structra.util.esc(String(row[c])) : ''}</td>`).join('') + '</tr>';
     }
     html += '</tbody></table>';
-    if (data.rows.length > 500) html += `<div class="pivot-more">Showing 500 of ${data.rows.length} rows</div>`;
+    if (data.rows.length > 500) html += `<div class="pivot-more">Showing the first 500 of ${data.rows.length.toLocaleString()} rows. Copy all rows or open them in a new tab to get every row.</div>`;
     el.innerHTML = html;
+  }
+
+  _copyAll() {
+    if (!this._last) return;
+    const { rows, columns } = this._last;
+    const cell = (v) => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ');
+    const text = [columns.join('\t'), ...rows.map((r) => columns.map((c) => cell(r[c])).join('\t'))].join('\n');
+    Structra.util.copy(text, `${rows.length.toLocaleString()} rows copied: paste them into Excel`);
+  }
+
+  _openAll() {
+    if (!this._last) return;
+    const cmd = document.querySelector('structra-command');
+    const name = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '') + ' (pivot)';
+    cmd._openInNewTab(this._last.rows, name).then((opened) => { if (opened) { this.close(); Structra.toast('The pivot is open in a new tab'); } else Structra.toast('Close a tab first: the limit of open tabs is reached.', 'warning'); });
   }
 
 }

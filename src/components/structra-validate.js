@@ -74,14 +74,24 @@ class StructraValidate extends StructraOverlay {
       const { valid, errors } = await Structra.jsonTools.validate(Structra.state.jsonData, schema);
       if (valid) { this._summary('Valid. The data matches the schema.', 'ok'); return; }
 
-      const shown = errors.slice(0, StructraValidate.MAX_SHOWN);
+      // The same problem in thousands of rows is one line with a count and the first place it happens
       const esc = Structra.util.esc;
-      this._summary(errors.length + ' problem' + (errors.length === 1 ? '' : 's') + ' found'
-        + (errors.length > shown.length ? ' (showing the first ' + shown.length + ')' : ''), 'bad');
-      results.innerHTML = shown.map((e) => `
+      const groups = new Map();
+      for (const e of errors) {
+        const general = (e.path || 'root').replace(/\[\d+\]/g, '[*]');
+        const key = general + '\u0001' + e.message;
+        let g = groups.get(key);
+        if (!g) { g = { general, message: e.message, count: 0, first: e.path }; groups.set(key, g); }
+        g.count++;
+      }
+      const list = [...groups.values()].sort((a, b) => b.count - a.count);
+      const kinds = list.length;
+      this._summary(`${errors.length.toLocaleString()} problem${errors.length === 1 ? '' : 's'} found, of ${kinds} kind${kinds === 1 ? '' : 's'}`, 'bad');
+      results.innerHTML = list.slice(0, StructraValidate.MAX_SHOWN).map((g) => `
         <div class="val-err">
-          <button class="val-path" type="button" data-action="goto" data-path="${esc(e.path)}" title="Show in tree">${esc(e.path || 'root')}</button>
-          <span class="val-msg">${esc(e.message)}</span>
+          <button class="val-path" type="button" data-action="goto" data-path="${esc(g.first)}" title="Show the first one in the tree">${esc(g.general)}</button>
+          <span class="val-msg">${esc(g.message)}</span>
+          <span class="val-count">${g.count === 1 ? '1 place' : g.count.toLocaleString() + ' places'}</span>
         </div>`).join('');
     } catch (err) {
       Structra.log.error('Validate', 'Validation failed', err);

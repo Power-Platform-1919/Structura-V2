@@ -232,6 +232,9 @@ class StructraInputPanel extends StructraElement {
 
   /* ======== LOAD SUCCESS ======== */
   async _loadSuccess(data, text, name) {
+    // Data nested very deeply freezes every view: keep the first 200 levels and say so
+    const depth = Structra.util.capDepth(data, 200);
+    Structra.parseNotes = Object.assign(Structra.parseNotes || {}, { deepest: depth.capped ? depth.deepest : 0 });
     const unopenable = Structra.describeUnopenable(data);
     if (unopenable) {
       const msg = name + ' contains only ' + unopenable + ', so there is nothing to explore.';
@@ -309,8 +312,10 @@ class StructraInputPanel extends StructraElement {
       });
     }
 
+    const deep = (Structra.parseNotes && Structra.parseNotes.deepest) || 0;
     const big = (Structra.parseNotes && Structra.parseNotes.bigNumbers) || 0;
-    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : ''));
+    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : '') + (deep ? `. It is nested ${deep.toLocaleString()} levels deep: only the first 200 levels are shown.` : ''));
+    Structra.parseNotes = {};
     // Auto-hide overlay wrapper if present
     const overlay = this.closest('.io-overlay');
     if (overlay) overlay.classList.remove('show');
@@ -433,6 +438,7 @@ class StructraInputPanel extends StructraElement {
       Structra.toast(msg, 'warning');
       return;
     }
+    Structra.parseNotes = {};
     this._clearError();
     const t0 = performance.now();
     Structra.log.info('InputPanel', '_parseByFormat: ' + format + ' — ' + name + ' (' + (text.length / 1024).toFixed(1) + ' KB)');

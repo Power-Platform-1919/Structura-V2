@@ -353,17 +353,28 @@ class StructraTable extends StructraElement {
   /* ======== HEADER ======== */
 
   _renderHeader(head, keys) {
-    const visibleKeys = this._hiddenCols ? keys.filter(k => !this._hiddenCols.has(k)) : keys;
+    let visibleKeys = this._hiddenCols ? keys.filter(k => !this._hiddenCols.has(k)) : keys;
+    // Drawing thousands of columns at once takes seconds: show the first ones and offer more
+    if (!this._colLimit) this._colLimit = 80;
+    this._moreCols = Math.max(0, visibleKeys.length - this._colLimit);
+    visibleKeys = visibleKeys.slice(0, this._colLimit);
+    // A column of numbers is lined up on the right, like a spreadsheet
+    const sample = (this._baseRows && this._baseRows.length ? this._baseRows : this._rows || []).slice(0, 100);
+    this._numericCols = new Set(visibleKeys.filter((k) => {
+      let seen = 0;
+      for (const r of sample) { const v = r ? r[k] : undefined; if (v === null || v === undefined) continue; if (typeof v !== 'number') return false; seen++; }
+      return seen > 0;
+    }));
     const sortIcon = (col) => {
       if (this._sortCol !== col) return '';
       return this._sortAsc ? ' ↑' : ' ↓';
     };
     const filterIcon = (col) => {
       const isFiltered = this._colFilters && this._colFilters[col];
-      return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${Structra.util.esc(col)}" title="Filter column">⫧</span>`;
+      return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${Structra.util.esc(col)}" title="Filter this column">${Structra.icons.svg('list-filter', { size: 12 })}</span>`;
     };
     head.innerHTML = '<tr>' + visibleKeys.map(k =>
-      `<th data-col="${Structra.util.esc(k)}"><span class="th-label">${Structra.util.esc(k)}${sortIcon(k)}</span>${filterIcon(k)}</th>`
+      `<th data-col="${Structra.util.esc(k)}"${this._numericCols.has(k) ? ' class="num"' : ''}><span class="th-label">${Structra.util.esc(k)}${sortIcon(k)}</span>${filterIcon(k)}</th>`
     ).join('') + '</tr>';
     this._visibleKeys = visibleKeys;
   }
@@ -372,6 +383,7 @@ class StructraTable extends StructraElement {
 
   _renderToolbar(pager, totalRows, filtered) {
     if (!pager) return;
+    const icon = (n) => Structra.icons.svg(n, { size: 14 });
 
     const maxPage = Math.max(0, Math.ceil(totalRows / this._pageSize) - 1);
     const from = this._page * this._pageSize + 1;
@@ -385,25 +397,27 @@ class StructraTable extends StructraElement {
 
     const useVirtual = totalRows > this._VIRTUAL_THRESHOLD;
     const filterBadge = filtered
-      ? '<span class="filter-badge" title="Filtered results">🔍 filtered</span>'
+      ? `<span class="filter-badge" title="Filtered results">${icon('filter')} filtered</span>`
       : '';
 
     const hiddenBadge = this._hiddenCols.size
-      ? `<span class="filter-badge" data-page-action="unhide" title="Show hidden columns">⊘ ${this._hiddenCols.size} hidden</span>`
+      ? `<span class="filter-badge" data-page-action="unhide" title="Show hidden columns">${icon('eye-off')} ${this._hiddenCols.size} hidden</span>`
       : '';
-    pager.innerHTML = `
-      ${filterBadge}${hiddenBadge}
-      <button data-page-action="first" ${this._page === 0 || useVirtual ? 'disabled' : ''} title="First page">⟨⟨</button>
-      <button data-page-action="prev" ${this._page === 0 || useVirtual ? 'disabled' : ''} title="Previous page">⟨</button>
-      <span class="table-page-info">${useVirtual
-        ? `${totalRows.toLocaleString()} rows (virtual scroll)`
-        : `${from.toLocaleString()}–${to.toLocaleString()} of ${totalRows.toLocaleString()}`
-      }</span>
-      <button data-page-action="next" ${this._page >= maxPage || useVirtual ? 'disabled' : ''} title="Next page">⟩</button>
-      <button data-page-action="last" ${this._page >= maxPage || useVirtual ? 'disabled' : ''} title="Last page">⟩⟩</button>
+    const moreCols = this._moreCols
+      ? `<span class="filter-badge" data-page-action="more-cols" title="Draw more columns">${icon('columns-3')} ${this._moreCols.toLocaleString()} more columns: show ${Math.min(100, this._moreCols).toLocaleString()}</span>`
+      : '';
+    // Scrolling replaces pages for a long list: no page buttons or page sizes then
+    const pages = useVirtual
+      ? `<span class="table-page-info">${totalRows.toLocaleString()} rows</span>`
+      : `<button data-page-action="first" ${this._page === 0 ? 'disabled' : ''} title="First page" aria-label="First page">${icon('chevrons-left')}</button>
+      <button data-page-action="prev" ${this._page === 0 ? 'disabled' : ''} title="Previous page" aria-label="Previous page">${icon('chevron-left')}</button>
+      <span class="table-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${totalRows.toLocaleString()}</span>
+      <button data-page-action="next" ${this._page >= maxPage ? 'disabled' : ''} title="Next page" aria-label="Next page">${icon('chevron-right')}</button>
+      <button data-page-action="last" ${this._page >= maxPage ? 'disabled' : ''} title="Last page" aria-label="Last page">${icon('chevrons-right')}</button>
       <span class="table-sep"></span>
-      <span class="table-size-label">Rows:</span>
+      <span class="table-size-label">Rows per page:</span>
       ${sizeOpts}`;
+    pager.innerHTML = `${filterBadge}${hiddenBadge}${moreCols}${pages}`;
   }
 
   /* ======== PAGINATED RENDER (small datasets) ======== */
@@ -460,7 +474,7 @@ class StructraTable extends StructraElement {
       let cells = '';
       for (let k = 0; k < visibleKeys.length; k++) {
         const v = r ? r[visibleKeys[k]] : undefined;
-        cells += `<td>${this._formatCell(v)}</td>`;
+        cells += `<td${this._numericCols && this._numericCols.has(visibleKeys[k]) ? ' class="num"' : ''}>${this._formatCell(v)}</td>`;
       }
       html += path ? `<tr data-path="${Structra.util.esc(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
     }
@@ -487,6 +501,7 @@ class StructraTable extends StructraElement {
 
   _handlePageAction(action) {
     if (action === 'unhide') { this._hiddenCols.clear(); this.renderTable(); return; }
+    if (action === 'more-cols') { this._colLimit = (this._colLimit || 80) + 100; this.renderTable(); return; }
     const maxPage = Math.max(0, Math.ceil(this._totalRows / this._pageSize) - 1);
     if (action === 'first') this._page = 0;
     else if (action === 'prev') this._page = Math.max(0, this._page - 1);
@@ -500,7 +515,7 @@ class StructraTable extends StructraElement {
   /* _collectKeys and _findFirstArray removed — use Structra.engine.collectKeys() and Structra.engine.findFirstObjectArray() */
 
   _formatCell(val) {
-    if (val === null || val === undefined) return '<span class="tree-null">null</span>';
+    if (val === null || val === undefined) return '<span class="tree-null" title="No value">empty</span>';
     if (typeof val === 'boolean') return `<span class="bool-badge ${val ? 'bool-true' : 'bool-false'}">${val}</span>`;
     if (typeof val === 'object') return this._formatNested(val);
     const s = String(val);

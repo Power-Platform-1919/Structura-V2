@@ -58,7 +58,7 @@
     const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
     if (tab) {
       tab.fileName = d.value;
-      if (d.value) tab.label = d.value;
+      if (d.value && !tab.customLabel) tab.label = d.value;       // a name the user typed is kept
       Structra.events.emit('tabs:changed');
     }
   });

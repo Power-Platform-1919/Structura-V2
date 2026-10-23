@@ -102,6 +102,16 @@ function serve() {
     });
     const open = piv.find((r) => r[0] === 'Open');
     if (!open || Number(open[1]) !== 1344.75) failures.push('the total Cost of Open should be 1344.75 (1299.5 + 45.25): ' + JSON.stringify(piv));
+    // A number is totalled, not used to group rows; and the whole result can be copied or opened as a tab
+    const num = await page.evaluate(() => {
+      const pv = document.querySelector('structra-pivot');
+      pv._rows = []; pv._cols = []; pv._values = []; pv._aggFn = 'count';
+      pv._addFieldToZone('Cost');
+      return { values: pv._values.slice(), rows: pv._rows.slice(), agg: pv._aggFn };
+    });
+    if (num.values[0] !== 'Cost' || num.rows.length || num.agg !== 'sum') failures.push('clicking a numeric field should total it, not group by it: ' + JSON.stringify(num));
+    const acts = await page.evaluate(() => { document.querySelector('structra-pivot')._rows = ['Status.Value']; document.querySelector('structra-pivot')._runPivot(); return [...document.querySelectorAll('#pivotResult [data-pivot-act]')].map((b) => b.dataset.pivotAct); });
+    if (acts.join() !== 'copy,tab') failures.push('the Pivot result should offer Copy all rows and Open in a new tab: ' + acts.join());
     await page.keyboard.press('Escape');
 
     // ---- Null finder ----

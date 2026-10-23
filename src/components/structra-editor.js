@@ -43,7 +43,7 @@ class StructraEditor extends StructraElement {
 
     const area = this.$('#editorArea');
     area.addEventListener('input', () => { this._gutter(); this._validate(); this._keepDraft(); });
-    area.addEventListener('scroll', () => { this.$('#edGutter').scrollTop = area.scrollTop; });
+    area.addEventListener('scroll', () => this._gutterWindow(false));
     // The status names the problem; a click goes to it
     this.$('#edStatus').addEventListener('click', () => {
       if (this._errorAt == null) return;
@@ -128,18 +128,31 @@ class StructraEditor extends StructraElement {
     this._validate();
   }
 
-  /** Line numbers beside the text (up to 50,000 lines; beyond that the gutter would cost more than it helps) */
+  /**
+   * Line numbers beside the text. Only the numbers in view (and a few above and below) are drawn, so a document of
+   * 200,000 lines costs no more than one of 200.
+   */
   _gutter() {
     const area = this.$('#editorArea');
     const gutter = this.$('#edGutter');
     if (!area || !gutter) return;
-    const lines = Math.min(area.value.split('\n').length, 50000);
-    if (this._lines !== lines) {
-      this._lines = lines;
-      let out = '';
-      for (let i = 1; i <= lines; i++) out += i + '\n';
-      gutter.textContent = out;
-    }
+    this._lines = area.value.split('\n').length;
+    this._lh = parseFloat(getComputedStyle(area).lineHeight) || 24;
+    this._gutterWindow(true);
+  }
+
+  _gutterWindow(force) {
+    const area = this.$('#editorArea');
+    const gutter = this.$('#edGutter');
+    if (!area || !gutter || !this._lines) return;
+    const lh = this._lh || 24;
+    const first = Math.max(0, Math.floor(area.scrollTop / lh) - 20);
+    if (!force && this._winFirst !== undefined && Math.abs(first - this._winFirst) < 15) { gutter.scrollTop = area.scrollTop; return; }
+    this._winFirst = first;
+    const last = Math.min(this._lines, first + Math.ceil((area.clientHeight || 600) / lh) + 40);
+    let out = '';
+    for (let i = first + 1; i <= last; i++) out += i + '\n';
+    gutter.innerHTML = `<div style="position:relative;height:${this._lines * lh}px"><div style="position:absolute;top:${first * lh}px;right:0;white-space:pre">${out}</div></div>`;
     gutter.scrollTop = area.scrollTop;
   }
 

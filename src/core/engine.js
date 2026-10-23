@@ -1853,6 +1853,7 @@ Structra.engine = (() => {
   async function regexSearch(pattern) {
     const ds = getActive();
     if (!ds) return { total: 0, matchedPaths: [] };
+    if (Structra.util.riskyRegex(pattern)) throw new Error(Structra.util.RISKY_MESSAGE);
     const re = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
     return _findInMemory(ds, pattern, re);
   }

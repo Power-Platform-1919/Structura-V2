@@ -56,11 +56,19 @@ function serve() {
     await page.waitForTimeout(500);
 
     // ---- Line numbers ----
-    const g = await page.evaluate(() => {
+    // Only the numbers in view are drawn: the first is 1 at the top, and scrolling to the end reaches the last line
+    const g = await page.evaluate(async () => {
       const ta = document.querySelector('#editorArea');
-      return { lines: ta.value.split('\n').length, numbers: document.querySelector('#edGutter').textContent.trim().split('\n').length, last: document.querySelector('#edGutter').textContent.trim().split('\n').pop() };
+      const gut = document.querySelector('#edGutter');
+      const numbers = () => gut.textContent.trim().split(/\n/);
+      const first = numbers()[0];
+      const drawn = numbers().length;
+      ta.scrollTop = ta.scrollHeight;
+      ta.dispatchEvent(new Event('scroll'));
+      await new Promise((r) => setTimeout(r, 200));
+      return { lines: ta.value.split(/\n/).length, first, drawn, last: numbers().pop(), st: ta.scrollTop, sh: ta.scrollHeight, ch: ta.clientHeight };
     });
-    if (g.numbers !== g.lines || Number(g.last) !== g.lines) failures.push(`the gutter shows ${g.numbers} numbers (last ${g.last}) for ${g.lines} lines`);
+    if (g.first !== '1' || Number(g.last) !== g.lines || g.drawn >= g.lines && g.lines > 200) failures.push(`the gutter should draw only the numbers in view, starting at 1 and reaching ${g.lines} at the end: ${JSON.stringify(g)}`);
 
     // ---- An error says what and where, and a click goes there ----
     await page.locator('#editorArea').evaluate((ta) => { ta.value = '{\n  "a": 1,\n  "b": [1, 2,\n  "c": 3\n}'; ta.dispatchEvent(new Event('input')); });
