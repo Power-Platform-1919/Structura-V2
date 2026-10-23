@@ -1831,6 +1831,16 @@
           "id": "14.95",
           "title": "Held up under attack (keep as regression checks): a 64 MB file with 400,000 records opens and sorts, filters and finds in under a second; opening and loading while switching tabs quickly is safe; theme import rejects script and CSS injection; a damaged share link gives a clear message; script in keys and values is escaped in every view (only names are not)",
           "status": "done"
+        },
+        {
+          "id": "14.96",
+          "title": "Flatten (dot notation) loses data without warning when two paths give the same flat name: {\"a.b\": 1, \"a\": {\"b\": 2}} becomes {\"a.b\": 2} (the 1 is gone); Unflatten then turns the key \"x[0]\" into a list x:[\"k\"] and the round trip no longer equals the original; detect collisions and stop with a message, and keep keys that already contain dots or brackets",
+          "status": "todo"
+        },
+        {
+          "id": "14.97",
+          "title": "Replace skips numbers and booleans while Find counts them: replacing 1 with X in {price:100, id:1001, name:'cost $1'} changes only the text and says 'Replaced 1 occurrence' after Find showed three matches; say which kinds of values are changed (text only) or convert, and make the two counts agree",
+          "status": "todo"
         }
       ]
     }
