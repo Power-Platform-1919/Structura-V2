@@ -1571,6 +1571,71 @@
           "id": "14.43",
           "title": "The 160-step random click test (tests/ui/05-monkey.js, five documents, several seeds) found no crash, blank screen or stuck dialog; keep it in the regular checks (npm run ui:monkey)",
           "status": "done"
+        },
+        {
+          "id": "14.44",
+          "title": "CRITICAL: XML files cannot be opened at all. Pasting or uploading valid XML ends with 'This is not valid XML: XML parse failed: DOMParser is not defined', because src/workers/xml-parse-worker.js uses DOMParser, which does not exist in a Web Worker; parse XML on the main thread (or with a worker-safe parser) and add an XML open test",
+          "status": "todo"
+        },
+        {
+          "id": "14.45",
+          "title": "Tab right-click menu looks broken: its items are plain browser buttons with default borders, uneven widths and no padding, and the menu sits on top of the tab; give .menu-item a reset (no border, transparent, full width, left aligned)",
+          "status": "todo"
+        },
+        {
+          "id": "14.46",
+          "title": "Type Definitions: keys such as @odata.context (on every SharePoint response) are written unquoted in TypeScript, Python, C#, Go, Rust and Java, which does not compile; quote or rename them, and add JSON name mappings (C# JsonPropertyName, Java JsonProperty, Rust serde rename, Python field mapping) so 'value' binds to Value; the palette also has no Java entry",
+          "status": "todo"
+        },
+        {
+          "id": "14.47",
+          "title": "Mask Sensitive Data runs at once with no preview or confirmation, leaves the same email unmasked inside the Claims field (i:0#.f|membership|ann@contoso.com), does not touch DisplayName, and the masked form a**@co********* shows the length; show what will change first and cover every field that holds the same value",
+          "status": "todo"
+        },
+        {
+          "id": "14.48",
+          "title": "After Ctrl+Z brings the document back to its original data, the tab still shows the changed dot; clear the changed state when the undo history returns to the saved point",
+          "status": "todo"
+        },
+        {
+          "id": "14.49",
+          "title": "Editor view on a 30,000-row document (3.9 MB) freezes the page for about 10 seconds with no message; show 'Preparing the editor' with progress, or open large documents read-only and unformatted",
+          "status": "todo"
+        },
+        {
+          "id": "14.50",
+          "title": "A field that holds JSON as text (the Payload in a Power Automate run output) shows as escaped text with no way to read it; add 'Parse this text as JSON' (opens it as its own tab or expands in place) and offer the json() expression for it",
+          "status": "todo"
+        },
+        {
+          "id": "14.51",
+          "title": "Drawer tabs such as Flow actions show only about one card at a time (the content area is ~150 px); add a maximise button on the drawer",
+          "status": "todo"
+        },
+        {
+          "id": "14.52",
+          "title": "Settings says Appearance covers 'text size', but Appearance has no text size control (zoom is only on Ctrl + and Ctrl -); add a Text size control or change the sentence",
+          "status": "todo"
+        },
+        {
+          "id": "14.53",
+          "title": "Appearance: the theme name 'Power Platform Dark' is cut to 'Power Platfor…' with no tooltip; allow two lines or add a title",
+          "status": "todo"
+        },
+        {
+          "id": "14.54",
+          "title": "Overview: 'Biggest lists' and Arrays found show '(root)' for a top-level list; say 'the whole document'",
+          "status": "todo"
+        },
+        {
+          "id": "14.55",
+          "title": "A failed open (for example the XML error) leaves an empty 'Untitled' tab and the path bar still shows '$'; remove the empty tab, or reuse it for the next attempt, and clear the path bar",
+          "status": "todo"
+        },
+        {
+          "id": "14.56",
+          "title": "Diff has no legend for its colours (green added, orange changed, red removed); add a small key next to the counts",
+          "status": "todo"
         }
       ]
     }
