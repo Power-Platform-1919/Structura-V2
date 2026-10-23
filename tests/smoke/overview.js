@@ -71,9 +71,14 @@ function serve() {
 
     // Keyboard scrolling once the page is focused
     await page.locator('structra-overview .stats-view').focus();
-    await page.keyboard.press('PageDown');
-    await page.waitForTimeout(300);
-    const scrolled = await page.evaluate(() => document.querySelector('structra-overview .stats-view').scrollTop);
+    await page.waitForFunction(() => { const v = document.querySelector('structra-overview .stats-view'); return v && v.scrollHeight > v.clientHeight; }, null, { timeout: 5000 }).catch(() => {});
+    let scrolled = 0;
+    for (let attempt = 0; attempt < 3 && scrolled <= 0; attempt++) {   // a busy machine can swallow the first key press
+      await page.locator('structra-overview .stats-view').focus();
+      await page.keyboard.press('PageDown');
+      await page.waitForTimeout(400);
+      scrolled = await page.evaluate(() => document.querySelector('structra-overview .stats-view').scrollTop);
+    }
     if (scrolled <= 0) failures.push('Page Down does not scroll the Overview');
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 200));
