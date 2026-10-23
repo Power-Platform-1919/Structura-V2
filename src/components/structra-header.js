@@ -9,7 +9,7 @@ class StructraHeader extends StructraElement {
   init() {
     this.on('state:currentPath', (d) => {
       const input = this.$('#pathInput');
-      if (input) input.value = d.value;
+      if (input) input.value = d.value === '$' ? '' : d.value;     // nothing selected: show the hint text
       this._syncButtons();
     });
     this.on('nav:changed', () => this._syncButtons());

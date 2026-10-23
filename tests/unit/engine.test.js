@@ -71,3 +71,30 @@ test('a list of plain values has no list of objects', async () => {
   eq(a.firstArr, null);
   eq(a.profile, null);
 });
+
+console.log('sorting, replacing and odd column names');
+
+test('values sort like a spreadsheet: capitals ignored, numbers inside text in natural order, mixed kinds grouped', () => {
+  const sorted = ['pear', 'Apple', 'banana', 'apple', 'Cherry', 'item 10', 'item 2'].sort(Structra.util.compareValues);
+  eq(sorted.slice(0, 4), ['Apple', 'apple', 'banana', 'Cherry']);
+  eq(sorted.slice(-3), ['item 2', 'item 10', 'pear'].slice(0, 2).concat(['pear']).slice(0, 3));
+  eq([3, 'b', true, 1, 'a', 2].sort(Structra.util.compareValues), [1, 2, 3, 'a', 'b', true]);
+});
+
+test('Replace matches the way Find does and says what it left alone', async () => {
+  await E.ingest(41, { name: 'Alice', email: 'alice@x.com', id: 1001, ok: true, nested: [{ s: 'ALICE' }] }, { fileName: 'r.json', fileSize: 10 });
+  E.setActive(41);
+  const r = E.replaceInData('alice', 'Bo', true);
+  eq(r.replaced, 3);
+  const raw = E.getActive().raw;
+  eq([raw.name, raw.email, raw.nested[0].s], ['Bo', 'Bo@x.com', 'Bo']);
+  const r2 = E.replaceInData('1', 'X', true);
+  eq([r2.replaced, r2.skipped, raw.id], [0, 1, 1001]);
+});
+
+test('a column named constructor or toString is an ordinary column', async () => {
+  await E.ingest(42, [{ constructor: 1, toString: 'a', valueOf: null }, { constructor: 2, toString: 'b' }], { fileName: 'c.json', fileSize: 10 });
+  E.setActive(42);
+  const names = E.getActive().indexes && E.getActive().indexes.columns ? E.getActive().indexes.columns.map((c) => c.name) : [];
+  truthy(names.includes('constructor') && names.includes('toString'), JSON.stringify(names));
+});

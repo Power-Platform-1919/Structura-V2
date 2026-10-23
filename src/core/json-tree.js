@@ -701,7 +701,7 @@ Structra.jsonTree = (() => {
       else if (raw !== '' && !isNaN(Number(raw)) && raw.trim() === raw) newVal = Number(raw);
       else newVal = raw;
 
-      Structra.paths.setNested(data, path, newVal);
+      // The command layer makes the change: it keeps the original for Undo, marks the tab and refreshes every view
       Structra.events.emit('tree:inline-edit', { path, value: newVal });
     };
 

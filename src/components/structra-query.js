@@ -19,10 +19,22 @@ class StructraQuery extends StructraElement {
   init() {
     this._mode = 'path';
     this.on('query:show-tab', (tab) => this._switchTab(tab));
+    // Results and transform output belong to the document they were made from
+    const clear = () => this._resetResults();
+    this.on('tabs:switched', clear);
+    this.on('tabs:closed', clear);
+    this.on('engine:ingested', clear);
     this.on('state:queryPanelOpen', (d) => {
       Structra.log.info('Query', 'queryPanel ' + (d.value ? 'opened' : 'closed'));
       this.classList.toggle('show', d.value);
     });
+  }
+
+  _resetResults() {
+    this._lastMatches = [];
+    this._lastTransform = null;
+    const results = this.$('#queryResults');
+    if (results) results.innerHTML = '<div class="qp-summary">Type a query and press Run</div>';
   }
 
   render() {

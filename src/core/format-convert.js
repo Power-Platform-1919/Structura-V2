@@ -44,9 +44,10 @@ Structra.convert = (() => {
       let xml = '';
       if (Array.isArray(obj)) {
         for (const item of obj) {
+          const emptyItem = item !== null && typeof item === 'object' && (Array.isArray(item) ? !item.length : !Object.keys(item).length);
           xml += item === null
             ? `${indent}${nil('item')}\n`
-            : `${indent}<item>\n${convert(item, indent + '  ')}\n${indent}</item>\n`;
+            : emptyItem ? `${indent}<item/>\n` : `${indent}<item>\n${convert(item, indent + '  ')}\n${indent}</item>\n`;
         }
       } else {
         for (const [key, val] of Object.entries(obj)) {
@@ -54,7 +55,8 @@ Structra.convert = (() => {
           if (val === null) {
             xml += `${indent}${nil(tag)}\n`;
           } else if (typeof val === 'object') {
-            xml += `${indent}<${tag}>\n${convert(val, indent + '  ')}\n${indent}</${tag}>\n`;
+            const empty = Array.isArray(val) ? !val.length : !Object.keys(val).length;
+            xml += empty ? `${indent}<${tag}/>\n` : `${indent}<${tag}>\n${convert(val, indent + '  ')}\n${indent}</${tag}>\n`;
           } else {
             xml += `${indent}<${tag}>${escXml(String(val))}</${tag}>\n`;
           }

@@ -1525,7 +1525,7 @@
         {
           "id": "14.34",
           "title": "Editor changes that were not applied stay in the box when you switch to the Tree, which shows the old data with no sign of unapplied changes; mark the Editor tab 'not applied' and ask before leaving",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.35",
@@ -1585,22 +1585,22 @@
         {
           "id": "14.46",
           "title": "Type Definitions: keys such as @odata.context (on every SharePoint response) are written unquoted in TypeScript, Python, C#, Go, Rust and Java, which does not compile; quote or rename them, and add JSON name mappings (C# JsonPropertyName, Java JsonProperty, Rust serde rename, Python field mapping) so 'value' binds to Value; the palette also has no Java entry",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.47",
           "title": "Mask Sensitive Data runs at once with no preview or confirmation, leaves the same email unmasked inside the Claims field (i:0#.f|membership|ann@contoso.com), does not touch DisplayName, and the masked form a**@co********* shows the length; show what will change first and cover every field that holds the same value",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.48",
           "title": "After Ctrl+Z brings the document back to its original data, the tab still shows the changed dot; clear the changed state when the undo history returns to the saved point",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.49",
           "title": "Editor view on a 30,000-row document (3.9 MB) freezes the page for about 10 seconds with no message; show 'Preparing the editor' with progress, or open large documents read-only and unformatted",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.50",
@@ -1630,7 +1630,7 @@
         {
           "id": "14.55",
           "title": "A failed open (for example the XML error) leaves an empty 'Untitled' tab and the path bar still shows '$'; remove the empty tab, or reuse it for the next attempt, and clear the path bar",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.56",
@@ -1645,7 +1645,7 @@
         {
           "id": "14.58",
           "title": "XML export of an empty list leaves a blank line inside the tag (<items>, blank, </items>) and names every list element <item>; write <items/> and use a singular name where possible",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.59",
@@ -1670,7 +1670,7 @@
         {
           "id": "14.63",
           "title": "There is a hard limit of 8 tabs with the short message 'Max 8 tabs' (also when Generate Mock Data tries to open one); say 'Close a tab to open another', or raise the limit",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.64",
@@ -1685,7 +1685,7 @@
         {
           "id": "14.66",
           "title": "The path bar shows '$' when nothing is selected instead of its hint text 'Click an element or type a path'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.67",
@@ -1695,27 +1695,27 @@
         {
           "id": "14.68",
           "title": "Replace All is case-sensitive while Find is not: after replacing Alice with Alicia, Find still says '1 found' (alice@example.com) and nothing explains it; show a Match case option in the bar and apply the same rule to both",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.69",
           "title": "After Replace All the Node panel still shows the old value (Alice Johnson); refresh the panel after any change to the data",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.70",
           "title": "Escape closes more than the item in front: pressing it to dismiss the bookmarks menu also closed the Node side panel; Escape should close only the top-most thing",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.71",
           "title": "After the last tab is closed the Query panel still shows the closed document's results, the path bar shows '$', and both Open and Query stay highlighted in the rail; clear panel results when the document goes",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.72",
           "title": "Find bar: the replace button is labelled 'All' (call it 'Replace all'), and with the Node panel open the bar floats in the middle of the canvas and leaves about 100 px of empty space above the first tree line",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.73",
@@ -1725,7 +1725,7 @@
         {
           "id": "14.74",
           "title": "A tab renamed by the user keeps the old file name in the status bar, and the 'Untitled N' counter keeps rising after tabs are closed (Untitled 3 with a single tab open); number from the lowest free number",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.75",
@@ -1800,17 +1800,17 @@
         {
           "id": "14.89",
           "title": "Dropping several files at once opens only the first and says nothing about the rest; open each in its own tab (within the limit) or say 'Opened one.json. 2 other files were not opened'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.90",
           "title": "Opening a share link has no cap on the unpacked size (the 30 KB limit is applied only when creating a link), so a small crafted link can expand to gigabytes and freeze or crash the tab; cap the unpacked size (for example 20 MB) and say so",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.91",
           "title": "With browser storage blocked (private windows, strict policies) parts of the app break: an unhandled 'denied' error follows opening a file, the Settings dialog cannot open, and zoom throws; wrap every storage read and write and keep working without saving",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.92",
@@ -1820,7 +1820,7 @@
         {
           "id": "14.93",
           "title": "NDJSON (JSON Lines, one object per line, a common export format) is rejected with 'This is not valid JSON', semicolon-separated CSV (Excel in many countries) is rejected the same way, and pasted HTML says 'This is not valid XML'; detect NDJSON and the CSV delimiter, and open them as a list",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.94",
@@ -1835,12 +1835,12 @@
         {
           "id": "14.96",
           "title": "Flatten (dot notation) loses data without warning when two paths give the same flat name: {\"a.b\": 1, \"a\": {\"b\": 2}} becomes {\"a.b\": 2} (the 1 is gone); Unflatten then turns the key \"x[0]\" into a list x:[\"k\"] and the round trip no longer equals the original; detect collisions and stop with a message, and keep keys that already contain dots or brackets",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.97",
           "title": "Replace skips numbers and booleans while Find counts them: replacing 1 with X in {price:100, id:1001, name:'cost $1'} changes only the text and says 'Replaced 1 occurrence' after Find showed three matches; say which kinds of values are changed (text only) or convert, and make the two counts agree",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.98",
@@ -1855,7 +1855,7 @@
         {
           "id": "14.100",
           "title": "Dead events with no listener behind visible controls: tree:search-key (sent by the Tree and the Overview), tree:inline-edit, rail:action, command:exec; check each control that sends them and either connect it or remove it",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.101",
@@ -1865,7 +1865,7 @@
         {
           "id": "14.102",
           "title": "Five dialogs can be open at once (Compare, Shortcuts, Null finder, Settings, Appearance), all at the same level (z-index 1000), so the one on top is the last in the page, not the last opened; a single Escape closes all of them in one case and none in another, and focus can be left inside a hidden dialog; keep one dialog at a time (close the first when another opens) and make Escape close only the top one",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.103",
@@ -1880,7 +1880,7 @@
         {
           "id": "14.105",
           "title": "Text typed in the Editor but not applied is lost silently when you switch to another tab and back (the box shows the original again, the tab is not marked changed, no warning); keep each tab's draft or ask before leaving",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.106",
@@ -1890,7 +1890,7 @@
         {
           "id": "14.107",
           "title": "Table text sort is case-sensitive: Apple, Cherry, apple, banana, pear (capitals first); sort text without regard to case (and numbers inside text in natural order), like Excel does",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.108",

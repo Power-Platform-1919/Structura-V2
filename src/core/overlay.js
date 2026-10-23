@@ -23,6 +23,25 @@
    sizes: 'sm' | 'md' | 'lg' | 'xl'
    ============================================================ */
 
+/** The dialogs that are open, in the order they were opened */
+Structra.openDialogs = [];
+
+/**
+ * Escape closes one thing: the dialog in front, otherwise the command palette, the Find or Filter bar,
+ * the Node panel, or the Query panel, in that order. Returns true when something was closed.
+ */
+Structra.closeTop = function () {
+  const dialog = Structra.openDialogs[Structra.openDialogs.length - 1];
+  if (dialog) { dialog.close(); return true; }
+  const palette = document.querySelector('#cmdOverlay.show');
+  if (palette) { Structra.events.emit('command-palette:toggle'); return true; }
+  if (Structra.state.findBarOpen) { Structra.set('findBarOpen', false); return true; }
+  if (Structra.state.filterBarOpen) { Structra.set('filterBarOpen', false); return true; }
+  if (Structra.state.contextPanelOpen) { Structra.set('contextPanelOpen', false); return true; }
+  if (Structra.state.queryPanelOpen) { Structra.set('queryPanelOpen', false); return true; }
+  return false;
+};
+
 class StructraOverlay extends StructraElement {
   init() {
     this.on('overlay:close', () => this.close());
@@ -66,6 +85,9 @@ class StructraOverlay extends StructraElement {
 
   open() {
     if (!this.root || this.isOpen) return;
+    // One dialog at a time: opening a new one closes the one in front of it (without taking focus back)
+    for (const other of [...Structra.openDialogs]) if (other !== this) other.close(false);
+    Structra.openDialogs.push(this);
     this._returnFocus = document.activeElement;
     this.root.classList.add('show');
     const target = this.querySelector('[autofocus]') || this.querySelector('.ov-body input, .ov-body textarea, .ov-body select, .ov-body button') || this.querySelector('.ov-close');
@@ -73,10 +95,12 @@ class StructraOverlay extends StructraElement {
     if (this.onOpen) this.onOpen();
   }
 
-  close() {
+  close(restoreFocus = true) {
     if (!this.isOpen) return;
     this.root.classList.remove('show');
-    if (this._returnFocus && this._returnFocus.focus) this._returnFocus.focus();
+    const i = Structra.openDialogs.indexOf(this);
+    if (i >= 0) Structra.openDialogs.splice(i, 1);
+    if (restoreFocus !== false && this._returnFocus && this._returnFocus.focus) this._returnFocus.focus();
     this._returnFocus = null;
     if (this.onClose) this.onClose();
   }

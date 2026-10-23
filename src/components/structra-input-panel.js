@@ -66,7 +66,7 @@ class StructraInputPanel extends StructraElement {
           <p><strong>Drop file here</strong> or click to browse</p>
           <p class="io-drop-formats">JSON • CSV • XML • YAML • TOML</p>
           <p class="io-drop-tip">Press Ctrl+V anywhere to paste, or <button class="io-link" type="button" data-role="sample-link">open the sample</button></p>
-          <input type="file" data-role="file-input" accept=".json,.txt,.csv,.tsv,.xml,.yaml,.yml,.toml" style="display:none">
+          <input type="file" data-role="file-input" accept=".json,.ndjson,.jsonl,.txt,.csv,.tsv,.xml,.yaml,.yml,.toml" multiple style="display:none">
         </div>
       </div>
 
@@ -170,10 +170,10 @@ class StructraInputPanel extends StructraElement {
     dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
     dropArea.addEventListener('drop', (e) => {
       e.preventDefault(); dropArea.classList.remove('dragover');
-      if (e.dataTransfer.files[0]) this._readFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length) this._readFiles(e.dataTransfer.files);
     });
     fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) this._readFile(fileInput.files[0]);
+      if (fileInput.files.length) this._readFiles(fileInput.files);
     });
 
     // Paste & parse (unified)
@@ -324,16 +324,27 @@ class StructraInputPanel extends StructraElement {
     if (ext === 'xml') return 'xml';
     if (ext === 'yaml' || ext === 'yml') return 'yaml';
     if (ext === 'toml') return 'toml';
-    if (ext === 'json') return 'json';
+    if (ext === 'ndjson' || ext === 'jsonl') return 'ndjson';
+    if (ext === 'json') return this._looksLikeLines(text) ? 'ndjson' : 'json';
     // Content-based heuristics
     const trimmed = text.trimStart();
+    if (this._looksLikeLines(trimmed)) return 'ndjson';
     if (trimmed.startsWith('{') || trimmed.startsWith('[')) return 'json';
     if (trimmed.startsWith('<?xml') || trimmed.startsWith('<')) return 'xml';
     if (/^\[\w+\]/m.test(trimmed) && trimmed.includes('=')) return 'toml';
     if (/^---\s*$/m.test(trimmed) || /^\w[\w\s]*:/m.test(trimmed)) return 'yaml';
-    // Fallback: if it has commas and newlines, likely CSV
+    // Fallback: rows of values separated by a comma, semicolon, tab or bar (Excel in many countries writes semicolons)
+    const lines = trimmed.split(/\r?\n/).filter((l) => l.trim()).slice(0, 5);
+    if (lines.length >= 2 && [',', ';', '\t', '|'].some((d) => lines[0].includes(d) && lines.every((l) => l.split(d).length === lines[0].split(d).length))) return 'csv';
     if (trimmed.includes(',') && trimmed.includes('\n')) return 'csv';
     return 'json';
+  }
+
+  /** JSON Lines: one complete object per line (a common export format) */
+  _looksLikeLines(text) {
+    const m = /^\s*(\{[^\n]*\})[ \t\r]*\n\s*\{/.exec(String(text).slice(0, 20000));
+    if (!m) return false;
+    try { const first = JSON.parse(m[1]); return first !== null && typeof first === 'object'; } catch { return false; }
   }
 
   /* ======== FILE UPLOAD ======== */
@@ -341,6 +352,7 @@ class StructraInputPanel extends StructraElement {
     Structra.log.info('InputPanel', '_readFile: ' + file.name + ' (' + (file.size / 1048576).toFixed(2) + ' MB)');
     this._knownBytes = file.size;
     this._currentFile = file;
+    return new Promise((resolve) => {
     const reader = new FileReader();
     const ext = (file.name || '').split('.').pop().toLowerCase();
     reader.onload = async () => {
@@ -355,11 +367,31 @@ class StructraInputPanel extends StructraElement {
         Structra.log.error('InputPanel', 'Parse failed:', e);
         this._showError(format.toUpperCase() + ' parse error: ' + e.message, text);
       }
+      resolve();
     };
     reader.onerror = () => {
       Structra.log.error('InputPanel', 'FileReader error:', reader.error);
+      Structra.toast('Could not read ' + file.name + '.', 'error');
+      resolve();
     };
     reader.readAsText(file);
+    });
+  }
+
+  /** Several files dropped or chosen together: the first opens here, each other one in a tab of its own */
+  async _readFiles(files) {
+    files = [...files];
+    if (!files.length) return;
+    await this._readFile(files[0]);
+    let opened = 1;
+    for (const file of files.slice(1)) {
+      const before = Structra.tabs.list.length;
+      Structra.events.emit('tabs:add');
+      if (Structra.tabs.list.length === before) break;           // the tab limit was reached
+      await this._readFile(file);
+      opened++;
+    }
+    if (opened < files.length) Structra.toast(`Opened ${opened} of ${files.length} files. The limit of open tabs was reached: close a tab, then open the rest.`, 'warning');
   }
 
   /** Open text from somewhere other than the file picker (used by session restore) */
@@ -414,6 +446,20 @@ class StructraInputPanel extends StructraElement {
         }
         data = result.data;
         name = name + ' (' + result.data.length + ' rows)';
+        break;
+      }
+      case 'ndjson': {
+        const lines = text.split(/\r?\n/).filter((l) => l.trim());
+        try {
+          data = await Structra.parseJsonAsync('[' + lines.join(',') + ']');
+        } catch (e) {
+          // Find the line that is not valid, so the message can name it
+          for (let i = 0; i < lines.length; i++) {
+            try { JSON.parse(lines[i]); } catch (err) { throw new Error('JSON parse error: line ' + (i + 1) + ' of ' + lines.length + ' is not valid JSON (' + err.message + ')'); }
+          }
+          throw e;
+        }
+        name = name + ' (' + data.length + ' lines)';
         break;
       }
       case 'xml':

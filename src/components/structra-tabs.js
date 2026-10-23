@@ -17,9 +17,9 @@ class StructraTabs extends StructraElement {
     const activeId = Structra.tabs.activeId;
 
     const tabsHtml = tabs.map(t => `
-      <div class="doc-tab ${t.id === activeId ? 'active' : ''} ${t.modified ? 'modified' : ''}"
+      <div class="doc-tab ${t.id === activeId ? 'active' : ''} ${t.modified || t.draft ? 'modified' : ''}"
            data-id="${t.id}" role="tab" aria-selected="${t.id === activeId}" tabindex="${t.id === activeId ? 0 : -1}" draggable="true"
-           aria-label="${Structra.util.esc(t.label)}${t.modified ? ' (changed)' : ''}">
+           aria-label="${Structra.util.esc(t.label)}${t.modified ? ' (changed)' : t.draft ? ' (typed changes not applied)' : ''}">
         ${Structra.icons.svg('file', { cls: 'tab-icon' })}
         <span class="tab-label">${Structra.util.esc(t.label)}</span>
         <span class="tab-modified"></span>
@@ -165,13 +165,14 @@ class StructraTabs extends StructraElement {
   _addTab(label, data) {
     const { tabs, constants } = { tabs: Structra.tabs, constants: Structra.constants };
     if (tabs.list.length >= constants.MAX_TABS) {
-      Structra.toast(`Max ${constants.MAX_TABS} tabs`);
+      Structra.toast(`You can have ${constants.MAX_TABS} tabs open. Close one to open another.`, 'warning');
       return;
     }
     const id = tabs.nextId++;
+    if (!label) { let n = 1; while (tabs.list.some((t) => t.label === `Untitled ${n}`)) n++; label = `Untitled ${n}`; }
     const newTab = {
       id,
-      label: label || `Untitled ${id}`,
+      label,
       data: data || null,
       path: '$',
       view: 'tree',

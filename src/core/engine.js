@@ -260,9 +260,8 @@ Structra.engine = (() => {
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
       if (bv == null) return -1;
-      if (av < bv) return dir === 'asc' ? -1 : 1;
-      if (av > bv) return dir === 'asc' ? 1 : -1;
-      return 0;
+      const cmp = Structra.util.compareValues(av, bv);
+      return dir === 'asc' ? cmp : -cmp;
     });
 
     const sortObj = { key, dir, refs };
@@ -524,6 +523,17 @@ Structra.engine = (() => {
     const ds = getActive();
     if (!ds) return null;
 
+    // key:name finds a field by its name, $.a.b finds by path; anything else searches the values
+    const byKey = /^\s*key:\s*(.+?)\s*$/i.exec(text);
+    if (byKey) {
+      const found = search(new RegExp(byKey[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), { mode: 'keys' });
+      return _setFindResult(ds, text, found.matchedPaths);
+    }
+    if (/^\s*\$[.\[]/.test(text)) {
+      let hits;
+      try { hits = Structra.jsonpath.query(ds.raw, text.trim()); } catch (err) { throw new Error('This path could not be read: ' + err.message); }
+      return _setFindResult(ds, text, hits.map((h) => h.path));
+    }
     // Search the values themselves: every match carries its path, so the count is the number of matching
     // values and Next / Previous visit each one. (A row-based SQL search counted rows, and missed nested values.)
     return _findInMemory(ds, text);
@@ -554,37 +564,31 @@ Structra.engine = (() => {
    * @param {boolean} all — replace all occurrences or just first
    * @returns {Object} { replaced: number }
    */
+  /**
+   * Replace text in the open document. It matches the way Find does (capital letters make no difference) and
+   * changes text values only: a match inside a number or true/false is counted in `skipped`, not changed.
+   */
   function replaceInData(findText, replaceText, all = false) {
     const ds = getActive();
-    if (!ds) return { replaced: 0 };
+    if (!ds) return { replaced: 0, skipped: 0 };
+    const re = new RegExp(String(findText).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const probe = new RegExp(re.source, 'i');
     let count = 0;
+    let skipped = 0;
 
-    function walkReplace(obj) {
-      if (Array.isArray(obj)) {
-        for (let i = 0; i < obj.length; i++) {
-          if (typeof obj[i] === 'string' && obj[i].includes(findText)) {
-            obj[i] = obj[i].split(findText).join(replaceText);
-            count++;
-            if (!all) return true;
-          } else if (obj[i] && typeof obj[i] === 'object') {
-            if (walkReplace(obj[i]) && !all) return true;
-          }
-        }
-      } else if (obj && typeof obj === 'object') {
-        for (const k of Object.keys(obj)) {
-          if (typeof obj[k] === 'string' && obj[k].includes(findText)) {
-            obj[k] = obj[k].split(findText).join(replaceText);
-            count++;
-            if (!all) return true;
-          } else if (obj[k] && typeof obj[k] === 'object') {
-            if (walkReplace(obj[k]) && !all) return true;
-          }
-        }
+    function visit(holder, key) {
+      const v = holder[key];
+      if (typeof v === 'string') {
+        if (probe.test(v)) { holder[key] = v.replace(re, () => replaceText); count++; return !all; }
+      } else if (typeof v === 'number' || typeof v === 'boolean') {
+        if (probe.test(String(v))) skipped++;
+      } else if (v && typeof v === 'object') {
+        for (const k of Object.keys(v)) if (visit(v, k)) return true;
       }
       return false;
     }
 
-    walkReplace(ds.raw);
+    visit({ root: ds.raw }, 'root');
 
     if (count > 0) {
       // Clear caches, re-register with DuckDB
@@ -595,7 +599,7 @@ Structra.engine = (() => {
       Structra.log.info('Engine', `Replaced ${count} occurrence(s) of "${findText}" → "${replaceText}"`);
       Structra.events.emit('engine:data-modified', { tabId: ds.id, action: 'replace', count });
     }
-    return { replaced: count };
+    return { replaced: count, skipped };
   }
 
   /**

@@ -92,6 +92,13 @@ class StructraCommand extends StructraElement {
     this.on('command-palette:toggle', () => this._toggle());
     this.on('overlay:close', () => this._close());
     this.on('command:run', (cmdId) => this._exec(cmdId));
+    this.on('tree:inline-edit', ({ path, value }) => {
+      const before = Structra.state.jsonData;
+      if (!before) return;
+      const after = typeof structuredClone === 'function' ? structuredClone(before) : JSON.parse(JSON.stringify(before));
+      Structra.paths.setNested(after, Structra.paths.canonical(path), value);
+      this._edit('Edit value', before, after, 'Value changed');
+    });
   }
 
   render() {
@@ -221,12 +228,17 @@ class StructraCommand extends StructraElement {
       }
       case 'flatten': {
         if (!data || typeof data !== 'object') { Structra.toast('No data to flatten'); return; }
-        this._edit('Flatten', data, this._flattenObj(data), 'JSON flattened to dot notation');
+        const clash = [];
+        const flat = this._flattenObj(data, '', {}, clash);
+        if (clash.length) { Structra.toast(`Not flattened, because it would lose data: "${clash[0]}" would be written twice${clash.length > 1 ? ` (and ${clash.length - 1} more)` : ''}. Rename one of them first.`, 'warning'); return; }
+        this._edit('Flatten', data, flat, 'JSON flattened to dot notation');
         break;
       }
       case 'unflatten': {
         if (!data || typeof data !== 'object') { Structra.toast('No data'); return; }
-        this._edit('Unflatten', data, this._unflattenObj(data), 'JSON unflattened');
+        const rebuilt = this._unflattenObj(data);
+        if (rebuilt.problem) { Structra.toast('Not unflattened: ' + rebuilt.problem, 'warning'); return; }
+        this._edit('Unflatten', data, rebuilt.data, 'JSON unflattened');
         break;
       }
       case 'mask': {
@@ -387,14 +399,14 @@ class StructraCommand extends StructraElement {
       case 'undo': {
         const label = Structra.undoStack.nextUndoLabel();
         const prev = Structra.undoStack.undo();
-        if (prev) this._reingest(prev).then(() => Structra.toast('Undid: ' + label));
+        if (prev) this._reingest(prev).then(() => { this._syncModified(); Structra.toast('Undid: ' + label); });
         else Structra.toast('Nothing to undo in this tab');
         break;
       }
       case 'redo': {
         const label = Structra.undoStack.nextRedoLabel();
         const next = Structra.undoStack.redo();
-        if (next) this._reingest(next).then(() => Structra.toast('Redid: ' + label));
+        if (next) this._reingest(next).then(() => { this._syncModified(); Structra.toast('Redid: ' + label); });
         else Structra.toast('Nothing to redo in this tab');
         break;
       }
@@ -474,6 +486,13 @@ class StructraCommand extends StructraElement {
     if (tab) { tab.modified = true; Structra.events.emit('tabs:changed'); }
   }
 
+  /** After Undo or Redo: the tab counts as changed only while the history is past its first step (the original) */
+  _syncModified() {
+    const tab = Structra.tabs.list.find((t) => t.id === Structra.tabs.activeId);
+    const cur = Structra.undoStack.current();
+    if (tab) { tab.modified = !!cur && cur.index > 0; Structra.events.emit('tabs:changed'); }
+  }
+
   /**
    * Change the open document in a way that can be undone: the original is kept first, then the result.
    * @param {string} label  what the change is called in Undo messages
@@ -483,7 +502,8 @@ class StructraCommand extends StructraElement {
     const kept = Structra.undoStack.push(before, 'Before ' + label, tabId);
     await this._reingest(after);
     if (kept) Structra.undoStack.push(after, label, tabId);
-    Structra.toast(kept ? message + '. Ctrl+Z undoes it.' : message + ' (too large to undo)');
+    if (kept) Structra.toast(message + '.', { action: { label: 'Undo', run: () => this._exec('undo') } });
+    else Structra.toast(message + ' (too large to undo)');
   }
 
   /** The name of the open file without its extension, for naming files made from it */
@@ -528,33 +548,45 @@ class StructraCommand extends StructraElement {
     return obj;
   }
 
-  _flattenObj(obj, prefix = '', result = {}) {
+  /** Dot notation. Two paths that give the same name are recorded in `clash` instead of one overwriting the other. */
+  _flattenObj(obj, prefix = '', result = {}, clash = []) {
+    const put = (key, value) => {
+      if (Object.prototype.hasOwnProperty.call(result, key)) clash.push(key);
+      else result[key] = value;
+    };
     if (Array.isArray(obj)) {
-      obj.forEach((v, i) => this._flattenObj(v, prefix ? `${prefix}[${i}]` : `[${i}]`, result));
+      if (!obj.length) put(prefix, []);
+      obj.forEach((v, i) => this._flattenObj(v, prefix ? `${prefix}[${i}]` : `[${i}]`, result, clash));
     } else if (obj && typeof obj === 'object') {
-      for (const [k, v] of Object.entries(obj)) {
-        this._flattenObj(v, prefix ? `${prefix}.${k}` : k, result);
-      }
+      const entries = Object.entries(obj);
+      if (!entries.length) put(prefix, {});
+      for (const [k, v] of entries) this._flattenObj(v, prefix ? `${prefix}.${k}` : k, result, clash);
     } else {
-      result[prefix] = obj;
+      put(prefix, obj);
     }
     return result;
   }
 
+  /** Rebuild nesting from dot notation. Returns { data } or { problem } when it cannot be rebuilt without losing something. */
   _unflattenObj(flat) {
     const result = {};
+    const unsafe = new Set(['__proto__', 'constructor', 'prototype']);
     for (const [path, value] of Object.entries(flat)) {
       const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
+      if (parts.some((p) => unsafe.has(p))) return { problem: `"${path}" uses a name that cannot be rebuilt safely.` };
       let cur = result;
       for (let i = 0; i < parts.length - 1; i++) {
         const key = parts[i];
         const next = parts[i + 1];
-        if (!(key in cur)) cur[key] = /^\d+$/.test(next) ? [] : {};
+        if (!Object.prototype.hasOwnProperty.call(cur, key)) cur[key] = /^\d+$/.test(next) ? [] : {};
+        else if (cur[key] === null || typeof cur[key] !== 'object') return { problem: `"${parts.slice(0, i + 1).join('.')}" is both a value and a group of values.` };
         cur = cur[key];
       }
-      cur[parts[parts.length - 1]] = value;
+      const last = parts[parts.length - 1];
+      if (Object.prototype.hasOwnProperty.call(cur, last)) return { problem: `"${path}" appears twice after rebuilding.` };
+      cur[last] = value;
     }
-    return result;
+    return { data: result };
   }
 
 }

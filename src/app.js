@@ -116,6 +116,9 @@
     if (Structra.tabs.list.some((t) => t.modified)) { e.preventDefault(); e.returnValue = ''; }
   });
 
+  // Saving is blocked in this browser: say so once, because nothing will be remembered next time
+  if (window.__storageBlocked) setTimeout(() => Structra.toast('This browser is not allowing the page to save anything, so your settings, recent files and bookmarks will be gone when you close it.', { duration: 9000 }), 1500);
+
   // Global keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     // While typing in a box, keys belong to the box (its own undo, and "?" is a character)
@@ -168,7 +171,7 @@
         Structra.events.emit('tabs:close-active');
         break;
       case 'close-overlay':
-        Structra.events.emit('overlay:close');
+        Structra.closeTop();
         break;
       case 'bookmark': {
         const path = Structra.state.currentPath;
@@ -289,15 +292,13 @@
   Structra.share.readHash().then((shared) => {
     if (!shared) return;
     if (Structra.describeUnopenable(shared.data)) { Structra.toast('This share link holds an empty document'); return; }
-    Structra.set('jsonData', shared.data);
-    Structra.set('fileName', shared.name || 'Shared JSON');
-    Structra.set('fileSize', JSON.stringify(shared.data).length);
-    Structra.set('currentPath', '$');
+    // Through the same door as any file, so every view and tool works on it
+    const name = String(shared.name || 'Shared JSON').slice(0, 80);
+    return document.querySelector('structra-input-panel')._loadSuccess(shared.data, JSON.stringify(shared.data), name);
     // The link stays in the address bar, so refreshing the page opens the same document again
-    Structra.toast('Opened ' + (shared.name || 'shared JSON'));
   }).catch((err) => {
     Structra.log.warn('App', 'Share link could not be read', err.message);
-    Structra.toast('This share link could not be read');
+    Structra.toast(/^This share link/.test(err.message) ? err.message : 'This share link could not be read');
   });
 
   /* --- Session: tabs, their view and path, and the stored original of each document --- */

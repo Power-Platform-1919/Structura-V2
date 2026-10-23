@@ -88,6 +88,7 @@ Structra.paths = (() => {
   function setNested(data, path, value) {
     const tokens = tokenize(path);
     if (!tokens.length) return false;
+    if (tokens.some((t) => t.value === '__proto__' || t.value === 'constructor' || t.value === 'prototype')) return false;
     let node = data;
     for (let i = 0; i < tokens.length - 1; i++) {
       node = node[tokens[i].value];

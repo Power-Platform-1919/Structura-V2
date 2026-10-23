@@ -34,6 +34,16 @@ class StructraFind extends StructraElement {
       input.select();
       if (text && run !== false) this._doFind(text);
     });
+    // Double-click a key in the Tree, or choose a key in the Overview: find where that field appears
+    this.on('tree:search-key', (key) => {
+      Structra.set('findBarOpen', true);
+      const input = this.$('#findInput');
+      if (!input) return;
+      this._setMode('text');
+      input.value = 'key:' + key;
+      input.focus();
+      this._doFind(input.value);
+    });
     // Open the bar with a search already typed in (used by "Find this value" in the Node panel)
     this.on('find:prefill', (text) => {
       Structra.set('findBarOpen', true);
@@ -80,8 +90,8 @@ class StructraFind extends StructraElement {
         <div class="replace-row" id="replaceRow" style="display:none">
           <input type="text" class="find-input" id="replaceInput"
             placeholder="Replace with…" autocomplete="off">
-          <button class="fb-btn fb-replace-btn" data-action="replaceOne" title="Replace">Replace</button>
-          <button class="fb-btn fb-replace-btn" data-action="replaceAll" title="Replace All">All</button>
+          <button class="fb-btn fb-replace-btn" data-action="replaceOne" title="Replace the next match">Replace</button>
+          <button class="fb-btn fb-replace-btn" data-action="replaceAll" title="Replace all matches">Replace all</button>
         </div>
       </div>`;
 
@@ -269,16 +279,20 @@ class StructraFind extends StructraElement {
     return { ...result, undoable: kept };
   }
 
+  _skippedNote(result) {
+    return result.skipped ? ` ${result.skipped} match${result.skipped === 1 ? '' : 'es'} inside numbers or true/false ${result.skipped === 1 ? 'was' : 'were'} left alone.` : '';
+  }
+
   _replaceOne() {
     const findText = this._getInput();
     const replaceText = (this.$('#replaceInput') || {}).value || '';
     if (!findText) return;
     const result = this._replace(findText, replaceText, false);
     if (result.replaced > 0) {
-      Structra.toast('Replaced 1 occurrence.' + (result.undoable ? ' Ctrl+Z undoes it.' : ''));
+      Structra.toast('Replaced 1 text value.' + (result.undoable ? ' Ctrl+Z undoes it.' : '') + this._skippedNote(result));
       this._refreshAfterReplace(findText);
     } else {
-      Structra.toast('No match found', 'warning');
+      Structra.toast('No text to replace.' + this._skippedNote(result), 'warning');
     }
   }
 
@@ -287,8 +301,8 @@ class StructraFind extends StructraElement {
     const replaceText = (this.$('#replaceInput') || {}).value || '';
     if (!findText) return;
     const result = this._replace(findText, replaceText, true);
-    if (!result.replaced) { Structra.toast('No match found', 'warning'); return; }
-    Structra.toast(`Replaced ${result.replaced} occurrence${result.replaced === 1 ? '' : 's'}.` + (result.undoable ? ' Ctrl+Z undoes it.' : ''));
+    if (!result.replaced) { Structra.toast('No text to replace.' + this._skippedNote(result), 'warning'); return; }
+    Structra.toast(`Replaced ${result.replaced} text value${result.replaced === 1 ? '' : 's'}.` + (result.undoable ? ' Ctrl+Z undoes it.' : '') + this._skippedNote(result));
     this._refreshAfterReplace(findText);
   }
 
@@ -297,6 +311,8 @@ class StructraFind extends StructraElement {
     this._doFind(query);
     // Force views to re-render since data changed in-place
     Structra.events.emit('state:jsonData', { value: Structra.state.jsonData });
+    // The Node panel shows the selected value: read it again
+    if (Structra.state.currentPath) Structra.events.emit('tree:node-selected', Structra.state.currentPath);
   }
 
   /* ======== NAVIGATION ======== */

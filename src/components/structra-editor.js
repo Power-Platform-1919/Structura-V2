@@ -8,6 +8,7 @@ class StructraEditor extends StructraElement {
 
   init() {
     this._stale = false;
+    this.on('tabs:closed', (id) => { if (this._drafts) this._drafts.delete(id); if (this._baseline) this._baseline.delete(id); });
     this.on('editor:repair', () => this._repair());
     this.on('editor:format', () => this._format());
     this.on('editor:minify', () => this._minify());
@@ -41,7 +42,7 @@ class StructraEditor extends StructraElement {
       </div>`;
 
     const area = this.$('#editorArea');
-    area.addEventListener('input', () => { this._gutter(); this._validate(); });
+    area.addEventListener('input', () => { this._gutter(); this._validate(); this._keepDraft(); });
     area.addEventListener('scroll', () => { this.$('#edGutter').scrollTop = area.scrollTop; });
     // The status names the problem; a click goes to it
     this.$('#edStatus').addEventListener('click', () => {
@@ -65,10 +66,39 @@ class StructraEditor extends StructraElement {
     this._loadData();
   }
 
+  /** Text typed in the box but not applied is kept for its tab, and the tab shows a dot */
+  _keepDraft() {
+    const id = Structra.tabs.activeId;
+    const tab = Structra.tabs.list.find((t) => t.id === id);
+    const area = this.$('#editorArea');
+    if (!tab || !area) return;
+    if (!this._drafts) this._drafts = new Map();
+    this._drafts.set(id, area.value);
+    if (!this._baseline) this._baseline = new Map();
+    if (!this._baseline.has(id)) this._baseline.set(id, JSON.stringify(Structra.state.jsonData, null, 2));
+    if (!tab.draft) { tab.draft = true; Structra.events.emit('tabs:changed'); }
+  }
+
+  _dropDraft(id) {
+    if (this._drafts) this._drafts.delete(id);
+    const tab = Structra.tabs.list.find((t) => t.id === id);
+    if (tab && tab.draft) { tab.draft = false; Structra.events.emit('tabs:changed'); }
+  }
+
+  /** A big document takes a few seconds to lay out: say so first, and draw it after the message is shown */
   _loadData() {
+    const size = Structra.state.fileSize || 0;
+    if (size < 1024 * 1024) { this._loadDataNow(); return; }
+    this._stale = false;
+    Structra.events.emit('loading:show', 'Preparing the editor…');
+    setTimeout(() => { try { this._loadDataNow(); } finally { Structra.events.emit('loading:hide'); } }, 40);
+  }
+
+  _loadDataNow() {
     this._stale = false;
     const area = this.$('#editorArea');
     if (!area) return;
+    const tabId = Structra.tabs.activeId;
     const data = Structra.state.jsonData;
     if (!data) { area.value = ''; this._gutter(); return; }
     // Guard: skip JSON.stringify for very large data to avoid "Invalid string length"
@@ -83,8 +113,13 @@ class StructraEditor extends StructraElement {
     try {
       Structra.log.info('Editor', 'JSON.stringify (' + (size / 1024).toFixed(1) + ' KB)...');
       const t0 = performance.now();
-      area.value = JSON.stringify(data, null, 2);
+      const canon = JSON.stringify(data, null, 2);
       Structra.log.perf('Editor', 'JSON.stringify', performance.now() - t0);
+      // Typed-but-not-applied text stays while the document is the same as when it was typed; if the document changed, it is obsolete
+      if (!this._baseline) this._baseline = new Map();
+      if (this._drafts && this._drafts.has(tabId) && this._baseline.get(tabId) === canon) area.value = this._drafts.get(tabId);
+      else { this._dropDraft(tabId); area.value = canon; }
+      this._baseline.set(tabId, canon);
     } catch (e) {
       Structra.log.error('Editor', 'JSON.stringify failed: ' + e.message, e);
       area.value = '// Could not stringify data: ' + e.message;
@@ -201,6 +236,7 @@ class StructraEditor extends StructraElement {
       // Keep the document as it was, so Ctrl+Z can bring it back, and mark the tab as changed
       const tabId = Structra.tabs.activeId;
       Structra.undoStack.push(Structra.state.jsonData, 'Before editing', tabId);
+      this._dropDraft(tabId);
       Structra.set('jsonData', data);
       Structra.undoStack.push(data, 'Edited in the Editor', tabId);
       const tab = Structra.tabs.list.find((t) => t.id === tabId);

@@ -29,9 +29,23 @@ Structra.share = (() => {
     return Uint8Array.from(bin, (c) => c.charCodeAt(0));
   };
 
-  async function pipe(bytes, stream) {
-    const out = new Blob([bytes]).stream().pipeThrough(stream);
-    return new Uint8Array(await new Response(out).arrayBuffer());
+  const MAX_UNPACKED = 20 * 1024 * 1024;   // a link that unpacks to more than this is refused
+
+  async function pipe(bytes, stream, limit) {
+    const reader = new Blob([bytes]).stream().pipeThrough(stream).getReader();
+    const parts = [];
+    let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (limit && total > limit) { reader.cancel(); throw new Error('This share link unpacks to more than ' + Math.round(limit / 1048576) + ' MB, which is more than a link should hold.'); }
+      parts.push(value);
+    }
+    const out = new Uint8Array(total);
+    let at = 0;
+    for (const p of parts) { out.set(p, at); at += p.length; }
+    return out;
   }
 
   async function createUrl(data, name) {
@@ -53,7 +67,8 @@ Structra.share = (() => {
     const m = /^#share=([gp])\.(.+)$/.exec(location.hash);
     if (!m) return null;
     let bytes = fromBase64Url(m[2]);
-    if (m[1] === 'g') bytes = await pipe(bytes, new DecompressionStream('gzip'));
+    if (m[1] === 'g') bytes = await pipe(bytes, new DecompressionStream('gzip'), MAX_UNPACKED);
+    else if (bytes.length > MAX_UNPACKED) throw new Error('This share link holds more than ' + Math.round(MAX_UNPACKED / 1048576) + ' MB, which is more than a link should hold.');
     const body = JSON.parse(new TextDecoder().decode(bytes));
     return { data: body.data, name: body.name || null };
   }

@@ -266,7 +266,7 @@ class StructraTable extends StructraElement {
       if (va == null && vb == null) return 0;
       if (va == null) return 1;
       if (vb == null) return -1;
-      const cmp = typeof va === 'string' ? va.localeCompare(vb) : (va > vb ? 1 : va < vb ? -1 : 0);
+      const cmp = Structra.util.compareValues(va, vb);
       return asc ? cmp : -cmp;
     });
   }

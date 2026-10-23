@@ -86,14 +86,15 @@ function serve() {
     const applied = await page.evaluate(() => ({ data: JSON.stringify(Structra.state.jsonData), modified: document.querySelector('.doc-tab.active').classList.contains('modified') }));
     if (applied.data !== '{"edited":true,"n":[1,2,3]}') failures.push('Apply did not change the document: ' + applied.data);
     if (!applied.modified) failures.push('the tab is not marked as changed after Apply');
+    // A warning before leaving with changes
+    const askLeave = () => page.evaluate(() => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
+    if (!(await askLeave())) failures.push('leaving the page with a changed tab should ask first');
     await page.evaluate(() => document.querySelector('structra-command')._exec('undo'));
     await page.waitForTimeout(800);
     const undone = await page.evaluate(() => JSON.stringify(Structra.state.jsonData));
     if (undone !== original) failures.push('Undo after Apply did not restore the document');
-
-    // ---- A warning before leaving with changes ----
-    const guard = await page.evaluate(() => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
-    if (!guard) failures.push('leaving the page with a changed tab should ask first');
+    // Back at the original there is nothing to lose, so leaving does not ask
+    if (await askLeave()) failures.push('after Undo back to the original, leaving the page should not ask');
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));
   }

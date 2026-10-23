@@ -43,3 +43,28 @@ test('every language still produces output for the same list', () => {
     truthy(G.generate(lang, rows).length > 20, lang + ' produced nothing');
   }
 });
+
+console.log('names that are not valid in the language');
+
+const odata = { '@odata.context': 'x', 'first name': 'Ann', '1st': 1, type: 'a', value: [{ 'Id': 1, class: 'k' }] };
+test('TypeScript quotes keys that are not plain names', () => {
+  const ts = G.generate('typescript', odata);
+  truthy(ts.includes("'@odata.context': string;") && ts.includes("'first name': string;") && ts.includes("'1st': number;"), ts);
+});
+test('C# gives every renamed property its JSON name and a valid name', () => {
+  const cs = G.generate('csharp', odata);
+  truthy(cs.includes('[JsonPropertyName("@odata.context")]') && cs.includes('OdataContext {'), cs);
+  truthy(cs.includes('[JsonPropertyName("value")]') && cs.includes('Value {'), cs);
+  truthy(!/public [^\n]*@odata/.test(cs), cs);
+});
+test('Go, Rust, Java and Python give valid names and keep the JSON key', () => {
+  const go = G.generate('go', odata);
+  truthy(go.includes('OdataContext string `json:"@odata.context"`'), go);
+  const rs = G.generate('rust', odata);
+  truthy(rs.includes('#[serde(rename = "@odata.context")]') && rs.includes('pub odata_context: String'), rs);
+  truthy(rs.includes('pub type_: String'), rs);
+  const java = G.generate('java', odata);
+  truthy(java.includes('@JsonProperty("@odata.context")') && java.includes('private String odataContext;'), java);
+  const py = G.generate('python', odata);
+  truthy(py.includes('odata_context: str  # JSON key: "@odata.context"') && !/\n    @odata/.test(py), py);
+});

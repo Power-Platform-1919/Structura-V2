@@ -114,8 +114,24 @@ Structra.util = (() => {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 
+  /**
+   * One order for values of any kind, the way a spreadsheet sorts: numbers, then text (capital letters make no
+   * difference and numbers inside text sort naturally: item 2 before item 10), then true/false, then lists and
+   * records. Empty values are for the caller to put last.
+   */
+  const _rank = (v) => (typeof v === 'number' ? 0 : typeof v === 'string' ? 1 : typeof v === 'boolean' ? 2 : 3);
+  function compareValues(a, b) {
+    const ra = _rank(a), rb = _rank(b);
+    if (ra !== rb) return ra - rb;
+    if (ra === 0) return a - b;
+    if (ra === 1) return a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }) || (a < b ? -1 : a > b ? 1 : 0);
+    if (ra === 2) return (a ? 1 : 0) - (b ? 1 : 0);
+    const sa = JSON.stringify(a), sb = JSON.stringify(b);
+    return sa < sb ? -1 : sa > sb ? 1 : 0;
+  }
+
   let _uid = 0;
   const uid = (prefix = 'id') => prefix + '-' + (++_uid).toString(36) + Math.random().toString(36).slice(2, 6);
 
-  return { esc, typeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, nextTick, yieldToBrowser, whenIdle, copy, download, uid };
+  return { esc, typeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, nextTick, yieldToBrowser, whenIdle, copy, download, compareValues, uid };
 })();

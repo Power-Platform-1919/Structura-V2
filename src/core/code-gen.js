@@ -15,6 +15,27 @@ Structra.codeGen = (() => {
   const isNullable = (parent, key, val) => val === null || !!(parent && parent[NULLABLE] && parent[NULLABLE].has(key));
   const isPlain = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 
+  /**
+   * Names in generated code must be valid in that language, whatever the JSON key looks like
+   * ('@odata.context', 'first name', '1st'). The JSON key itself is kept in an attribute, tag or comment.
+   */
+  const words = (k) => String(k).replace(/[^A-Za-z0-9_\s-]+/g, ' ').trim() || 'field';
+  const lead = (id) => (/^[0-9]/.test(id) ? '_' + id : id);
+  const q = (k) => String(k).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const KEYWORDS = {
+    python: new Set(['and', 'as', 'class', 'def', 'del', 'else', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'not', 'or', 'pass', 'return', 'try', 'while', 'with', 'yield', 'None', 'True', 'False']),
+    rust: new Set(['as', 'break', 'const', 'continue', 'crate', 'else', 'enum', 'extern', 'false', 'fn', 'for', 'if', 'impl', 'in', 'let', 'loop', 'match', 'mod', 'move', 'mut', 'pub', 'ref', 'return', 'self', 'Self', 'static', 'struct', 'super', 'trait', 'true', 'type', 'unsafe', 'use', 'where', 'while', 'async', 'await', 'dyn']),
+    java: new Set(['abstract', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extends', 'final', 'finally', 'float', 'for', 'goto', 'if', 'implements', 'import', 'instanceof', 'int', 'interface', 'long', 'native', 'new', 'package', 'private', 'protected', 'public', 'return', 'short', 'static', 'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient', 'try', 'void', 'volatile', 'while']),
+  };
+  const noKeyword = (lang, id) => (KEYWORDS[lang] && KEYWORDS[lang].has(id) ? id + '_' : id);
+  const tsKey = (k) => (/^[A-Za-z_$][\w$]*$/.test(k) ? k : "'" + String(k).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'");
+  const parts = (k) => words(k).split(/[\s_-]+/).filter(Boolean);
+  const upFirst = (w) => w.charAt(0).toUpperCase() + w.slice(1);
+  const pascalIdent = (k) => parts(k).map(upFirst).join('');
+  const camelIdent = (k) => { const ps = parts(k); return ps.map((w, i) => (i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : upFirst(w))).join(''); };
+  const snakeIdent = (k) => parts(k).map((w) => snakeCase(w)).join('_');
+  const typeName = (k) => lead(pascalIdent(k));
+
   function mergeRecords(records) {
     const out = {};
     const nullable = new Set();
@@ -65,10 +86,10 @@ Structra.codeGen = (() => {
       if (v && typeof v === 'object') {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, pascalCase(k));
+          const type = walk(val, typeName(k));
           // A field that can be empty reads "T | null": it is there, but may hold nothing
           const orNull = isNullable(v, k, val) && type !== 'null' ? ' | null' : '';
-          fields.push(`  ${k}: ${type}${orNull};`);
+          fields.push(`  ${tsKey(k)}: ${type}${orNull};`);
         }
         interfaces.push(`interface ${iName} {\n${fields.join('\n')}\n}`);
         return iName;
@@ -104,9 +125,10 @@ Structra.codeGen = (() => {
       if (v && typeof v === 'object') {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, pascalCase(k));
+          const type = walk(val, typeName(k));
           const optional = isNullable(v, k, val) ? `Optional[${type}]` : type;
-          fields.push(`    ${snakeCase(k)}: ${isNullable(v, k, val) ? optional : type}`);
+          const pyName = noKeyword('python', lead(snakeIdent(k)));
+          fields.push(`    ${pyName}: ${isNullable(v, k, val) ? optional : type}${pyName === k ? '' : '  # JSON key: "' + q(k) + '"'}`);
         }
         classes.push(`@dataclass\nclass ${cName}:\n${fields.join('\n')}`);
         return cName;
@@ -142,9 +164,10 @@ Structra.codeGen = (() => {
       if (v && typeof v === 'object') {
         const props = [];
         for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, pascalCase(k));
+          const type = walk(val, typeName(k));
           const nullable = isNullable(v, k, val) ? '?' : '';
-          props.push(`    public ${type}${nullable} ${pascalCase(k)} { get; set; }`);
+          const csName = typeName(k);
+          props.push((csName === k ? '' : '    [JsonPropertyName("' + q(k) + '")]\n') + `    public ${type}${nullable} ${csName} { get; set; }`);
         }
         classes.push(`public class ${cName}\n{\n${props.join('\n')}\n}`);
         return cName;
@@ -161,7 +184,7 @@ Structra.codeGen = (() => {
     }
 
     walk(val, name);
-    return classes.reverse().join('\n\n');
+    return 'using System.Text.Json.Serialization;\n\n' + classes.reverse().join('\n\n');
   }
 
   // === Go ===
@@ -180,9 +203,9 @@ Structra.codeGen = (() => {
       if (v && typeof v === 'object') {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, pascalCase(k));
+          const type = walk(val, typeName(k));
           const ptr = isNullable(v, k, val) ? '*' : '';
-          fields.push(`\t${pascalCase(k)} ${ptr}${type} \`json:"${k}"\``);
+          fields.push(`\t${typeName(k)} ${ptr}${type} \`json:"${q(k)}"\``);
         }
         structs.push(`type ${sName} struct {\n${fields.join('\n')}\n}`);
         return sName;
@@ -218,9 +241,10 @@ Structra.codeGen = (() => {
       if (v && typeof v === 'object') {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, pascalCase(k));
+          const type = walk(val, typeName(k));
           const opt = isNullable(v, k, val) ? `Option<${type}>` : type;
-          fields.push(`    pub ${snakeCase(k)}: ${isNullable(v, k, val) ? opt : type},`);
+          const rsName = noKeyword('rust', lead(snakeIdent(k)));
+          fields.push((rsName === k ? '' : '    #[serde(rename = "' + q(k) + '")]\n') + `    pub ${rsName}: ${isNullable(v, k, val) ? opt : type},`);
         }
         structs.push(`#[derive(Debug, Serialize, Deserialize)]\npub struct ${sName} {\n${fields.join('\n')}\n}`);
         return sName;
@@ -256,8 +280,9 @@ Structra.codeGen = (() => {
       if (v && typeof v === 'object') {
         const fields = [];
         for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, pascalCase(k));
-          fields.push(`    private ${type} ${camelCase(k)};`);
+          const type = walk(val, typeName(k));
+          const jName = noKeyword('java', lead(camelIdent(k)));
+          fields.push((jName === k ? '' : '    @JsonProperty("' + q(k) + '")\n') + `    private ${type} ${jName};`);
         }
         classes.push(`public class ${cName} {\n${fields.join('\n')}\n}`);
         return cName;
@@ -274,7 +299,7 @@ Structra.codeGen = (() => {
     }
 
     walk(val, name);
-    return 'import java.util.List;\n\n' + classes.reverse().join('\n\n');
+    return 'import java.util.List;\nimport com.fasterxml.jackson.annotation.JsonProperty;\n\n' + classes.reverse().join('\n\n');
   }
 
   // === Power Fx UDT ===
