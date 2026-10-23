@@ -71,7 +71,9 @@ function serve() {
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(FIXTURES, 'sp_getitems.json'));
     await page.waitForTimeout(1500);
     await page.evaluate(() => { window.__saved = []; const d = Structra.util.download; Structra.util.download = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); }; });
-    for (const mode of ['light', 'dark']) {
+    // SHARD=0/2 or 1/2 (set by the parallel runner) takes only some of the modes, so the slow part is split across processes
+    const [shard, shards] = (process.env.SHARD || '0/1').split('/').map(Number);
+    for (const mode of ['light', 'dark'].filter((_, i) => i % shards === shard)) {
       await page.evaluate((m) => Structra.theme && Structra.theme.setMode ? Structra.theme.setMode(m) : document.documentElement.setAttribute('data-theme', m), mode);
       for (const view of ['tree', 'table', 'graph', 'schema', 'overview']) {
         await page.evaluate((v) => Structra.set('activeView', v), view);

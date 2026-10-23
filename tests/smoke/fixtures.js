@@ -38,7 +38,8 @@ function serve() {
 
 (async () => {
   const filter = process.argv[2];
-  const files = fs.readdirSync(FIXTURES).filter((f) => f.endsWith('.json') && (!filter || f.includes(filter))).sort();
+  const [shard, shards] = (process.env.SHARD || '0/1').split('/').map(Number);   // the parallel runner splits the fixtures across processes
+  const files = fs.readdirSync(FIXTURES).filter((f) => f.endsWith('.json') && (!filter || f.includes(filter))).sort().filter((_, i) => i % shards === shard);
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
   const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});   // PW_CHANNEL=msedge or chrome uses the installed browser

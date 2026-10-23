@@ -35,6 +35,7 @@
     "test:hostile": "node tests/smoke/hostile.js",
     "test:offline": "node tests/smoke/offline.js",
     "test:fast": "node tests/run-smoke.js",
+    "test:changed": "node tests/run-smoke.js --changed",
     "test:robust": "node tests/smoke/robust.js",
     "test:stress": "node tests/smoke/stress.js",
     "test:labels": "node tests/smoke/labels.js",
