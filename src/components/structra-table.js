@@ -198,6 +198,12 @@ class StructraTable extends StructraElement {
     const query = Structra.engine.getQuery();
     let allRows, totalRows, keys, basePath;
 
+    // A filter that matches nothing shows an empty table with its headers, not the whole document
+    if (query && query.source === 'filter' && query.rows && query.rows.length === 0) {
+      const main = Structra.engine.mainList(dataset);
+      return { allRows: [], totalRows: 0, keys: main ? Structra.engine.collectKeys(main.rows) : [], basePath: '$', filtered: true };
+    }
+
     // Active query (from find, filter, or SQL) — render query result rows
     if (query && query.rows && query.rows.length > 0) {
       allRows = query.rows;
@@ -300,6 +306,11 @@ class StructraTable extends StructraElement {
 
     // Render toolbar (show filter indicator if filtered)
     this._renderToolbar(pager, totalRows, !!resolved.filtered);
+
+    if (totalRows === 0 && resolved.filtered) {
+      body.innerHTML = `<tr class="table-empty"><td colspan="${Math.max(1, keys.length)}">No rows match the filter. Change the condition or press Clear.</td></tr>`;
+      return;
+    }
 
     // Choose rendering strategy
     if (totalRows > this._VIRTUAL_THRESHOLD) {

@@ -18,7 +18,7 @@ class StructraNullfinder extends StructraOverlay {
     this.mount({ title: 'Null & Empty Finder', size: 'md', body: `<div class="nf-options">
           <label class="nf-opt"><input type="checkbox" id="nfNull" checked> null</label>
           <label class="nf-opt"><input type="checkbox" id="nfEmpty" checked> empty string</label>
-          <label class="nf-opt"><input type="checkbox" id="nfUndef" checked> missing keys</label>
+          <label class="nf-opt" title="A key that other records in the same list have, and this one does not"><input type="checkbox" id="nfUndef" checked> missing keys</label>
           <label class="nf-opt"><input type="checkbox" id="nfZero"> zero</label>
           <label class="nf-opt"><input type="checkbox" id="nfFalse"> false</label>
           <button class="btn btn-primary nf-scan-btn" data-action="scan">Scan</button>
@@ -27,12 +27,14 @@ class StructraNullfinder extends StructraOverlay {
           <div class="nf-placeholder">Click Scan to find null/empty values</div>
         </div>
         <div class="nf-nav" id="nfNav" style="display:none">
-          <button class="nf-nav-btn" data-action="prev">◀ Prev</button>
+          <button class="nf-nav-btn" data-action="prev">${Structra.icons.svg('chevron-left', { size: 14 })} Previous</button>
           <span class="nf-nav-count" id="nfNavCount">0/0</span>
           <button class="nf-nav-btn" data-action="next">Next ${Structra.icons.svg('chevron-right', { size: 14 })}</button>
         </div>` });
 
     this.addEventListener('click', (e) => {
+      const item = e.target.closest('[data-nf-path]');
+      if (item) { this._go(item.dataset.nfPath); return; }
       const action = e.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
@@ -41,19 +43,21 @@ class StructraNullfinder extends StructraOverlay {
       else if (a === 'prev') this._navigate(-1);
       else if (a === 'next') this._navigate(1);
 
-      const item = e.target.closest('[data-nf-path]');
-      if (item) {
-        Structra.set('currentPath', item.dataset.nfPath);
-        Structra.events.emit('tree:navigate-path', item.dataset.nfPath);
-      }
     });
   }
 
 
-  async _scan() {
-    const data = Structra.state.jsonData;
-    if (!data) { Structra.toast('No data loaded', 'warning'); return; }
+  /** Show a result in the Tree (the other views have no place to show a path) */
+  _go(path) {
+    const p = Structra.paths.canonical(path);
+    if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.set('activeView', 'tree');
+    Structra.set('currentPath', p);
+    setTimeout(() => Structra.events.emit('tree:navigate-path', p), 80);
+  }
 
+  _scan() {
+    const data = Structra.state.jsonData;
+    if (!data) { Structra.toast('Open a file first', 'warning'); return; }
     const opts = {
       nulls: this.$('#nfNull').checked,
       empty: this.$('#nfEmpty').checked,
@@ -61,101 +65,40 @@ class StructraNullfinder extends StructraOverlay {
       zero: this.$('#nfZero').checked,
       falsy: this.$('#nfFalse').checked,
     };
-
-    // Try DuckDB approach for flat arrays
-    let results = null;
-    const ds = Structra.engine.getActive();
-    if (ds && ds.meta.shape === 'flat-array' && Structra.engine.duckReady) {
-      results = await this._scanDuckDb(ds, opts);
-    }
-
-    // Fallback: in-memory walk
-    if (!results) {
-      results = this._scanInMemory(data, opts);
-    }
-
-    this._results = results;
+    this._results = this._scanInMemory(data, opts);
     this._idx = -1;
     this._renderResults();
   }
 
-  async _scanDuckDb(ds, opts) {
-    try {
-      const cols = ds.indexes.columns ? ds.indexes.columns.map(c => c.name) : [];
-      if (cols.length === 0) return null;
-
-      const conditions = [];
-      for (const col of cols) {
-        const parts = [];
-        if (opts.nulls) parts.push(`"${col}" IS NULL`);
-        if (opts.empty) parts.push(`"${col}" = ''`);
-        if (opts.zero) parts.push(`CAST("${col}" AS VARCHAR) = '0'`);
-        if (parts.length > 0) conditions.push({ col, sql: parts.join(' OR ') });
-      }
-
-      const results = [];
-      for (const { col, sql } of conditions) {
-        const query = `SELECT rowid FROM (SELECT ROW_NUMBER() OVER () - 1 as rowid, "${col}" FROM data) WHERE ${sql}`;
-        try {
-          const r = await Structra.engine.runSql(query);
-          if (r && r.rows) {
-            for (const row of r.rows) {
-              results.push({ path: `$[${row.rowid}].${col}`, type: 'null/empty', value: null, field: col, idx: row.rowid });
-            }
-          }
-        } catch {}
-      }
-      return results.length > 0 ? results : null;
-    } catch { return null; }
-  }
-
+  /**
+   * Walk the whole document. null, empty, zero and false are reported wherever they are.
+   * A key counts as missing only against the other records of the same list: records that have it, one that does not.
+   */
   _scanInMemory(data, opts) {
     const results = [];
-    const walk = (val, path, parentKeys) => {
-      if (val === null && opts.nulls) {
-        results.push({ path, type: 'null', value: null });
-      } else if (val === '' && opts.empty) {
-        results.push({ path, type: 'empty', value: '' });
-      } else if (val === 0 && opts.zero) {
-        results.push({ path, type: 'zero', value: 0 });
-      } else if (val === false && opts.falsy) {
-        results.push({ path, type: 'false', value: false });
-      } else if (val && typeof val === 'object') {
-        if (Array.isArray(val)) {
-          for (let i = 0; i < val.length; i++) walk(val[i], `${path}[${i}]`, null);
-        } else {
-          const keys = Object.keys(val);
-          for (const k of keys) walk(val[k], `${path}.${k}`, keys);
+    const key = (path, k) => (/^[A-Za-z_$][\w$]*$/.test(k) ? `${path}.${k}` : `${path}['${k}']`);
+    const walk = (val, path) => {
+      if (val === null) { if (opts.nulls) results.push({ path, type: 'null' }); return; }
+      if (val === '') { if (opts.empty) results.push({ path, type: 'empty' }); return; }
+      if (val === 0) { if (opts.zero) results.push({ path, type: 'zero' }); return; }
+      if (val === false) { if (opts.falsy) results.push({ path, type: 'false' }); return; }
+      if (typeof val !== 'object') return;
+      if (Array.isArray(val)) {
+        const records = val.filter((r) => r && typeof r === 'object' && !Array.isArray(r));
+        if (opts.undef && records.length > 1) {
+          const all = new Set();
+          records.forEach((r) => Object.keys(r).forEach((k) => all.add(k)));
+          val.forEach((r, i) => {
+            if (!r || typeof r !== 'object' || Array.isArray(r)) return;
+            for (const k of all) if (!(k in r)) results.push({ path: key(`${path}[${i}]`, k), type: 'missing' });
+          });
         }
-      }
-
-      // Check missing keys (compare against sibling objects in arrays)
-      if (opts.undef && parentKeys && val && typeof val === 'object' && !Array.isArray(val)) {
-        for (const k of parentKeys) {
-          if (!(k in val)) results.push({ path: `${path}.${k}`, type: 'missing', value: undefined });
-        }
+        val.forEach((v, i) => walk(v, `${path}[${i}]`));
+      } else {
+        for (const k of Object.keys(val)) walk(val[k], key(path, k));
       }
     };
-
-    // For arrays, collect all keys first
-    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
-      const allKeys = new Set();
-      data.forEach(row => { if (row) Object.keys(row).forEach(k => allKeys.add(k)); });
-      const keyArr = [...allKeys];
-      data.forEach((row, i) => {
-        if (!row) { if (opts.nulls) results.push({ path: `$[${i}]`, type: 'null', value: null }); return; }
-        for (const k of keyArr) {
-          const v = row[k];
-          if (!(k in row) && opts.undef) results.push({ path: `$[${i}].${k}`, type: 'missing', value: undefined });
-          else if (v === null && opts.nulls) results.push({ path: `$[${i}].${k}`, type: 'null', value: null });
-          else if (v === '' && opts.empty) results.push({ path: `$[${i}].${k}`, type: 'empty', value: '' });
-          else if (v === 0 && opts.zero) results.push({ path: `$[${i}].${k}`, type: 'zero', value: 0 });
-          else if (v === false && opts.falsy) results.push({ path: `$[${i}].${k}`, type: 'false', value: false });
-        }
-      });
-    } else {
-      walk(data, '$', null);
-    }
+    walk(data, '$');
     return results;
   }
 
@@ -163,33 +106,40 @@ class StructraNullfinder extends StructraOverlay {
     const container = this.$('#nfResults');
     const nav = this.$('#nfNav');
     if (this._results.length === 0) {
-      container.innerHTML = '<div class="nf-placeholder">No null/empty values found</div>';
+      container.innerHTML = '<div class="nf-placeholder">None found. Nothing is null, empty or missing with these options.</div>';
       nav.style.display = 'none';
       return;
     }
 
     nav.style.display = '';
-    this.$('#nfNavCount').textContent = `${this._results.length} found`;
+    this.$('#nfNavCount').textContent = `${this._results.length.toLocaleString()} found`;
 
-    const max = 200;
-    const showing = this._results.slice(0, max);
-    container.innerHTML = showing.map((r, i) => `
-      <div class="nf-item" data-nf-path="${Structra.util.esc(r.path)}" data-nf-idx="${i}">
-        <span class="nf-badge nf-badge-${r.type}">${r.type}</span>
-        <span class="nf-path">${Structra.util.esc(r.path)}</span>
-      </div>`).join('') + (this._results.length > max ? `<div class="nf-more">…and ${this._results.length - max} more</div>` : '');
+    // One line per field (value[*].Notes), with how many of each kind, so a column that is mostly empty stands out
+    const groups = new Map();
+    this._results.forEach((r, i) => {
+      const pattern = r.path.replace(/\[\d+\]/g, '[*]');
+      if (!groups.has(pattern)) groups.set(pattern, { pattern, first: r.path, counts: {}, total: 0, firstIdx: i });
+      const g = groups.get(pattern);
+      g.counts[r.type] = (g.counts[r.type] || 0) + 1;
+      g.total++;
+    });
+    const rows = [...groups.values()].sort((a, b) => b.total - a.total);
+    const esc = Structra.util.esc;
+    container.innerHTML = rows.slice(0, 200).map((g) => `
+      <div class="nf-item" data-nf-path="${esc(g.first)}" data-nf-idx="${g.firstIdx}" title="Show the first one">
+        <span class="nf-path">${esc(g.pattern)}</span>
+        <span class="nf-kinds">${Object.entries(g.counts).map(([t, n]) => `<span class="nf-badge nf-badge-${t}">${n.toLocaleString()} ${t}</span>`).join('')}</span>
+      </div>`).join('') + (rows.length > 200 ? `<div class="nf-more">…and ${rows.length - 200} more fields</div>` : '');
   }
 
   _navigate(dir) {
     if (this._results.length === 0) return;
     this._idx = (this._idx + dir + this._results.length) % this._results.length;
-    this.$('#nfNavCount').textContent = `${this._idx + 1}/${this._results.length}`;
+    this.$('#nfNavCount').textContent = `${this._idx + 1} of ${this._results.length.toLocaleString()}`;
     const r = this._results[this._idx];
-    Structra.set('currentPath', r.path);
-    Structra.events.emit('tree:navigate-path', r.path);
-
-    // Highlight current in list
-    this.querySelectorAll('.nf-item').forEach(el => el.classList.toggle('nf-active', parseInt(el.dataset.nfIdx) === this._idx));
+    this._go(r.path);
+    const pattern = r.path.replace(/\[\d+\]/g, '[*]');
+    this.querySelectorAll('.nf-item').forEach((el) => el.classList.toggle('nf-active', el.querySelector('.nf-path').textContent === pattern));
   }
 
 }

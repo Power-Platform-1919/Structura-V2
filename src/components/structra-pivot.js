@@ -15,7 +15,8 @@ class StructraPivot extends StructraOverlay {
     this._fields = [];
 
     this.on('pivot:open', () => this._open());
-    this.on('engine:ingested', () => this._refreshFields());
+    this.on('engine:ingested', () => this._reset());
+    this.on('tabs:switched', () => this._reset());
   }
 
   render() {
@@ -26,15 +27,15 @@ class StructraPivot extends StructraOverlay {
           </div>
           <div class="pivot-zones">
             <div class="pivot-zone">
-              <div class="pivot-zone-title">Rows</div>
+              <div class="pivot-zone-title">Group by (rows)</div>
               <div class="pivot-zone-drop" id="pivotRows" data-zone="rows"></div>
             </div>
             <div class="pivot-zone">
-              <div class="pivot-zone-title">Columns</div>
+              <div class="pivot-zone-title">Then by (columns)</div>
               <div class="pivot-zone-drop" id="pivotCols" data-zone="cols"></div>
             </div>
             <div class="pivot-zone">
-              <div class="pivot-zone-title">Values</div>
+              <div class="pivot-zone-title">Count or total of</div>
               <div class="pivot-zone-drop" id="pivotValues" data-zone="values"></div>
               <select class="pivot-agg" id="pivotAgg">
                 <option value="count">Count</option>
@@ -45,8 +46,9 @@ class StructraPivot extends StructraOverlay {
               </select>
             </div>
           </div>
-          <button class="btn btn-primary pivot-run" data-action="run">Generate Pivot</button>
+          <button class="btn btn-primary pivot-run" data-action="run">Make the table</button>
         </div>
+        <p class="pivot-help" id="pivotHelp"></p>
         <div class="pivot-result" id="pivotResult"></div>` });
 
     this.addEventListener('click', (e) => {
@@ -73,20 +75,27 @@ class StructraPivot extends StructraOverlay {
   _open() {
     this.open();
     this._refreshFields();
+    this._renderZones();
   }
 
+  /** A new document or tab starts with an empty pivot */
+  _reset() {
+    this._rows = []; this._cols = []; this._values = [];
+    this._refreshFields();
+    if (this.$('#pivotRows')) this._renderZones();
+    const el = this.$('#pivotResult');
+    if (el) el.innerHTML = '';
+  }
 
+  /** The columns of the main list (Status.Value for a Choice field), not the top-level keys of the document */
   _refreshFields() {
-    const ds = Structra.engine.getActive();
-    if (ds && ds.indexes.columns) {
-      this._fields = ds.indexes.columns.map(c => c.name);
-    } else {
-      const data = Structra.state.jsonData;
-      if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
-        const keys = new Set();
-        data.slice(0, 100).forEach(r => { if (r) Object.keys(r).forEach(k => keys.add(k)); });
-        this._fields = [...keys];
-      }
+    this._fields = Structra.engine.mainColumns();
+    const main = Structra.engine.mainList();
+    const help = this.$('#pivotHelp');
+    if (help) {
+      help.textContent = main
+        ? `Pivoting the ${main.rows.length.toLocaleString()} ${main.rows.length === 1 ? 'row' : 'rows'} of ${main.path === '$' ? 'the document' : main.path.replace(/^\$\./, '')}. Click a field to add it: the first two go to Group by, the next two to Then by, then to Count or total of. Click the x on a chip to remove it.`
+        : 'This document has no list of records to pivot.';
     }
     this._renderFields();
   }
@@ -121,90 +130,61 @@ class StructraPivot extends StructraOverlay {
   _renderZones() {
     const chip = (field, zone) =>
       `<span class="pivot-zone-chip">${Structra.util.esc(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.util.esc(field)}">${Structra.icons.svg('x', { size: 14 })}</span></span>`;
-    this.$('#pivotRows').innerHTML = this._rows.map(f => chip(f, 'rows')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';
-    this.$('#pivotCols').innerHTML = this._cols.map(f => chip(f, 'cols')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';
-    this.$('#pivotValues').innerHTML = this._values.map(f => chip(f, 'values')).join('') || '<span class="pivot-zone-hint">Click fields…</span>';
+    this.$('#pivotRows').innerHTML = this._rows.map(f => chip(f, 'rows')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
+    this.$('#pivotCols').innerHTML = this._cols.map(f => chip(f, 'cols')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
+    this.$('#pivotValues').innerHTML = this._values.map(f => chip(f, 'values')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
   }
 
-  async _runPivot() {
+  _runPivot() {
     if (this._rows.length === 0 && this._cols.length === 0) {
-      Structra.toast('Add at least one row or column field', 'warning');
+      Structra.toast('Choose at least one field to group by', 'warning');
       return;
     }
-
-    const resultEl = this.$('#pivotResult');
-    resultEl.innerHTML = '<div class="pivot-loading">Computing…</div>';
-
-    // Try DuckDB first
-    if (Structra.engine.duckReady) {
-      try {
-        const result = await this._pivotDuckDb();
-        if (result) { this._renderPivotTable(result); return; }
-      } catch (err) {
-        Structra.log.warn('Pivot', 'DuckDB pivot failed, falling back', err.message);
-      }
-    }
-
-    // Fallback: in-memory
-    const result = this._pivotInMemory();
-    this._renderPivotTable(result);
+    const main = Structra.engine.mainList();
+    if (!main) { this._renderPivotTable(null); return; }
+    this._renderPivotTable(this._pivot(main.rows));
   }
 
-  async _pivotDuckDb() {
+  /** Group the rows by the chosen fields and count or total the chosen value fields (in the browser, on the main list) */
+  _pivot(rows) {
+    const read = (r, f) => Structra.engine.fieldValue(r, f);
     const groupBy = [...this._rows, ...this._cols];
-    const valueFields = this._values.length > 0 ? this._values : ['*'];
-    const agg = this._aggFn;
-
-    const aggExprs = valueFields.map(f => {
-      if (f === '*') return `${agg.toUpperCase()}(*) as "count"`;
-      return `${agg.toUpperCase()}("${f}") as "${agg}_${f}"`;
-    }).join(', ');
-
-    const groupByExpr = groupBy.map(f => `"${f}"`).join(', ');
-    const sql = `SELECT ${groupByExpr}, ${aggExprs} FROM data GROUP BY ${groupByExpr} ORDER BY ${groupByExpr}`;
-
-    const result = await Structra.engine.runSql(sql);
-    if (!result || !result.rows) return null;
-    return { rows: result.rows, columns: result.columns || Object.keys(result.rows[0] || {}) };
-  }
-
-  _pivotInMemory() {
-    const data = Structra.state.jsonData;
-    if (!Array.isArray(data)) return { rows: [], columns: [] };
-
-    const groupBy = [...this._rows, ...this._cols];
-    const groups = {};
-
-    for (const row of data) {
+    const valueFields = this._values.length ? this._values : ['*'];
+    const groups = new Map();
+    for (const row of rows) {
       if (!row) continue;
-      const key = groupBy.map(f => String(row[f] ?? '(null)')).join('|');
-      if (!groups[key]) groups[key] = { _key: key, _rows: [] };
-      groups[key]._rows.push(row);
-      for (const f of groupBy) groups[key][f] = row[f];
+      const parts = groupBy.map((f) => { const v = read(row, f); return v === null || v === undefined ? '(empty)' : (typeof v === 'object' ? JSON.stringify(v) : String(v)); });
+      const key = parts.join('\u0001');
+      if (!groups.has(key)) groups.set(key, { parts, rows: [] });
+      groups.get(key).rows.push(row);
     }
-
-    const result = Object.values(groups).map(g => {
-      const out = {};
-      for (const f of groupBy) out[f] = g[f];
-      for (const vf of (this._values.length > 0 ? this._values : ['*'])) {
-        const vals = g._rows.map(r => vf === '*' ? 1 : parseFloat(r[vf]) || 0);
-        const label = vf === '*' ? 'count' : `${this._aggFn}_${vf}`;
-        if (this._aggFn === 'count') out[label] = vals.length;
-        else if (this._aggFn === 'sum') out[label] = vals.reduce((a, b) => a + b, 0);
-        else if (this._aggFn === 'avg') out[label] = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
-        else if (this._aggFn === 'min') out[label] = Math.min(...vals);
-        else if (this._aggFn === 'max') out[label] = Math.max(...vals);
+    const agg = this._aggFn;
+    const out = [...groups.values()].map((g) => {
+      const o = {};
+      groupBy.forEach((f, i) => { o[f] = g.parts[i]; });
+      for (const vf of valueFields) {
+        const label = vf === '*' ? 'Count' : `${{ count: 'Count', sum: 'Total', avg: 'Average', min: 'Smallest', max: 'Largest' }[agg]} of ${vf}`;
+        if (vf === '*' || agg === 'count') {
+          o[vf === '*' ? 'Count' : label] = vf === '*' ? g.rows.length : g.rows.filter((r) => { const v = read(r, vf); return v !== null && v !== undefined && v !== ''; }).length;
+          continue;
+        }
+        const nums = g.rows.map((r) => Number(read(r, vf))).filter((n) => Number.isFinite(n));
+        if (!nums.length) { o[label] = ''; continue; }
+        if (agg === 'sum') o[label] = Math.round(nums.reduce((a, b) => a + b, 0) * 1e6) / 1e6;
+        else if (agg === 'avg') o[label] = Math.round(nums.reduce((a, b) => a + b, 0) / nums.length * 100) / 100;
+        else if (agg === 'min') o[label] = Math.min(...nums);
+        else if (agg === 'max') o[label] = Math.max(...nums);
       }
-      return out;
+      return o;
     });
-
-    return { rows: result, columns: Object.keys(result[0] || {}) };
+    out.sort((a, b) => groupBy.map((f) => String(a[f]).localeCompare(String(b[f]), undefined, { numeric: true })).find((c) => c !== 0) || 0);
+    return { rows: out, columns: out.length ? Object.keys(out[0]) : [] };
   }
 
   _renderPivotTable(data) {
     const el = this.$('#pivotResult');
     if (!data || !data.rows || data.rows.length === 0) {
-      el.innerHTML = '<div class="pivot-empty">No results</div>';
+      el.innerHTML = '<div class="pivot-empty">Nothing to show. This document has no list of records, or the chosen fields have no values.</div>';
       return;
     }
 

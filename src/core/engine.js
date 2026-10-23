@@ -636,6 +636,65 @@ Structra.engine = (() => {
   }
 
   /**
+   * "The data" for tools that work on rows (Filter, Pivot, Null finder): the document itself when it is a list of
+   * records, otherwise its first list of records (value in a SharePoint response, body.value in an HTTP output).
+   * @returns {{ path: string, rows: Array } | null}
+   */
+  function mainList(ds) {
+    ds = ds || getActive();
+    if (!ds) return null;
+    if (ds._main === undefined) {
+      const isRecord = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+      if (Array.isArray(ds.raw)) ds._main = ds.raw.length && isRecord(ds.raw[0]) ? { path: '$', rows: ds.raw } : null;
+      else ds._main = _firstObjectArray(ds.raw, '$');
+    }
+    return ds._main;
+  }
+
+  /** Read a field of a row; Status.Value reads the Value inside Status */
+  function fieldValue(row, field) {
+    if (row === null || row === undefined) return undefined;
+    if (Object.prototype.hasOwnProperty.call(row, field)) return row[field];
+    let v = row;
+    for (const k of String(field).split('.')) {
+      if (v === null || v === undefined || typeof v !== 'object') return undefined;
+      v = v[k];
+    }
+    return v;
+  }
+
+  /**
+   * The columns of the main list, as a person thinks of them: plain fields, and the plain parts of Choice,
+   * Person and Lookup fields as Parent.Child (Status.Value, Requester.Email). Lists and system keys are left out.
+   * @returns {string[]}
+   */
+  function mainColumns(ds) {
+    ds = ds || getActive();
+    const main = mainList(ds);
+    if (!main) return [];
+    if (!ds._mainCols) {
+      const sample = main.rows.slice(0, 100).filter((r) => r && typeof r === 'object' && !Array.isArray(r));
+      const keys = [];
+      sample.forEach((r) => Object.keys(r).forEach((k) => { if (!keys.includes(k)) keys.push(k); }));
+      const cols = [];
+      for (const k of keys) {
+        if (k.startsWith('@')) continue;
+        const vals = sample.map((r) => r[k]).filter((v) => v !== null && v !== undefined);
+        const objs = vals.filter((v) => typeof v === 'object' && !Array.isArray(v));
+        if (vals.length && objs.length === vals.length) {
+          const kids = [];
+          objs.forEach((o) => Object.keys(o).forEach((c) => { if (!kids.includes(c) && !c.startsWith('@') && (o[c] === null || typeof o[c] !== 'object')) kids.push(c); }));
+          kids.slice(0, 8).forEach((c) => cols.push(`${k}.${c}`));
+        } else if (!vals.length || vals.some((v) => typeof v !== 'object')) {
+          cols.push(k);
+        }
+      }
+      ds._mainCols = cols;
+    }
+    return ds._mainCols;
+  }
+
+  /**
    * Apply structured filter conditions via DuckDB.
    * @param {Array<Object>} conditions — [{field, op, value, logic}]
    *   op: 'eq'|'neq'|'gt'|'lt'|'gte'|'lte'|'contains'|'notcontains'|'startswith'|'endswith'|'isnull'|'notnull'
@@ -650,8 +709,10 @@ Structra.engine = (() => {
       return null;
     }
 
-    // DuckDB path — works for all registered shapes
-    if (_canUseDuck(ds)) {
+    // The SQL route is for a plain list at the root with plain column names. Anything else (a list inside an object,
+    // Status.Value style columns) is filtered in memory, on the rows of the main list.
+    const plain = Array.isArray(ds.raw) && conditions.every((c) => !String(c.field).includes('.'));
+    if (plain && _canUseDuck(ds)) {
       const tableName = _tableOf(ds);
       const cols = _getDuckColumnNames(ds);
       const sqlWhere = _conditionsToSql(conditions, cols);
@@ -756,15 +817,16 @@ Structra.engine = (() => {
 
   /** In-memory structured filter (no DuckDB) */
   function _filterInMemory(ds, conditions) {
-    if (!Array.isArray(ds.raw)) return null;
+    const main = mainList(ds);
+    if (!main) return null;
 
-    const rows = ds.raw.filter(row => {
+    const rows = main.rows.filter(row => {
       if (!row || typeof row !== 'object') return false;
       let pass = true;
 
       for (let i = 0; i < conditions.length; i++) {
         const c = conditions[i];
-        const val = row[c.field];
+        const val = fieldValue(row, c.field);
         const target = c.value;
         let match = false;
 
@@ -793,10 +855,11 @@ Structra.engine = (() => {
       return pass;
     });
 
-    const cols = ds.indexes.columns ? ds.indexes.columns.map(c => c.name) : (rows.length > 0 ? Object.keys(rows[0]) : []);
+    const cols = collectKeys(main.rows);
+    const OPS = { eq: '=', neq: '≠', gt: '>', lt: '<', gte: '≥', lte: '≤', contains: 'contains', notcontains: 'does not contain', startswith: 'starts with', endswith: 'ends with', isnull: 'is empty', notnull: 'has a value' };
     const result = {
       source: 'filter',
-      query: conditions.map(c => `${c.field} ${c.op} ${c.value || ''}`).join(', '),
+      query: conditions.map((c, i) => `${i ? (c.logic || 'AND').toLowerCase() + ' ' : ''}${c.field} ${OPS[c.op] || c.op}${c.op === 'isnull' || c.op === 'notnull' ? '' : ' ' + (c.value || '')}`).join(' '),
       conditions,
       rows,
       matchedPaths: null,
@@ -1911,6 +1974,9 @@ Structra.engine = (() => {
     getAnalysis,
     enableSql,
     findFirstObjectArray,
+    mainList,
+    mainColumns,
+    fieldValue,
     findAllArrays,
     collectKeys,
     analyzeKeys,

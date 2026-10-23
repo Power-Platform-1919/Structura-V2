@@ -25,6 +25,8 @@ class StructraFilter extends StructraElement {
     this.on('overlay:close', () => this._close());
     this.on('engine:ingested', () => this._refreshColumns());
     this.on('engine:active', () => this._refreshColumns());
+    this.on('state:jsonData', () => { this._conditions = []; this._refreshColumns(); this._rebuildRows(); });
+    this.on('tabs:switched', () => { this._conditions = []; this._refreshColumns(); this._rebuildRows(); });
   }
 
   render() {
@@ -41,6 +43,8 @@ class StructraFilter extends StructraElement {
             </button>
           </div>
         </div>
+        <div class="filter-scope" id="filterScope"></div>
+        <div class="filter-summary" id="filterSummary" hidden></div>
         <div class="tabs filter-mode-tabs">
           <button class="tab filter-mode-tab active" type="button" data-fmode="structured">Structured</button>
           <button class="tab filter-mode-tab" type="button" data-fmode="jsonpath">JSONPath</button>
@@ -137,21 +141,29 @@ class StructraFilter extends StructraElement {
 
   /* ======== COLUMNS ======== */
 
+  /** The columns of the list being filtered: the rows of the main list, not the top-level keys of the document */
   _refreshColumns() {
-    const ds = Structra.engine.getActive();
-    if (ds && ds.indexes.columns) {
-      this._columns = ds.indexes.columns.map(c => c.name);
-    } else if (ds && Array.isArray(ds.raw) && ds.raw.length > 0 && typeof ds.raw[0] === 'object') {
-      // Fallback: extract keys from first few rows
-      const keySet = new Set();
-      const limit = Math.min(ds.raw.length, 100);
-      for (let i = 0; i < limit; i++) {
-        if (ds.raw[i]) Object.keys(ds.raw[i]).forEach(k => keySet.add(k));
-      }
-      this._columns = [...keySet];
-    } else {
-      this._columns = [];
+    this._columns = Structra.engine.mainColumns();
+    const main = Structra.engine.mainList();
+    const scope = this.$('#filterScope');
+    if (scope) {
+      scope.textContent = main
+        ? `Filtering the ${main.rows.length.toLocaleString()} ${main.rows.length === 1 ? 'row' : 'rows'} of ${main.path === '$' ? 'the document' : main.path.replace(/^\$\./, '')}`
+        : 'This document has no list of records to filter';
     }
+  }
+
+  /** Start again from one empty condition (the data changed, or Clear was pressed) */
+  _rebuildRows() {
+    const container = this.$('#filterConditions');
+    if (!container) return;
+    container.innerHTML = '';
+    this._conditions = [];
+    const summary = this.$('#filterSummary');
+    if (summary) summary.hidden = true;
+    const count = this.$('#filterCount');
+    if (count) count.textContent = '';
+    if (this.$('#filterPanel')?.classList.contains('show') && this._filterMode === 'structured') this._addCondition();
   }
 
   /* ======== CONDITION ROWS ======== */
@@ -272,7 +284,12 @@ class StructraFilter extends StructraElement {
       }
 
       const total = result ? (result.total ?? (Array.isArray(result) ? result.length : 0)) : 0;
-      if (countEl) countEl.textContent = `${total} rows`;
+      if (countEl) countEl.textContent = total === 0 ? 'No rows match' : `${total.toLocaleString()} ${total === 1 ? 'row' : 'rows'} match`;
+      // Say which condition produced these rows
+      const summary = this.$('#filterSummary');
+      if (summary && result && result.query) { summary.hidden = false; summary.textContent = result.query; summary.title = result.query; }
+      // The result is a table: show it
+      if (total > 0 && ['tree', 'editor', 'overview', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.set('activeView', 'table');
       Structra.log.info('Filter', `Applied ${this._filterMode} filter → ${total} rows`);
     } catch (err) {
       Structra.log.error('Filter', 'Filter failed', err.message);
@@ -282,12 +299,8 @@ class StructraFilter extends StructraElement {
   }
 
   _clear() {
-    this._conditions = [];
-    const container = this.$('#filterConditions');
-    if (container) container.innerHTML = '';
-    const countEl = this.$('#filterCount');
-    if (countEl) countEl.textContent = '';
     Structra.engine.clearQuery();
+    this._rebuildRows();          // leaves one empty condition to type into
   }
 
   /* ======== UTILS ======== */
