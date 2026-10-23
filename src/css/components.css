@@ -2071,3 +2071,5 @@ structra-schemagen {
 .search-bar:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 .search-bar input:focus-visible { outline: none; }
 .th-name { white-space: normal; overflow-wrap: anywhere; }
+
+.tb-group-label { font-size: var(--fs-xs); color: var(--text-muted); padding: 0 var(--sp-1); align-self: center; }

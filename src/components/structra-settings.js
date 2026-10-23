@@ -19,7 +19,7 @@ class StructraSettings extends StructraOverlay {
       body: `
         <section class="th-section">
           <div class="th-row">
-            <div><div class="th-label">Appearance</div><div class="hint">Light or dark, colour themes and text size.</div></div>
+            <div><div class="th-label">Appearance</div><div class="hint">Light or dark and colour themes. Ctrl + and Ctrl - change the text size.</div></div>
             <button class="btn btn-sm" type="button" data-set="appearance">Open Appearance</button>
           </div>
         </section>

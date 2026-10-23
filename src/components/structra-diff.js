@@ -45,7 +45,7 @@ class StructraDiff extends StructraOverlay {
         </div>
         <div class="diff-paste-area" id="diffPasteArea" style="display:none">
           <textarea class="diff-paste-input" id="diffPasteInput" placeholder="Paste JSON to compare…"></textarea>
-          <button class="btn btn-primary" data-action="load-paste">Compare again</button>
+          <button class="btn btn-primary" data-action="load-paste">Compare</button>
         </div>
         <div class="diff-body" id="diffBody">
           <div class="diff-pane diff-left" id="diffLeft"></div>
@@ -76,8 +76,24 @@ class StructraDiff extends StructraOverlay {
     });
   }
 
+  /** Every other open document can be a side: the choices are rebuilt each time the dialog opens */
+  _tabChoices() {
+    const others = (Structra.tabs.list || []).filter((t) => t.id !== Structra.tabs.activeId && t.data);
+    return others.map((t) => `<option value="tab:${t.id}">Tab: ${Structra.util.esc(t.label || 'Untitled')}</option>`).join('');
+  }
+
+  _tabData(value) {
+    const id = Number(String(value).slice(4));
+    const t = (Structra.tabs.list || []).find((x) => x.id === id);
+    return t ? t.data : null;
+  }
+
   _open(opts) {
     this.open();
+    this.querySelectorAll('.diff-source').forEach((sel) => {
+      sel.querySelectorAll('option[value^="tab:"]').forEach((o) => o.remove());
+      sel.insertAdjacentHTML('beforeend', this._tabChoices());
+    });
     if (opts && opts.left) this._left = opts.left;
     else this._left = Structra.state.jsonData;
 
@@ -100,6 +116,7 @@ class StructraDiff extends StructraOverlay {
     const rightSrc = this.$('#diffRightSrc').value;
 
     if (leftSrc === 'current') this._left = Structra.state.jsonData;
+    else if (leftSrc.startsWith('tab:')) this._left = this._tabData(leftSrc);
     else if (leftSrc === 'undo') {
       const hist = Structra.undoStack.getHistory();
       if (hist.length > 1) this._left = JSON.parse(hist[hist.length - 2].snapshot);
@@ -107,6 +124,10 @@ class StructraDiff extends StructraOverlay {
 
     if (rightSrc === 'current') {
       this._right = Structra.state.jsonData;
+      this._computeAndRender();
+    } else if (rightSrc.startsWith('tab:')) {
+      this._right = this._tabData(rightSrc);
+      this.$('#diffPasteArea').style.display = 'none';
       this._computeAndRender();
     } else if (rightSrc === 'undo') {
       const hist = Structra.undoStack.getHistory();
@@ -156,6 +177,7 @@ class StructraDiff extends StructraOverlay {
     this.$('#diffStats').innerHTML = added + removed + changed === 0
       ? '<span>The two sides are identical</span>'
       : `<span class="diff-stat-add" title="Values only in the right side">${added} added</span> <span class="diff-stat-rm" title="Values only in the left side">${removed} removed</span> <span class="diff-stat-chg" title="Values that differ">${changed} changed</span>`;
+    this.$('#diffStats').title = 'Green: only on the right. Red: only on the left. Orange: different.';
   }
 
   _renderDiff(mode) {

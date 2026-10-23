@@ -39,8 +39,42 @@ class StructraTree extends StructraElement {
   }
 
   render() {
-    this.innerHTML = '<div class="json-view" id="jsonView"></div>';
+    this.innerHTML = '<div class="json-view" id="jsonView" tabindex="0" role="tree" aria-label="JSON tree. Arrow keys move, Left and Right fold, Enter selects."></div>';
+    this._bindKeys();
     this.renderTree();
+  }
+
+  /** Up and Down move between lines, Right opens and Left closes a block, Enter selects the line */
+  _bindKeys() {
+    const view = this._getView();
+    view.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Home', 'End'].includes(e.key)) return;
+      const lines = [...view.querySelectorAll('.j-line')].filter((l) => l.offsetParent !== null);
+      if (!lines.length) return;
+      e.preventDefault();
+      let cur = lines.indexOf(this._kcur);
+      if (cur < 0) cur = lines.findIndex((l) => l.classList.contains('highlighted'));
+      const select = (l) => {
+        if (!l) return;
+        view.querySelectorAll('.j-line.highlighted').forEach((x) => x.classList.remove('highlighted'));
+        l.classList.add('highlighted');
+        this._kcur = l;
+        const p = Structra.paths.canonical(l.dataset.path);
+        Structra.set('currentPath', p);
+        Structra.events.emit('tree:node-selected', p);
+        l.scrollIntoView({ block: 'nearest' });
+      };
+      const toggle = cur >= 0 ? lines[cur].querySelector('.j-toggle') : null;
+      const open = toggle && toggle.textContent.trim() === '\u25BC';
+      if (e.key === 'ArrowDown') select(lines[Math.min(lines.length - 1, cur + 1)]);
+      else if (e.key === 'ArrowUp') select(lines[Math.max(0, cur - 1)]);
+      else if (e.key === 'Home') select(lines[0]);
+      else if (e.key === 'End') select(lines[lines.length - 1]);
+      else if (e.key === 'ArrowRight') { if (toggle && !open) toggle.click(); else select(lines[Math.min(lines.length - 1, cur + 1)]); }
+      else if (e.key === 'ArrowLeft') { if (toggle && open) toggle.click(); }
+      else if (cur >= 0) { if (toggle && e.key === ' ') toggle.click(); else select(lines[cur]); }
+      else select(lines[0]);
+    });
   }
 
   _getView() {

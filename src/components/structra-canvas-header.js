@@ -41,6 +41,7 @@ class StructraCanvasHeader extends StructraElement {
           ${Structra.icons.svg('minimize-2')}
           <span class="tb-label">Collapse</span>
         </button>
+        <span class="tb-group-label" title="Show only this many levels">Levels</span>
         <button class="toolbar-btn" data-action="depth-1" title="Show only the first level" aria-label="Show only the first level">1</button>
         <button class="toolbar-btn" data-action="depth-2" title="Show two levels" aria-label="Show two levels">2</button>
         <button class="toolbar-btn" data-action="depth-3" title="Show three levels" aria-label="Show three levels">3</button>

@@ -1410,7 +1410,7 @@
         {
           "id": "14.11",
           "title": "The 'Tip: select any value in the Tree...' toast stays long enough to cover the drawer buttons on every view switch and has no close button; show it once, shorter, with an x",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.12",
@@ -1615,7 +1615,7 @@
         {
           "id": "14.52",
           "title": "Settings says Appearance covers 'text size', but Appearance has no text size control (zoom is only on Ctrl + and Ctrl -); add a Text size control or change the sentence",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.53",
@@ -1635,7 +1635,7 @@
         {
           "id": "14.56",
           "title": "Diff has no legend for its colours (green added, orange changed, red removed); add a small key next to the counts",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.57",
@@ -1675,7 +1675,7 @@
         {
           "id": "14.64",
           "title": "Tree level buttons 1, 2, 3 have no group label, and after Collapse the selected node named in the path bar and breadcrumb is hidden in the tree; label the group 'Levels' and reveal or say so",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.65",
@@ -1690,7 +1690,7 @@
         {
           "id": "14.67",
           "title": "Tree has no keyboard navigation: Arrow keys, Enter and Space do nothing and focus stays on the page body; add Up/Down to move, Left/Right to fold and unfold, Enter to select",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.68",
@@ -1755,12 +1755,12 @@
         {
           "id": "14.80",
           "title": "Table for a single object (no list) says only 'No tabular data found'; show a two-column Field and Value table instead",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.81",
           "title": "Compare with two documents open does not offer the other open tab as a side (Left is 'Current Data', Right asks to paste JSON) and starts with two empty panes and a button already called 'Compare again'; add 'Another open tab' as a choice and explain what to do first",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.82",

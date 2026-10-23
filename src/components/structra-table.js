@@ -289,8 +289,17 @@ class StructraTable extends StructraElement {
 
     const resolved = this._applyColumnFiltersToResult(this._resolveData());
     if (!resolved) {
+      const doc = Structra.state.jsonData;
+      if (doc && typeof doc === 'object' && !Array.isArray(doc) && Object.keys(doc).length) {
+        // One record, no list: show it as a Field and Value table
+        const shown = (v) => v !== null && typeof v === 'object' ? JSON.stringify(v) : v;
+        head.innerHTML = '<tr><th>Field</th><th>Value</th></tr>';
+        body.innerHTML = Object.entries(doc).map(([k, v]) => `<tr><td>${Structra.util.esc(k)}</td><td>${this._formatCell(shown(v))}</td></tr>`).join('');
+        if (pager) pager.innerHTML = `<span class="table-page-info">${Object.keys(doc).length.toLocaleString()} fields</span>`;
+        return;
+      }
       head.innerHTML = '';
-      body.innerHTML = '<tr><td style="color:var(--text-muted);padding:var(--sp-4)">No tabular data found</td></tr>';
+      body.innerHTML = '<tr><td style="color:var(--text-muted);padding:var(--sp-4)">There is no list of records in this file to show as a table. Use the Tree to browse it.</td></tr>';
       if (pager) pager.innerHTML = '';
       return;
     }

@@ -407,7 +407,7 @@ class StructraInputPanel extends StructraElement {
       if (localStorage.getItem(KEY)) return;
       localStorage.setItem(KEY, '1');
     } catch { return; }
-    setTimeout(() => Structra.toast('Tip: select any value in the Tree to get its Power Automate or Power Fx expression'), 1500);
+    setTimeout(() => Structra.toast('Tip: select a value in the Tree for its expression', { duration: 3500 }), 1500);
   }
 
   async loadText(text, name) {
