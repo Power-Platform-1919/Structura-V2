@@ -37,6 +37,7 @@ class StructraExpressions extends StructraElement {
       <div class="expr-pane" data-pane="helpers"></div>`;
 
     this.addEventListener('click', (e) => {
+      if (e.target.closest('[data-goto-tree]')) { Structra.set('activeView', 'tree'); return; }
       const tab = e.target.closest('.expr-subtab');
       if (tab) { this._switch(tab.dataset.sub); return; }
       const copyAll = e.target.closest('[data-copy-block]');
@@ -135,7 +136,8 @@ class StructraExpressions extends StructraElement {
     const make = this._tab === 'automate' ? Structra.expressions.powerAutomate : Structra.expressions.powerFx;
     const kind = this._tab === 'automate' ? 'Power Automate' : this._tab === 'flow' ? 'flow action' : 'Power Fx';
     if (!data || !this._path) {
-      this._fill(this._tab, this._empty('Select a path in the tree to see ' + kind + ' expressions'));
+      const view = Structra.state.activeView;
+      this._fill(this._tab, `<div class="expr-empty">Select a value in the Tree to see ${Structra.util.esc(kind)} expressions.${view === 'tree' ? '' : ' <button class="btn btn-sm" type="button" data-goto-tree>Go to the Tree</button>'}</div>`);
       return;
     }
     const value = Structra.paths.resolve(data, this._path);

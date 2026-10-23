@@ -173,6 +173,9 @@ class StructraTree extends StructraElement {
 
     const ic = (name) => `<span class="tree-ctx-icon">${Structra.icons.svg(name, { size: 14 })}</span>`;
     const scalar = val !== null && val !== undefined && !isObj;
+    // A text value that holds JSON (a flow run's Payload) can be opened and read as data
+    let inner = null;
+    if (typeof val === 'string' && /^\s*[\[{]/.test(val)) { try { const p = JSON.parse(val); if (p && typeof p === 'object') inner = p; } catch { /* just text */ } }
     menu.innerHTML = `
       <div class="tree-ctx-item" data-ctx="copy-path">${ic('copy')} Copy path</div>
       <div class="tree-ctx-item" data-ctx="copy-value">${ic('clipboard')} Copy value</div>
@@ -187,6 +190,7 @@ class StructraTree extends StructraElement {
       </div>
       <div class="tree-ctx-sep"></div>
       ${isArray && val.length && val[0] && typeof val[0] === 'object' ? `<div class="tree-ctx-item" data-ctx="expand-here">${ic('table')} Show as a table</div>` : ''}
+      ${inner ? `<div class="tree-ctx-item" data-ctx="open-json-text">${ic('braces')} Open this text as JSON in a new tab</div>` : ''}
       ${scalar ? `<div class="tree-ctx-item" data-ctx="find-value">${ic('search')} Find this value</div>` : ''}
       <div class="tree-ctx-item" data-ctx="mock">${ic('dices')} Copy mock data</div>
       <div class="tree-ctx-item" data-ctx="bookmark">${ic('bookmark')} ${Structra.bookmarks.has(path) ? 'Remove bookmark' : 'Bookmark'}</div>
@@ -233,6 +237,16 @@ class StructraTree extends StructraElement {
       case 'copy-value': {
         const text = val === null ? 'null' : typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
         Structra.util.copy(text, 'Value copied');
+        break;
+      }
+      case 'open-json-text': {
+        try {
+          const inner = JSON.parse(val);
+          const cmd = document.querySelector('structra-command');
+          const leaf = String(path).split('.').pop().replace(/\[\d+\]$/, '') || 'text';
+          const ok = await cmd._openInNewTab(inner, leaf);
+          if (!ok) Structra.toast('Close a tab first: the limit of open tabs is reached.', 'warning');
+        } catch { Structra.toast('This text is not valid JSON', 'error'); }
         break;
       }
       case 'copy-subtree': {

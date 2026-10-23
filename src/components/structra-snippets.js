@@ -13,7 +13,7 @@ class StructraSnippets extends StructraOverlay {
   }
 
   render() {
-    this.mount({ title: 'Snippet Library', size: 'md', body: `<div class="snip-toolbar">
+    this.mount({ title: 'Snippet Library', size: 'md', body: `<p class="dlg-intro">Snippets are pieces of JSON you keep for later, such as a sample request. Open one to use it in a new tab.</p><div class="snip-toolbar">
           <button class="btn btn-primary" data-action="save-current">+ Save Current Selection</button>
           <input type="text" class="snip-search" id="snipSearch" placeholder="Search snippets…">
         </div>

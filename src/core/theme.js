@@ -58,33 +58,33 @@ Structra.theme = (() => {
 
   const BUILT_IN = [
     { id: 'structra-light', name: 'Structra Light', mode: 'light', colors: {
-      bg: '#eef1f6', surface: '#ffffff', surfaceAlt: '#f5f7fb', border: '#d9dfeb', text: '#141b2d', textSec: '#475069', textMuted: '#667189',
+      bg: '#eef1f6', surface: '#ffffff', surfaceAlt: '#f5f7fb', border: '#d9dfeb', text: '#141b2d', textSec: '#475069', textMuted: '#606b81',
       accent: '#3b5bdb', success: '#12805c', warning: '#b45309', danger: '#c62a3a', info: '#1769aa',
-      synKey: '#6741d9', synString: '#0b7a54', synNumber: '#b45309', synBoolean: '#1c6fd1', synNull: '#8a94a8' } },
+      synKey: '#6741d9', synString: '#0b7a54', synNumber: '#b45309', synBoolean: '#1a69c5', synNull: '#666e7c' } },
     { id: 'paper', name: 'Paper', mode: 'light', colors: {
       bg: '#ece9e2', surface: '#fbfaf7', surfaceAlt: '#f3f1ec', border: '#d8d3c8', text: '#26231e', textSec: '#4f4a40', textMuted: '#6e685b',
-      accent: '#0f766e', success: '#2f7d4f', warning: '#a8620a', danger: '#b3322f', info: '#2a6f9e',
-      synKey: '#7c3f9e', synString: '#2f7d4f', synNumber: '#a8620a', synBoolean: '#1f6fa8', synNull: '#8b8578' } },
+      accent: '#0d6b64', success: '#2f7d4f', warning: '#a8620a', danger: '#b3322f', info: '#2a6f9e',
+      synKey: '#7c3f9e', synString: '#2f7d4f', synNumber: '#a8620a', synBoolean: '#1e6ca3', synNull: '#6d685f' } },
     { id: 'power-light', name: 'Power Platform', mode: 'light', colors: {
       bg: '#f4f1f6', surface: '#ffffff', surfaceAlt: '#f8f5fa', border: '#ddd5e3', text: '#1f1a24', textSec: '#4d4357', textMuted: '#6c6177',
       accent: '#742774', success: '#107c10', warning: '#b05c00', danger: '#c4262e', info: '#0f6cbd',
-      synKey: '#742774', synString: '#107c10', synNumber: '#b05c00', synBoolean: '#0f6cbd', synNull: '#8a8094' } },
+      synKey: '#742774', synString: '#107c10', synNumber: '#b05c00', synBoolean: '#0f6cbd', synNull: '#726b7c' } },
     { id: 'structra-dark', name: 'Structra Dark', mode: 'dark', colors: {
       bg: '#0c1018', surface: '#151c2b', surfaceAlt: '#1d2638', border: '#35425f', text: '#e8edf7', textSec: '#aab4ca', textMuted: '#8591a9',
       accent: '#7b94ff', success: '#3ecf9a', warning: '#f0b44c', danger: '#ff6b7a', info: '#62b4f5',
-      synKey: '#b69cff', synString: '#4fd6a4', synNumber: '#f5b95f', synBoolean: '#6db3ff', synNull: '#7a859e' } },
+      synKey: '#b69cff', synString: '#4fd6a4', synNumber: '#f5b95f', synBoolean: '#6db3ff', synNull: '#828da4' } },
     { id: 'midnight', name: 'Midnight', mode: 'dark', colors: {
-      bg: '#060a14', surface: '#0b1222', surfaceAlt: '#121b30', border: '#1f2c47', text: '#e2ecff', textSec: '#9fb3d6', textMuted: '#7388ae',
+      bg: '#060a14', surface: '#0e1629', surfaceAlt: '#16213a', border: '#2c3d61', text: '#e2ecff', textSec: '#9fb3d6', textMuted: '#7a90b4',
       accent: '#38bdf8', success: '#34d399', warning: '#fbbf24', danger: '#fb7185', info: '#60a5fa',
-      synKey: '#c4b5fd', synString: '#6ee7b7', synNumber: '#fcd34d', synBoolean: '#7dd3fc', synNull: '#6b7fa6' } },
+      synKey: '#c4b5fd', synString: '#6ee7b7', synNumber: '#fcd34d', synBoolean: '#7dd3fc', synNull: '#7a8eb2' } },
     { id: 'graphite', name: 'Graphite', mode: 'dark', colors: {
       bg: '#111113', surface: '#19191c', surfaceAlt: '#222226', border: '#34343a', text: '#ececf0', textSec: '#b3b3bc', textMuted: '#8a8a95',
       accent: '#f2a93b', success: '#5cc98c', warning: '#f2a93b', danger: '#f0706a', info: '#6bb0e8',
-      synKey: '#d3a8ff', synString: '#7bd88f', synNumber: '#f2c36b', synBoolean: '#79b8ff', synNull: '#858592' } },
+      synKey: '#d3a8ff', synString: '#7bd88f', synNumber: '#f2c36b', synBoolean: '#79b8ff', synNull: '#898995' } },
     { id: 'power-dark', name: 'Power Platform Dark', mode: 'dark', colors: {
       bg: '#14101a', surface: '#1c1624', surfaceAlt: '#261e31', border: '#382c47', text: '#f0eaf5', textSec: '#bcaecb', textMuted: '#9585a8',
       accent: '#d28ae0', success: '#54c26b', warning: '#f0a64a', danger: '#ff7a85', info: '#6db3f2',
-      synKey: '#d28ae0', synString: '#54c26b', synNumber: '#f0a64a', synBoolean: '#6db3f2', synNull: '#8f7fa3' } },
+      synKey: '#d28ae0', synString: '#54c26b', synNumber: '#f0a64a', synBoolean: '#6db3f2', synNull: '#9283a6' } },
     { id: 'high-contrast', name: 'High Contrast', mode: 'dark', colors: {
       bg: '#000000', surface: '#101010', surfaceAlt: '#1f1f1f', border: '#d0d0d0', text: '#ffffff', textSec: '#ececec', textMuted: '#c8c8c8',
       accent: '#ffd60a', success: '#4cff8f', warning: '#ffb020', danger: '#ff6b6b', info: '#5cc8ff',

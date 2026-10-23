@@ -125,6 +125,31 @@ function serve() {
     if (tr.boxVisible) failures.push('the code box should be folded under Advanced');
     await page.evaluate(() => Structra.set('queryPanelOpen', false));
 
+    // Every built-in theme keeps muted text, null and true readable (4.5:1) and the dark panels apart from the page
+    const weak = await page.evaluate(() => {
+      const out = [];
+      for (const t of Structra.theme.list().filter((x) => x.builtIn)) {
+        const c = t.colors;
+        for (const k of ['textMuted', 'synNull', 'synBoolean', 'accent']) {
+          const worst = Math.min(...['bg', 'surface', 'surfaceAlt'].map((b) => Structra.theme.contrast(c[k], c[b])));
+          if (worst < 4.5) out.push(`${t.name} ${k} ${worst.toFixed(2)}`);
+        }
+        if (t.mode === 'dark' && Structra.theme.contrast(c.border, c.bg) < 1.4) out.push(`${t.name} border is lost against the page`);
+      }
+      return out;
+    });
+    if (weak.length) failures.push('theme contrast: ' + weak.join('; '));
+
+    // CSV: thousands separators are read and money keeps its decimals in the Table
+    await closeAll();
+    await load('prices.csv', 'Item,Price\nA,10.00\nB,"1,200.00"\nC,2.50\n');
+    const prices = await page.evaluate(() => Structra.state.jsonData.map((r) => r.Price));
+    if (prices.join() !== '10,1200,2.5') failures.push('CSV prices should be numbers, "1,200.00" included: ' + prices.join());
+    await page.evaluate(() => Structra.set('activeView', 'table'));
+    await page.waitForTimeout(600);
+    const cells = await page.evaluate(() => [...document.querySelectorAll('structra-table tbody tr td:nth-child(2)')].map((t) => t.textContent.trim()));
+    if (cells.join() !== '10.00,1200.00,2.50') failures.push('the Table should keep two decimals for Price: ' + cells.join());
+
     // Editor: an error in plain words
     await page.evaluate(() => Structra.set('activeView', 'editor'));
     await page.waitForTimeout(400);

@@ -10,7 +10,9 @@ class StructraSchemaGen extends StructraElement {
     this._allItems = true;
     this._integers = false;     // false: every number is "number" (safe); true: whole numbers are "integer"
     this._required = true;
+    this._selected = false;     // true: only the value selected in the Tree
     this._stale = true;
+    this.on('state:currentPath', () => { if (this._selected) { this._stale = true; this._refresh(); } this._syncScope(); });
     this.on('state:jsonData', () => { this._stale = true; this._refresh(); });
     this.on('tabs:switched', () => { this._stale = true; this._refresh(); });
     this.on('drawer:tab-switched', () => this._refresh());
@@ -28,6 +30,9 @@ class StructraSchemaGen extends StructraElement {
     this.innerHTML = `
       <div class="sg-toolbar">
         <button class="btn btn-primary" data-action="copy">Copy schema</button>
+        <label class="sg-opt" title="The Parse JSON action often gets one part of a response, such as body. Select that part in the Tree first">
+          <input type="checkbox" data-action="selected"> <span id="sgScope">Only the selected value</span>
+        </label>
         <label class="sg-opt" title="Read every array item to find optional and nullable keys">
           <input type="checkbox" data-action="all-items" checked> Read all items
         </label>
@@ -52,18 +57,36 @@ class StructraSchemaGen extends StructraElement {
       if (a === 'integers') this._integers = e.target.checked;
       else if (a === 'required') this._required = e.target.checked;
       else if (a === 'all-items') this._allItems = e.target.checked;
+      else if (a === 'selected') this._selected = e.target.checked;
       else return;
       this._stale = true;
       this._refresh();
     });
     this._refresh();
+    this._syncScope();
+  }
+
+  /** Names the selected value on the option, and turns it off when nothing is selected */
+  _syncScope() {
+    const label = this.$('#sgScope');
+    if (!label) return;
+    const p = Structra.state.currentPath;
+    const usable = !!p && p !== '$';
+    label.textContent = usable ? 'Only the selected value (' + p.replace(/^\$\.?/, '') + ')' : 'Only the selected value (select one in the Tree)';
+    const box = this.$('[data-action="selected"]');
+    box.disabled = !usable;
+    if (!usable && this._selected) { this._selected = false; box.checked = false; this._stale = true; this._refresh(); }
   }
 
   _refresh() {
     if (!this._mounted || !this._visible() || !this._stale) return;
     this._stale = false;
     const out = this.$('#sgOutput');
-    const data = Structra.state.jsonData;
+    let data = Structra.state.jsonData;
+    if (data && this._selected && Structra.state.currentPath) {
+      const part = Structra.paths.resolve(data, Structra.state.currentPath);
+      if (part !== undefined) data = part;
+    }
     if (!out) return;
     if (!data) {
       out.dataset.schema = '';

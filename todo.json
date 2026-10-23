@@ -1375,37 +1375,37 @@
         {
           "id": "14.4",
           "title": "Light themes (Structra Light, Paper, Power Platform): muted labels (Size, Values, Keys, Rows:, the + tab button) measure 4.3:1, just under the 4.5:1 AA limit; darken the muted text colour",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.5",
           "title": "Light themes: the grey null value in the Table and Tree is only 2.7 to 3.5:1, so empty cells are hard to read; darken the null colour (keep it distinct from normal text)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.6",
           "title": "Light themes: the 'true' badge text is 4.0 to 4.4:1 and the active tab text in Paper is 4.45:1; raise both to 4.5:1 or more",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.7",
           "title": "Midnight theme: the rail and the header are the same colour as the page (1.06:1) with no border, so they do not read as separate areas; add a border or lift the surface colour",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.8",
           "title": "Phone width (390 px): the path bar, the Editor tab, the rail's Query, Transform and Power buttons and the Commands button are cut off and the page has no narrow layout; at least turn the rail into a bottom bar and let the view tabs scroll",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.9",
           "title": "Laptop height (1366x700): the Analyze drawer (which repeats the Overview numbers) takes about 40 percent of the height, and with the Query and Node panels open the Tree is about 410 px tall and 830 px wide; start the drawer folded in Tree and Table, and let it open on demand",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.10",
           "title": "Graph: the new fit-to-view makes a three-record SharePoint graph 17 percent in size, so no text can be read; fit to width with a lowest readable zoom (about 55 percent) and let the rest scroll, or open with the deeper levels collapsed",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.11",
@@ -1445,12 +1445,12 @@
         {
           "id": "14.18",
           "title": "Small targets under 24 px: the SQL chip (67x20), the pager buttons (22x21, 26x21), the + tab button and the path input (17 px high); enlarge to at least 24 px high",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.19",
           "title": "Clicking Power while the Editor is open switches the drawer to Expressions and says 'Select a path in the tree', but the Editor has no tree selection; switch to the Tree first, or explain",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.20",
@@ -1465,12 +1465,12 @@
         {
           "id": "14.22",
           "title": "CSV: a price written \"1,200.00\" stays text while the other prices are numbers, and the Field Profiler still calls Price a number with a largest value of 10; show the column as mixed, flag the text value, and read thousands separators",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.23",
           "title": "CSV numbers lose how they were written (2.50 shows as 2.5, 10.00 as 10), which looks wrong for money; keep a consistent number of decimals in a column",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.24",
@@ -1500,12 +1500,12 @@
         {
           "id": "14.29",
           "title": "Filter panel floats over the Table and covers the right-hand columns while filtering; dock it above the table or move the table down",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.30",
           "title": "Table pager shifts sideways when the 'filtered' chip appears, and column widths change; reserve the space for the chip",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.31",
@@ -1530,7 +1530,7 @@
         {
           "id": "14.35",
           "title": "Schema view marks every field 'required' in red, which looks like an error, shows 'any' for a field that is null, and has no Copy schema button (it is in the Schema Gen drawer tab); use calm styling, say 'text or empty', and add the copy button",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.36",
@@ -1550,7 +1550,7 @@
         {
           "id": "14.39",
           "title": "Overview tables: in Key coverage the 'Has a value' heading sits left while its percentages and bars sit far right, and column widths are uneven; align each heading with its column",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.40",
@@ -1565,7 +1565,7 @@
         {
           "id": "14.42",
           "title": "First visit shows three 'Open the sample' controls (Welcome dialog, empty-state button, link); keep one",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.43",
@@ -1605,12 +1605,12 @@
         {
           "id": "14.50",
           "title": "A field that holds JSON as text (the Payload in a Power Automate run output) shows as escaped text with no way to read it; add 'Parse this text as JSON' (opens it as its own tab or expands in place) and offer the json() expression for it",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.51",
           "title": "Drawer tabs such as Flow actions show only about one card at a time (the content area is ~150 px); add a maximise button on the drawer",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.52",
@@ -1665,7 +1665,7 @@
         {
           "id": "14.62",
           "title": "Workspace dialog: the file chooser is the plain browser control and the section titles use a different font from the other dialogs; style them like the rest",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.63",
@@ -1680,7 +1680,7 @@
         {
           "id": "14.65",
           "title": "Schema Gen covers the whole document only; add 'for the selected value' (for example only body), because the Parse JSON action usually receives one part of a response",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.66",
@@ -1735,12 +1735,12 @@
         {
           "id": "14.76",
           "title": "Table 'Split into columns' ticks every key, including system ones (@odata.type, Claims), so DisplayName and Email end up far to the right; use the same smart defaults as the Power Platform column chooser (system columns off) and write headers as 'Requester > Email'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.77",
           "title": "Power Platform commands run from the palette in the Table or Overview view say 'Select a path in the tree' (the Table has no selection); pick the main list automatically, or switch to the Tree and say so",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.78",
@@ -1750,7 +1750,7 @@
         {
           "id": "14.79",
           "title": "Snippets, Bookmarks and Recent are three ways to remember something with no explanation of what each is for; say so in each dialog's first line, or drop the Snippet Library from the main list of commands",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.80",
@@ -1870,7 +1870,7 @@
         {
           "id": "14.103",
           "title": "At 320 px wide the app is clipped with no way to reach the cut-off part (no sideways scroll, no Commands button, the rest of the Overview cannot be read); minimum supported width should be handled with a stacked layout or a sideways scroll",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.104",

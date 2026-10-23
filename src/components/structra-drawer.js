@@ -36,6 +36,9 @@ class StructraDrawer extends StructraElement {
       this.hidden = !d.value;
       if (d.value && this._stateIdx === 0 && Structra.state.activeView === 'overview' && analyzeOpen()) {
         this._autoFolded = true;                    // stays folded on the Overview, opens when another view is chosen
+      } else if (d.value && this._stateIdx === 0 && window.innerHeight <= 700) {
+        // A short laptop screen keeps the panel folded: the Tree and Table get the height, and the tabs open it on demand
+        this._autoFolded = false;
       } else if (d.value && this._stateIdx === 0) {
         Structra.log.debug('Drawer', 'Data loaded — expanding to medium');
         this._stateIdx = 1;
@@ -65,6 +68,7 @@ class StructraDrawer extends StructraElement {
         <div class="tabs drawer-tabs" role="tablist" aria-label="Panels">
           ${tabs.map((t, i) => `<button class="tab ${i === 0 ? 'active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-tab="${t.id}">${t.label}</button>`).join('')}
         </div>
+        <button class="drawer-max" type="button" data-action="maximise" aria-label="Make the panel taller" title="Make the panel taller or smaller">${Structra.icons.svg('maximize-2', { size: 14 })}</button>
       </div>
       <div class="drawer-body">
         ${tabs.map((t, i) => `<div class="drawer-panel ${i === 0 ? 'active' : ''}" data-panel="${t.id}" id="dp-${t.id}">${panelTag[t.id] ? `<${panelTag[t.id]}></${panelTag[t.id]}>` : ''}</div>`).join('')}
@@ -75,6 +79,14 @@ class StructraDrawer extends StructraElement {
     this._initResize();
 
     this.addEventListener('click', (e) => {
+      if (e.target.closest('[data-action="maximise"]')) {
+        const states = Structra.constants.DRAWER_STATES;
+        this.classList.remove('resizing'); this.style.height = '';
+        this._stateIdx = this._stateIdx === 2 ? 1 : 2;
+        Structra.set('drawerState', states[this._stateIdx]);
+        this._applyState();
+        return;
+      }
       if (e.target.closest('[data-action="cycle"]')) {
         this._cycle();
         return;

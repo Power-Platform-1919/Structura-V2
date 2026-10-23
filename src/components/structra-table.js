@@ -483,7 +483,7 @@ class StructraTable extends StructraElement {
       let cells = '';
       for (let k = 0; k < visibleKeys.length; k++) {
         const v = r ? r[visibleKeys[k]] : undefined;
-        cells += `<td${this._numericCols && this._numericCols.has(visibleKeys[k]) ? ' class="num"' : ''}>${this._formatCell(v)}</td>`;
+        cells += `<td${this._numericCols && this._numericCols.has(visibleKeys[k]) ? ' class="num"' : ''}>${this._formatCell(v, visibleKeys[k])}</td>`;
       }
       html += path ? `<tr data-path="${Structra.util.esc(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
     }
@@ -523,8 +523,14 @@ class StructraTable extends StructraElement {
 
   /* _collectKeys and _findFirstArray removed — use Structra.engine.collectKeys() and Structra.engine.findFirstObjectArray() */
 
-  _formatCell(val) {
+  _formatCell(val, key) {
     if (val === null || val === undefined) return '<span class="tree-null" title="No value">empty</span>';
+    // A column written with decimals (prices) keeps them: 2.50 stays 2.50
+    if (typeof val === 'number' && key) {
+      const tab = (Structra.tabs.list || []).find((t) => t.id === Structra.tabs.activeId);
+      const places = tab && tab.decimals && tab.decimals[key];
+      if (places) return val.toLocaleString(undefined, { minimumFractionDigits: places, maximumFractionDigits: places, useGrouping: false });
+    }
     if (typeof val === 'boolean') return `<span class="bool-badge ${val ? 'bool-true' : 'bool-false'}">${val}</span>`;
     if (typeof val === 'object') return this._formatNested(val);
     const s = String(val);
@@ -770,15 +776,18 @@ class StructraTable extends StructraElement {
       if (!v || typeof v !== 'object' || Array.isArray(v)) continue;
       for (const k of Object.keys(v)) freq.set(k, (freq.get(k) || 0) + 1);
     }
-    const keys = [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
+    // System keys (@odata.type, Claims, ItemInternalId) go last and start unticked, so the useful ones come first
+    const isSystem = (k) => /^(@|__|odata\.|_x|Claims$|ItemInternalId$)/i.test(k);
+    const keys = [...freq.entries()].sort((a, b) => (isSystem(a[0]) - isSystem(b[0])) || (b[1] - a[1])).map(([k]) => k);
     if (!keys.length) { Structra.toast('No keys to expand in this column'); return; }
+    const ticked = new Set(keys.filter((k) => !isSystem(k)).slice(0, 12));
 
     const box = document.createElement('div');
     box.className = 'col-pick';
     box.innerHTML = `
       <div class="col-pick-title">Expand "${Structra.util.esc(col)}" into columns</div>
       <div class="col-pick-list">${keys.slice(0, 60).map((k, i) =>
-        `<label class="col-pick-item"><input type="checkbox" value="${Structra.util.esc(k)}" ${i < 12 ? 'checked' : ''}> ${Structra.util.esc(k)}</label>`).join('')}</div>
+        `<label class="col-pick-item"><input type="checkbox" value="${Structra.util.esc(k)}" ${ticked.has(k) ? 'checked' : ''}> ${Structra.util.esc(k)}${isSystem(k) ? ' <span class="col-pick-sys">system</span>' : ''}</label>`).join('')}</div>
       ${keys.length > 60 ? `<div class="col-pick-note">Showing the 60 most common of ${keys.length} keys</div>` : ''}
       <div class="col-pick-actions">
         <button class="btn btn-primary" data-pick="ok">Expand</button>

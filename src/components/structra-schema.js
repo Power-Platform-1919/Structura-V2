@@ -26,10 +26,11 @@ class StructraSchema extends StructraElement {
   }
 
   render() {
-    this.innerHTML = '<div class="schema-container" id="schemaContainer"></div>';
+    this.innerHTML = '<div class="schema-bar"><span class="schema-hint">Every field the file has. Click one to see its expressions.</span><button class="btn btn-sm" type="button" data-schema-copy title="Copy this as a JSON Schema, ready for the Parse JSON action">Copy schema</button></div><div class="schema-container" id="schemaContainer"></div>';
     this.renderSchema();
     // A field is a place in the document: click it to see its expressions, like a node in the Tree
     this.addEventListener('click', (e) => {
+      if (e.target.closest('[data-schema-copy]')) { if (this._schema) Structra.util.copy(JSON.stringify(this._schema, null, 2), 'Schema copied'); return; }
       const line = e.target.closest('.s-line');
       if (!line || !line.dataset.path || line.dataset.path === '$') return;
       this.querySelectorAll('.s-line.selected').forEach((l) => l.classList.remove('selected'));
@@ -53,6 +54,7 @@ class StructraSchema extends StructraElement {
     // The same schema the Schema Gen tab copies, so the two never disagree: every record is read,
     // a field that is sometimes empty is "string | null", and a field present in every record is "required"
     const schema = Structra.schemaGen.smart(data, { integers: true, required: true });
+    this._schema = schema;
     const lines = [];
     this._collect(schema, 'root', 0, false, lines);
 
@@ -63,7 +65,7 @@ class StructraSchema extends StructraElement {
       const types = l.types.map((t) => `<span class="s-type${t === 'null' ? ' s-null' : ''}">${Structra.util.esc(t)}</span>`).join('<span class="s-or"> | </span>');
       return `<div class="s-line" data-path="${Structra.util.esc(l.path)}" style="padding-left:${l.depth * 16}px">` +
         `<span class="s-key">${Structra.util.esc(l.key)}</span>: ${types}` +
-        (l.required ? ' <span class="s-req">required</span>' : '') +
+        (l.required ? ' <span class="s-req" title="This field is in every record">required</span>' : '') +
         (nullable ? '' : '') +
         `</div>`;
     }).join('') + (lines.length > MAX ? `<div class="s-more">${(lines.length - MAX).toLocaleString()} more fields are not shown. Copy the schema from the Schema Gen tab to get all of it.</div>` : '');
@@ -81,7 +83,7 @@ class StructraSchema extends StructraElement {
       if (Array.isArray(n.anyOf)) n.anyOf.forEach(read);
     };
     read(node);
-    return out.length ? out : ['any'];
+    return out.length ? out : ['empty'];
   }
 
   /** Flatten a JSON Schema into display lines: { key, types, depth, required, path } */

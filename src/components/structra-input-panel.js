@@ -85,7 +85,6 @@ class StructraInputPanel extends StructraElement {
         <textarea class="io-textarea" data-role="paste-input" placeholder="Paste JSON, CSV, XML, YAML or TOML here" spellcheck="false"></textarea>
         <div class="io-actions">
           <button class="io-btn-go" data-action="parse-text">${Structra.icons.svg('play', { size: 14 })} Open <kbd class="io-kbd">Ctrl+Enter</kbd></button>
-          <button class="io-btn-sec" data-action="sample">Open the sample</button>
         </div>
       </div>
 
@@ -314,7 +313,11 @@ class StructraInputPanel extends StructraElement {
 
     const deep = (Structra.parseNotes && Structra.parseNotes.deepest) || 0;
     const big = (Structra.parseNotes && Structra.parseNotes.bigNumbers) || 0;
-    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : '') + (deep ? `. It is nested ${deep.toLocaleString()} levels deep: only the first 200 levels are shown.` : ''));
+    const notes = Structra.parseNotes || {};
+    const mixedCols = Object.entries(notes.mixed || {});
+    const csvTab = (Structra.tabs.list || []).find((t) => t.id === Structra.tabs.activeId);
+    if (csvTab) csvTab.decimals = notes.decimals || null;
+    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : '') + (mixedCols.length ? `. ${mixedCols[0][0]} has text among its numbers (row ${mixedCols[0][1].row}: "${String(mixedCols[0][1].value).slice(0, 20)}")` + (mixedCols.length > 1 ? ` and ${mixedCols.length - 1} more column${mixedCols.length > 2 ? 's' : ''}` : '') : '') + (deep ? `. It is nested ${deep.toLocaleString()} levels deep: only the first 200 levels are shown.` : ''));
     Structra.parseNotes = {};
     // Auto-hide overlay wrapper if present
     const overlay = this.closest('.io-overlay');
@@ -451,6 +454,7 @@ class StructraInputPanel extends StructraElement {
           Structra.toast('CSV parsed with ' + result.errors.length + ' warning(s)');
         }
         data = result.data;
+        Structra.parseNotes = Object.assign(Structra.parseNotes || {}, { decimals: (result.meta && result.meta.decimals) || {}, mixed: (result.meta && result.meta.mixed) || {} });
         name = name + ' (' + result.data.length + ' rows)';
         break;
       }

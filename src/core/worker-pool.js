@@ -322,8 +322,10 @@ Structra.parseCsvAsync = function(text, options) {
   }).catch(function(err) {
     if (typeof Papa !== 'undefined' && err.message && err.message.indexOf('Worker failed') !== -1) {
       Structra.log.info('WorkerPool', 'CSV sync fallback');
-      var config = Object.assign({ header: true, skipEmptyLines: true, dynamicTyping: true }, options || {});
+      var config = Object.assign({ header: true, skipEmptyLines: true, dynamicTyping: false }, options || {});
       var result = Papa.parse(text, config);
+      var typed = csvRetype(result.data, result.meta.fields);
+      result.meta.decimals = typed.decimals; result.meta.mixed = typed.mixed;
       Structra.log.perf('WorkerPool', 'CSV parse sync (' + result.data.length + ' rows)', performance.now() - t0);
       return { data: result.data, meta: result.meta, errors: result.errors || [] };
     }

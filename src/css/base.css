@@ -201,6 +201,7 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
+  min-height: 24px;
   padding: 1px var(--sp-2);
   border-radius: var(--radius-full);
   background: var(--surface-alt);

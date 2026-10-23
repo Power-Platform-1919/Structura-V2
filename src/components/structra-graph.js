@@ -195,7 +195,7 @@ class StructraGraph extends StructraElement {
     const c = this._containerEl;
     if (!this._needsFit || !c || !c.clientWidth || !c.clientHeight) return;
     this._needsFit = false;
-    this._zoomToFit(1);
+    this._zoomToFit(1, 0.55);        // opening never shrinks below a readable 55 percent: the rest scrolls
   }
 
   _drawEdges(g, node) {
@@ -350,7 +350,7 @@ class StructraGraph extends StructraElement {
   _zoomOut() { this._userMoved = true; const C = StructraGraph; this._scale = Math.max(C.ZOOM_MIN, this._scale - C.ZOOM_STEP); this._updateTransform(); }
   _zoomReset() { this._userMoved = true; this._scale = 1; this._panX = 20; this._panY = 20; this._updateTransform(); }
 
-  _zoomToFit(maxScale) {
+  _zoomToFit(maxScale, readableFloor) {
     const C = StructraGraph;
     const container = this._containerEl;
     if (!container || !this._treeBounds) return;
@@ -359,9 +359,10 @@ class StructraGraph extends StructraElement {
     const contentH = this._treeBounds.my + C.NODE_H + 40;
     if (!contentW || !contentH) return;
     const scaleX = cw / contentW, scaleY = ch / contentH;
-    this._scale = Math.max(C.ZOOM_MIN, Math.min(maxScale || C.ZOOM_MAX, Math.min(scaleX, scaleY) * 0.9));
-    this._panX = (cw - contentW * this._scale) / 2;
-    this._panY = (ch - contentH * this._scale) / 2;
+    this._scale = Math.max(readableFloor || C.ZOOM_MIN, C.ZOOM_MIN, Math.min(maxScale || C.ZOOM_MAX, Math.min(scaleX, scaleY) * 0.9));
+    // Content larger than the view starts at its top left; smaller content is centred
+    this._panX = contentW * this._scale > cw ? 20 : (cw - contentW * this._scale) / 2;
+    this._panY = contentH * this._scale > ch ? 20 : (ch - contentH * this._scale) / 2;
     this._updateTransform();
   }
 

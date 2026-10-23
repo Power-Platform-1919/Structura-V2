@@ -6,7 +6,7 @@
  * Only runs as a Worker (not loaded via <script> in main thread).
  * On file://, CSV parsing uses sync fallback with Papa on main thread.
  */
-importScripts('../libs/papaparse.min.js');
+importScripts('../libs/papaparse.min.js', '../libs/csv-typing.js');
 
 self.addEventListener('message', function(e) {
   var id = e.data.id, text = e.data.text, options = e.data.options;
@@ -34,11 +34,12 @@ self.addEventListener('message', function(e) {
     var config = Object.assign({
       header: true,
       skipEmptyLines: true,
-      dynamicTyping: true
+      dynamicTyping: false          // typed afterwards by csvRetype, which reads "1,200.00" and keeps decimals
     }, options || {});
 
     var t0 = performance.now();
     var result = Papa.parse(text, config);
+    var typed = csvRetype(result.data, result.meta.fields);
     var elapsed = (performance.now() - t0).toFixed(1);
 
     if (result.errors.length > 0 && result.data.length === 0) {
@@ -58,7 +59,9 @@ self.addEventListener('message', function(e) {
         fields: result.meta.fields || [],
         rows: result.data.length,
         errors: result.errors.length,
-        truncated: result.meta.truncated || false
+        truncated: result.meta.truncated || false,
+        decimals: typed.decimals,
+        mixed: typed.mixed
       },
       errors: result.errors.length > 0 ? result.errors.slice(0, 10) : []
     });

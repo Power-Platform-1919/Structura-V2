@@ -338,7 +338,12 @@ class StructraCommand extends StructraElement {
       case 'pp-copy-fx': {
         const path = Structra.state.currentPath;
         const value = Structra.paths.resolve(Structra.state.jsonData, path);
-        if (!path || path === '$') { Structra.toast('Select a value first'); return; }
+        if (!path || path === '$') {
+          // The Table and Overview have no selected value: the Tree is where one is picked
+          if (Structra.state.activeView !== 'tree') Structra.set('activeView', 'tree');
+          Structra.toast('Select a value in the Tree, then run this again');
+          return;
+        }
         const rows = Structra.expressions.quick(path, value).filter((r) => r.app === (cmdId === 'pp-copy-pa' ? 'Power Automate' : 'Power Fx'));
         if (rows[0]) Structra.util.copy(rows[0].code, rows[0].label + ' copied');
         break;
