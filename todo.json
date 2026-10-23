@@ -1636,6 +1636,56 @@
           "id": "14.56",
           "title": "Diff has no legend for its colours (green added, orange changed, red removed); add a small key next to the counts",
           "status": "todo"
+        },
+        {
+          "id": "14.57",
+          "title": "Export as CSV on a document whose list is not at the top level (orders under \"orders\") writes the whole JSON into orders.csv and says 'CSV downloaded'; Excel then opens JSON text. Export the main list as rows (nested lists as extra columns or joined text), or say it cannot",
+          "status": "todo"
+        },
+        {
+          "id": "14.58",
+          "title": "XML export of an empty list leaves a blank line inside the tag (<items>, blank, </items>) and names every list element <item>; write <items/> and use a singular name where possible",
+          "status": "todo"
+        },
+        {
+          "id": "14.59",
+          "title": "Switching to a 30,000-row tab freezes the page for about 6 seconds (a small tab takes 0.8 s); keep each tab's views and draw lazily, or show a busy message",
+          "status": "todo"
+        },
+        {
+          "id": "14.60",
+          "title": "Validate against a JSON Schema lists 70,000 separate problems (200 shown), one per row; group by problem ('amount should be text: 30,000 rows') with a count and one example, and show the allowed values for an enum",
+          "status": "todo"
+        },
+        {
+          "id": "14.61",
+          "title": "Table pager on a large file says '30,000 rows (virtual scroll)' but still shows the 25/50/100 buttons and arrows; hide what does not apply and say '30,000 rows'",
+          "status": "todo"
+        },
+        {
+          "id": "14.62",
+          "title": "Workspace dialog: the file chooser is the plain browser control and the section titles use a different font from the other dialogs; style them like the rest",
+          "status": "todo"
+        },
+        {
+          "id": "14.63",
+          "title": "There is a hard limit of 8 tabs with the short message 'Max 8 tabs' (also when Generate Mock Data tries to open one); say 'Close a tab to open another', or raise the limit",
+          "status": "todo"
+        },
+        {
+          "id": "14.64",
+          "title": "Tree level buttons 1, 2, 3 have no group label, and after Collapse the selected node named in the path bar and breadcrumb is hidden in the tree; label the group 'Levels' and reveal or say so",
+          "status": "todo"
+        },
+        {
+          "id": "14.65",
+          "title": "Schema Gen covers the whole document only; add 'for the selected value' (for example only body), because the Parse JSON action usually receives one part of a response",
+          "status": "todo"
+        },
+        {
+          "id": "14.66",
+          "title": "The path bar shows '$' when nothing is selected instead of its hint text 'Click an element or type a path'",
+          "status": "todo"
         }
       ]
     }
