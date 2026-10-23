@@ -2073,3 +2073,7 @@ structra-schemagen {
 .th-name { white-space: normal; overflow-wrap: anywhere; }
 
 .tb-group-label { font-size: var(--fs-xs); color: var(--text-muted); padding: 0 var(--sp-1); align-self: center; }
+
+.qp-advanced { margin-top: var(--sp-3); }
+.qp-advanced summary { cursor: pointer; color: var(--text-muted); font-size: var(--fs-sm); padding: var(--sp-1) 0; }
+.qp-pivot { margin: var(--sp-2) 0; }

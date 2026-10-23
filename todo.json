@@ -1455,12 +1455,12 @@
         {
           "id": "14.20",
           "title": "Overview 'Worth a look' uses a red warning triangle for ordinary nulls (Notes: 67% null); use a calmer icon and colour for 'expected, good to know' and keep red for things that break a flow",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.21",
           "title": "Opening a new document keeps the previous document's Overview scroll position: a pasted CSV opened scrolled to the middle of the page, hiding the headline; reset the scroll for each document and tab",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.22",
@@ -1485,17 +1485,17 @@
         {
           "id": "14.26",
           "title": "Pivot is reachable only through the command palette (Ctrl K, type pivot): there is no button in the rail, the Transform panel or the toolbar, although group and total is a core business job; add an entry in the Transform panel",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.27",
           "title": "Transform preset 'Group by Region' shows raw JSON with whole rows in a narrow panel, not a summary; presets like Count by and Total by should return a small table and open it in the Table view",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.28",
           "title": "Transform text box asks for code ('groupBy(x => x?.Region)', 'Steps joined with |'); keep the chips as the main path and put the code box under 'Advanced'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.29",
@@ -1520,7 +1520,7 @@
         {
           "id": "14.33",
           "title": "Editor error for 'Alice' , reads: Unexpected token '', \"'Alice' ,\" is not valid JSON; say what and where in plain words (line 1: text needs double quotes)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.34",
@@ -1545,7 +1545,7 @@
         {
           "id": "14.38",
           "title": "Null and Empty Finder opens empty and needs a Scan click, offers 'zero' and 'false' (which are not null or empty) and 'missing keys'; scan on open and use plain words",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.39",
@@ -1825,7 +1825,7 @@
         {
           "id": "14.94",
           "title": "Overview warnings such as 'status: only 0% unique' and 'notes: only 0% unique' are raised for ordinary repeated values (a Status column has three values by design), and the data quality score drops to 76 because of 'Uniqueness 2%'; raise uniqueness only for columns that look like identifiers and say 'status has 3 different values'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.95",

@@ -63,8 +63,12 @@ class StructraQuery extends StructraElement {
       </div>
       <div class="qp-tab-body" id="qpTransformBody" hidden>
         <div class="qp-transform-presets" id="transformPresets"></div>
-        <textarea class="qp-input" id="transformInput" spellcheck="false" placeholder="jq-style expression: .[] | select(.active) | .name"></textarea>
-        <button class="btn btn-primary qp-run" type="button" data-action="runTransform">Run transform</button>
+        <button class="btn qp-pivot" type="button" data-action="openPivot" title="Group the rows and total or count a column, like a pivot table">${Structra.icons.svg('table-properties', { size: 14 })} Group and total (Pivot)</button>
+        <details class="qp-advanced" id="qpAdvanced">
+          <summary>Advanced: write your own steps</summary>
+          <textarea class="qp-input" id="transformInput" spellcheck="false" placeholder="jq-style expression: .[] | select(.active) | .name"></textarea>
+          <button class="btn btn-primary qp-run" type="button" data-action="runTransform">Run transform</button>
+        </details>
       </div>
       <div class="qp-results" id="queryResults">
         <div class="qp-summary">Type a query and press Run</div>
@@ -92,9 +96,11 @@ class StructraQuery extends StructraElement {
       }
       const hit = e.target.closest('.qp-result[data-path]');
       if (hit) { this._showMatch(hit.dataset.path); return; }
+      if (e.target.closest('[data-action="openPivot"]')) { Structra.events.emit('pivot:open'); return; }
       const preset = e.target.closest('[data-preset]');
       if (preset) {
         this.$('#transformInput').value = preset.dataset.preset;
+        this._runTransform();                       // a preset is a ready-made answer: it runs at once
         return;
       }
       const mode = e.target.closest('[data-mode]');

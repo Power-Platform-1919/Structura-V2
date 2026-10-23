@@ -97,6 +97,41 @@ function serve() {
     const sc = (await text('structra-shortcuts')).join(' ');
     if (!/Zoom in/.test(sc) || !/Zoom out/.test(sc) || !/Reset zoom/.test(sc) || /Ctrl\+- zooms/.test(sc)) failures.push('shortcuts should list Zoom in, Zoom out and Reset zoom as rows');
     await page.keyboard.press('Escape');
+
+    // Overview: an empty value is calm (info), and a Status column is not "only 0% unique"
+    await closeAll();
+    const recs = Array.from({ length: 40 }, (_, i) => ({ id: 'r' + i, status: ['Open', 'Closed', 'Hold'][i % 3], notes: i % 3 === 0 ? 'x' : null }));
+    await load('recs.json', JSON.stringify(recs));
+    await page.evaluate(() => Structra.set('activeView', 'overview'));
+    await page.waitForTimeout(800);
+    const finds = await page.evaluate(() => [...document.querySelectorAll('.ovw-find')].map((b) => ({ cls: b.className, text: b.textContent.replace(/\s+/g, ' ').trim() })));
+    if (finds.some((f) => /unique/.test(f.text) && /status/i.test(f.text))) failures.push('a Status column should not be flagged as not unique: ' + JSON.stringify(finds));
+    const notes = finds.find((f) => /notes/.test(f.text));
+    if (notes && /sev-(high|med)/.test(notes.cls)) failures.push('empty values should be a calm note, not a warning: ' + notes.cls);
+
+    // Null finder scans when opened and has no zero or false options
+    await page.evaluate(() => Structra.events.emit('nullfinder:open'));
+    await page.waitForTimeout(600);
+    const nf = await page.evaluate(() => ({ items: document.querySelectorAll('#nfResults .nf-item').length, zero: !!document.querySelector('#nfZero') }));
+    if (!nf.items) failures.push('the Null finder should list results as soon as it opens');
+    if (nf.zero) failures.push('the Null finder should not offer zero or false');
+    await page.keyboard.press('Escape');
+
+    // Transform: a Pivot entry, and the code box is under Advanced
+    await page.evaluate(() => Structra.set('queryPanelOpen', true));
+    await page.locator('[data-qtab="transform"]').click();
+    const tr = await page.evaluate(() => ({ pivot: !!document.querySelector('[data-action="openPivot"]'), boxVisible: document.querySelector('#qpAdvanced').open }));
+    if (!tr.pivot) failures.push('the Transform panel should offer Pivot');
+    if (tr.boxVisible) failures.push('the code box should be folded under Advanced');
+    await page.evaluate(() => Structra.set('queryPanelOpen', false));
+
+    // Editor: an error in plain words
+    await page.evaluate(() => Structra.set('activeView', 'editor'));
+    await page.waitForTimeout(400);
+    await page.locator('#editorArea').evaluate((ta) => { ta.value = "{ 'a': 1 }"; ta.dispatchEvent(new Event('input')); });
+    await page.waitForTimeout(500);
+    const est = await page.evaluate(() => document.querySelector('#edStatus').textContent.trim());
+    if (!/double quotes/.test(est) || /Unexpected token/.test(est)) failures.push('the Editor error should say in plain words that text needs double quotes: ' + est);
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));
   }

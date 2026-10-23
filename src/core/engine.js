@@ -1581,7 +1581,9 @@ Structra.engine = (() => {
     }).length;
     const consistency = (consistentCount / fields.length) * 100;
 
-    const uniqFields = fields.filter(f => f.primaryType === 'string' || f.primaryType === 'number');
+    // Only a column that is meant to differ in every record (an id, a key, an email) is judged on being unique: a Status has three values by design
+    const idLike = (k) => /(^|[^a-z])(id|guid|uuid|key|code|ref|reference|number|email|sku)$|id$/i.test(String(k).split('.').pop());
+    const uniqFields = fields.filter(f => (f.primaryType === 'string' || f.primaryType === 'number') && idLike(f.key));
     const uniqueness = uniqFields.length > 0
       ? uniqFields.reduce((s, f) => s + parseFloat(f.uniquePct), 0) / uniqFields.length
       : 100;
@@ -1594,8 +1596,8 @@ Structra.engine = (() => {
       if (np >= 30) issues.push({ field: f.key, msg: `${np}% null`, severity: np >= 60 ? 'high' : 'med' });
       const typeKeys = Object.keys(f.types).filter(t => t !== 'null');
       if (typeKeys.length > 1) issues.push({ field: f.key, msg: `mixed types (${typeKeys.join(', ')})`, severity: 'high' });
-      if (f.primaryType === 'string' && parseFloat(f.uniquePct) < 5 && parseFloat(f.coverage) > 50) {
-        issues.push({ field: f.key, msg: `only ${f.uniquePct}% unique`, severity: 'med' });
+      if (idLike(f.key) && (f.primaryType === 'string' || f.primaryType === 'number') && parseFloat(f.uniquePct) < 90 && parseFloat(f.coverage) > 50) {
+        issues.push({ field: f.key, msg: `repeats: only ${f.uniquePct}% of its values are different, but it looks like an identifier`, severity: 'med' });
       }
     }
     issues.sort((a, b) => (a.severity === 'high' ? 0 : 1) - (b.severity === 'high' ? 0 : 1));

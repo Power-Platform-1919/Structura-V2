@@ -68,7 +68,8 @@ Structra.insights = (() => {
       for (const issue of profile.quality.issues) {
         const empty = /null|empty|missing/i.test(issue.msg);
         findings.push({
-          severity: issue.severity === 'high' ? 'high' : 'med',
+          // An empty value is good to know, not an error: red is kept for what breaks a flow
+          severity: empty ? 'info' : issue.severity === 'high' ? 'high' : 'med',
           title: `${issue.field}: ${issue.msg}`,
           // Say what to do about it: in a flow an empty value breaks an expression that does not expect it
           detail: (firstArr ? `In the records of ${readable(firstArr.path)}. ` : '')

@@ -62,7 +62,7 @@ function serve() {
       if (presets.length < 2) failures.push(`${file}: only ${presets.length} preset(s) were offered`);
 
       for (const p of presets) {
-        await page.evaluate((expr) => { document.querySelector('#transformInput').value = expr; }, p.expr);
+        await page.evaluate((expr) => { document.querySelector('#qpAdvanced').open = true; document.querySelector('#transformInput').value = expr; }, p.expr);
         await page.locator('[data-action="runTransform"]').click();
         await page.waitForTimeout(150);
         const out = await page.evaluate(() => (document.querySelector('#queryResults .qp-summary') || {}).textContent || '');

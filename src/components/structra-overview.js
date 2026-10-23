@@ -25,15 +25,18 @@ class StructraOverview extends StructraElement {
     this.on('state:jsonData', () => {
       this._stale = true;
       this._drillStack = [];
+      this._toTop();
       if (Structra.state.activeView === 'overview') this.renderStats();
     });
     this.on('view:switched', (view) => {
       if (view === 'overview' && this._stale) this.renderStats();
     });
+    this.on('tabs:switched', () => this._toTop());
     this.on('state:duplicateKeys', () => { if (Structra.state.activeView === 'overview' && this._insights) this.renderStats(); });
     this.on('engine:ingested', () => {
       this._stale = true;
       this._drillStack = [];
+      this._toTop();
       if (Structra.state.activeView === 'overview') this.renderStats();
     });
   }
@@ -50,6 +53,12 @@ class StructraOverview extends StructraElement {
   /* ====================================================
      RENDER
      ==================================================== */
+
+  /** A new document starts at its headline, not where the last one was scrolled to */
+  _toTop() {
+    for (let el = this; el; el = el.parentElement) { if (el.scrollTop) el.scrollTop = 0; if (el.classList && el.classList.contains('view-panel')) break; }
+    const c = this.$('#statsContainer'); if (c) c.scrollTop = 0;
+  }
 
   async renderStats() {
     this._stale = false;

@@ -20,7 +20,7 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/ja
 // The first-run welcome dialog opens a moment after load and would cover the page: tests start as a returning visitor
 async function newCtx(browser, options) {
   const ctx = await browser.newContext(options);
-  await ctx.addInitScript(() => { try { localStorage.setItem('structra.welcomeSeen', '1'); } catch { /* storage blocked */ } });
+  await ctx.addInitScript(() => { try { localStorage.setItem('structra.welcomeSeen', '1'); localStorage.setItem('structra.tipExpressions', '1'); } catch { /* storage blocked */ } });
   return ctx;
 }
 

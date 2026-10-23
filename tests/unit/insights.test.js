@@ -33,7 +33,7 @@ test('empty documents get plain wording', () => {
 });
 test('quality issues become findings with a jump to the table', () => {
   const f = I.build({ analysis: analysisFor(), data: {} }).findings.find((x) => x.title.startsWith('note'));
-  eq(f.severity, 'high');
+  eq(f.severity, 'info');                       // an empty value is good to know, not an error
   eq(f.go, { view: 'table', column: 'note' });
 });
 test('repeated keys are the top finding', () => {

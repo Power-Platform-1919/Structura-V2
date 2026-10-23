@@ -11,20 +11,18 @@ class StructraNullfinder extends StructraOverlay {
     this._results = [];
     this._idx = -1;
 
-    this.on('nullfinder:open', () => this.open());
+    this.on('nullfinder:open', () => { this.open(); this._scan(); });
   }
 
   render() {
     this.mount({ title: 'Null & Empty Finder', size: 'md', body: `<div class="nf-options">
-          <label class="nf-opt"><input type="checkbox" id="nfNull" checked> null</label>
-          <label class="nf-opt"><input type="checkbox" id="nfEmpty" checked> empty string</label>
-          <label class="nf-opt" title="A key that other records in the same list have, and this one does not"><input type="checkbox" id="nfUndef" checked> missing keys</label>
-          <label class="nf-opt"><input type="checkbox" id="nfZero"> zero</label>
-          <label class="nf-opt"><input type="checkbox" id="nfFalse"> false</label>
-          <button class="btn btn-primary nf-scan-btn" data-action="scan">Scan</button>
+          <label class="nf-opt"><input type="checkbox" id="nfNull" checked> empty (null)</label>
+          <label class="nf-opt"><input type="checkbox" id="nfEmpty" checked> blank text</label>
+          <label class="nf-opt" title="A key that other records in the same list have, and this one does not"><input type="checkbox" id="nfUndef" checked> missing from some records</label>
+          <button class="btn nf-scan-btn" data-action="scan">Scan again</button>
         </div>
         <div class="nf-results" id="nfResults">
-          <div class="nf-placeholder">Click Scan to find null/empty values</div>
+          <div class="nf-placeholder">Looking for empty values…</div>
         </div>
         <div class="nf-nav" id="nfNav" style="display:none">
           <button class="nf-nav-btn" data-action="prev">${Structra.icons.svg('chevron-left', { size: 14 })} Previous</button>
@@ -62,8 +60,8 @@ class StructraNullfinder extends StructraOverlay {
       nulls: this.$('#nfNull').checked,
       empty: this.$('#nfEmpty').checked,
       undef: this.$('#nfUndef').checked,
-      zero: this.$('#nfZero').checked,
-      falsy: this.$('#nfFalse').checked,
+      zero: false,
+      falsy: false,
     };
     this._results = this._scanInMemory(data, opts);
     this._idx = -1;

@@ -156,6 +156,23 @@ class StructraEditor extends StructraElement {
     gutter.scrollTop = area.scrollTop;
   }
 
+  /** The parser's wording, said the way a maker would: what is wrong, not which token */
+  _plainReason(reason, text, at) {
+    const ch = at != null && text ? text[at] : '';
+    if (/Unexpected end of JSON|Unterminated string/i.test(reason)) return 'the text ends too early: a closing bracket or quote is missing';
+    if (/Expected property name|Expected double-quoted property name/i.test(reason)) return ch === "'" ? 'keys need double quotes, not single quotes' : 'a key is missing or needs double quotes (a trailing comma?)';
+    if (/Expected ',' or '[}\]]'|Expected ',' or/i.test(reason)) return 'a comma is missing between two items';
+    if (/Unexpected non-whitespace/i.test(reason)) return 'there is extra text after the end of the JSON';
+    if (/Unexpected token/i.test(reason) || /is not valid JSON/i.test(reason)) {
+      if (ch === "'") return "text needs double quotes (\"like this\"), not single quotes";
+      if (ch === ',') return 'a comma is not allowed here';
+      if (ch === '}' || ch === ']') return 'a closing bracket is in the wrong place';
+      if (ch === ':') return 'a colon is not allowed here';
+      if (/[A-Za-z]/.test(ch || '')) return 'text needs double quotes (\"like this\"), unless it is true, false or null';
+    }
+    return reason;
+  }
+
   async _validate() {
     const status = this.$('#edStatus');
     const area = this.$('#editorArea');
@@ -182,7 +199,7 @@ class StructraEditor extends StructraElement {
         where = `line ${lc[1]}, column ${lc[2]}`;
       }
       const reason = why.replace(/\s*in JSON at position.*$/i, '').replace(/\s*\(line.*\)$/i, '').replace(/^JSON\.parse:\s*/i, '').trim();
-      status.innerHTML = `${Structra.icons.svg('x', { size: 14, color: 'danger' })} ${Structra.util.esc(where ? `Line ${where.slice(5)}: ` : '')}${Structra.util.esc(reason.slice(0, 90))}`;
+      status.innerHTML = `${Structra.icons.svg('x', { size: 14, color: 'danger' })} ${Structra.util.esc(where ? `Line ${where.slice(5)}: ` : '')}${Structra.util.esc(this._plainReason(reason, area.value, this._errorAt).slice(0, 110))}`;
       status.className = 'ed-status error';
       status.disabled = this._errorAt == null;
       status.title = this._errorAt == null ? '' : 'Click to go to the problem';
