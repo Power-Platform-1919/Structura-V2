@@ -1761,6 +1761,76 @@
           "id": "14.81",
           "title": "Compare with two documents open does not offer the other open tab as a side (Left is 'Current Data', Right asks to paste JSON) and starts with two empty panes and a button already called 'Compare again'; add 'Another open tab' as a choice and explain what to do first",
           "status": "todo"
+        },
+        {
+          "id": "14.82",
+          "title": "SECURITY (confirmed): tab names are written into the page as HTML (structra-tabs.js writes ${t.label} unescaped). A script in a file name, in the name carried by a share link, or in a tab label inside a workspace file runs as soon as the document opens: opening a crafted share link ran the sender's code in the app (it could read the saved Recent files and snippets). Escape the label everywhere it is shown, and limit what a share link name may contain",
+          "status": "todo"
+        },
+        {
+          "id": "14.83",
+          "title": "A column named constructor, toString, valueOf or hasOwnProperty (and __proto__ in a top-level object) makes the document fail to open with no message at all: engine.buildColumnIndex keeps columns in a plain object and fails with \"Cannot read properties of undefined (reading 'add')\"; use Map or Object.create(null) throughout the engine, and show a message whenever opening fails",
+          "status": "todo"
+        },
+        {
+          "id": "14.84",
+          "title": "Large whole numbers lose digits without warning: 12345678901234567890 becomes 12345678901234567000, 9007199254740993 becomes 9007199254740992, 1.10 becomes 1.1, and 1e400 is null in the Editor but Infinity in the Tree (not valid JSON); Copy, exports and Apply then write the changed values (SharePoint and Dataverse IDs are often this large). Keep numbers exactly as written, and warn when a number cannot be held exactly",
+          "status": "todo"
+        },
+        {
+          "id": "14.85",
+          "title": "A binary file (PNG, PDF, Excel .xlsx, zip) opens as '95 records' of nonsense with 'Nothing unusual found' and a data quality score; detect binary content (NUL bytes, PNG, PK and %PDF signatures) and say 'This is an image / Excel workbook, not data. For Excel, use Save as CSV'",
+          "status": "todo"
+        },
+        {
+          "id": "14.86",
+          "title": "Deeply nested data freezes the page: 1,500 to 2,000 levels take 10 to 31 seconds to open, 18 s to draw the Tree and 12 s for the Overview, and the Schema view fails with 'Maximum call stack size exceeded'; set a depth limit (about 200 levels) with a clear message and walk the data without recursion",
+          "status": "todo"
+        },
+        {
+          "id": "14.87",
+          "title": "Pattern find and the Query Regex mode run on the page thread with no time limit: ^(a+)+$ on a 27-character value takes 2 seconds and doubles with every extra character, so a longer value freezes the tab for minutes; the Query Js mode (new Function) has the same problem with any loop and runs pasted code with access to saved data; run both in a worker with a time limit, and warn before running code",
+          "status": "todo"
+        },
+        {
+          "id": "14.88",
+          "title": "Workspace import writes unchecked values into saved data: snippets given as text and bookmarks given as an object are stored (the toast says 'undefined bookmarks, 9 snippets') and the next start of the Snippet Library fails with '_snippets.map is not a function'; validate types on import, and make every saved list check Array.isArray when read. Also: tabs given as text shows \"Cannot read properties of undefined (reading 'length')\", and a tab whose data is null makes an empty tab and says '1 tab opened'",
+          "status": "todo"
+        },
+        {
+          "id": "14.89",
+          "title": "Dropping several files at once opens only the first and says nothing about the rest; open each in its own tab (within the limit) or say 'Opened one.json. 2 other files were not opened'",
+          "status": "todo"
+        },
+        {
+          "id": "14.90",
+          "title": "Opening a share link has no cap on the unpacked size (the 30 KB limit is applied only when creating a link), so a small crafted link can expand to gigabytes and freeze or crash the tab; cap the unpacked size (for example 20 MB) and say so",
+          "status": "todo"
+        },
+        {
+          "id": "14.91",
+          "title": "With browser storage blocked (private windows, strict policies) parts of the app break: an unhandled 'denied' error follows opening a file, the Settings dialog cannot open, and zoom throws; wrap every storage read and write and keep working without saving",
+          "status": "todo"
+        },
+        {
+          "id": "14.92",
+          "title": "Starting SQL downloads DuckDB from cdn.jsdelivr.net (script, worker and about 30 MB of wasm) and its JSON extension from extensions.duckdb.org, although the app is described as local, and SQL cannot work offline or behind a firewall that blocks them; bundle DuckDB and the extension with the app, or say before starting what is downloaded and from where",
+          "status": "todo"
+        },
+        {
+          "id": "14.93",
+          "title": "NDJSON (JSON Lines, one object per line, a common export format) is rejected with 'This is not valid JSON', semicolon-separated CSV (Excel in many countries) is rejected the same way, and pasted HTML says 'This is not valid XML'; detect NDJSON and the CSV delimiter, and open them as a list",
+          "status": "todo"
+        },
+        {
+          "id": "14.94",
+          "title": "Overview warnings such as 'status: only 0% unique' and 'notes: only 0% unique' are raised for ordinary repeated values (a Status column has three values by design), and the data quality score drops to 76 because of 'Uniqueness 2%'; raise uniqueness only for columns that look like identifiers and say 'status has 3 different values'",
+          "status": "todo"
+        },
+        {
+          "id": "14.95",
+          "title": "Held up under attack (keep as regression checks): a 64 MB file with 400,000 records opens and sorts, filters and finds in under a second; opening and loading while switching tabs quickly is safe; theme import rejects script and CSS injection; a damaged share link gives a clear message; script in keys and values is escaped in every view (only names are not)",
+          "status": "done"
         }
       ]
     }
