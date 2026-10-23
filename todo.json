@@ -1425,7 +1425,7 @@
         {
           "id": "14.14",
           "title": "The same job is offered in more than one place under different names: Overview (rail, view tab, drawer button), Transform (rail and a tab inside Query), Power Platform expressions (Node panel and the Expressions drawer tab); decide one home for each and link to it from the others",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.15",
@@ -1435,7 +1435,7 @@
         {
           "id": "14.16",
           "title": "The selected path is shown in three places (path bar, Node panel header, status bar) and the Node panel offers 'Copy mock data', which has nothing to do with the selected value; keep two places and move mock data to the Transform or Tools menu",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.17",
@@ -1730,7 +1730,7 @@
         {
           "id": "14.75",
           "title": "After the Tree scrolls to a selected line, the first line is cut in half under the breadcrumb row (line 1 partly hidden)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.76",

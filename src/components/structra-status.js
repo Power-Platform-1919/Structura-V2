@@ -30,7 +30,7 @@ class StructraStatus extends StructraElement {
         <span class="st-duck-label" id="duckLabel">${duckState === 'ready' ? 'SQL ready' : 'SQL off'}</span>
       </button>
       <span style="flex:1"></span>
-      <span class="st-path" id="statusPath"></span>
+      <span class="st-path" id="statusPath" hidden></span>
       ${this._devTools() ? `<span class="st-sep"></span>
       <button class="st-log-toggle" id="logToggle" title="Developer: console log mode (click to cycle)">
         <span class="st-log-label" id="logLabel">${mode.toUpperCase()}</span>
@@ -111,7 +111,7 @@ class StructraStatus extends StructraElement {
   _updatePath() {
     const el = this.$('#statusPath');
     const path = Structra.state.currentPath;
-    if (el) el.textContent = path && path !== '$' ? path : '';
+    if (el) el.textContent = '';        // the path is in the path bar and the Node panel: not a third time here
   }
 
   _updateFile() {

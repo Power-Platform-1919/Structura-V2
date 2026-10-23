@@ -99,7 +99,6 @@ class StructraDrawerStats extends StructraElement {
 
     // Quick actions
     html += `<div class="ds-actions">
-      <button class="ds-action-btn" data-action="open-overview">Open Overview</button>
       <button class="ds-action-btn" data-action="open-profiler">Field Profiler ↗</button>
     </div>`;
 

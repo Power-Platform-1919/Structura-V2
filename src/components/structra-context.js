@@ -56,8 +56,7 @@ class StructraContext extends StructraElement {
             <button class="ctx-btn" data-action="copy-value" title="Copy this value as it is in the file">Copy value</button>
             <button class="ctx-btn" data-action="copy-path" title="Copy the path to this value">Copy path</button>
             <button class="ctx-btn" data-action="bookmark" title="Keep this place in the list of bookmarks (Ctrl+B)">Bookmark</button>
-            <button class="ctx-btn" data-action="find-value" title="Find every place this value appears">Find this value</button>
-            <button class="ctx-btn" data-action="mock" title="Copy made-up data with the same shape as this value">Copy mock data</button>
+            <button class="ctx-btn" data-action="find-value" title="Find every place this value appears">Find this value</button>
           </div>
         </div>
       </div>`;
