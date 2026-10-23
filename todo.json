@@ -1686,6 +1686,51 @@
           "id": "14.66",
           "title": "The path bar shows '$' when nothing is selected instead of its hint text 'Click an element or type a path'",
           "status": "todo"
+        },
+        {
+          "id": "14.67",
+          "title": "Tree has no keyboard navigation: Arrow keys, Enter and Space do nothing and focus stays on the page body; add Up/Down to move, Left/Right to fold and unfold, Enter to select",
+          "status": "todo"
+        },
+        {
+          "id": "14.68",
+          "title": "Replace All is case-sensitive while Find is not: after replacing Alice with Alicia, Find still says '1 found' (alice@example.com) and nothing explains it; show a Match case option in the bar and apply the same rule to both",
+          "status": "todo"
+        },
+        {
+          "id": "14.69",
+          "title": "After Replace All the Node panel still shows the old value (Alice Johnson); refresh the panel after any change to the data",
+          "status": "todo"
+        },
+        {
+          "id": "14.70",
+          "title": "Escape closes more than the item in front: pressing it to dismiss the bookmarks menu also closed the Node side panel; Escape should close only the top-most thing",
+          "status": "todo"
+        },
+        {
+          "id": "14.71",
+          "title": "After the last tab is closed the Query panel still shows the closed document's results, the path bar shows '$', and both Open and Query stay highlighted in the rail; clear panel results when the document goes",
+          "status": "todo"
+        },
+        {
+          "id": "14.72",
+          "title": "Find bar: the replace button is labelled 'All' (call it 'Replace all'), and with the Node panel open the bar floats in the middle of the canvas and leaves about 100 px of empty space above the first tree line",
+          "status": "todo"
+        },
+        {
+          "id": "14.73",
+          "title": "The Query panel is titled 'Query & Filter' but holds Query and Transform (Filter is in the toolbar); title it 'Query and Transform'",
+          "status": "todo"
+        },
+        {
+          "id": "14.74",
+          "title": "A tab renamed by the user keeps the old file name in the status bar, and the 'Untitled N' counter keeps rising after tabs are closed (Untitled 3 with a single tab open); number from the lowest free number",
+          "status": "todo"
+        },
+        {
+          "id": "14.75",
+          "title": "After the Tree scrolls to a selected line, the first line is cut in half under the breadcrumb row (line 1 partly hidden)",
+          "status": "todo"
         }
       ]
     }
