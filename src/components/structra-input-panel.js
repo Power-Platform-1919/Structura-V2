@@ -16,7 +16,7 @@ class StructraInputPanel extends StructraElement {
       const text = e.clipboardData && e.clipboardData.getData('text');
       if (!text || !/^\s*[\[{<\w"-]/.test(text)) return;
       e.preventDefault();
-      this.loadText(text, 'pasted');
+      this._loadText(text, 'Pasted ' + this._detectFormat(text, '').toUpperCase());
     });
     Structra._pasteBound = true;
     this.on('input:show-tab', (tab) => { const btn = this.$(`.io-tab[data-tab="${tab}"]`); if (btn) btn.click(); });
@@ -233,9 +233,16 @@ class StructraInputPanel extends StructraElement {
   async _loadSuccess(data, text, name) {
     const unopenable = Structra.describeUnopenable(data);
     if (unopenable) {
-      Structra.toast(name + ' contains only ' + unopenable + ', so there is nothing to explore');
+      const msg = name + ' contains only ' + unopenable + ', so there is nothing to explore.';
+      Structra.toast(msg);
+      this._showError(msg, '');
       return;
     }
+    // The next document starts with an empty paste box and automatic format
+    const pasteBox = this.$('[data-role="paste-input"]');
+    if (pasteBox) pasteBox.value = '';
+    const pasteFormat = this.$('[data-role="paste-format"]');
+    if (pasteFormat) pasteFormat.value = 'auto';
     Structra.log.info('InputPanel', '_loadSuccess: ' + name + ' (' + (text.length / 1024).toFixed(1) + ' KB text)');
     const t0 = performance.now();
 
@@ -626,16 +633,27 @@ class StructraInputPanel extends StructraElement {
       return;
     }
     list.innerHTML = recent.map((r, i) => `
-      <div class="io-recent-item" data-idx="${i}">
+      <div class="io-recent-item" data-idx="${i}" role="button" tabindex="0" aria-label="Open ${Structra.util.esc(r.name)}">
+        <button class="io-recent-remove" type="button" data-remove="${i}" aria-label="Remove ${Structra.util.esc(r.name)} from Recent" title="Remove from Recent">${Structra.icons.svg('x', { size: 12 })}</button>
         <div class="io-recent-name">${Structra.util.esc(r.name)}</div>
         <div class="io-recent-meta">${Structra.util.formatBytes(r.size)} &middot; ${Structra.util.timeAgo(r.ts)}</div>
         <div class="io-recent-preview">${Structra.util.esc(r.preview)}</div>
       </div>`).join('') +
-      '<div class="io-recent-clear"><button class="io-btn-clear" data-action="clear-recent">Clear History</button></div>';
+      '<div class="io-recent-clear"><p class="io-recent-note">Recent files are kept in this browser only, with their content, so you can reopen them. Remove one with the x, or clear them all.</p><button class="io-btn-clear" data-action="clear-recent">Clear History</button></div>';
 
     list.querySelectorAll('.io-recent-item').forEach(item => {
-      item.addEventListener('click', async () => {
+      item.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === item) { e.preventDefault(); item.click(); } });
+      item.addEventListener('click', async (e) => {
+        const rm = e.target.closest('[data-remove]');
+        if (rm) {
+          e.stopPropagation();
+          const keep = recent.filter((_, j) => j !== parseInt(rm.dataset.remove, 10));
+          try { localStorage.setItem('structra_recent', JSON.stringify(keep)); } catch { /* storage blocked */ }
+          this._renderRecent();
+          return;
+        }
         const r = recent[parseInt(item.dataset.idx, 10)];
+        if (r && !r.data) { Structra.toast(`${r.name} was too large to keep. Open the file again to use it.`); return; }
         if (r && r.data) {
           try {
             const data = await Structra.parseJsonAsync(r.data);

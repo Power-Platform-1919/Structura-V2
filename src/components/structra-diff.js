@@ -45,7 +45,7 @@ class StructraDiff extends StructraOverlay {
         </div>
         <div class="diff-paste-area" id="diffPasteArea" style="display:none">
           <textarea class="diff-paste-input" id="diffPasteInput" placeholder="Paste JSON to compare…"></textarea>
-          <button class="btn btn-primary" data-action="load-paste">Compare</button>
+          <button class="btn btn-primary" data-action="load-paste">Compare again</button>
         </div>
         <div class="diff-body" id="diffBody">
           <div class="diff-pane diff-left" id="diffLeft"></div>
@@ -121,8 +121,7 @@ class StructraDiff extends StructraOverlay {
     if (!text) { Structra.toast('Paste JSON to compare', 'warning'); return; }
     try {
       this._right = JSON.parse(text);
-      this.$('#diffPasteArea').style.display = 'none';
-      this._computeAndRender();
+      this._computeAndRender();   // the paste box stays, so the right side can be edited and compared again
     } catch (e) {
       Structra.toast('Invalid JSON: ' + e.message, 'error');
     }
@@ -154,7 +153,9 @@ class StructraDiff extends StructraOverlay {
     const added = this._diffs.filter(d => d.type === 'added').length;
     const removed = this._diffs.filter(d => d.type === 'removed').length;
     const changed = this._diffs.filter(d => d.type === 'changed').length;
-    this.$('#diffStats').innerHTML = `<span class="diff-stat-add">+${added}</span> <span class="diff-stat-rm">-${removed}</span> <span class="diff-stat-chg">~${changed}</span>`;
+    this.$('#diffStats').innerHTML = added + removed + changed === 0
+      ? '<span>The two sides are identical</span>'
+      : `<span class="diff-stat-add" title="Values only in the right side">${added} added</span> <span class="diff-stat-rm" title="Values only in the left side">${removed} removed</span> <span class="diff-stat-chg" title="Values that differ">${changed} changed</span>`;
   }
 
   _renderDiff(mode) {

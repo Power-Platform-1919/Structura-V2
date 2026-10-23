@@ -76,10 +76,21 @@ class StructraSnippets extends StructraOverlay {
   _confirmSave() {
     const name = this.$('#snipName').value.trim();
     const content = this.$('#snipContent').value.trim();
-    if (!name) { Structra.toast('Enter a name', 'warning'); return; }
-    if (!content) { Structra.toast('Enter content', 'warning'); return; }
-    // Validate JSON
-    try { JSON.parse(content); } catch { Structra.toast('Invalid JSON', 'error'); return; }
+    const problem = (field, msg) => {
+      const el = this.$(field);
+      el.setAttribute('aria-invalid', 'true');
+      el.classList.add('snip-invalid');
+      el.focus();
+      let note = this.$('#snipError');
+      if (!note) { note = document.createElement('div'); note.id = 'snipError'; note.className = 'snip-error'; note.setAttribute('role', 'alert'); this.$('.snip-form-actions').before(note); }
+      note.textContent = msg;
+    };
+    this.$$('#snipSaveForm [aria-invalid]').forEach((el) => { el.removeAttribute('aria-invalid'); el.classList.remove('snip-invalid'); });
+    const old = this.$('#snipError');
+    if (old) old.remove();
+    if (!name) { problem('#snipName', 'Give the snippet a name so you can find it again.'); return; }
+    if (!content) { problem('#snipContent', 'Add the JSON to save.'); return; }
+    try { JSON.parse(content); } catch (e) { problem('#snipContent', 'This is not valid JSON: ' + e.message); return; }
 
     this._snippets.unshift({ name, content, created: Date.now(), size: content.length });
     this._save();

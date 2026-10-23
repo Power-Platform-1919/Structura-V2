@@ -19,8 +19,9 @@ class StructraTypedef extends StructraOverlay {
     this.mount({ title: 'Type Definitions', size: 'lg', body: `<div class="typedef-tabs" id="typedefTabs"></div>
         <div class="typedef-options">
           <label class="typedef-opt">
-            <span>Root name:</span>
-            <input type="text" class="typedef-name-input" id="typedefName" value="Root" placeholder="RootType">
+            <span>Name of the main type:</span>
+            <input type="text" class="typedef-name-input" id="typedefName" value="Root" placeholder="Root">
+            <span class="hint">Types for lists are named after it, for example RootItem.</span>
           </label>
         </div>
         <div class="typedef-code-wrap">

@@ -13,11 +13,12 @@ class StructraMinimap extends StructraElement {
 
     this.on('state:jsonData', () => { this._data = Structra.state.jsonData; if (this._visible) this._paint(); });
     this.on('minimap:toggle', () => this._toggle());
-    this.on('view:switched', () => { if (this._visible) this._paint(); });
+    this.on('view:switched', () => { this._sync(); if (this._visible) this._paint(); });
   }
 
   render() {
-    this.innerHTML = `<div class="minimap-container" id="minimapContainer" style="display:none">
+    this.innerHTML = `<div class="minimap-container" id="minimapContainer" role="region" aria-label="Minimap of the document" style="display:none">
+      <div class="minimap-head"><span>Minimap</span><button class="minimap-close" type="button" aria-label="Close the minimap" title="Close the minimap">${Structra.icons.svg('x', { size: 12 })}</button></div>
       <canvas class="minimap-canvas" id="minimapCanvas" width="100" height="400"></canvas>
       <div class="minimap-viewport" id="minimapViewport"></div>
     </div>`;
@@ -25,14 +26,22 @@ class StructraMinimap extends StructraElement {
     this._canvas = this.$('#minimapCanvas');
     this._ctx = this._canvas.getContext('2d');
 
+    this.$('.minimap-close').addEventListener('click', () => this._toggle());
     this._canvas.addEventListener('click', (e) => this._onCanvasClick(e));
     this._canvas.addEventListener('mousedown', (e) => this._startDrag(e));
   }
 
   _toggle() {
     this._visible = !this._visible;
-    this.$('#minimapContainer').style.display = this._visible ? '' : 'none';
+    this._sync();
     if (this._visible) this._paint();
+  }
+
+  /** The minimap follows the Tree and the Table; in other views it has nothing to scroll, so it steps aside */
+  _sync() {
+    const view = Structra.state.activeView;
+    const useful = view === 'tree' || view === 'table';
+    this.$('#minimapContainer').style.display = this._visible && useful ? '' : 'none';
   }
 
   _paint() {

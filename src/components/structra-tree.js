@@ -73,6 +73,7 @@ class StructraTree extends StructraElement {
     });
 
     this._markBookmarks();
+    Structra.events.emit('tree:rendered');
     Structra.log.perf('Tree', 'renderTree()', performance.now() - t0);
   }
 

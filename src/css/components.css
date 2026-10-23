@@ -427,6 +427,7 @@
 .graph-node-null { fill: var(--surface-alt); stroke: var(--text-muted); }
 .graph-node-ellipsis { fill: var(--surface-alt); stroke: var(--border); stroke-dasharray: 3 2; }
 .graph-node-clickable { cursor: pointer; transition: fill .15s, stroke .15s; }
+.graph-node-selected { stroke: var(--accent); stroke-width: 3; }
 .graph-node-clickable:hover { fill: var(--accent-soft); stroke: var(--accent); stroke-dasharray: none; }
 
 .graph-text { font-size: 11px; font-family: var(--font-mono); fill: var(--text); }
@@ -987,6 +988,13 @@ structra-overview {
   margin-top: 2px;
 }
 .io-recent-clear { margin-top: var(--sp-2); text-align: center; }
+.snip-invalid { border-color: var(--error, #d13438) !important; }
+.snip-error { color: var(--error, #d13438); font-size: var(--fs-xs); margin: var(--sp-1) 0; }
+.io-recent-note { margin: 0 0 var(--sp-2); font-size: var(--fs-xs); color: var(--text-muted); }
+.io-recent-item { position: relative; }
+.io-recent-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.io-recent-remove { position: absolute; top: var(--sp-1); right: var(--sp-1); display: inline-flex; padding: 3px; border: 0; background: none; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; }
+.io-recent-remove:hover, .io-recent-remove:focus-visible { background: var(--surface-hover); color: var(--text); }
 .io-btn-clear {
   font-size: var(--fs-xxs);
   padding: var(--sp-1) var(--sp-2);
@@ -1662,10 +1670,13 @@ structra-overview {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md, var(--shadow-sm));
   overflow: hidden;
 }
-.minimap-canvas { width: 100%; height: 100%; display: block; }
+.minimap-head { display: flex; align-items: center; justify-content: space-between; padding: 2px var(--sp-1) 2px var(--sp-2); font-size: var(--fs-xs); color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--surface-alt); }
+.minimap-close { display: inline-flex; padding: 2px; border: 0; background: none; color: inherit; border-radius: var(--radius-sm); cursor: pointer; }
+.minimap-close:hover, .minimap-close:focus-visible { background: var(--surface-hover); color: var(--text); }
+.minimap-canvas { width: 100%; height: calc(100% - 22px); display: block; }
 .minimap-viewport {
   position: absolute;
   left: 0; right: 0;
@@ -1728,20 +1739,21 @@ structra-overview {
 /* ===== HEATMAP ===== */
 .heatmap-indicator {
   position: fixed;
-  top: calc(var(--header-h) + var(--tab-bar-h) + var(--canvas-header-h) + var(--sp-2));
-  right: calc(var(--sp-6) + 100px + var(--sp-2));
+  bottom: calc(var(--status-h, 28px) + var(--sp-2));
+  right: var(--sp-6);
   z-index: 40;
-  display: flex; align-items: center; gap: var(--sp-1);
-  padding: 4px 10px;
+  display: flex; align-items: center; gap: var(--sp-2);
+  padding: 4px 6px 4px 10px;
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong, var(--text-muted));
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
 }
+.heatmap-off { display: inline-flex; padding: 2px; border: 0; background: none; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; }
+.heatmap-off:hover, .heatmap-off:focus-visible { background: var(--surface-hover); color: var(--text); }
 .heatmap-badge { font-size: var(--fs-xs); font-weight: 700; color: var(--accent); }
 .heatmap-legend { display: flex; gap: 4px; }
 .heatmap-lg { padding: 1px 6px; border-radius: 3px; font-size: 9px; color: var(--text-on-accent); font-weight: 600; }
-body.structra-heatmap-active .jt-row { border-left: 3px solid transparent; }
 
 /* ===== ZOOM INDICATOR ===== */
 .zoom-indicator {

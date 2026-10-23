@@ -592,7 +592,7 @@
         {
           "id": "13.18",
           "title": "A pasted document is named 'pasted'; name it 'Pasted JSON' (or Pasted data)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.19",
@@ -602,7 +602,7 @@
         {
           "id": "13.20",
           "title": "A stray screenshot saved under the repo root by the test run (walk-02-overview.png) must not be committed",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.21",
@@ -917,7 +917,7 @@
         {
           "id": "13.83",
           "title": "Recent list: the entry order and 'just now' labels work, but the entries have no remove button (only Clear History) and no keyboard focus ring; clicking opens on Overview which hides the file name from the tab strip until loaded",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.84",
@@ -957,7 +957,7 @@
         {
           "id": "13.91",
           "title": "Snippet Library: Save with an empty name does nothing and shows no message (should highlight the field or say 'Enter a name'); the saved size '8 B' and the Load/Copy/Delete buttons are tiny and Delete has no confirm or undo; the Save form sits below the list with a hairline that looks like a second dialog",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.92",
@@ -967,7 +967,7 @@
         {
           "id": "13.93",
           "title": "Appearance dialog: Mode hint always reads 'System follows your operating system' even when Light is selected; the hint should describe the chosen mode",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.94",
@@ -1047,7 +1047,7 @@
         {
           "id": "13.109",
           "title": "Minimap: floating box at the top right overlaps the Editor's 'Valid JSON' status (only 'ON' shows), has no border contrast or close button, uses unlabelled coloured blocks, and is offered in views (Editor, Overview) where it means nothing; there is no legend and no tooltip",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.110",
@@ -1057,7 +1057,7 @@
         {
           "id": "13.111",
           "title": "Size Heatmap: only a floating legend 'Heatmap ON Small Medium Large' appears (about 300 px from the right edge, not aligned to anything) and no row in the Tree is coloured; it does not say what 'size' means (bytes? child count?) and the toggle state is not visible anywhere else",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.112",
@@ -1067,17 +1067,17 @@
         {
           "id": "13.113",
           "title": "Diff dialog works, but the summary '+1 -0 ~2' is unlabelled (added, removed, changed), the paste box disappears after Compare so the right side cannot be corrected, and the Right dropdown still reads 'Paste JSON...'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.114",
           "title": "Graph: clicking a node gives no feedback (no selected state, the path bar stays 'Click an element...', no side panel) and a click on a parent does not collapse its children; nodes cannot be expanded or collapsed from the graph",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.115",
           "title": "Graph: a small graph sits in the top left corner of a large empty canvas; it should open centred and fit to the view; the zoom bar floats at the bottom left and is not aligned with the canvas edge",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.116",
@@ -1097,7 +1097,7 @@
         {
           "id": "13.119",
           "title": "Type Definitions: 'Root name: Root' produces 'RootItem' in TypeScript and 'RootType' in Power Fx, so the name box does not match the output; the code box is short and scrolls inside a dialog that has free space; Power Fx sits between languages instead of under the Power Platform add-on",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.120",
@@ -1137,7 +1137,7 @@
         {
           "id": "13.127",
           "title": "The Paste Data box keeps the text pasted into the previous tab (the old CSV was still there in a new tab) and the Format dropdown keeps its previous choice; a new tab should start empty",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.128",
@@ -1152,7 +1152,7 @@
         {
           "id": "13.130",
           "title": "Ctrl+K failed to open the palette right after clicking the status bar SQL chip (focus left in the chip); global shortcuts should work wherever the focus is, except inside text boxes",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.131",
@@ -1177,7 +1177,7 @@
         {
           "id": "13.135",
           "title": "Load URL for a file that contains only 'null' shows '200 OK, 68ms, 4 B' and then stays on the loader: nothing opens, no message says the document is a null value; top level null is valid JSON and should open as a single null value",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.136",

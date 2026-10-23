@@ -11,17 +11,21 @@ class StructraHeatmap extends StructraElement {
 
     this.on('heatmap:toggle', () => this._toggle());
     this.on('state:jsonData', () => { if (this._active) this._recalc(); });
+    this.on('tree:rendered', () => { if (this._active) this._recalc(); });
+    this.on('view:switched', () => { if (this._active) setTimeout(() => this._recalc(), 50); });
   }
 
   render() {
     this.innerHTML = `<div class="heatmap-indicator" id="heatmapIndicator" style="display:none">
-      <span class="heatmap-badge">Heatmap ON</span>
+      <span class="heatmap-badge">Size of each value</span>
       <div class="heatmap-legend">
         <span class="heatmap-lg" style="background:var(--success)">Small</span>
         <span class="heatmap-lg" style="background:var(--warning)">Medium</span>
         <span class="heatmap-lg" style="background:var(--danger)">Large</span>
       </div>
+      <button class="heatmap-off" type="button" aria-label="Turn the heatmap off" title="Turn the heatmap off">${Structra.icons.svg('x', { size: 12 })}</button>
     </div>`;
+    this.$('.heatmap-off').addEventListener('click', () => this._toggle());
   }
 
   _toggle() {
@@ -77,32 +81,17 @@ class StructraHeatmap extends StructraElement {
   }
 
   _applyStyles(maxSize) {
-    // Apply to tree nodes via data-path attribute
-    document.querySelectorAll('[data-path]').forEach(el => {
-      const path = el.dataset.path;
-      const size = this._sizeMap.get(path) || 0;
-      const ratio = size / maxSize;
-      el.style.setProperty('--heatmap-color', this._getColor(ratio));
-      el.style.setProperty('--heatmap-opacity', '1');
-    });
-
-    // Apply to JSON lines in tree view
-    document.querySelectorAll('.jt-row').forEach((el, idx) => {
-      const path = el.dataset?.path;
-      if (path && this._sizeMap.has(path)) {
-        const ratio = this._sizeMap.get(path) / maxSize;
-        el.style.borderLeft = `3px solid ${this._getColor(ratio)}`;
-      }
+    // The Tree marks each line with a coloured edge; its data-path is the short form (value[0].Title)
+    document.querySelectorAll('.j-line[data-path]:not(.j-close)').forEach(el => {
+      const size = this._sizeMap.get(Structra.paths.canonical(el.dataset.path));
+      if (size === undefined) return;
+      el.style.boxShadow = `inset 3px 0 0 ${this._getColor(size / maxSize)}`;
+      el.title = `${size.toLocaleString()} characters`;
     });
   }
 
   _clearStyles() {
-    document.querySelectorAll('[data-path]').forEach(el => {
-      el.style.removeProperty('--heatmap-color');
-      el.style.removeProperty('--heatmap-opacity');
-      el.style.borderLeft = '';
-    });
-    document.querySelectorAll('.jt-row').forEach(el => { el.style.borderLeft = ''; });
+    document.querySelectorAll('.j-line[data-path]').forEach(el => { el.style.boxShadow = ''; if (/ characters$/.test(el.title)) el.removeAttribute('title'); });
   }
 
   _getColor(ratio) {

@@ -11,7 +11,7 @@ class StructraGraph extends StructraElement {
   static NODE_H = 28;
   static H_GAP = 30;
   static V_GAP = 8;
-  static ZOOM_MIN = 0.2;
+  static ZOOM_MIN = 0.1;
   static ZOOM_MAX = 3;
   static ZOOM_STEP = 0.1;
 
@@ -25,8 +25,9 @@ class StructraGraph extends StructraElement {
     this._svgEl = null;
     this._containerEl = null;
 
+    this.on('state:currentPath', (d) => this._markSelected(d.value));
     this.on('state:jsonData', () => { this._stale = true; if (Structra.state.activeView === 'graph') this.renderGraph(); });
-    this.on('view:switched', (view) => { if (view === 'graph' && this._stale) this.renderGraph(); });
+    this.on('view:switched', (view) => { if (view !== 'graph') return; if (this._stale) this.renderGraph(); else this._fitIfVisible(); });
     this.on('engine:ingested', () => { this._stale = true; if (Structra.state.activeView === 'graph') this.renderGraph(); });
     this.on('engine:filter-changed', () => { this._stale = true; if (Structra.state.activeView === 'graph') this.renderGraph(); });
   }
@@ -55,7 +56,16 @@ class StructraGraph extends StructraElement {
     this._containerEl = this.$('#graphContainer');
     this._setupToolbar();
     this._setupInteraction();
+    // The view changes size after it opens (the drawer, a window resize): until the person moves the graph, keep it fitted
+    if (window.ResizeObserver) new ResizeObserver(() => { if (!this._userMoved && this._rootTree && this._containerEl.clientWidth) this._zoomToFit(1); }).observe(this._containerEl);
     this.renderGraph();
+  }
+
+  _markSelected(path) {
+    if (!this._svgEl) return;
+    this._svgEl.querySelectorAll('.graph-node-selected').forEach((r) => r.classList.remove('graph-node-selected'));
+    const g = [...this._svgEl.querySelectorAll('g[data-path]')].find((n) => n.dataset.path === path);
+    if (g) g.querySelector('rect').classList.add('graph-node-selected');
   }
 
   /* ---- Public ---- */
@@ -80,13 +90,20 @@ class StructraGraph extends StructraElement {
 
     const maxDepth = parseInt(this.props.maxDepth, 10) || 4;
     this._rootTree = this._buildTree(data, 'root', 0, maxDepth);
+    this._needsFit = true;
+    this._userMoved = false;
     this._redraw();
+    this._fitIfVisible();
   }
 
   /* ---- Tree Building ---- */
-  _buildTree(val, key, depth, maxDepth) {
+  _childPath(path, key) {
+    return /^[A-Za-z_][A-Za-z0-9_]*$/.test(key) ? `${path}.${key}` : `${path}["${String(key).replace(/"/g, '\\"')}"]`;
+  }
+
+  _buildTree(val, key, depth, maxDepth, path = '$') {
     const C = StructraGraph;
-    const node = { key, children: [], x: 0, y: 0, depth, sourceVal: val };
+    const node = { key, children: [], x: 0, y: 0, depth, sourceVal: val, path };
 
     if (val === null) {
       node.type = 'null'; node.label = key + ': null';
@@ -95,7 +112,7 @@ class StructraGraph extends StructraElement {
       node.label = `${key} [${val.length}]`;
       if (depth < maxDepth) {
         const max = Math.min(val.length, 5);
-        for (let i = 0; i < max; i++) node.children.push(this._buildTree(val[i], `[${i}]`, depth + 1, maxDepth));
+        for (let i = 0; i < max; i++) node.children.push(this._buildTree(val[i], `[${i}]`, depth + 1, maxDepth, `${path}[${i}]`));
         if (val.length > 5) {
           node.children.push({ key: `+${val.length - 5}`, type: 'ellipsis', label: `+${val.length - 5} more`, children: [], x: 0, y: 0, depth: depth + 1, parentNode: node, expandFrom: max, expandSource: val });
         }
@@ -109,7 +126,7 @@ class StructraGraph extends StructraElement {
       node.label = `${key} {${keys.length}}`;
       if (depth < maxDepth) {
         const max = Math.min(keys.length, 8);
-        for (let i = 0; i < max; i++) node.children.push(this._buildTree(val[keys[i]], keys[i], depth + 1, maxDepth));
+        for (let i = 0; i < max; i++) node.children.push(this._buildTree(val[keys[i]], keys[i], depth + 1, maxDepth, this._childPath(path, keys[i])));
         if (keys.length > 8) {
           node.children.push({ key: `+${keys.length - 8}`, type: 'ellipsis', label: `+${keys.length - 8} more`, children: [], x: 0, y: 0, depth: depth + 1, parentNode: node, expandFrom: max, expandSource: val, expandKeys: keys });
         }
@@ -173,6 +190,14 @@ class StructraGraph extends StructraElement {
     this._drawNodes(g, this._rootTree);
   }
 
+  /** A new graph opens centred and sized to the view, never magnified past its natural size */
+  _fitIfVisible() {
+    const c = this._containerEl;
+    if (!this._needsFit || !c || !c.clientWidth || !c.clientHeight) return;
+    this._needsFit = false;
+    this._zoomToFit(1);
+  }
+
   _drawEdges(g, node) {
     const C = StructraGraph;
     for (const child of node.children) {
@@ -211,14 +236,20 @@ class StructraGraph extends StructraElement {
     text.textContent = node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label;
     group.appendChild(text);
 
+    group.dataset.path = node.path || '';
     if (node.type === 'ellipsis') {
       group.style.cursor = 'pointer';
       group.addEventListener('click', e => { e.stopPropagation(); this._expandEllipsis(node); });
-    }
-    if (node.collapsed) {
+    } else {
       group.style.cursor = 'pointer';
-      group.addEventListener('click', e => { e.stopPropagation(); this._expandCollapsed(node); });
+      group.addEventListener('click', e => {
+        e.stopPropagation();
+        Structra.set('currentPath', node.path);
+        Structra.events.emit('tree:node-selected', node.path);
+        if (node.collapsed) this._expandCollapsed(node);
+      });
     }
+    if (node.path && node.path === Structra.state.currentPath) rect.classList.add('graph-node-selected');
 
     g.appendChild(group);
     for (const child of node.children) this._drawNodes(g, child);
@@ -234,10 +265,10 @@ class StructraGraph extends StructraElement {
     parent.children = parent.children.filter(c => c !== eNode);
 
     if (Array.isArray(src)) {
-      for (let i = from; i < src.length; i++) parent.children.push(this._buildTree(src[i], `[${i}]`, parent.depth + 1, maxDepth));
+      for (let i = from; i < src.length; i++) parent.children.push(this._buildTree(src[i], `[${i}]`, parent.depth + 1, maxDepth, `${parent.path}[${i}]`));
     } else {
       const keys = eNode.expandKeys || Object.keys(src);
-      for (let i = from; i < keys.length; i++) parent.children.push(this._buildTree(src[keys[i]], keys[i], parent.depth + 1, maxDepth));
+      for (let i = from; i < keys.length; i++) parent.children.push(this._buildTree(src[keys[i]], keys[i], parent.depth + 1, maxDepth, this._childPath(parent.path, keys[i])));
     }
     this._redraw();
   }
@@ -251,12 +282,12 @@ class StructraGraph extends StructraElement {
 
     if (Array.isArray(val)) {
       const max = Math.min(val.length, 5);
-      for (let i = 0; i < max; i++) node.children.push(this._buildTree(val[i], `[${i}]`, node.depth + 1, maxDepth));
+      for (let i = 0; i < max; i++) node.children.push(this._buildTree(val[i], `[${i}]`, node.depth + 1, maxDepth, `${node.path}[${i}]`));
       if (val.length > 5) node.children.push({ key: `+${val.length - 5}`, type: 'ellipsis', label: `+${val.length - 5} more`, children: [], x: 0, y: 0, depth: node.depth + 1, parentNode: node, expandFrom: max, expandSource: val });
     } else {
       const keys = Object.keys(val);
       const max = Math.min(keys.length, 8);
-      for (let i = 0; i < max; i++) node.children.push(this._buildTree(val[keys[i]], keys[i], node.depth + 1, maxDepth));
+      for (let i = 0; i < max; i++) node.children.push(this._buildTree(val[keys[i]], keys[i], node.depth + 1, maxDepth, this._childPath(node.path, keys[i])));
       if (keys.length > 8) node.children.push({ key: `+${keys.length - 8}`, type: 'ellipsis', label: `+${keys.length - 8} more`, children: [], x: 0, y: 0, depth: node.depth + 1, parentNode: node, expandFrom: max, expandSource: val, expandKeys: keys });
     }
     this._redraw();
@@ -269,6 +300,7 @@ class StructraGraph extends StructraElement {
 
     container.addEventListener('wheel', e => {
       e.preventDefault();
+      this._userMoved = true;
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
       const newScale = Math.max(C.ZOOM_MIN, Math.min(C.ZOOM_MAX, this._scale * delta));
       const rect = container.getBoundingClientRect();
@@ -283,6 +315,7 @@ class StructraGraph extends StructraElement {
       if (e.button !== 0) return;
       if (e.target.closest('[style*="cursor: pointer"]') || e.target.closest('.gz-btn')) return;
       this._dragging = true;
+      this._userMoved = true;
       this._dragStartX = e.clientX - this._panX;
       this._dragStartY = e.clientY - this._panY;
       container.style.cursor = 'grabbing';
@@ -309,11 +342,11 @@ class StructraGraph extends StructraElement {
     if (el) el.textContent = Math.round(this._scale * 100) + '%';
   }
 
-  _zoomIn() { const C = StructraGraph; this._scale = Math.min(C.ZOOM_MAX, this._scale + C.ZOOM_STEP); this._updateTransform(); }
-  _zoomOut() { const C = StructraGraph; this._scale = Math.max(C.ZOOM_MIN, this._scale - C.ZOOM_STEP); this._updateTransform(); }
-  _zoomReset() { this._scale = 1; this._panX = 20; this._panY = 20; this._updateTransform(); }
+  _zoomIn() { this._userMoved = true; const C = StructraGraph; this._scale = Math.min(C.ZOOM_MAX, this._scale + C.ZOOM_STEP); this._updateTransform(); }
+  _zoomOut() { this._userMoved = true; const C = StructraGraph; this._scale = Math.max(C.ZOOM_MIN, this._scale - C.ZOOM_STEP); this._updateTransform(); }
+  _zoomReset() { this._userMoved = true; this._scale = 1; this._panX = 20; this._panY = 20; this._updateTransform(); }
 
-  _zoomToFit() {
+  _zoomToFit(maxScale) {
     const C = StructraGraph;
     const container = this._containerEl;
     if (!container || !this._treeBounds) return;
@@ -322,7 +355,7 @@ class StructraGraph extends StructraElement {
     const contentH = this._treeBounds.my + C.NODE_H + 40;
     if (!contentW || !contentH) return;
     const scaleX = cw / contentW, scaleY = ch / contentH;
-    this._scale = Math.max(C.ZOOM_MIN, Math.min(C.ZOOM_MAX, Math.min(scaleX, scaleY) * 0.9));
+    this._scale = Math.max(C.ZOOM_MIN, Math.min(maxScale || C.ZOOM_MAX, Math.min(scaleX, scaleY) * 0.9));
     this._panX = (cw - contentW * this._scale) / 2;
     this._panY = (ch - contentH * this._scale) / 2;
     this._updateTransform();

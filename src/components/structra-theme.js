@@ -22,7 +22,7 @@ class StructraTheme extends StructraOverlay {
           <div class="th-row">
             <div>
               <div class="th-label">Mode</div>
-              <div class="hint">System follows your operating system.</div>
+              <div class="hint" id="thModeHint"></div>
             </div>
             <div class="seg" id="thMode" role="group" aria-label="Mode">
               <button class="seg-btn" type="button" data-mode="light">Light</button>
@@ -68,6 +68,8 @@ class StructraTheme extends StructraOverlay {
   _renderMode() {
     const mode = Structra.theme.mode();
     this.$$('#thMode .seg-btn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    const hint = this.$('#thModeHint');
+    if (hint) hint.textContent = { light: 'Always light, whatever your operating system uses.', dark: 'Always dark, whatever your operating system uses.', system: 'Follows your operating system: light by day, dark by night if it is set that way.' }[mode] || '';
   }
 
   _card(t, selected) {
