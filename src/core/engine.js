@@ -99,25 +99,25 @@ Structra.engine = (() => {
   function buildColumnIndex(data) {
     if (!Array.isArray(data) || data.length === 0) return null;
     const sample = data.slice(0, Math.min(data.length, 1000));
-    const columns = {};
+    // A Map, so a column named constructor, toString or __proto__ is an ordinary column
+    const columns = new Map();
 
     for (const row of sample) {
       if (!row || typeof row !== 'object') continue;
       for (const [key, val] of Object.entries(row)) {
-        if (!columns[key]) {
-          columns[key] = { name: key, types: new Set(), count: 0, nulls: 0 };
-        }
-        columns[key].count++;
+        let col = columns.get(key);
+        if (!col) { col = { name: key, types: new Set(), count: 0, nulls: 0 }; columns.set(key, col); }
+        col.count++;
         if (val === null || val === undefined) {
-          columns[key].nulls++;
+          col.nulls++;
         } else {
-          columns[key].types.add(Array.isArray(val) ? 'array' : typeof val);
+          col.types.add(Array.isArray(val) ? 'array' : typeof val);
         }
       }
     }
 
     // Convert sets to arrays for serialization
-    return Object.values(columns).map(col => ({
+    return [...columns.values()].map(col => ({
       name: col.name,
       types: [...col.types],
       coverage: col.count / sample.length,
@@ -828,6 +828,56 @@ Structra.engine = (() => {
       matchedPaths: null,
       total: rows.length,
       columns: cols,
+    };
+    _setActiveQuery(result);
+    return result;
+  }
+
+  /** Filter by a JSONPath: every value the path finds, as rows (records as they are, other values as { value }) */
+  async function filterByPath(expr) {
+    const ds = getActive();
+    if (!ds) return null;
+    let found;
+    try { found = Structra.jsonpath.query(ds.raw, expr); }
+    catch (err) { throw new Error('This path could not be read: ' + err.message); }
+    const isRecord = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+    const rows = found.map((m) => (isRecord(m.value) ? m.value : { path: m.path, value: m.value }));
+    const result = {
+      source: 'filter',
+      query: expr,
+      conditions: null,
+      rows,
+      matchedPaths: found.map((m) => m.path),
+      total: rows.length,
+      columns: rows.length ? Object.keys(rows[0]) : [],
+    };
+    _setActiveQuery(result);
+    return result;
+  }
+
+  /** Filter the rows of the main list with a JavaScript test on `row`, for example row.Cost > 100 && row.Approved */
+  async function filterByExpression(expr) {
+    const ds = getActive();
+    if (!ds) return null;
+    const main = mainList(ds);
+    if (!main) return null;
+    let test;
+    try { test = new Function('row', 'return (' + expr + ');'); }
+    catch (err) { throw new Error('This expression could not be read: ' + err.message + '. Example: row.Cost > 100 && row.Approved === true'); }
+    const started = Date.now();
+    const rows = [];
+    for (let i = 0; i < main.rows.length; i++) {
+      if (i % 500 === 0 && Date.now() - started > 5000) throw new Error('The expression is taking too long (over 5 seconds) and was stopped.');
+      try { if (test(main.rows[i])) rows.push(main.rows[i]); } catch { /* a row the test cannot read does not match */ }
+    }
+    const result = {
+      source: 'filter',
+      query: expr,
+      conditions: null,
+      rows,
+      matchedPaths: null,
+      total: rows.length,
+      columns: collectKeys(main.rows),
     };
     _setActiveQuery(result);
     return result;
@@ -1824,24 +1874,30 @@ Structra.engine = (() => {
    */
   async function exportData(format = 'csv') {
     const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) {
-      // JS fallback: export raw data as JSON
-      return ds ? JSON.stringify(ds.raw, null, 2) : null;
-    }
-    const tableName = _tableOf(ds);
-    try {
-      if (format === 'csv') {
-        const rows = await Structra.duckdb.query(`SELECT * FROM "${tableName}"`);
-        if (!rows || rows.length === 0) return '';
-        return Structra.convert.generateCsv(rows, Object.keys(rows[0]));
+    if (!ds) return null;
+    if (format !== 'csv') return JSON.stringify(ds.raw, null, 2);
+
+    // CSV is the main list as rows (the filtered rows when a filter is on), whatever shape the document has.
+    // Choice, Person and other one-level objects become Parent.Child columns; lists stay as JSON text.
+    const q = getQuery();
+    const main = mainList(ds);
+    let rows = q && q.source === 'filter' && Array.isArray(q.rows) ? q.rows : main ? main.rows : null;
+    if (!rows) rows = Array.isArray(ds.raw) ? ds.raw : [ds.raw];
+    const isPlain = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+    const flat = rows.map((row) => {
+      if (!isPlain(row)) return { value: row };
+      const out = {};
+      for (const [k, v] of Object.entries(row)) {
+        if (isPlain(v)) { for (const [c, cv] of Object.entries(v)) out[k + '.' + c] = cv; }
+        else out[k] = v;
       }
-      // JSON export
-      const rows = await Structra.duckdb.query(`SELECT * FROM "${tableName}"`);
-      return JSON.stringify(rows, null, 2);
-    } catch (err) {
-      Structra.log.warn('Engine', `exportData failed`, err.message);
-      return ds ? JSON.stringify(ds.raw, null, 2) : null;
-    }
+      return out;
+    });
+    const cols = [];
+    const seen = new Set();
+    for (const r of flat) for (const k of Object.keys(r)) if (!seen.has(k)) { seen.add(k); cols.push(k); }
+    if (!cols.length) return '';
+    return Structra.convert.generateCsv(flat, cols);
   }
 
   /**
@@ -1949,6 +2005,8 @@ Structra.engine = (() => {
     findInDb,
     replaceInData,
     filterDb,
+    filterByPath,
+    filterByExpression,
     runSql,
     clearQuery,
     getQuery,

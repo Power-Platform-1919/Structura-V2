@@ -21,7 +21,7 @@ class StructraTabs extends StructraElement {
            data-id="${t.id}" role="tab" aria-selected="${t.id === activeId}" tabindex="${t.id === activeId ? 0 : -1}" draggable="true"
            aria-label="${Structra.util.esc(t.label)}${t.modified ? ' (changed)' : ''}">
         ${Structra.icons.svg('file', { cls: 'tab-icon' })}
-        <span class="tab-label">${t.label}</span>
+        <span class="tab-label">${Structra.util.esc(t.label)}</span>
         <span class="tab-modified"></span>
         <span class="tab-close" data-close="${t.id}">
           ${Structra.icons.svg('x')}

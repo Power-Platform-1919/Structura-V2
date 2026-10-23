@@ -48,12 +48,15 @@ class StructraSnippets extends StructraOverlay {
   onOpen() { this._renderList(); }
 
   _load() {
-    try { return JSON.parse(localStorage.getItem('structra_snippets') || '[]'); }
-    catch { return []; }
+    try {
+      const list = JSON.parse(localStorage.getItem('structra_snippets') || '[]');
+      // Only well-formed entries: a damaged or imported value must not stop the library from opening
+      return Array.isArray(list) ? list.filter((x) => x && typeof x.name === 'string' && typeof x.content === 'string').map((x) => ({ ...x, size: Number(x.size) || x.content.length })) : [];
+    } catch { return []; }
   }
 
   _save() {
-    localStorage.setItem('structra_snippets', JSON.stringify(this._snippets));
+    try { localStorage.setItem('structra_snippets', JSON.stringify(this._snippets)); } catch { Structra.toast('Could not save: this browser is not allowing storage.', 'warning'); }
   }
 
   _showSaveForm() {
@@ -106,18 +109,17 @@ class StructraSnippets extends StructraOverlay {
     Structra.toast(`Snippet "${d.name}" saved`);
   }
 
-  _useSnippet(idx) {
+  async _useSnippet(idx) {
     const snip = this._snippets[idx];
     if (!snip) return;
-    try {
-      const data = JSON.parse(snip.content);
-      Structra.set('jsonData', data);
-      Structra.set('rawText', snip.content);
-      Structra.set('fileName', snip.name + '.json');
-      Structra.set('fileSize', snip.content.length);
-      this.close();
-      Structra.toast(`Loaded snippet: ${snip.name}`);
-    } catch (e) { Structra.toast('Failed to load: ' + e.message, 'error'); }
+    let data;
+    try { data = JSON.parse(snip.content); } catch (e) { Structra.toast('This snippet is not valid JSON: ' + e.message, 'error'); return; }
+    // A snippet opens in its own tab, so the document you are working on stays as it is
+    const cmd = document.querySelector('structra-command');
+    const opened = cmd && cmd._openInNewTab ? await cmd._openInNewTab(data, snip.name) : false;
+    if (!opened) { Structra.toast('Close a tab first: the limit of open tabs is reached.', 'warning'); return; }
+    this.close();
+    Structra.toast(`Opened snippet "${snip.name}" in a new tab`);
   }
 
   _deleteSnippet(idx) {

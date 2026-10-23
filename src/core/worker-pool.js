@@ -249,10 +249,49 @@ Structra.createWorkerPool = function(config) {
    A worker is slower for JSON here: the parsed result has to be copied back to the page
    (structured clone), which costs several times more than the parse itself
    (about 1.5 s against 0.33 s for a 37 MB file). */
+/**
+ * JSON numbers are read as 64-bit floats, which cannot hold every number: 12345678901234567890 becomes
+ * 12345678901234567000 and 1e400 becomes Infinity. Such a number is kept as text instead, so no digit is
+ * lost when the data is copied, exported or edited. Returns the text to parse and how many were protected.
+ */
+Structra.protectBigNumbers = function (src) {
+  if (!/\d{16}|\d[eE][+-]?\d{3}/.test(src)) return { text: src, count: 0 };
+  var out = [], last = 0, count = 0, i = 0, n = src.length;
+  while (i < n) {
+    var c = src.charCodeAt(i);
+    if (c === 34) {                                   // a string: skip it, numbers inside are text already
+      i++;
+      while (i < n) { var d = src.charCodeAt(i); if (d === 92) i += 2; else if (d === 34) { i++; break; } else i++; }
+      continue;
+    }
+    if (c === 45 || (c >= 48 && c <= 57)) {
+      var j = i + 1;
+      while (j < n) { var e = src.charCodeAt(j); if ((e >= 48 && e <= 57) || e === 46 || e === 101 || e === 69 || e === 43 || e === 45) j++; else break; }
+      var tok = src.slice(i, j);
+      if (tok.length >= 16 || /[eE]/.test(tok)) {
+        var v = Number(tok), lossy = false;
+        if (!isFinite(v)) lossy = true;
+        else if (/^-?\d+$/.test(tok)) { try { lossy = BigInt(tok).toString() !== BigInt(v).toString(); } catch (err) { lossy = false; } }
+        else lossy = tok.replace(/^-/, '').replace(/[eE].*$/, '').replace(/\./, '').replace(/^0+/, '').length > 17;
+        if (lossy) { out.push(src.slice(last, i), '"' + tok + '"'); last = j; count++; }
+      }
+      i = j;
+      continue;
+    }
+    i++;
+  }
+  if (!count) return { text: src, count: 0 };
+  out.push(src.slice(last));
+  return { text: out.join(''), count: count };
+};
+
 Structra.parseJsonAsync = async function (text) {
   var t0 = performance.now();
   await Structra.util.nextTick();   // let the loading message paint first
   var src = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  var protectedText = Structra.protectBigNumbers(src);
+  Structra.parseNotes = { bigNumbers: protectedText.count };
+  src = protectedText.text;
   try {
     var data = JSON.parse(src);
     Structra.log.perf('Parse', 'JSON.parse (' + (text.length / 1024).toFixed(0) + ' KB)', performance.now() - t0);
@@ -303,12 +342,50 @@ Structra._xmlWorkerPool = Structra.createWorkerPool({
   transferThreshold: 0
 });
 
+/**
+ * XML is read on the page itself: DOMParser does not exist inside a Web Worker, so the worker above can
+ * never read XML. The tree walk below is the same one the worker file contains.
+ */
 Structra.parseXmlAsync = function(text) {
   Structra.log.info('WorkerPool', 'parseXmlAsync (' + (text.length / 1024).toFixed(1) + ' KB)');
   var t0 = performance.now();
-  return Structra._xmlWorkerPool.enqueue(text).then(function(msg) {
+  return new Promise(function(resolve, reject) {
+    if (!text || typeof text !== 'string') { reject(new Error('No XML input')); return; }
+    var doc = new DOMParser().parseFromString(text, 'application/xml');
+    var bad = doc.querySelector('parsererror');
+    if (bad) { reject(new Error('XML parse error: ' + bad.textContent.replace(/\s+/g, ' ').trim().substring(0, 200))); return; }
+    var domToObj = function(node) {
+      if (node.nodeType === 3) return node.textContent.trim() || null;
+      if (node.nodeType !== 1) return null;
+      var obj = {};
+      if (node.attributes && node.attributes.length > 0) {
+        obj['@attributes'] = {};
+        for (var i = 0; i < node.attributes.length; i++) obj['@attributes'][node.attributes[i].name] = node.attributes[i].value;
+      }
+      var hasElements = false;
+      for (var c = 0; c < node.childNodes.length; c++) {
+        var child = node.childNodes[c];
+        if (child.nodeType !== 1) continue;
+        hasElements = true;
+        var tag = child.nodeName;
+        var val = domToObj(child);
+        if (Object.prototype.hasOwnProperty.call(obj, tag)) {
+          if (!Array.isArray(obj[tag])) obj[tag] = [obj[tag]];
+          obj[tag].push(val);
+        } else {
+          obj[tag] = val;
+        }
+      }
+      if (!hasElements) {
+        var text2 = node.textContent.trim();
+        if (obj['@attributes']) { if (text2) obj['#text'] = text2; } else { return text2 || null; }
+      }
+      return obj;
+    };
+    var result = {};
+    result[doc.documentElement.nodeName] = domToObj(doc.documentElement);
     Structra.log.perf('WorkerPool', 'XML parse', performance.now() - t0);
-    return msg.data;
+    resolve(result);
   });
 };
 

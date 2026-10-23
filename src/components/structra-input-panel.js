@@ -309,7 +309,8 @@ class StructraInputPanel extends StructraElement {
       });
     }
 
-    Structra.toast('Loaded ' + name);
+    const big = (Structra.parseNotes && Structra.parseNotes.bigNumbers) || 0;
+    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : ''));
     // Auto-hide overlay wrapper if present
     const overlay = this.closest('.io-overlay');
     if (overlay) overlay.classList.remove('show');
@@ -377,7 +378,29 @@ class StructraInputPanel extends StructraElement {
     await this._parseByFormat(text, this._detectFormat(text, ext), name || 'Restored');
   }
 
+  /** What a file really is when it is not text: an image, a PDF, a zip or Excel workbook, or other binary content */
+  _binaryKind(text) {
+    const head = String(text).slice(0, 4000);
+    if (/^�?PNG/.test(head) || head.startsWith('\u0089PNG')) return 'an image (PNG)';
+    if (/^GIF8[79]a/.test(head)) return 'an image (GIF)';
+    if (/^���[�àá-ï]/.test(head) || head.startsWith('ÿØÿ')) return 'an image (JPEG)';
+    if (head.startsWith('%PDF-')) return 'a PDF document';
+    if (head.startsWith('PK\u0003\u0004')) return 'a zip file, an Excel workbook (.xlsx) or a Word document';
+    if (head.includes('\u0000')) return 'a binary file';
+    const bad = (head.match(/�/g) || []).length;
+    if (head.length > 200 && bad / head.length > 0.05) return 'a binary file';
+    return '';
+  }
+
   async _parseByFormat(text, format, name) {
+    const binary = this._binaryKind(text);
+    if (binary) {
+      const advice = /Excel/.test(binary) ? ' In Excel, use File > Save As > CSV, then open that file here.' : ' Open a JSON, CSV, XML, YAML or TOML file instead.';
+      const msg = `${name} looks like ${binary}, not data.${advice}`;
+      this._showError(advice.trim(), '', `${name} looks like ${binary}, not data`);
+      Structra.toast(msg, 'warning');
+      return;
+    }
     this._clearError();
     const t0 = performance.now();
     Structra.log.info('InputPanel', '_parseByFormat: ' + format + ' — ' + name + ' (' + (text.length / 1024).toFixed(1) + ' KB)');
@@ -788,14 +811,14 @@ class StructraInputPanel extends StructraElement {
     return { detail: detail.trim(), where };
   }
 
-  _showError(msg, rawText) {
+  _showError(msg, rawText, title) {
     const el = this.$('[data-role="error"]');
     const esc = Structra.util.esc;
     const kind = (/^(\w+) parse error/i.exec(msg) || [])[1] || 'JSON';
     const { detail, where } = this._explainError(msg, rawText);
     const canRepair = !!rawText && /^json$/i.test(kind);
     el.innerHTML = `
-      <div class="io-error-title">This is not valid ${esc(kind)}</div>
+      <div class="io-error-title">${esc(title || 'This is not valid ' + kind)}</div>
       <div class="io-error-detail">${esc(detail)}${where ? ' ' + esc(where) : ''}</div>
       ${canRepair ? `<div class="io-error-actions">
         <button class="io-btn-repair" data-action="repair">${Structra.icons.svg('wrench', { size: 14 })} Fix it for me</button>

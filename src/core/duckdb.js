@@ -1,6 +1,6 @@
 /* ============================================================
    STRUCTRA V2 — DuckDB WASM Adapter
-   Async-loaded DuckDB WASM from CDN with OPFS persistence.
+   Async-loaded DuckDB WASM, served from this app's own folder (src/libs/duckdb).
 
    - Non-blocking: loads in background, engine works via JS Core until ready
    - OPFS: database file persists across page reloads (instant resume)
@@ -44,9 +44,9 @@ Structra.duckdb = (() => {
       Structra.log.info('DuckDB', 'Loading DuckDB WASM via Structra.libs...');
       const duckdb = await Structra.libs.require('duckdb');
 
-      // Auto-discover all bundle files (WASM binaries, workers) from jsdelivr
-      const bundles = duckdb.getJsDelivrBundles();
-      const bundle = await duckdb.selectBundle(bundles);
+      // The engine files are in this app's own folder (nothing is downloaded from another site)
+      const abs = (u) => new URL(u, document.baseURI).href;
+      const bundle = { mainModule: abs('src/libs/duckdb/duckdb-eh.wasm'), mainWorker: abs('src/libs/duckdb/duckdb-browser-eh.worker.js'), pthreadWorker: null };
 
       // Create worker via blob URL with importScripts
       const workerUrl = URL.createObjectURL(
@@ -65,6 +65,8 @@ Structra.duckdb = (() => {
       // which are not available on simple HTTP servers or file:// protocol.
       // In-memory is fine — Structra re-ingests data from localStorage/IndexedDB on load.
       await _db.open({});
+      // The JSON add-on is also served from this folder
+      await _db.connect().then(async (c) => { try { await c.query(`SET custom_extension_repository='${new URL('src/libs/duckdb/ext', document.baseURI).href}'`); } finally { await c.close(); } });
       Structra.log.info('DuckDB', 'Opened in-memory');
 
       // Create connection

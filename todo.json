@@ -1360,17 +1360,17 @@
         {
           "id": "14.1",
           "title": "Privacy: the app loads its icon library from cdn.jsdelivr.net on every start although a local copy exists in src/vendor/lucide.min.js (icons.js says it is shipped locally); use the local file so the app works offline and never calls a third party",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.2",
           "title": "Privacy: the fonts IBM Plex Sans and JetBrains Mono come from fonts.googleapis.com and fonts.gstatic.com (3 requests per load, sends the visitor's address to Google); self-host them under src/fonts",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.3",
           "title": "The Welcome dialog says 'Your data stays on this device' and Settings says 'Nothing leaves your computer', while the page contacts three third-party hosts; fix the requests (14.1, 14.2) and add a smoke test that fails on any request to another origin",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.4",
@@ -1575,7 +1575,7 @@
         {
           "id": "14.44",
           "title": "CRITICAL: XML files cannot be opened at all. Pasting or uploading valid XML ends with 'This is not valid XML: XML parse failed: DOMParser is not defined', because src/workers/xml-parse-worker.js uses DOMParser, which does not exist in a Web Worker; parse XML on the main thread (or with a worker-safe parser) and add an XML open test",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.45",
@@ -1640,7 +1640,7 @@
         {
           "id": "14.57",
           "title": "Export as CSV on a document whose list is not at the top level (orders under \"orders\") writes the whole JSON into orders.csv and says 'CSV downloaded'; Excel then opens JSON text. Export the main list as rows (nested lists as extra columns or joined text), or say it cannot",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.58",
@@ -1745,7 +1745,7 @@
         {
           "id": "14.78",
           "title": "Loading a snippet replaces the open document in place without asking (the tab is renamed 'Requester sample.json' and the earlier document is gone), and the path bar and breadcrumb keep the old path ($.value[0].Requester) that does not exist in it; open snippets in a new tab and reset the path",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.79",
@@ -1765,22 +1765,22 @@
         {
           "id": "14.82",
           "title": "SECURITY (confirmed): tab names are written into the page as HTML (structra-tabs.js writes ${t.label} unescaped). A script in a file name, in the name carried by a share link, or in a tab label inside a workspace file runs as soon as the document opens: opening a crafted share link ran the sender's code in the app (it could read the saved Recent files and snippets). Escape the label everywhere it is shown, and limit what a share link name may contain",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.83",
           "title": "A column named constructor, toString, valueOf or hasOwnProperty (and __proto__ in a top-level object) makes the document fail to open with no message at all: engine.buildColumnIndex keeps columns in a plain object and fails with \"Cannot read properties of undefined (reading 'add')\"; use Map or Object.create(null) throughout the engine, and show a message whenever opening fails",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.84",
           "title": "Large whole numbers lose digits without warning: 12345678901234567890 becomes 12345678901234567000, 9007199254740993 becomes 9007199254740992, 1.10 becomes 1.1, and 1e400 is null in the Editor but Infinity in the Tree (not valid JSON); Copy, exports and Apply then write the changed values (SharePoint and Dataverse IDs are often this large). Keep numbers exactly as written, and warn when a number cannot be held exactly",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.85",
           "title": "A binary file (PNG, PDF, Excel .xlsx, zip) opens as '95 records' of nonsense with 'Nothing unusual found' and a data quality score; detect binary content (NUL bytes, PNG, PK and %PDF signatures) and say 'This is an image / Excel workbook, not data. For Excel, use Save as CSV'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.86",
@@ -1795,7 +1795,7 @@
         {
           "id": "14.88",
           "title": "Workspace import writes unchecked values into saved data: snippets given as text and bookmarks given as an object are stored (the toast says 'undefined bookmarks, 9 snippets') and the next start of the Snippet Library fails with '_snippets.map is not a function'; validate types on import, and make every saved list check Array.isArray when read. Also: tabs given as text shows \"Cannot read properties of undefined (reading 'length')\", and a tab whose data is null makes an empty tab and says '1 tab opened'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.89",
@@ -1815,7 +1815,7 @@
         {
           "id": "14.92",
           "title": "Starting SQL downloads DuckDB from cdn.jsdelivr.net (script, worker and about 30 MB of wasm) and its JSON extension from extensions.duckdb.org, although the app is described as local, and SQL cannot work offline or behind a firewall that blocks them; bundle DuckDB and the extension with the app, or say before starting what is downloaded and from where",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.93",
@@ -1845,12 +1845,12 @@
         {
           "id": "14.98",
           "title": "BROKEN FEATURE: the Filter panel's JSONPath and Expression tabs do nothing but fail. Applying either shows 'Error' and the toast 'Structra.engine.filterByPath is not a function' / 'filterByExpression is not a function' (neither function exists in the engine); only Structured and Regex work. Implement both, show a plain-language error, and add smoke tests for every filter tab",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.99",
           "title": "The command palette entries 'Find in JSON' and 'Filter Data' do nothing (they emit find:toggle and filter:toggle, which nothing listens to); only the keyboard shortcuts and toolbar buttons open the bars. Wire them to the same code as the buttons, and test every palette command opens something",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.100",
@@ -1860,7 +1860,7 @@
         {
           "id": "14.101",
           "title": "A toast action label sticks to later messages: after closing a tab, unrelated toasts such as 'This is not a Structra workspace file' and 'Structra.engine.filterByPath is not a function' still show a 'Reopen' button; clear the action when a new toast replaces the old one. Raw technical text ('Structra.engine.filterByPath is not a function') also reaches the toast",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.102",

@@ -301,8 +301,8 @@ class StructraCommand extends StructraElement {
       }
 
       /* ---- Search & Filter ---- */
-      case 'find':   Structra.events.emit('find:toggle'); break;
-      case 'filter': Structra.events.emit('filter:toggle'); break;
+      case 'find':   Structra.set('findBarOpen', !Structra.state.findBarOpen); break;
+      case 'filter': Structra.set('filterBarOpen', !Structra.state.filterBarOpen); break;
       case 'fuzzy':
         Structra.events.emit('find:open', { mode: 'fuzzy' });
         break;
