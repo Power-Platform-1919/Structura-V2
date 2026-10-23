@@ -37,7 +37,7 @@ class StructraSchemaGen extends StructraElement {
         <label class="sg-opt" title="Off: no key is required, so a missing key never fails the Parse JSON action">
           <input type="checkbox" data-action="required" checked> Mark keys as required
         </label>
-        <span class="sg-hint">Paste into the Parse JSON action</span>
+        <p class="sg-hint">Copy the schema, then paste it into the Schema box of the Parse JSON action. The three options change what it contains.</p>
       </div>
       <pre class="sg-output" id="sgOutput"></pre>`;
 

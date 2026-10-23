@@ -125,7 +125,9 @@ class StructraTheme extends StructraOverlay {
     this._renderEditor();
     this._applyDraft();
     this.$('#thEditor').hidden = false;
-    this.$('#thEditor').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    // While editing, Save theme and Cancel are the only buttons: no second Done to confuse them
+    const foot = this.$('.ov-foot'); if (foot) foot.hidden = true;
+    this.$('#thEditor').scrollIntoView({ block: 'start' });
   }
 
   _applyDraft() {
@@ -135,6 +137,7 @@ class StructraTheme extends StructraOverlay {
 
   _cancelEdit() {
     this._draft = null;
+    { const foot = this.querySelector('.ov-foot'); if (foot) foot.hidden = false; }
     Structra.theme.endPreview();
     const ed = this.$('#thEditor');
     if (ed) { ed.hidden = true; ed.innerHTML = ''; }
@@ -292,6 +295,7 @@ class StructraTheme extends StructraOverlay {
     try {
       const id = Structra.theme.saveCustom(this._cleanDraft());
       this._draft = null;
+      { const foot = this.querySelector('.ov-foot'); if (foot) foot.hidden = false; }
       this.$('#thEditor').hidden = true;
       this.$('#thEditor').innerHTML = '';
       Structra.theme.use(id);

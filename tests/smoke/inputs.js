@@ -90,6 +90,8 @@ function serve() {
     await page.waitForTimeout(400);
     await page.evaluate(() => Structra.events.emit('input:show-tab', 'recent'));
     await page.waitForTimeout(500);
+    const prev = await page.evaluate(() => (document.querySelector('.io-recent-preview') || {}).textContent || '');
+    if (!/^Fields: /.test(prev) || /: 1/.test(prev)) failures.push('a Recent entry should preview field names, not values: "' + prev + '"');
     const before = await page.evaluate(() => document.querySelectorAll('.io-recent-item').length);
     if (before < 1) failures.push('Recent should list the pasted document');
     else {
@@ -197,6 +199,44 @@ function serve() {
     await page.locator('[data-clear="structra_snippets"]').click();
     if (await page.evaluate(() => localStorage.getItem('structra_snippets'))) failures.push('Clear (twice) should remove the saved snippets');
     await page.keyboard.press('Escape');
+
+    // ---- Wrap says what it did, the theme editor has one set of buttons, the URL tab explains itself ----
+    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.locator('structra-canvas-header [data-action="wrap"]').click();
+    await page.waitForTimeout(300);
+    const wrap = await page.evaluate(() => ({ pressed: document.querySelector('structra-canvas-header [data-action="wrap"]').getAttribute('aria-pressed'), cls: document.querySelector('#jsonView').classList.contains('wrap-mode'), toast: document.querySelector('structra-toast').textContent }));
+    if (wrap.pressed !== 'true' || !wrap.cls || !/wrap onto several lines/.test(wrap.toast)) failures.push('Wrap should show it is on and say what it does: ' + JSON.stringify(wrap).slice(0, 160));
+    await page.locator('structra-canvas-header [data-action="wrap"]').click();
+    await page.evaluate(() => Structra.events.emit('theme:open'));
+    await page.locator('[data-act="new"]').click();
+    await page.waitForTimeout(300);
+    const foot = await page.evaluate(() => document.querySelector('structra-theme .ov-foot').hidden);
+    if (!foot) failures.push('while a theme is being edited there should be no second Done button');
+    await page.keyboard.press('Escape');
+    const hc = await page.evaluate(() => Structra.theme.contrast(Structra.theme.get('high-contrast').colors.border, Structra.theme.get('high-contrast').colors.bg));
+    if (hc < 7) failures.push('the High Contrast border should contrast strongly with the background (7:1), it is ' + hc.toFixed(1));
+    await page.evaluate(() => Structra.events.emit('input:show-tab', 'url'));
+    const help = await page.evaluate(() => (document.querySelector('.io-url-help') || {}).textContent || '');
+    if (!/CORS/.test(help)) failures.push('the Load URL tab should explain CORS');
+
+    // ---- Accessibility: closed dialogs cannot be reached, tabs say which is selected, graph nodes are buttons ----
+    const a11y = await page.evaluate(() => ({
+      reachable: [...new Set([...document.querySelectorAll('.ov:not(.show) *, .io-overlay:not(.show) *')].filter((e) => e.getClientRects().length > 0).map((e) => (e.closest('.ov, .io-overlay').parentElement.tagName + '.' + e.closest('.ov, .io-overlay').className)))].join(),
+      selected: document.querySelectorAll('.drawer-tabs [role="tab"][aria-selected="true"]').length,
+      bare: [...document.querySelectorAll('.drawer-tabs [role="tab"]')].filter((t) => !t.hasAttribute('aria-selected')).length,
+    }));
+    if (a11y.reachable) failures.push('closed dialogs should not be reachable: ' + a11y.reachable);
+    if (a11y.selected !== 1 || a11y.bare) failures.push('exactly one drawer tab should be selected and all should say so: ' + JSON.stringify(a11y));
+    await page.evaluate(() => Structra.set('activeView', 'graph'));
+    await page.waitForTimeout(500);
+    const node = await page.evaluate(() => { const g = document.querySelector('.graph-svg g[data-path]'); return g ? { role: g.getAttribute('role'), label: g.getAttribute('aria-label') } : null; });
+    if (!node || node.role !== 'button' || !node.label) failures.push('graph nodes should be buttons with a name: ' + JSON.stringify(node));
+
+    // ---- Starting SQL says what the wait is ----
+    await page.evaluate(() => { window.__msgs = []; Structra.events.on('loading:show', (m) => window.__msgs.push(String(m))); });
+    await page.evaluate(() => Structra.engine.enableSql());
+    const msgs = await page.evaluate(() => window.__msgs.join(' | '));
+    if (!/Preparing the SQL engine \(first use only\)/.test(msgs)) failures.push('starting SQL should say it is preparing the engine: ' + msgs);
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));
   }

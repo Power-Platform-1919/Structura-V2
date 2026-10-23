@@ -11,6 +11,7 @@ class StructraCanvasHeader extends StructraElement {
   static HIDDEN_KEY = 'structra.toolbarHidden';
 
   init() {
+    this.on('tree:wrap-state', (on) => { const b = this.$('[data-action="wrap"]'); if (b) { b.classList.toggle('active', !!on); b.setAttribute('aria-pressed', String(!!on)); } });
     this.on('toolbar:reset', () => { this._setHidden([]); Structra.toast('All toolbar buttons are visible'); });
     this.on('state:activeView', (d) => {
       this.props.activeView = d.value;
@@ -87,7 +88,7 @@ class StructraCanvasHeader extends StructraElement {
         case 'depth-1':      Structra.log.info('CanvasHeader', 'Action: depth-1'); Structra.events.emit('tree:collapse-depth', 1); break;
         case 'depth-2':      Structra.log.info('CanvasHeader', 'Action: depth-2'); Structra.events.emit('tree:collapse-depth', 2); break;
         case 'depth-3':      Structra.log.info('CanvasHeader', 'Action: depth-3'); Structra.events.emit('tree:collapse-depth', 3); break;
-        case 'wrap':         Structra.log.info('CanvasHeader', 'Action: wrap'); Structra.events.emit('tree:toggle-wrap'); Structra.toast('Word wrap toggled'); break;
+        case 'wrap':         Structra.log.info('CanvasHeader', 'Action: wrap'); Structra.events.emit('tree:toggle-wrap'); break;
         case 'copy-json':    Structra.log.info('CanvasHeader', 'Action: copy-json'); this._copyJson(); break;
         case 'more':         this._showMoreMenu(actionBtn); break;
         case 'find':         Structra.set('findBarOpen', true); break;

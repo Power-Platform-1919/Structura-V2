@@ -100,6 +100,14 @@ function serve() {
     const where = await page.evaluate(() => ({ view: Structra.state.activeView, path: Structra.state.currentPath }));
     if (where.view !== 'tree' || where.path !== '$.value[1].Title') failures.push('clicking a result should select it in the Tree, got ' + JSON.stringify(where));
 
+    const lit = await page.evaluate(() => document.querySelectorAll('.j-line.find-match').length);
+    if (lit !== 3) failures.push('all 3 matches should be marked in the Tree, ' + lit + ' are');
+    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.locator('structra-query [data-copy-expr="pa"]').first().click();
+    await page.waitForTimeout(300);
+    const toastText = await page.evaluate(() => document.querySelector('structra-toast').textContent);
+    if (!/Power Automate expression copied/.test(toastText)) failures.push('a result should copy its Power Automate expression: ' + toastText.slice(0, 80));
+
     // Keep the matches in a new tab
     const before = await page.evaluate(() => Structra.tabs.list.length);
     await page.locator('structra-query [data-action="openMatches"]').click();

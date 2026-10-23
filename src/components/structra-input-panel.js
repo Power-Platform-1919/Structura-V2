@@ -90,6 +90,7 @@ class StructraInputPanel extends StructraElement {
       </div>
 
       <div class="io-panel" data-panel="url">
+        <p class="io-url-help">Open JSON from a web address. For a public file, paste the address and press Send. Auth, Headers and Body are only for services that need them. Your browser can only read addresses that allow it (CORS): if one is blocked, save the file and use Upload File.</p>
         <div class="io-api-row">
           <select class="io-api-method" data-role="api-method">
             <option value="GET" selected>GET</option>
@@ -494,7 +495,9 @@ class StructraInputPanel extends StructraElement {
       const name = url.split('/').pop().split('?')[0] || 'API Response';
       await this._parseByFormat(text, format, name);
     } catch (err) {
-      errorEl.textContent = err.message;
+      errorEl.textContent = err instanceof TypeError
+        ? 'The browser could not read this address. Either it is not reachable, or the site does not allow other pages to read it (CORS). Save the file from the address and use Upload File instead.'
+        : err.message;
     } finally {
       sendBtn.textContent = '\u25B6 Send';
       sendBtn.disabled = false;
@@ -679,7 +682,11 @@ class StructraInputPanel extends StructraElement {
       name,
       size: byteSize || new Blob([text]).size,
       ts: Date.now(),
-      preview: text.substring(0, 80).replace(/\s+/g, ' '),
+      // The first field names, not the values, so a glance at Recent never shows people's details
+      preview: (() => {
+        const keys = [...new Set([...text.substring(0, 600).matchAll(/"([^"\r\n]{1,30})"\s*:/g)].map((m) => m[1]))].slice(0, 6);
+        return keys.length ? 'Fields: ' + keys.join(', ') : text.substring(0, 20).replace(/\s+/g, ' ') + '…';
+      })(),
       data: text.length <= 200000 ? text : null
     };
     const filtered = recent.filter(r => r.name !== name);

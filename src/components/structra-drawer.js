@@ -62,8 +62,8 @@ class StructraDrawer extends StructraElement {
         <button class="drawer-toggle" type="button" data-action="cycle" aria-label="Hide the panel" title="Hide the panel" aria-expanded="true">
           ${Structra.icons.svg('chevron-up', { cls: 'drawer-chevron' })}
         </button>
-        <div class="tabs drawer-tabs" role="tablist">
-          ${tabs.map((t, i) => `<button class="tab ${i === 0 ? 'active' : ''}" type="button" role="tab" data-tab="${t.id}">${t.label}</button>`).join('')}
+        <div class="tabs drawer-tabs" role="tablist" aria-label="Panels">
+          ${tabs.map((t, i) => `<button class="tab ${i === 0 ? 'active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-tab="${t.id}">${t.label}</button>`).join('')}
         </div>
       </div>
       <div class="drawer-body">
@@ -154,7 +154,7 @@ class StructraDrawer extends StructraElement {
   }
 
   _switchTab(id) {
-    this.$$('.drawer-tabs .tab').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
+    this.$$('.drawer-tabs .tab').forEach(b => { b.classList.toggle('active', b.dataset.tab === id); b.setAttribute('aria-selected', String(b.dataset.tab === id)); });
     // Choosing a tab while the drawer is folded away opens it
     if (this.classList.contains('collapsed')) {
       this._stateIdx = 1;

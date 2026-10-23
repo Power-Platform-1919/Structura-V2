@@ -429,7 +429,7 @@ class StructraCommand extends StructraElement {
       case 'expand-all':   Structra.events.emit('tree:expand-all'); break;
       case 'collapse-all': Structra.events.emit('tree:collapse-all'); break;
       case 'depth-3':      Structra.events.emit('tree:collapse-depth', 3); break;
-      case 'wrap':         Structra.events.emit('tree:toggle-wrap'); Structra.toast('Word wrap toggled'); break;
+      case 'wrap':         Structra.events.emit('tree:toggle-wrap'); break;
       case 'copy-path':    Structra.util.copy(Structra.state.currentPath || '$', 'Path copied'); break;
       case 'bookmark': {
         const path = Structra.state.currentPath;

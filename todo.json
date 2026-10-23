@@ -501,7 +501,7 @@
     {
       "id": "13",
       "title": "End-user walkthrough: problems found by using the app as a low-code maker (real clicks, layout, spacing)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Found by using the app with a realistic SharePoint Get items response, through real clicks and screenshots. Each item is a gap to fix.",
       "subtasks": [
         {
@@ -662,12 +662,12 @@
         {
           "id": "13.32",
           "title": "Query results only list path and value; a maker finding all emails cannot copy the matching Power Automate or Power Fx expression, or open a match from the list in the Node panel with one click and keep the list",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.33",
           "title": "Query matches are not highlighted in the tree",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.34",
@@ -787,7 +787,7 @@
         {
           "id": "13.57",
           "title": "Features that need the SQL engine start it without saying so and block for many seconds; say 'Preparing the SQL engine (first use only)...' with progress, and prefer JavaScript paths for small data",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.58",
@@ -942,7 +942,7 @@
         {
           "id": "13.88",
           "title": "Schema Gen options row (three checkboxes and a hint) is cramped at small type size; the hint 'Paste into the Parse JSON action' reads like a fourth option",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.89",
@@ -1027,7 +1027,7 @@
         {
           "id": "13.105",
           "title": "Editor view keeps the Tree toolbar (+All, -All, D1 to D3, Wrap, Filter, Find, Edit) although most do nothing in the Editor; the toolbar should change per view and Wrap should apply to the editor",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.106",
@@ -1037,7 +1037,7 @@
         {
           "id": "13.107",
           "title": "Editor Repair works well (single quotes, trailing comma, comment, True) but the repair message for hopeless input is jargon ('Unexpected end of json string at position 1'); also no diff of what was repaired",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.108",
@@ -1087,7 +1087,7 @@
         {
           "id": "13.117",
           "title": "Accessibility: the document tabs and the bottom tabs have no accessible names or roles (file tab is a plain generic), line numbers are read as text '1 2 3 4 5 4 5 6', toolbar icon buttons like +All and -All have no labels, and the Graph nodes expose no role; keyboard-only use of rail, tabs and dialogs needs a pass",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.118",
@@ -1172,7 +1172,7 @@
         {
           "id": "13.134",
           "title": "Load URL: the request panel is a small REST client (method, Auth, Headers, Body) shown to every maker with no explanation, and it does not say that the browser blocks pages that do not allow cross origin requests (CORS); the loaded file keeps the URL's file name as the tab name, which is good, but the URL is not remembered in Recent with its headers",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.135",
@@ -1187,22 +1187,22 @@
         {
           "id": "13.137",
           "title": "Dark theme looks consistent in Table, Tree and the side panel (distinct panels, readable table, accent on tabs); but the side panel and canvas are only about 2 percent apart in lightness, so the panel edge is hard to see without the 1px border; check the High Contrast and custom themes",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.138",
           "title": "High Contrast theme: app background is #000000 and panels are #0a0a0a, so the side panel, Table and canvas merge into one black area separated only by a faint grey line; a high contrast theme needs bright borders (the Borders token is #7a7a7a) and the disabled pager buttons are almost invisible",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.139",
           "title": "Custom theme editor is good (live preview, contrast badges with AA), but it opens scrolled to the bottom of the dialog with the theme list half off screen, has two confirm buttons (Save theme and Done) and the Cancel button is easy to confuse with other dialogs; the Mode hint 'System follows your operating system' stays the same for Light, Dark and System",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.140",
           "title": "Closed dialogs stay in the page as hidden copies (Snippet Library, Welcome, Input overlay duplicate Cancel, Light, Send, Paste Data and the sample link controls), so keyboard focus order and screen readers can reach duplicates; dialogs and the input overlay should be created on open and removed on close",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.141",
@@ -1212,7 +1212,7 @@
         {
           "id": "13.142",
           "title": "Recent list works and opens into the empty tab, but it stores the full text of every file in the browser (the Pasted JSON entry shows emails and phone numbers in its preview), has only a 'Clear History' button and no per-entry remove, lists the same name twice (two 'Pasted JSON' tabs after reopening) and the long list scrolls the whole card instead of an inner list",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.143",
@@ -1302,7 +1302,7 @@
         {
           "id": "13.160",
           "title": "Schema Gen works well and matches Power Automate Parse JSON needs (nullable types as lists, required keys, items for arrays, copy toast), so it should be the single source for the Schema view and the Type Definitions dialog, which both disagree with it",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.161",
@@ -1322,7 +1322,7 @@
         {
           "id": "13.164",
           "title": "Wrap toggle shows as pressed but nothing changes on short lines and there is no indication of what it wraps (tree values, long strings); the toggle also persists no state across tabs",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.165",

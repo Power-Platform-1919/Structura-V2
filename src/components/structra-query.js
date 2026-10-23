@@ -68,6 +68,14 @@ class StructraQuery extends StructraElement {
         this._switchTab(tab.dataset.qtab);
         return;
       }
+      const copy = e.target.closest('[data-copy-expr]');
+      if (copy) {
+        e.stopPropagation();
+        const path = copy.closest('.qp-result').dataset.path;
+        const expr = copy.dataset.copyExpr === 'pa' ? Structra.paths.powerAutomate(path) : Structra.paths.powerFx(path);
+        Structra.util.copy(expr, copy.dataset.copyExpr === 'pa' ? 'Power Automate expression copied' : 'Power Fx expression copied');
+        return;
+      }
       const hit = e.target.closest('.qp-result[data-path]');
       if (hit) { this._showMatch(hit.dataset.path); return; }
       const preset = e.target.closest('[data-preset]');
@@ -257,6 +265,10 @@ class StructraQuery extends StructraElement {
           `<div class="qp-result" data-i="${i}" data-path="${Structra.util.esc(m.path)}" title="Show in the Tree">
             <span class="qp-result-path">${Structra.util.esc(m.path)}</span>
             <span class="qp-result-value">${Structra.util.esc(this._preview(m.value))}</span>
+            <span class="qp-result-copy">
+              <button class="btn btn-sm btn-ghost" type="button" data-copy-expr="pa" title="Copy the Power Automate expression for this value">Power Automate</button>
+              <button class="btn btn-sm btn-ghost" type="button" data-copy-expr="fx" title="Copy the Power Fx expression for this value">Power Fx</button>
+            </span>
           </div>`
         ).join('');
     } catch (err) {
@@ -269,7 +281,13 @@ class StructraQuery extends StructraElement {
     if (!path || !path.startsWith('$')) return;
     Structra.set('activeView', 'tree');
     Structra.set('currentPath', path);
-    setTimeout(() => Structra.events.emit('tree:navigate-path', path), 60);
+    // Every match is marked in the Tree, and the clicked one is brought into view
+    setTimeout(() => {
+      const view = document.getElementById('jsonView');
+      const all = (this._lastMatches || []).map((m) => m.path).filter((p) => typeof p === 'string' && p.startsWith('$'));
+      if (view && all.length) Structra.jsonTree.highlightPaths(view, all);
+      Structra.events.emit('tree:navigate-path', path);
+    }, 60);
   }
 
   _copyMatches() {

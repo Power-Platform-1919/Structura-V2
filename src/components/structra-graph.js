@@ -237,6 +237,10 @@ class StructraGraph extends StructraElement {
     group.appendChild(text);
 
     group.dataset.path = node.path || '';
+    group.setAttribute('role', 'button');
+    group.setAttribute('tabindex', '0');
+    group.setAttribute('aria-label', node.label.replace(' ▸', '') + (node.collapsed ? ', collapsed, press Enter to open' : ''));
+    group.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); group.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
     if (node.type === 'ellipsis') {
       group.style.cursor = 'pointer';
       group.addEventListener('click', e => { e.stopPropagation(); this._expandEllipsis(node); });

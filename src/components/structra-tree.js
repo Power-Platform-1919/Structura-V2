@@ -22,6 +22,8 @@ class StructraTree extends StructraElement {
       this._wrap = !this._wrap;
       const view = this._getView();
       if (view) view.classList.toggle('wrap-mode', this._wrap);
+      Structra.events.emit('tree:wrap-state', this._wrap);
+      Structra.toast(this._wrap ? 'Long values now wrap onto several lines' : 'Long values stay on one line');
     });
     // Universal query: apply/clear tree-level filtering + highlighting
     this.on('engine:filter-changed', (query) => {
@@ -73,6 +75,7 @@ class StructraTree extends StructraElement {
     });
 
     this._markBookmarks();
+    if (this._wrap) view.classList.add('wrap-mode');
     Structra.events.emit('tree:rendered');
     Structra.log.perf('Tree', 'renderTree()', performance.now() - t0);
   }

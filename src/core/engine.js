@@ -1611,7 +1611,9 @@ Structra.engine = (() => {
     if (!_duckReady) {
       Structra.events.emit('engine:duckdb-starting');
       if (!_duckStarting) _duckStarting = Structra.duckdb.init();
-      await _duckStarting;
+      // Say what the wait is: the SQL engine is downloaded and started once, then stays ready
+      Structra.events.emit('loading:show', 'Preparing the SQL engine (first use only)…');
+      try { await _duckStarting; } finally { Structra.events.emit('loading:hide'); }
       if (!_duckReady) return false;
     }
     const ds = getActive();

@@ -175,13 +175,22 @@ class StructraEditor extends StructraElement {
       Structra.toast('Already valid JSON');
       return;
     } catch { /* invalid: fall through to repair */ }
+    const before = area.value;
     try {
-      area.value = await Structra.jsonTools.repair(area.value);
+      area.value = await Structra.jsonTools.repair(before);
       this._gutter();
       await this._validate();
-      Structra.toast('Repaired. Review it, then Apply.');
+      // Say how much changed, so the repair is not a leap of faith
+      const lines = (t) => t.split(/\r?\n/);
+      const was = lines(before), now = lines(area.value);
+      let changed = Math.abs(was.length - now.length);
+      for (let i = 0; i < Math.min(was.length, now.length); i++) if (was[i] !== now[i]) changed++;
+      Structra.toast(`Repaired: about ${changed} line${changed === 1 ? '' : 's'} changed. Review it, then Apply. Ctrl+Z in the box undoes the repair.`);
     } catch (e) {
-      Structra.toast('Could not repair: ' + e.message);
+      const panel = document.querySelector('structra-input-panel');
+      const detail = panel && panel._explainError ? panel._explainError(e.message, before).detail : e.message;
+      const plain = /unexpected end|end of json/i.test(detail) ? 'The text stops before the JSON is complete, or it is not JSON at all.' : detail;
+      Structra.toast('This could not be repaired automatically. ' + plain);
     }
   }
 

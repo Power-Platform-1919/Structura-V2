@@ -70,7 +70,7 @@ Structra.theme = (() => {
       accent: '#742774', success: '#107c10', warning: '#b05c00', danger: '#c4262e', info: '#0f6cbd',
       synKey: '#742774', synString: '#107c10', synNumber: '#b05c00', synBoolean: '#0f6cbd', synNull: '#8a8094' } },
     { id: 'structra-dark', name: 'Structra Dark', mode: 'dark', colors: {
-      bg: '#0c1018', surface: '#131925', surfaceAlt: '#1a2232', border: '#273149', text: '#e8edf7', textSec: '#aab4ca', textMuted: '#8591a9',
+      bg: '#0c1018', surface: '#151c2b', surfaceAlt: '#1d2638', border: '#35425f', text: '#e8edf7', textSec: '#aab4ca', textMuted: '#8591a9',
       accent: '#7b94ff', success: '#3ecf9a', warning: '#f0b44c', danger: '#ff6b7a', info: '#62b4f5',
       synKey: '#b69cff', synString: '#4fd6a4', synNumber: '#f5b95f', synBoolean: '#6db3ff', synNull: '#7a859e' } },
     { id: 'midnight', name: 'Midnight', mode: 'dark', colors: {
@@ -86,7 +86,7 @@ Structra.theme = (() => {
       accent: '#d28ae0', success: '#54c26b', warning: '#f0a64a', danger: '#ff7a85', info: '#6db3f2',
       synKey: '#d28ae0', synString: '#54c26b', synNumber: '#f0a64a', synBoolean: '#6db3f2', synNull: '#8f7fa3' } },
     { id: 'high-contrast', name: 'High Contrast', mode: 'dark', colors: {
-      bg: '#000000', surface: '#0a0a0a', surfaceAlt: '#161616', border: '#7a7a7a', text: '#ffffff', textSec: '#ececec', textMuted: '#c8c8c8',
+      bg: '#000000', surface: '#101010', surfaceAlt: '#1f1f1f', border: '#d0d0d0', text: '#ffffff', textSec: '#ececec', textMuted: '#c8c8c8',
       accent: '#ffd60a', success: '#4cff8f', warning: '#ffb020', danger: '#ff6b6b', info: '#5cc8ff',
       synKey: '#ff9cf0', synString: '#7dffb0', synNumber: '#ffd60a', synBoolean: '#6fd0ff', synNull: '#bdbdbd' } },
   ].map((t) => ({ ...t, builtIn: true }));
