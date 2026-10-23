@@ -23,7 +23,7 @@ class StructraCharts extends StructraOverlay {
       title: 'Charts',
       size: 'lg',
       head: `
-        <label class="ch-field">Array <select id="chSource"></select></label>
+        <label class="ch-field">List <select id="chSource"></select></label>
         <label class="ch-field">Column <select id="chColumn"></select></label>`,
       body: '<div class="ch-body" id="chBody"></div>',
     });
@@ -41,7 +41,7 @@ class StructraCharts extends StructraOverlay {
 
     this._sources = Structra.engine.findAllArrays(data, '')
       .filter((a) => Array.isArray(a.data) && a.data.length > 0)
-      .map((a) => ({ path: a.path, label: `${a.path} (${a.data.length.toLocaleString()})`, rows: a.data }));
+      .map((a) => ({ path: a.path, label: `${a.path === '(root)' ? 'The whole document' : a.path} (${a.data.length.toLocaleString()} ${a.data.length === 1 ? 'item' : 'items'})`, rows: a.data }));
     if (!this._sources.length) { Structra.toast('No arrays to chart in this document'); return; }
 
     const esc = Structra.util.esc;
@@ -101,7 +101,7 @@ class StructraCharts extends StructraOverlay {
     const body = this.$('#chBody');
     const src = this._sources[parseInt(this.$('#chSource').value, 10)];
     const col = this.$('#chColumn').value;
-    if (!src || !col) { body.innerHTML = '<p class="ch-note">Pick an array and a column.</p>'; return; }
+    if (!src || !col) { body.innerHTML = '<p class="ch-note">Pick a list and a column.</p>'; return; }
 
     const all = this._values(src, col);
     const present = all.filter((v) => v !== null && v !== undefined);
@@ -157,24 +157,30 @@ class StructraCharts extends StructraOverlay {
       <line class="ch-axisline" x1="${padL}" y1="${H - padB}" x2="${W - padL}" y2="${H - padB}"/>
       <text class="ch-axis" x="${padL}" y="${H - 6}">${this._fmt(min)}</text>
       <text class="ch-axis" x="${W - padL}" y="${H - 6}" text-anchor="end">${this._fmt(max)}</text>
-      <text class="ch-axis" x="${W - padL}" y="${padT + 8}" text-anchor="end">tallest bar: ${peak.toLocaleString()}</text>
-    </svg>`;
+    </svg>
+    <p class="ch-note">Each bar counts the values in one range, from ${this._fmt(min)} to ${this._fmt(max)}. The tallest bar holds ${peak.toLocaleString()} ${peak === 1 ? 'value' : 'values'}.</p>`;
   }
 
   _trend(values, min, max) {
-    const W = 640, H = 90, pad = 6;
+    const W = 640, H = 120, padL = 46, padR = 8, padT = 8, padB = 20;
     const target = StructraCharts.TREND_POINTS;
     const stride = Math.max(1, Math.ceil(values.length / target));
     const pts = [];
     for (let i = 0; i < values.length; i += stride) pts.push(values[i]);
     const span = (max - min) || 1;
     const d = pts.map((v, i) => {
-      const x = pts.length === 1 ? W / 2 : pad + (i / (pts.length - 1)) * (W - pad * 2);
-      const y = H - pad - ((v - min) / span) * (H - pad * 2);
+      const x = pts.length === 1 ? (padL + W - padR) / 2 : padL + (i / (pts.length - 1)) * (W - padL - padR);
+      const y = H - padB - ((v - min) / span) * (H - padT - padB);
       return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
     }).join(' ');
     return `<svg class="ch-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Values in file order, ${values.length.toLocaleString()} values${stride > 1 ? ', every ' + stride + 'th shown' : ''}">
+      <line class="ch-axisline" x1="${padL}" y1="${padT}" x2="${padL}" y2="${H - padB}"/>
+      <line class="ch-axisline" x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}"/>
       <path class="ch-line" d="${d}"/>
+      <text class="ch-axis" x="${padL - 6}" y="${padT + 8}" text-anchor="end">${this._fmt(max)}</text>
+      <text class="ch-axis" x="${padL - 6}" y="${H - padB}" text-anchor="end">${this._fmt(min)}</text>
+      <text class="ch-axis" x="${padL}" y="${H - 5}">first row</text>
+      <text class="ch-axis" x="${W - padR}" y="${H - 5}" text-anchor="end">row ${values.length.toLocaleString()}</text>
     </svg>${stride > 1 ? `<p class="ch-note">Showing every ${stride}th value.</p>` : ''}`;
   }
 

@@ -762,7 +762,7 @@
         {
           "id": "13.52",
           "title": "Table columns share the full width equally: a two-column table gives the ID column half the screen; size columns to their content (with a sensible min and max) and left-align numbers consistently",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.53",
@@ -772,17 +772,17 @@
         {
           "id": "13.54",
           "title": "Table column menu (right-click a header) mixes colour emoji (chart, stats, distinct, copy), Unicode triangles and one Lucide arrow, with uneven row heights; use Structra.icons for every entry and one row height",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.55",
           "title": "Table column widths jump when the sort changes (VAL moved right after sorting ID); keep widths stable",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.56",
           "title": "Table column menu 'Distinct Values' silently starts the SQL engine (about 14 s: library load, then registering the data), then fails with 'Catalog Error: Table with name data does not exist' and shows nothing; no progress, no result, no error message. Compute distinct values in JavaScript (or fix the table name) and always show a result or a clear error",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.57",
@@ -797,7 +797,7 @@
         {
           "id": "13.59",
           "title": "Column Stats in the table column menu does nothing visible (SQL error in the console); Charts works but shows a faint stray tooltip text at the top right of the histogram",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.60",
@@ -1222,7 +1222,7 @@
         {
           "id": "13.144",
           "title": "Table column Hide and restore work well (the '1 hidden' chip brings the column back); the column menu mixes arrow glyphs and emoji icons (triangles, arrow, circle, chart emoji), which looks unfinished next to the Lucide icons in the rest of the app",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.145",
@@ -1342,7 +1342,7 @@
         {
           "id": "13.168",
           "title": "Charts dialog (Chart This Column) works with a stats row and histogram, but the label 'tallest bar:' is printed on top of the right bar and cut off, the 'In file order' line chart has no axis, labels or values, and 'Array $ (2)' is a cryptic name for the list being charted (should read 'Rows of the whole file (2)')",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.169",

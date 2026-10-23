@@ -328,7 +328,9 @@
 .vl-sentinel-row td { font-style: italic; }
 
 .data-table {
-  width: 100%;
+  table-layout: fixed;          /* widths come from <colgroup>, so they stay put when the sort changes */
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-md);
 }
@@ -2010,3 +2012,17 @@ structra-schemagen {
 .nf-path { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: var(--fs-xs); }
 
 .pivot-help { margin: 0; padding: var(--sp-2) var(--sp-4); font-size: var(--fs-xs); color: var(--text-muted); border-bottom: 1px solid var(--border-subtle); }
+
+.col-ctx-icon { display: inline-flex; width: 18px; justify-content: center; color: var(--text-muted); margin-right: 2px; }
+.col-ctx-item { display: flex; align-items: center; gap: var(--sp-2); }
+.col-report { width: min(30rem, 92vw); box-shadow: var(--shadow-lg); }
+.rep-note { font-size: var(--fs-xs); color: var(--text-muted); }
+.rep-facts { display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-1) var(--sp-4); margin: 0; font-size: var(--fs-sm); }
+.rep-facts dt { color: var(--text-muted); }
+.rep-facts dd { margin: 0; font-weight: var(--fw-medium); overflow-wrap: anywhere; }
+.rep-list { display: flex; flex-direction: column; gap: 2px; max-height: 18rem; overflow: auto; font-size: var(--fs-sm); }
+.rep-row { display: grid; grid-template-columns: minmax(6rem, 14rem) 1fr 3rem; gap: var(--sp-2); align-items: center; }
+.rep-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: var(--fs-xs); }
+.rep-bar { height: 6px; background: var(--surface-alt); border-radius: 3px; overflow: hidden; }
+.rep-bar span { display: block; height: 100%; background: var(--accent); }
+.rep-n { text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }

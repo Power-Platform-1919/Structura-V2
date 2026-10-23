@@ -303,6 +303,7 @@ class StructraTable extends StructraElement {
 
     // Render header
     this._renderHeader(head, keys);
+    this._applyColumnWidths(keys, allRows);
 
     // Render toolbar (show filter indicator if filtered)
     this._renderToolbar(pager, totalRows, !!resolved.filtered);
@@ -320,6 +321,33 @@ class StructraTable extends StructraElement {
     }
 
     Structra.log.perf('Table', 'renderTable()', performance.now() - t0);
+  }
+
+  /* ======== COLUMN WIDTHS ======== */
+
+  /**
+   * Each column gets the width its content needs (header and the longest of the first rows, within limits),
+   * measured once per document and column set, so widths stay put when the sort changes or a page is turned.
+   */
+  _applyColumnWidths(keys, allRows) {
+    const table = this.$('table.data-table');
+    if (!table) return;
+    const base = this._baseRows && this._baseRows.length ? this._baseRows : allRows;
+    const stamp = keys.join('\u0001') + '#' + (Array.isArray(base) ? base.length : 0);
+    if (this._widthStamp !== stamp) {
+      const sample = (base || []).slice(0, 150);
+      const textLen = (v) => (v === null || v === undefined ? 4 : typeof v === 'object' ? (Array.isArray(v) ? 12 : 16) : String(v).length);
+      this._widths = {};
+      for (const k of keys) {
+        let max = String(k).length + 4;                       // the name plus the sort and filter marks
+        for (const r of sample) { const len = textLen(r ? r[k] : undefined); if (len > max) max = len; }
+        this._widths[k] = Math.max(7, Math.min(40, max));
+      }
+      this._widthStamp = stamp;
+    }
+    let group = table.querySelector('colgroup');
+    if (!group) { group = document.createElement('colgroup'); table.insertBefore(group, table.firstChild); }
+    group.innerHTML = (this._visibleKeys || keys).map((k) => `<col style="width:calc(${this._widths[k] || 12}ch + var(--sp-6))">`).join('');
   }
 
   /* ======== HEADER ======== */
@@ -526,23 +554,25 @@ class StructraTable extends StructraElement {
     const menu = document.createElement('div');
     menu.className = 'col-ctx-menu';
     menu.style.cssText = `left:${x}px;top:${y}px`;
+    const ic = (n) => `<span class="col-ctx-icon">${Structra.icons.svg(n, { size: 14 })}</span>`;
     menu.innerHTML = `
-      <div class="col-ctx-item" data-col-action="sort-asc">▲ Sort Ascending</div>
-      <div class="col-ctx-item" data-col-action="sort-desc">▼ Sort Descending</div>
+      <div class="col-ctx-item" data-col-action="sort-asc">${ic('arrow-up-narrow-wide')} Sort A to Z (smallest first)</div>
+      <div class="col-ctx-item" data-col-action="sort-desc">${ic('arrow-down-wide-narrow')} Sort Z to A (largest first)</div>
       <div class="col-ctx-sep"></div>
-      <div class="col-ctx-item" data-col-action="filter">⏷ Filter Values…</div>
-      ${hasFilter ? `<div class="col-ctx-item" data-col-action="clear-filter">${Structra.icons.svg('x', { size: 14 })} Clear Filter</div>` : ''}
+      <div class="col-ctx-item" data-col-action="filter">${ic('filter')} Filter this column…</div>
+      ${hasFilter ? `<div class="col-ctx-item" data-col-action="clear-filter">${ic('x')} Clear the filter</div>` : ''}
       <div class="col-ctx-sep"></div>
-      ${hasObjects ? '<div class="col-ctx-item" data-col-action="expand">⊞ Expand Object Column…</div>' : ''}
-      ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">⊟ Collapse "${Structra.util.esc(this._expandParent.get(col))}"</div>` : ''}
-      <div class="col-ctx-item" data-col-action="move-left">◀ Move Left</div>
-      <div class="col-ctx-item" data-col-action="move-right">${Structra.icons.svg('arrow-right', { size: 14 })} Move Right</div>
-      <div class="col-ctx-item" data-col-action="hide">⊘ Hide Column</div>
-      ${this._hiddenCols.size ? `<div class="col-ctx-item" data-col-action="unhide-all">⊙ Show ${this._hiddenCols.size} Hidden Column${this._hiddenCols.size === 1 ? '' : 's'}</div>` : ''}
-      <div class="col-ctx-item" data-col-action="chart">📈 Chart This Column</div>
-      <div class="col-ctx-item" data-col-action="stats">📊 Column Stats</div>
-      <div class="col-ctx-item" data-col-action="distinct">🔢 Distinct Values</div>
-      <div class="col-ctx-item" data-col-action="copy-col">📋 Copy Column Values</div>
+      ${hasObjects ? `<div class="col-ctx-item" data-col-action="expand">${ic('unfold-horizontal')} Split into columns…</div>` : ''}
+      ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">${ic('fold-horizontal')} Join back into "${Structra.util.esc(this._expandParent.get(col))}"</div>` : ''}
+      <div class="col-ctx-item" data-col-action="move-left">${ic('arrow-left')} Move left</div>
+      <div class="col-ctx-item" data-col-action="move-right">${ic('arrow-right')} Move right</div>
+      <div class="col-ctx-item" data-col-action="hide">${ic('eye-off')} Hide this column</div>
+      ${this._hiddenCols.size ? `<div class="col-ctx-item" data-col-action="unhide-all">${ic('eye')} Show ${this._hiddenCols.size} hidden column${this._hiddenCols.size === 1 ? '' : 's'}</div>` : ''}
+      <div class="col-ctx-sep"></div>
+      <div class="col-ctx-item" data-col-action="chart">${ic('chart-column')} Chart this column</div>
+      <div class="col-ctx-item" data-col-action="stats">${ic('sigma')} Column summary</div>
+      <div class="col-ctx-item" data-col-action="distinct">${ic('list')} Every different value</div>
+      <div class="col-ctx-item" data-col-action="copy-col">${ic('copy')} Copy the column's values</div>
     `;
 
     menu.addEventListener('click', (e) => {
@@ -623,55 +653,86 @@ class StructraTable extends StructraElement {
         this.renderTable();
         Structra.toast(`"${col}" hidden. Use the "hidden" chip above the table to show it again.`);
         break;
-      case 'stats': {
-        // DuckDB column stats query
-        try {
-          const sql = `SELECT 
-            COUNT(*) as total,
-            COUNT(DISTINCT "${col}") as distinct_count,
-            COUNT(*) - COUNT("${col}") as null_count,
-            MIN("${col}") as min_val,
-            MAX("${col}") as max_val
-          FROM data`;
-          const result = await Structra.engine.runSql(sql);
-          if (result && result.rows && result.rows[0]) {
-            const s = result.rows[0];
-            Structra.toast(`${col}: ${s.distinct_count} distinct, ${s.null_count} nulls, min=${s.min_val}, max=${s.max_val}`);
-          } else {
-            // Fallback in-memory
-            const vals = (this._rows || []).map(r => r && r[col]).filter(v => v != null);
-            Structra.toast(`${col}: ${new Set(vals).size} distinct of ${vals.length} values`);
-          }
-        } catch {
-          const vals = (this._rows || []).map(r => r && r[col]).filter(v => v != null);
-          Structra.toast(`${col}: ${new Set(vals).size} distinct of ${vals.length} values`);
-        }
+      case 'stats':
+        this._showColumnReport(col, 'stats');
         break;
-      }
-      case 'distinct': {
-        // Show distinct values via DuckDB
-        try {
-          const sql = `SELECT "${col}" as val, COUNT(*) as cnt FROM data GROUP BY "${col}" ORDER BY cnt DESC LIMIT 20`;
-          const result = await Structra.engine.runSql(sql);
-          if (result && result.rows) {
-            const top = result.rows.map(r => `${r.val} (${r.cnt})`).join(', ');
-            Structra.toast(`Top values: ${top}`, 'info', 5000);
-          }
-        } catch {
-          // Fallback
-          const freq = {};
-          (this._rows || []).forEach(r => { const v = r && r[col]; freq[v] = (freq[v] || 0) + 1; });
-          const top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([v, c]) => `${v} (${c})`).join(', ');
-          Structra.toast(`Top values: ${top}`, 'info', 5000);
-        }
+      case 'distinct':
+        this._showColumnReport(col, 'distinct');
         break;
-      }
       case 'copy-col': {
         const vals = (this._rows || []).map(r => r ? String(r[col] ?? '') : '').join('\n');
         Structra.util.copy(vals, `${col} values copied`);
         break;
       }
     }
+  }
+
+  /* ======== COLUMN REPORT (summary and every different value) ======== */
+
+  _showColumnReport(col, kind) {
+    this._dismissColumnMenu();
+    const rows = this._rows || [];
+    const esc = Structra.util.esc;
+    const text = (v) => (v === null || v === undefined ? '(empty)' : v === '' ? '(empty text)' : typeof v === 'object' ? JSON.stringify(v).slice(0, 80) : String(v));
+    const values = rows.map((r) => (r ? r[col] : undefined));
+    const filled = values.filter((v) => v !== null && v !== undefined && v !== '');
+    const freq = new Map();
+    values.forEach((v) => { const k = text(v); freq.set(k, (freq.get(k) || 0) + 1); });
+    const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0]), undefined, { numeric: true }));
+
+    let body;
+    if (kind === 'distinct') {
+      const max = ranked.length ? ranked[0][1] : 1;
+      body = `<div class="rep-note">${ranked.length.toLocaleString()} different ${ranked.length === 1 ? 'value' : 'values'} in ${rows.length.toLocaleString()} ${rows.length === 1 ? 'row' : 'rows'}</div>
+        <div class="rep-list">${ranked.slice(0, 200).map(([v, n]) => `<div class="rep-row"><span class="rep-val" title="${esc(v)}">${esc(v)}</span><span class="rep-bar"><span style="width:${Math.round(n / max * 100)}%"></span></span><span class="rep-n">${n.toLocaleString()}</span></div>`).join('')}</div>
+        ${ranked.length > 200 ? `<div class="rep-note">The 200 most common are shown.</div>` : ''}`;
+    } else {
+      const nums = filled.filter((v) => typeof v === 'number');
+      const kinds = {};
+      values.forEach((v) => { const t = v === null || v === undefined ? 'empty' : Array.isArray(v) ? 'list' : typeof v; kinds[t] = (kinds[t] || 0) + 1; });
+      const facts = [
+        ['Rows', rows.length.toLocaleString()],
+        ['With a value', `${filled.length.toLocaleString()} (${rows.length ? Math.round(filled.length / rows.length * 100) : 0}%)`],
+        ['Empty', (rows.length - filled.length).toLocaleString()],
+        ['Different values', freq.size.toLocaleString()],
+        ['Kinds', Object.entries(kinds).map(([t, n]) => `${n} ${t}`).join(', ')],
+      ];
+      if (nums.length) {
+        const sorted = [...nums].sort((a, b) => a - b);
+        const sum = nums.reduce((a, b) => a + b, 0);
+        const mid = sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+        const r = (n) => Math.round(n * 1000) / 1000;
+        facts.push(['Smallest', r(sorted[0])], ['Largest', r(sorted[sorted.length - 1])], ['Total', r(sum)], ['Average', r(sum / nums.length)], ['Middle value', r(mid)]);
+      } else if (filled.length) {
+        const strs = filled.filter((v) => typeof v === 'string').sort();
+        if (strs.length) facts.push(['First (A to Z)', strs[0].slice(0, 60)], ['Last (A to Z)', strs[strs.length - 1].slice(0, 60)]);
+      }
+      if (ranked.length) facts.push(['Most common', `${ranked[0][0].slice(0, 50)} (${ranked[0][1]})`]);
+      body = `<dl class="rep-facts">${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(String(v))}</dd>`).join('')}</dl>`;
+    }
+
+    const box = document.createElement('div');
+    box.className = 'col-pick col-report';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', `${kind === 'distinct' ? 'Every different value' : 'Summary'} of ${col}`);
+    box.innerHTML = `
+      <div class="col-pick-title">${kind === 'distinct' ? 'Every different value in' : 'Summary of'} "${esc(col)}"</div>
+      ${body}
+      <div class="col-pick-actions">
+        ${kind === 'distinct' ? '<button class="btn" data-rep="copy">Copy the list</button>' : ''}
+        <button class="btn btn-primary" data-rep="close">Close</button>
+      </div>`;
+    document.body.appendChild(box);
+    const done = () => { box.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (e) => { if (e.key === 'Escape') done(); };
+    document.addEventListener('keydown', onKey);
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-rep]');
+      if (!b) return;
+      if (b.dataset.rep === 'copy') Structra.util.copy(ranked.map(([v, n]) => `${v}\t${n}`).join('\n'), 'List copied');
+      else done();
+    });
+    box.querySelector('[data-rep="close"]').focus();
   }
 
   /* ======== EXPAND OBJECT COLUMN (pick which keys become columns) ======== */
