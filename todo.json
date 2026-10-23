@@ -1841,6 +1841,61 @@
           "id": "14.97",
           "title": "Replace skips numbers and booleans while Find counts them: replacing 1 with X in {price:100, id:1001, name:'cost $1'} changes only the text and says 'Replaced 1 occurrence' after Find showed three matches; say which kinds of values are changed (text only) or convert, and make the two counts agree",
           "status": "todo"
+        },
+        {
+          "id": "14.98",
+          "title": "BROKEN FEATURE: the Filter panel's JSONPath and Expression tabs do nothing but fail. Applying either shows 'Error' and the toast 'Structra.engine.filterByPath is not a function' / 'filterByExpression is not a function' (neither function exists in the engine); only Structured and Regex work. Implement both, show a plain-language error, and add smoke tests for every filter tab",
+          "status": "todo"
+        },
+        {
+          "id": "14.99",
+          "title": "The command palette entries 'Find in JSON' and 'Filter Data' do nothing (they emit find:toggle and filter:toggle, which nothing listens to); only the keyboard shortcuts and toolbar buttons open the bars. Wire them to the same code as the buttons, and test every palette command opens something",
+          "status": "todo"
+        },
+        {
+          "id": "14.100",
+          "title": "Dead events with no listener behind visible controls: tree:search-key (sent by the Tree and the Overview), tree:inline-edit, rail:action, command:exec; check each control that sends them and either connect it or remove it",
+          "status": "todo"
+        },
+        {
+          "id": "14.101",
+          "title": "A toast action label sticks to later messages: after closing a tab, unrelated toasts such as 'This is not a Structra workspace file' and 'Structra.engine.filterByPath is not a function' still show a 'Reopen' button; clear the action when a new toast replaces the old one. Raw technical text ('Structra.engine.filterByPath is not a function') also reaches the toast",
+          "status": "todo"
+        },
+        {
+          "id": "14.102",
+          "title": "Five dialogs can be open at once (Compare, Shortcuts, Null finder, Settings, Appearance), all at the same level (z-index 1000), so the one on top is the last in the page, not the last opened; a single Escape closes all of them in one case and none in another, and focus can be left inside a hidden dialog; keep one dialog at a time (close the first when another opens) and make Escape close only the top one",
+          "status": "todo"
+        },
+        {
+          "id": "14.103",
+          "title": "At 320 px wide the app is clipped with no way to reach the cut-off part (no sideways scroll, no Commands button, the rest of the Overview cannot be read); minimum supported width should be handled with a stacked layout or a sideways scroll",
+          "status": "todo"
+        },
+        {
+          "id": "14.104",
+          "title": "A table with 1,500 columns takes 4.6 seconds to draw because every column is drawn at once; draw only the columns in view (or the first 100 with 'show more columns')",
+          "status": "todo"
+        },
+        {
+          "id": "14.105",
+          "title": "Text typed in the Editor but not applied is lost silently when you switch to another tab and back (the box shows the original again, the tab is not marked changed, no warning); keep each tab's draft or ask before leaving",
+          "status": "todo"
+        },
+        {
+          "id": "14.106",
+          "title": "Pivot results are cut at 500 rows ('Showing 500 of 30000 rows') with no way to copy or export the complete result; add Copy and Open in a new tab for the full pivot",
+          "status": "todo"
+        },
+        {
+          "id": "14.107",
+          "title": "Table text sort is case-sensitive: Apple, Cherry, apple, banana, pear (capitals first); sort text without regard to case (and numbers inside text in natural order), like Excel does",
+          "status": "todo"
+        },
+        {
+          "id": "14.108",
+          "title": "Held up (keep as regression checks): empty-document commands raise no errors, undo and redo 60 times in a row stay consistent, zoom is limited to 10 to 24 and resets, 30,000-row Pivot, Charts and Null finder finish in under a second, filtering with an expression runs off the page thread",
+          "status": "done"
         }
       ]
     }
