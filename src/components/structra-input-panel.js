@@ -469,6 +469,10 @@ class StructraInputPanel extends StructraElement {
 
     try {
       const opts = this._buildFetchOpts();
+      // What Recent remembers about this request: the address, the method and the headers, never the credentials
+      const kept = {};
+      Object.entries(opts.headers || {}).forEach(([k, v]) => { if (!/^(authorization|x-api-key|api-key|cookie|proxy-authorization)$/i.test(k)) kept[k] = v; });
+      this._pendingRequest = { url, method: opts.method || 'GET', headers: kept };
       const t0 = performance.now();
       const resp = await fetch(url, opts);
       const elapsed = Math.round(performance.now() - t0);
@@ -616,6 +620,23 @@ class StructraInputPanel extends StructraElement {
     </div>`;
   }
 
+  /** Fill the Load URL tab with a remembered request, ready to send again (credentials are never remembered) */
+  _fillRequest(req) {
+    const tab = this.$('.io-tab[data-tab="url"]');
+    if (tab) tab.click();
+    this.$('[data-role="api-url"]').value = req.url;
+    this.$('[data-role="api-method"]').value = req.method || 'GET';
+    this.$('[data-role="headers-list"]').innerHTML = '';
+    Object.entries(req.headers || {}).forEach(([k, v]) => {
+      this._addHeaderRow();
+      const rows = this.$$('[data-role="headers-list"] .io-kv-row');
+      const row = rows[rows.length - 1];
+      row.querySelector('.io-kv-key').value = k;
+      row.querySelector('.io-kv-val').value = v;
+    });
+    Structra.toast('Address and headers filled in. Add your sign-in again if it needs one, then press Send.');
+  }
+
   _addHeaderRow() {
     const list = this.$('[data-role="headers-list"]');
     const row = document.createElement('div');
@@ -639,7 +660,7 @@ class StructraInputPanel extends StructraElement {
       <div class="io-recent-item" data-idx="${i}" role="button" tabindex="0" aria-label="Open ${Structra.util.esc(r.name)}">
         <button class="io-recent-remove" type="button" data-remove="${i}" aria-label="Remove ${Structra.util.esc(r.name)} from Recent" title="Remove from Recent">${Structra.icons.svg('x', { size: 12 })}</button>
         <div class="io-recent-name">${Structra.util.esc(r.name)}</div>
-        <div class="io-recent-meta">${Structra.util.formatBytes(r.size)} &middot; ${Structra.util.timeAgo(r.ts)}</div>
+        <div class="io-recent-meta">${Structra.util.formatBytes(r.size)} &middot; ${Structra.util.timeAgo(r.ts)}${r.request ? ' &middot; from ' + Structra.util.esc(r.request.url.replace(/^https?:\/\//, '').slice(0, 40)) : ''}</div>
         <div class="io-recent-preview">${Structra.util.esc(r.preview)}</div>
       </div>`).join('') +
       '<div class="io-recent-clear"><p class="io-recent-note">Recent files are kept in this browser only, with their content, so you can reopen them. Remove one with the x, or clear them all.</p><button class="io-btn-clear" data-action="clear-recent">Clear History</button></div>';
@@ -656,7 +677,8 @@ class StructraInputPanel extends StructraElement {
           return;
         }
         const r = recent[parseInt(item.dataset.idx, 10)];
-        if (r && !r.data) { Structra.toast(`${r.name} was too large to keep. Open the file again to use it.`); return; }
+        if (r && !r.data && r.request) { this._fillRequest(r.request); return; }
+        if (r && !r.data) { Structra.toast(`${r.name} is not kept in Recent (it was too large, or keeping contents is off in Settings). Open the file again to use it.`); return; }
         if (r && r.data) {
           try {
             const data = await Structra.parseJsonAsync(r.data);
@@ -687,8 +709,11 @@ class StructraInputPanel extends StructraElement {
         const keys = [...new Set([...text.substring(0, 600).matchAll(/"([^"\r\n]{1,30})"\s*:/g)].map((m) => m[1]))].slice(0, 6);
         return keys.length ? 'Fields: ' + keys.join(', ') : text.substring(0, 20).replace(/\s+/g, ' ') + '…';
       })(),
-      data: text.length <= 200000 ? text : null
+      // The content is kept so the file can be reopened; Settings can turn that off (then only the name and size are kept)
+      data: text.length <= 200000 && Structra.settings.get('keepRecentContent') !== false ? text : null,
+      request: this._pendingRequest || null,
     };
+    this._pendingRequest = null;
     const filtered = recent.filter(r => r.name !== name);
     filtered.unshift(entry);
     try {

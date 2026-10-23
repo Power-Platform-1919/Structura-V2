@@ -530,8 +530,9 @@ Structra.engine = (() => {
   }
 
   /** In-memory find (no DuckDB) */
-  function _findInMemory(ds, text) {
-    const searchResult = search(text, { mode: 'values' });
+  function _findInMemory(ds, text, regex) {
+    const literal = new RegExp(String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const searchResult = search(regex || literal, { mode: 'values' });
     const rows = _matchedPathsToRows(ds, searchResult.matchedPaths);
     const result = {
       source: 'find',
@@ -1736,49 +1737,78 @@ Structra.engine = (() => {
    */
   async function fuzzySearch(text, threshold = 0.8) {
     const ds = getActive();
-    if (!ds || !(await enableSql())) return [];
-    const tableName = _tableOf(ds);
-    const cols = (ds._duckColumns || []).filter(c =>
-      c.type && (c.type.toUpperCase() === 'VARCHAR' || c.type.toUpperCase().includes('TEXT'))
-    ).map(c => c.name);
-    if (cols.length === 0) return [];
-
-    const conditions = cols.map(c =>
-      `jaro_winkler_similarity(CAST("${c}" AS VARCHAR), '${text.replace(/'/g, "''")}') >= ${threshold}`
-    ).join(' OR ');
-
-    try {
-      return await Structra.duckdb.query(`SELECT * FROM "${tableName}" WHERE ${conditions} LIMIT 200`);
-    } catch (err) {
-      Structra.log.warn('Engine', `fuzzySearch failed`, err.message);
-      return [];
+    if (!ds) return { total: 0, matchedPaths: [] };
+    const want = String(text).toLowerCase();
+    const near = new Set();
+    // Every text value is compared; one that contains the search text, or is spelled close to it, matches
+    const seen = new Map();
+    const matches = (v) => {
+      const str = String(v).toLowerCase();
+      if (seen.has(str)) return seen.get(str);
+      let hit = str.includes(want);
+      if (!hit && str.length <= 200 && Math.abs(str.length - want.length) <= Math.max(3, want.length)) hit = _jaroWinkler(str, want) >= threshold;
+      if (!hit && str.length > want.length && str.length <= 200) {
+        // a short search against a longer value: compare with each word
+        hit = str.split(/[\s,;:@./_-]+/).some((w) => w.length > 1 && Math.abs(w.length - want.length) <= 3 && _jaroWinkler(w, want) >= threshold);
+      }
+      seen.set(str, hit);
+      return hit;
+    };
+    const stack = [{ val: ds.raw, path: '$' }];
+    const matched = [];
+    while (stack.length) {
+      const { val, path } = stack.pop();
+      if (!val || typeof val !== 'object') continue;
+      const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
+      for (const [k, v] of entries) {
+        const child = Array.isArray(val) ? `${path}[${k}]` : `${path}.${k}`;
+        if (v !== null && typeof v === 'object') stack.push({ val: v, path: child });
+        else if (v !== null && v !== undefined && typeof v !== 'boolean' && matches(v)) matched.push(child);
+      }
     }
+    near.clear();
+    return _setFindResult(ds, text, matched);
+  }
+
+  /** Jaro-Winkler similarity, 0 to 1: how alike two spellings are */
+  function _jaroWinkler(a, b) {
+    if (a === b) return 1;
+    const la = a.length, lb = b.length;
+    if (!la || !lb) return 0;
+    const range = Math.max(0, Math.floor(Math.max(la, lb) / 2) - 1);
+    const ma = new Array(la).fill(false), mb = new Array(lb).fill(false);
+    let m = 0;
+    for (let i = 0; i < la; i++) {
+      for (let j = Math.max(0, i - range); j < Math.min(lb, i + range + 1); j++) {
+        if (!mb[j] && a[i] === b[j]) { ma[i] = mb[j] = true; m++; break; }
+      }
+    }
+    if (!m) return 0;
+    let t = 0, k = 0;
+    for (let i = 0; i < la; i++) if (ma[i]) { while (!mb[k]) k++; if (a[i] !== b[k]) t++; k++; }
+    const jaro = (m / la + m / lb + (m - t / 2) / m) / 3;
+    let prefix = 0;
+    while (prefix < Math.min(4, la, lb) && a[prefix] === b[prefix]) prefix++;
+    return jaro + prefix * 0.1 * (1 - jaro);
   }
 
   /**
-   * Regex search across all VARCHAR columns using regexp_matches.
-   * @param {string} pattern — regex pattern
-   * @returns {Promise<Array>}
+   * Pattern (regular expression) search over the values of the open document.
+   * @param {string} pattern — regex pattern, case-insensitive
    */
   async function regexSearch(pattern) {
     const ds = getActive();
-    if (!ds || !(await enableSql())) return [];
-    const tableName = _tableOf(ds);
-    const cols = (ds._duckColumns || []).filter(c =>
-      c.type && (c.type.toUpperCase() === 'VARCHAR' || c.type.toUpperCase().includes('TEXT'))
-    ).map(c => c.name);
-    if (cols.length === 0) return [];
+    if (!ds) return { total: 0, matchedPaths: [] };
+    const re = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
+    return _findInMemory(ds, pattern, re);
+  }
 
-    const conditions = cols.map(c =>
-      `regexp_matches(CAST("${c}" AS VARCHAR), '${pattern.replace(/'/g, "''")}')`
-    ).join(' OR ');
-
-    try {
-      return await Structra.duckdb.query(`SELECT * FROM "${tableName}" WHERE ${conditions} LIMIT 500`);
-    } catch (err) {
-      Structra.log.warn('Engine', `regexSearch failed`, err.message);
-      return [];
-    }
+  /** Store matched paths as the active find result */
+  function _setFindResult(ds, text, matchedPaths) {
+    const rows = _matchedPathsToRows(ds, matchedPaths);
+    const result = { source: 'find', query: text, conditions: null, rows, matchedPaths, total: matchedPaths.length, columns: rows.length > 0 ? Object.keys(rows[0]) : [] };
+    _setActiveQuery(result);
+    return result;
   }
 
   /* ============================ */

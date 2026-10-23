@@ -232,6 +232,48 @@ function serve() {
     const node = await page.evaluate(() => { const g = document.querySelector('.graph-svg g[data-path]'); return g ? { role: g.getAttribute('role'), label: g.getAttribute('aria-label') } : null; });
     if (!node || node.role !== 'button' || !node.label) failures.push('graph nodes should be buttons with a name: ' + JSON.stringify(node));
 
+    // ---- Fuzzy and Pattern find work in the browser: no SQL engine, and the matches are marked ----
+    await page.goto(base);
+    await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
+    await page.keyboard.press('Escape');
+    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    const ask = async (mode, text) => {
+      await page.evaluate(() => Structra.set('findBarOpen', true));
+      await page.locator(`.fb-mode[data-mode="${mode}"]`).click();
+      await page.locator('#findInput').fill(text);
+      await page.locator('#findInput').press('Enter');
+      await page.waitForTimeout(700);
+      return page.evaluate(() => ({ count: document.querySelector('#findCount').textContent, lit: document.querySelectorAll('.j-line.find-match').length, sql: Structra.engine.duckReady }));
+    };
+    let fz = await ask('fuzzy', 'Laptp refresh');
+    if (fz.count !== '1 found' || fz.lit < 1) failures.push('Fuzzy "Laptp refresh" should find the Laptop refresh title and mark it: ' + JSON.stringify(fz));
+    fz = await ask('regex', '^ann@');
+    if (!/^[1-9]\d* found$/.test(fz.count)) failures.push('Pattern ^ann@ should find the email: ' + JSON.stringify(fz));
+    fz = await ask('regex', '(');
+    if (fz.count !== 'Not a valid pattern') failures.push('a broken pattern should say so: ' + fz.count);
+    fz = await ask('text', '(');
+    if (fz.count === 'Error') failures.push('searching for the text "(" should not fail');
+    if (fz.sql) failures.push('Find should not start the SQL engine');
+    await page.evaluate(() => Structra.set('findBarOpen', false));
+
+    // ---- Recent: contents can be switched off, and an address is remembered with its headers (never credentials) ----
+    await page.evaluate(() => { Structra.settings.set('keepRecentContent', false); localStorage.removeItem('structra_recent'); });
+    await page.evaluate(() => Structra.events.emit('tabs:add'));
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { const p = document.querySelector('structra-input-panel'); p._pendingRequest = { url: 'https://example.com/data.json', method: 'GET', headers: { Accept: 'application/json' } }; return p._saveRecent('data.json', '{"k": 1}', 8); });
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('structra_recent'))[0]);
+    if (stored.data !== null) failures.push('with "keep contents" off, Recent should not store the file text');
+    if (!stored.request || stored.request.url !== 'https://example.com/data.json' || stored.request.headers.Accept !== 'application/json') failures.push('Recent should remember the address and headers: ' + JSON.stringify(stored.request));
+    await page.evaluate(() => Structra.events.emit('input:show-tab', 'recent'));
+    await page.waitForTimeout(400);
+    await page.locator('.io-recent-item').first().click();
+    await page.waitForTimeout(300);
+    const filled = await page.evaluate(() => ({ url: document.querySelector('[data-role="api-url"]').value, hdr: [...document.querySelectorAll('.io-kv-key')].map((i) => i.value).join() }));
+    if (filled.url !== 'https://example.com/data.json' || !/Accept/.test(filled.hdr)) failures.push('clicking a remembered address should fill in the Load URL tab: ' + JSON.stringify(filled));
+    await page.evaluate(() => Structra.settings.set('keepRecentContent', true));
+
     // ---- Starting SQL says what the wait is ----
     await page.evaluate(() => { window.__msgs = []; Structra.events.on('loading:show', (m) => window.__msgs.push(String(m))); });
     await page.evaluate(() => Structra.engine.enableSql());

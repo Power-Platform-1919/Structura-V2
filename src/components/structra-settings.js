@@ -38,14 +38,19 @@ class StructraSettings extends StructraOverlay {
         <section class="th-section">
           <div class="th-label">Saved in this browser</div>
           <div class="hint">Nothing leaves your computer. These are kept so your work is there next time.</div>
+          <label class="set-keep"><input type="checkbox" id="setKeep"> Keep the content of recent files, so they can be reopened from Recent</label>
           <div id="setSaved" class="set-saved"></div>
         </section>`,
       foot: '<button class="btn btn-primary" type="button" data-ov-close>Done</button>',
     });
     this.root.addEventListener('click', (e) => this._onClick(e));
+    this.$('#setKeep').addEventListener('change', (e) => {
+      Structra.settings.set('keepRecentContent', e.target.checked);
+      Structra.toast(e.target.checked ? 'Recent keeps file contents' : 'Recent keeps only names and sizes from now on. Clear the list to remove contents already kept.');
+    });
   }
 
-  onOpen() { this._confirming = null; this._renderSql(); this._renderSaved(); }
+  onOpen() { this.$('#setKeep').checked = Structra.settings.get('keepRecentContent') !== false; this._confirming = null; this._renderSql(); this._renderSaved(); }
 
   _read(key) { try { const v = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } }
 

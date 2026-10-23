@@ -202,12 +202,9 @@ class StructraFind extends StructraElement {
   async _doFuzzyFind(query) {
     try {
       const results = await Structra.engine.fuzzySearch(query);
-      const total = Array.isArray(results) ? results.length : (results && results.total) || 0;
+      const total = (results && results.total) || 0;
       this._idx = -1;
-      this.$('#findCount').textContent = total > 0 ? `${total} fuzzy` : '0 found';
-      if (total > 0) {
-        Structra.events.emit('find:results', { results, mode: 'fuzzy', query });
-      }
+      this.$('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
     } catch (err) {
       Structra.log.warn('Find', 'Fuzzy search failed', err.message);
       this.$('#findCount').textContent = 'Error';
@@ -218,15 +215,12 @@ class StructraFind extends StructraElement {
   async _doRegexFind(query) {
     try {
       const results = await Structra.engine.regexSearch(query);
-      const total = Array.isArray(results) ? results.length : (results && results.total) || 0;
+      const total = (results && results.total) || 0;
       this._idx = -1;
-      this.$('#findCount').textContent = total > 0 ? `${total} regex` : '0 found';
-      if (total > 0) {
-        Structra.events.emit('find:results', { results, mode: 'regex', query });
-      }
+      this.$('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
     } catch (err) {
       Structra.log.warn('Find', 'Regex search failed', err.message);
-      this.$('#findCount').textContent = 'Error';
+      this.$('#findCount').textContent = 'Not a valid pattern';
     }
   }
 

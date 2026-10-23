@@ -2050,5 +2050,6 @@ structra-schemagen {
 .bm-remove:hover { background: var(--surface-alt); color: var(--text); }
 .bm-empty { padding: var(--sp-2); font-size: var(--fs-sm); color: var(--text-muted); }
 
+.set-keep { display: flex; gap: var(--sp-2); align-items: center; margin: var(--sp-2) 0; font-size: var(--fs-sm); }
 .io-url-help { margin: 0 0 var(--sp-3); font-size: var(--fs-xs); color: var(--text-muted); line-height: 1.5; }
 .qp-result-copy { display: inline-flex; gap: 2px; margin-top: 2px; font-family: var(--font-ui); }

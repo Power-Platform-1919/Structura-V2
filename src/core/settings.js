@@ -40,6 +40,7 @@ Structra.settings = (() => {
     sqlHistory:   true,          // persist SQL query history
     treeChunk:    100,           // tree view chunk size
     maxDepth:     20,            // max traversal depth
+    keepRecentContent: true,     // Recent keeps the content of files so they can be reopened
   };
 
   /* --- Read --- */
