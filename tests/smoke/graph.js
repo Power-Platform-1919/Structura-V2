@@ -57,7 +57,13 @@ function serve() {
       const g = document.querySelector('.graph-group').getBoundingClientRect();
       return { left: g.left - c.left, right: c.right - g.right, top: g.top - c.top, bottom: c.bottom - g.bottom };
     });
-    if (Math.abs(box.left - box.right) > 40 || Math.abs(box.top - box.bottom) > 40) failures.push('the graph should open centred in the view: ' + JSON.stringify(box));
+    // A graph that fits is centred; one too big to be read when fitted opens at a readable zoom from the top left and scrolls
+    const zoom = await page.evaluate(() => parseFloat(((document.querySelector('.graph-group').getAttribute('transform') || '').match(/scale\(([\d.]+)\)/) || [0, 1])[1]));
+    const overflows = box.bottom < 0 || box.right < 0;
+    if (overflows) {
+      if (zoom < 0.54) failures.push('a big graph should open at a readable zoom (55 percent or more), it opened at ' + Math.round(zoom * 100) + ' percent');
+      if (box.left < 0 || box.top < 0) failures.push('a big graph should start at the top left: ' + JSON.stringify(box));
+    } else if (Math.abs(box.left - box.right) > 40 || Math.abs(box.top - box.bottom) > 40) failures.push('the graph should open centred in the view: ' + JSON.stringify(box));
 
     // ---- a click selects the node ----
     await page.locator('.graph-svg g[data-path="$.value[0].Title"]').first().click();
