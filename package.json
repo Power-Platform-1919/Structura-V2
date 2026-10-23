@@ -30,7 +30,8 @@
     "ui:themes": "node tests/ui/01-themes-colors.js",
     "ui:layout": "node tests/ui/02-layout.js",
     "ui:network": "node tests/ui/03-network-walk.js",
-    "ui:a11y": "node tests/ui/04-a11y-relevance.js"
+    "ui:a11y": "node tests/ui/04-a11y-relevance.js",
+    "ui:monkey": "node tests/ui/05-monkey.js"
   },
   "devDependencies": {
     "playwright": "^1.64.1"

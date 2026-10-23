@@ -1456,6 +1456,121 @@
           "id": "14.20",
           "title": "Overview 'Worth a look' uses a red warning triangle for ordinary nulls (Notes: 67% null); use a calmer icon and colour for 'expected, good to know' and keep red for things that break a flow",
           "status": "todo"
+        },
+        {
+          "id": "14.21",
+          "title": "Opening a new document keeps the previous document's Overview scroll position: a pasted CSV opened scrolled to the middle of the page, hiding the headline; reset the scroll for each document and tab",
+          "status": "todo"
+        },
+        {
+          "id": "14.22",
+          "title": "CSV: a price written \"1,200.00\" stays text while the other prices are numbers, and the Field Profiler still calls Price a number with a largest value of 10; show the column as mixed, flag the text value, and read thousands separators",
+          "status": "todo"
+        },
+        {
+          "id": "14.23",
+          "title": "CSV numbers lose how they were written (2.50 shows as 2.5, 10.00 as 10), which looks wrong for money; keep a consistent number of decimals in a column",
+          "status": "todo"
+        },
+        {
+          "id": "14.24",
+          "title": "Table: number columns are left aligned like text and empty values show as an italic 'null'; right-align numbers and call empty cells 'empty'",
+          "status": "todo"
+        },
+        {
+          "id": "14.25",
+          "title": "Pivot: clicking fields assigns them in click order (the first two to Group by, the next to Then by), so choosing Region, Rep and Units puts Units under 'Then by' and gives a table of ones; put number fields in the totals zone by default, or let each field be placed with a choice",
+          "status": "todo"
+        },
+        {
+          "id": "14.26",
+          "title": "Pivot is reachable only through the command palette (Ctrl K, type pivot): there is no button in the rail, the Transform panel or the toolbar, although group and total is a core business job; add an entry in the Transform panel",
+          "status": "todo"
+        },
+        {
+          "id": "14.27",
+          "title": "Transform preset 'Group by Region' shows raw JSON with whole rows in a narrow panel, not a summary; presets like Count by and Total by should return a small table and open it in the Table view",
+          "status": "todo"
+        },
+        {
+          "id": "14.28",
+          "title": "Transform text box asks for code ('groupBy(x => x?.Region)', 'Steps joined with |'); keep the chips as the main path and put the code box under 'Advanced'",
+          "status": "todo"
+        },
+        {
+          "id": "14.29",
+          "title": "Filter panel floats over the Table and covers the right-hand columns while filtering; dock it above the table or move the table down",
+          "status": "todo"
+        },
+        {
+          "id": "14.30",
+          "title": "Table pager shifts sideways when the 'filtered' chip appears, and column widths change; reserve the space for the chip",
+          "status": "todo"
+        },
+        {
+          "id": "14.31",
+          "title": "Filter starts on the first column (id), so typing a name finds nothing; start on the first text column, or leave the field to be chosen",
+          "status": "todo"
+        },
+        {
+          "id": "14.32",
+          "title": "Filter tabs read Structured, JSONPath, Regex, Expression; use plain names for makers (Simple, JSONPath, Pattern, Formula)",
+          "status": "todo"
+        },
+        {
+          "id": "14.33",
+          "title": "Editor error for 'Alice' , reads: Unexpected token '', \"'Alice' ,\" is not valid JSON; say what and where in plain words (line 1: text needs double quotes)",
+          "status": "todo"
+        },
+        {
+          "id": "14.34",
+          "title": "Editor changes that were not applied stay in the box when you switch to the Tree, which shows the old data with no sign of unapplied changes; mark the Editor tab 'not applied' and ask before leaving",
+          "status": "todo"
+        },
+        {
+          "id": "14.35",
+          "title": "Schema view marks every field 'required' in red, which looks like an error, shows 'any' for a field that is null, and has no Copy schema button (it is in the Schema Gen drawer tab); use calm styling, say 'text or empty', and add the copy button",
+          "status": "todo"
+        },
+        {
+          "id": "14.36",
+          "title": "Charts list picker still reads '$ (5 items)' for a top-level list (the friendly name only handles '(root)'); and there is no chart of totals by a category (Units by Region), only a histogram and a line for one column",
+          "status": "todo"
+        },
+        {
+          "id": "14.37",
+          "title": "Expressions for a top-level list say 'In Apply to each over $'; say 'over the whole list'; the Node panel and the Expressions drawer tab list nearly the same expressions side by side",
+          "status": "todo"
+        },
+        {
+          "id": "14.38",
+          "title": "Null and Empty Finder opens empty and needs a Scan click, offers 'zero' and 'false' (which are not null or empty) and 'missing keys'; scan on open and use plain words",
+          "status": "todo"
+        },
+        {
+          "id": "14.39",
+          "title": "Overview tables: in Key coverage the 'Has a value' heading sits left while its percentages and bars sit far right, and column widths are uneven; align each heading with its column",
+          "status": "todo"
+        },
+        {
+          "id": "14.40",
+          "title": "Shortcuts dialog: the zoom line reads 'Ctrl + = Zoom in (Ctrl+- zooms out, Ctrl+0 resets)'; split into three clear rows",
+          "status": "todo"
+        },
+        {
+          "id": "14.41",
+          "title": "Load URL: text that is not a web address (bob, a) plus Enter sends a request for a relative path (404 in the console); check it starts with http:// or https:// and say so before sending",
+          "status": "todo"
+        },
+        {
+          "id": "14.42",
+          "title": "First visit shows three 'Open the sample' controls (Welcome dialog, empty-state button, link); keep one",
+          "status": "todo"
+        },
+        {
+          "id": "14.43",
+          "title": "The 160-step random click test (tests/ui/05-monkey.js, five documents, several seeds) found no crash, blank screen or stuck dialog; keep it in the regular checks (npm run ui:monkey)",
+          "status": "done"
         }
       ]
     }
