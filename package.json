@@ -25,7 +25,12 @@
     "test:tabsui": "node tests/smoke/tabsui.js",
     "test:datatools": "node tests/smoke/datatools.js",
     "test:inputs": "node tests/smoke/inputs.js",
-    "test:graph": "node tests/smoke/graph.js"
+    "test:graph": "node tests/smoke/graph.js",
+    "ui:audit": "node tests/ui/run-all.js",
+    "ui:themes": "node tests/ui/01-themes-colors.js",
+    "ui:layout": "node tests/ui/02-layout.js",
+    "ui:network": "node tests/ui/03-network-walk.js",
+    "ui:a11y": "node tests/ui/04-a11y-relevance.js"
   },
   "devDependencies": {
     "playwright": "^1.64.1"

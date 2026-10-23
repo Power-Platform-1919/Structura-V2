@@ -1350,6 +1350,114 @@
           "status": "done"
         }
       ]
+    },
+    {
+      "id": "14",
+      "title": "UI audit with the scripts in tests/ui: colours and themes, layout at four sizes, network calls, keyboard and relevance",
+      "status": "todo",
+      "brief": "Found by running tests/ui/run-all.js and by clicking through the live app in the Playwright browser (screenshots in .playwright-mcp/ui-audit). Each item is a gap to fix; add a smoke test with each fix.",
+      "subtasks": [
+        {
+          "id": "14.1",
+          "title": "Privacy: the app loads its icon library from cdn.jsdelivr.net on every start although a local copy exists in src/vendor/lucide.min.js (icons.js says it is shipped locally); use the local file so the app works offline and never calls a third party",
+          "status": "todo"
+        },
+        {
+          "id": "14.2",
+          "title": "Privacy: the fonts IBM Plex Sans and JetBrains Mono come from fonts.googleapis.com and fonts.gstatic.com (3 requests per load, sends the visitor's address to Google); self-host them under src/fonts",
+          "status": "todo"
+        },
+        {
+          "id": "14.3",
+          "title": "The Welcome dialog says 'Your data stays on this device' and Settings says 'Nothing leaves your computer', while the page contacts three third-party hosts; fix the requests (14.1, 14.2) and add a smoke test that fails on any request to another origin",
+          "status": "todo"
+        },
+        {
+          "id": "14.4",
+          "title": "Light themes (Structra Light, Paper, Power Platform): muted labels (Size, Values, Keys, Rows:, the + tab button) measure 4.3:1, just under the 4.5:1 AA limit; darken the muted text colour",
+          "status": "todo"
+        },
+        {
+          "id": "14.5",
+          "title": "Light themes: the grey null value in the Table and Tree is only 2.7 to 3.5:1, so empty cells are hard to read; darken the null colour (keep it distinct from normal text)",
+          "status": "todo"
+        },
+        {
+          "id": "14.6",
+          "title": "Light themes: the 'true' badge text is 4.0 to 4.4:1 and the active tab text in Paper is 4.45:1; raise both to 4.5:1 or more",
+          "status": "todo"
+        },
+        {
+          "id": "14.7",
+          "title": "Midnight theme: the rail and the header are the same colour as the page (1.06:1) with no border, so they do not read as separate areas; add a border or lift the surface colour",
+          "status": "todo"
+        },
+        {
+          "id": "14.8",
+          "title": "Phone width (390 px): the path bar, the Editor tab, the rail's Query, Transform and Power buttons and the Commands button are cut off and the page has no narrow layout; at least turn the rail into a bottom bar and let the view tabs scroll",
+          "status": "todo"
+        },
+        {
+          "id": "14.9",
+          "title": "Laptop height (1366x700): the Analyze drawer (which repeats the Overview numbers) takes about 40 percent of the height, and with the Query and Node panels open the Tree is about 410 px tall and 830 px wide; start the drawer folded in Tree and Table, and let it open on demand",
+          "status": "todo"
+        },
+        {
+          "id": "14.10",
+          "title": "Graph: the new fit-to-view makes a three-record SharePoint graph 17 percent in size, so no text can be read; fit to width with a lowest readable zoom (about 55 percent) and let the rest scroll, or open with the deeper levels collapsed",
+          "status": "todo"
+        },
+        {
+          "id": "14.11",
+          "title": "The 'Tip: select any value in the Tree...' toast stays long enough to cover the drawer buttons on every view switch and has no close button; show it once, shorter, with an x",
+          "status": "todo"
+        },
+        {
+          "id": "14.12",
+          "title": "Rail: the bottom button opens Settings but is still labelled 'Theme' with a palette icon, and the header also has Appearance and light/dark buttons (three controls for the look); name it Settings with a gear icon and keep one quick light/dark switch in the header",
+          "status": "todo"
+        },
+        {
+          "id": "14.13",
+          "title": "Rail: several rail buttons stay highlighted at the same time (Transform, Power and Overview after clicking through them); only the open panel should look active",
+          "status": "todo"
+        },
+        {
+          "id": "14.14",
+          "title": "The same job is offered in more than one place under different names: Overview (rail, view tab, drawer button), Transform (rail and a tab inside Query), Power Platform expressions (Node panel and the Expressions drawer tab); decide one home for each and link to it from the others",
+          "status": "todo"
+        },
+        {
+          "id": "14.15",
+          "title": "Query panel modes read 'Path | Jsonpath | Regex | Js'; name them 'Path', 'JSONPath', 'Pattern' (as in Find) and 'JavaScript'",
+          "status": "todo"
+        },
+        {
+          "id": "14.16",
+          "title": "The selected path is shown in three places (path bar, Node panel header, status bar) and the Node panel offers 'Copy mock data', which has nothing to do with the selected value; keep two places and move mock data to the Transform or Tools menu",
+          "status": "todo"
+        },
+        {
+          "id": "14.17",
+          "title": "The path bar has no visible keyboard focus ring, so a keyboard user cannot see where they are",
+          "status": "todo"
+        },
+        {
+          "id": "14.18",
+          "title": "Small targets under 24 px: the SQL chip (67x20), the pager buttons (22x21, 26x21), the + tab button and the path input (17 px high); enlarge to at least 24 px high",
+          "status": "todo"
+        },
+        {
+          "id": "14.19",
+          "title": "Clicking Power while the Editor is open switches the drawer to Expressions and says 'Select a path in the tree', but the Editor has no tree selection; switch to the Tree first, or explain",
+          "status": "todo"
+        },
+        {
+          "id": "14.20",
+          "title": "Overview 'Worth a look' uses a red warning triangle for ordinary nulls (Notes: 67% null); use a calmer icon and colour for 'expected, good to know' and keep red for things that break a flow",
+          "status": "todo"
+        }
+      ]
     }
   ],
   "principles": [
