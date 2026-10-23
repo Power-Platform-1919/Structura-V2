@@ -290,11 +290,11 @@
     if (!shared) return;
     if (Structra.describeUnopenable(shared.data)) { Structra.toast('This share link holds an empty document'); return; }
     Structra.set('jsonData', shared.data);
-    Structra.set('fileName', 'Shared JSON');
+    Structra.set('fileName', shared.name || 'Shared JSON');
     Structra.set('fileSize', JSON.stringify(shared.data).length);
     Structra.set('currentPath', '$');
-    Structra.share.clearHash();
-    Structra.toast('Opened shared JSON');
+    // The link stays in the address bar, so refreshing the page opens the same document again
+    Structra.toast('Opened ' + (shared.name || 'shared JSON'));
   }).catch((err) => {
     Structra.log.warn('App', 'Share link could not be read', err.message);
     Structra.toast('This share link could not be read');

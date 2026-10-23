@@ -30,6 +30,8 @@ class StructraDrawer extends StructraElement {
         this._applyState();
       }
     });
+    // A newly opened document starts on the Analyze tab: the tab you were on belonged to the previous document
+    this.on('engine:ingested', () => { if ((this.$('.drawer-tabs .tab.active') || {}).dataset?.tab !== 'analyze') this._switchTab('analyze'); });
     this.on('state:jsonData', (d) => {
       this.hidden = !d.value;
       if (d.value && this._stateIdx === 0 && Structra.state.activeView === 'overview' && analyzeOpen()) {
@@ -97,6 +99,8 @@ class StructraDrawer extends StructraElement {
       document.removeEventListener('mouseup', onUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      // The height you chose is kept for the next time the drawer opens, and the next visit
+      try { localStorage.setItem('structra.drawerH', String(Math.round(this.offsetHeight))); } catch { /* storage blocked */ }
     };
 
     bar.addEventListener('mousedown', (e) => {
@@ -113,6 +117,7 @@ class StructraDrawer extends StructraElement {
 
     // Double-click resize bar to reset to medium
     bar.addEventListener('dblclick', () => {
+      try { localStorage.removeItem('structra.drawerH'); } catch { /* storage blocked */ }
       this.classList.remove('resizing');
       this.style.height = '';
       this._stateIdx = 1;
@@ -125,9 +130,6 @@ class StructraDrawer extends StructraElement {
     // Open ⇄ folded away. (A taller drawer is made by dragging the bar above the tabs.)
     this._stateIdx = this._stateIdx === 0 ? 1 : 0;
     Structra.set('drawerState', states[this._stateIdx]);
-    // Exit custom resize mode when cycling
-    this.classList.remove('resizing');
-    this.style.height = '';
     this._applyState();
   }
 
@@ -137,6 +139,11 @@ class StructraDrawer extends StructraElement {
     // Remove all state classes, add current (matches layout.css: collapsed/medium/expanded)
     this.classList.remove('collapsed', 'medium', 'expanded');
     this.classList.add(state);
+    // A height chosen by dragging applies whenever the drawer is open; folded, it is just the tab strip
+    let kept = 0;
+    try { kept = parseInt(localStorage.getItem('structra.drawerH') || '0', 10); } catch { /* storage blocked */ }
+    if (kept >= 120 && state !== 'collapsed') { this.classList.add('resizing'); this.style.height = Math.min(kept, window.innerHeight * 0.6) + 'px'; }
+    else { this.classList.remove('resizing'); this.style.height = ''; }
     const toggle = this.$('.drawer-toggle');
     if (toggle) {
       const label = state === 'collapsed' ? 'Show the panel' : 'Hide the panel';

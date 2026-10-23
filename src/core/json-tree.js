@@ -604,7 +604,8 @@ Structra.jsonTree = (() => {
 
   function highlightPaths(container, paths) {
     // Highlight multiple paths (for search results)
-    const set = new Set(Array.isArray(paths) ? paths : []);
+    // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b"
+    const set = new Set((Array.isArray(paths) ? paths : []).map((p) => Structra.paths.strip(p)));
     container.querySelectorAll('.j-line').forEach(el => {
       const dp = el.getAttribute('data-path') || '';
       el.classList.toggle('find-match', set.has(dp));
@@ -736,7 +737,7 @@ Structra.jsonTree = (() => {
       if (st.filterPathRegex) {
         line.classList.toggle('filter-hidden', !st.filterPathRegex.test(dp));
       } else if (st.filterMatchedPaths) {
-        const match = isAncestorMatched(st.filterMatchedPaths, dp);
+        const match = isAncestorMatched(st.filterMatchedPaths, dp) || (st.filterAncestors && st.filterAncestors.has(dp));
         if (match) {
           line.classList.remove('filter-hidden');
           if (st.filterMatchedPaths.has(dp)) {
@@ -775,6 +776,18 @@ Structra.jsonTree = (() => {
     // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b". The filter looks paths up, so keep them as a Set in the tree's form.
     st.filterMatchedPaths = new Set([...matchedPaths].map((p) => Structra.paths.strip(p)));
     st.filterPathRegex = null;
+    // The lines above a match stay visible, so a match is shown inside the record that holds it
+    st.filterAncestors = new Set(['']);
+    for (const m of st.filterMatchedPaths) {
+      let p = m;
+      while (p) {
+        const cut = Math.max(p.lastIndexOf('.'), p.lastIndexOf('['));
+        if (cut <= 0) break;
+        p = p.substring(0, cut);
+        if (st.filterAncestors.has(p)) break;
+        st.filterAncestors.add(p);
+      }
+    }
     if (st.loadObserver) st.loadObserver.disconnect();
     Structra.events.emit('loading:show', 'Applying filter…');
     await tick();

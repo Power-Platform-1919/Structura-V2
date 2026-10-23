@@ -359,8 +359,8 @@ class StructraCommand extends StructraElement {
         break;
       case 'share-url': {
         if (!data) { Structra.toast('No data to share'); return; }
-        Structra.share.createUrl(data)
-          .then((url) => Structra.util.copy(url, 'Share link copied'))
+        Structra.share.createUrl(data, Structra.state.fileName)
+          .then(({ url, bytes }) => Structra.util.copy(url, `Share link copied (${bytes < 1000 ? bytes + ' characters' : Math.round(bytes / 1000) + ' KB'}). The data is inside the link, nothing is uploaded, and anyone with the link can read it.`))
           .catch((e) => Structra.toast(e.message));
         break;
       }

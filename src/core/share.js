@@ -6,8 +6,8 @@
    The hash looks like  #share=g.<base64url>  (gzip)  or  #share=p.<base64url>  (plain).
 
    API:
-     await Structra.share.createUrl(data)   → full URL, throws when too large
-     await Structra.share.readHash()        → { data } or null
+     await Structra.share.createUrl(data, name)   → { url, bytes }, throws when too large
+     await Structra.share.readHash()        → { data, name } or null
      Structra.share.clearHash()
      await Structra.capture.png(element, fileName)
    ============================================================ */
@@ -34,8 +34,8 @@ Structra.share = (() => {
     return new Uint8Array(await new Response(out).arrayBuffer());
   }
 
-  async function createUrl(data) {
-    const bytes = new TextEncoder().encode(JSON.stringify(data));
+  async function createUrl(data, name) {
+    const bytes = new TextEncoder().encode(JSON.stringify({ name: name || null, data }));
     let encoded;
     if (typeof CompressionStream === 'function') {
       encoded = 'g.' + toBase64Url(await pipe(bytes, new CompressionStream('gzip')));
@@ -45,7 +45,8 @@ Structra.share = (() => {
     if (encoded.length > MAX_ENCODED) {
       throw new Error('Too large to share in a link (' + Math.round(encoded.length / 1000) + ' KB encoded, limit ' + Math.round(MAX_ENCODED / 1000) + ' KB)');
     }
-    return location.href.split('#')[0] + '#share=' + encoded;
+    const url = location.href.split('#')[0] + '#share=' + encoded;
+    return { url, bytes: encoded.length };
   }
 
   async function readHash() {
@@ -53,7 +54,8 @@ Structra.share = (() => {
     if (!m) return null;
     let bytes = fromBase64Url(m[2]);
     if (m[1] === 'g') bytes = await pipe(bytes, new DecompressionStream('gzip'));
-    return { data: JSON.parse(new TextDecoder().decode(bytes)) };
+    const body = JSON.parse(new TextDecoder().decode(bytes));
+    return { data: body.data, name: body.name || null };
   }
 
   function clearHash() {

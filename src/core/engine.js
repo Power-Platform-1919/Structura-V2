@@ -524,46 +524,8 @@ Structra.engine = (() => {
     const ds = getActive();
     if (!ds) return null;
 
-    // A top-level object is one row to DuckDB, so "1 found" would mean "the whole document" and no
-    // value could be located. Search the values themselves: they carry the path of every match.
-    if (ds.meta.shape === 'object') return _findInMemory(ds, text);
-
-    // DuckDB path: any registered dataset
-    if (_canUseDuck(ds)) {
-      const tableName = _tableOf(ds);
-      const cols = _getDuckColumnNames(ds);
-      if (cols.length === 0) return _findInMemory(ds, text);
-
-      // Build WHERE clause: cast every column (including STRUCT/LIST) to VARCHAR for search
-      const escapedText = text.replace(/'/g, "''");
-      const whereClauses = cols.map(c =>
-        `CAST("${c}" AS VARCHAR) ILIKE '%${escapedText}%'`
-      ).join(' OR ');
-      const sqlQuery = `SELECT * FROM "${tableName}" WHERE ${whereClauses}`;
-
-      try {
-        const rows = await Structra.duckdb.query(sqlQuery);
-        const matchedPaths = _rowsToMatchedPaths(ds, rows, text);
-        // Rows matched but none could be located in the document: the Tree would filter everything out
-        if (rows.length > 0 && matchedPaths.length === 0) return _findInMemory(ds, text);
-        const result = {
-          source: 'find',
-          query: text,
-          conditions: null,
-          rows,
-          matchedPaths,
-          total: rows.length,
-          columns: cols,
-        };
-        _setActiveQuery(result);
-        return result;
-      } catch (err) {
-        Structra.log.warn('Engine', 'DuckDB find failed, falling back to in-memory', err.message);
-        _forgetMissingTable(ds, err);
-      }
-    }
-
-    // Fallback: in-memory search
+    // Search the values themselves: every match carries its path, so the count is the number of matching
+    // values and Next / Previous visit each one. (A row-based SQL search counted rows, and missed nested values.)
     return _findInMemory(ds, text);
   }
 

@@ -100,6 +100,103 @@ function serve() {
       const after = await page.evaluate(() => document.querySelectorAll('.io-recent-item').length);
       if (after !== before - 1) failures.push('removing a Recent entry should leave ' + (before - 1) + ', there are ' + after);
     }
+
+    // ---- Find counts every matching value, and shows it inside the record that holds it ----
+    await page.evaluate(() => Structra.events.emit('tabs:add'));
+    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    const expected = await page.evaluate(() => { let n = 0; const walk = (v) => { if (v && typeof v === 'object') Object.values(v).forEach(walk); else if (typeof v === 'string' && /contoso/i.test(v)) n++; }; walk(Structra.state.jsonData); return n; });
+    await page.evaluate(() => Structra.set('findBarOpen', true));
+    await page.locator('#findInput').fill('contoso');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(900);
+    const found = await page.evaluate(() => ({ count: document.querySelector('#findCount').textContent, lit: document.querySelectorAll('.j-line.find-match').length, visible: [...document.querySelectorAll('.j-line:not(.filter-hidden):not(.j-close)')].length }));
+    if (found.count !== expected + ' found') failures.push('Find should count every matching value (' + expected + '): "' + found.count + '"');
+    if (found.lit < 1) failures.push('the matching lines should be highlighted in the Tree');
+    if (found.visible <= found.lit) failures.push('the lines around a match (its record) should stay visible: ' + JSON.stringify(found));
+    await page.evaluate(() => Structra.set('findBarOpen', false));
+
+    // ---- Workspace: all open tabs are saved, and importing opens them as new tabs ----
+    const snap = await page.evaluate(() => document.querySelector('structra-workspace')._tabsSnapshot().map((t) => t.label));
+    const tabCount = await page.evaluate(() => Structra.tabs.list.length);
+    if (snap.length !== 2) failures.push('the workspace should hold both tabs that have data: ' + snap.join(', '));
+    const ws = JSON.stringify({ type: 'structra-workspace', version: 3, tabs: [{ label: 'One', data: { a: 1 } }, { label: 'Two', data: [{ b: 2 }] }], snippets: [] });
+    await page.evaluate(() => Structra.events.emit('workspace:open'));
+    await page.waitForTimeout(300);
+    await page.locator('#wsImportFile').setInputFiles({ name: 'w.structra', mimeType: 'application/json', buffer: Buffer.from(ws) });
+    await page.locator('structra-workspace [data-action="import"]').click();
+    await page.waitForTimeout(2500);
+    const after = await page.evaluate(() => Structra.tabs.list.map((t) => t.label));
+    if (after.length !== tabCount + 2 || !after.includes('One') || !after.includes('Two')) failures.push('importing should add the two saved tabs and keep the open ones: ' + after.join(', '));
+
+    // ---- Share link: keeps the file name, stays in the address bar after opening ----
+    const link = await page.evaluate(async () => (await Structra.share.createUrl({ k: [1, 2, 3] }, 'orders.json')).url);
+    await page.goto('about:blank');
+    await page.goto(link);
+    await page.waitForTimeout(2000);
+    const shared = await page.evaluate(() => ({ name: Structra.state.fileName, hash: location.hash.slice(0, 7) }));
+    if (shared.name !== 'orders.json') failures.push('a shared document should keep its file name: ' + shared.name);
+    if (shared.hash !== '#share=') failures.push('the share link should stay in the address bar so a refresh works: "' + shared.hash + '"');
+
+    // ---- Bookmarks: a list you can open, with a count ----
+    await page.goto(base);
+    await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
+    await page.keyboard.press('Escape');
+    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
+    await page.waitForTimeout(1500);
+    await page.evaluate(() => { Structra.set('currentPath', '$.value[0].Title'); });
+    await page.locator('structra-header [data-action="bookmark"]').click();
+    await page.waitForTimeout(200);
+    if ((await page.locator('#bmCount').textContent()) !== '1') failures.push('the bookmark button should show a count of 1');
+    await page.locator('structra-header [data-action="bookmarks"]').click();
+    const bm = await page.evaluate(() => [...document.querySelectorAll('.bm-item .bm-path')].map((e) => e.textContent));
+    if (bm.join() !== '$.value[0].Title') failures.push('the bookmark list should show the bookmarked path: ' + bm.join());
+    await page.locator('.bm-item').first().click();
+    await page.waitForTimeout(400);
+    if (await page.evaluate(() => Structra.state.currentPath) !== '$.value[0].Title') failures.push('clicking a bookmark should go to it');
+
+    // ---- Drawer: the height you dragged it to is kept ----
+    const bar = await page.locator('#drawerResizeBar').boundingBox();
+    await page.mouse.move(bar.x + 40, bar.y + 2);
+    await page.mouse.down();
+    await page.mouse.move(bar.x + 40, bar.y - 90, { steps: 5 });
+    await page.mouse.up();
+    const dragged = await page.evaluate(() => Math.round(document.querySelector('structra-drawer').offsetHeight));
+    await page.evaluate(() => { Structra.set('drawerState', 'collapsed'); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { Structra.set('drawerState', 'medium'); });
+    await page.waitForTimeout(300);
+    const again = await page.evaluate(() => Math.round(document.querySelector('structra-drawer').offsetHeight));
+    if (Math.abs(again - dragged) > 4) failures.push('the drawer should reopen at the height it was dragged to (' + dragged + '): ' + again);
+
+    // ---- A second document starts on Analyze and its Tree has no repeated lines after switching back and forth ----
+    await page.evaluate(() => Structra.events.emit('drawer:show', 'expressions'));
+    await page.evaluate(() => Structra.events.emit('tabs:add'));
+    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'edge_odata.json'));
+    await page.waitForTimeout(1500);
+    const tabNow = await page.evaluate(() => (document.querySelector('.drawer-tabs .tab.active') || {}).dataset.tab);
+    if (tabNow !== 'analyze') failures.push('a newly opened document should start on the Analyze tab, the drawer is on: ' + tabNow);
+    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => { const other = Structra.tabs.list.find((x) => x.id !== Structra.tabs.activeId); document.querySelector('structra-tabs')._switchTab(other.id); });
+      await page.waitForTimeout(600);
+    }
+    const dup = await page.evaluate(() => { const ln = [...document.querySelectorAll('.json-view .j-line')].map((e) => e.dataset.ln); return ln.length - new Set(ln).size; });
+    if (dup) failures.push('the Tree repeats ' + dup + ' lines after switching documents');
+
+    // ---- Settings: the gear opens Settings with saved-data controls ----
+    await page.locator('[data-rail="settings"]').click();
+    await page.waitForTimeout(300);
+    const set = await page.evaluate(() => { const d = document.querySelector('structra-settings .ov'); return { open: !!d && d.classList.contains('show'), text: d ? d.textContent : '' }; });
+    if (!set.open || !/Appearance/.test(set.text) || !/Saved in this browser/.test(set.text) || !/SQL engine/.test(set.text)) failures.push('the gear should open Settings: ' + JSON.stringify(set).slice(0, 120));
+    await page.evaluate(() => localStorage.setItem('structra_snippets', JSON.stringify([{ name: 'x', content: '{}', size: 2 }])));
+    await page.evaluate(() => Structra.events.emit('settings:open'));
+    await page.evaluate(() => document.querySelector('structra-settings')._renderSaved());
+    await page.locator('[data-clear="structra_snippets"]').click();
+    await page.locator('[data-clear="structra_snippets"]').click();
+    if (await page.evaluate(() => localStorage.getItem('structra_snippets'))) failures.push('Clear (twice) should remove the saved snippets');
+    await page.keyboard.press('Escape');
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));
   }

@@ -77,6 +77,7 @@
   box-shadow: var(--shadow-lg);
 }
 .find-bar.show { display: flex; }
+.app-canvas.find-open .json-view { padding-top: var(--find-h, 0); }
 .find-row, .replace-row { display: flex; align-items: center; gap: var(--sp-1); }
 .find-bar .find-input { width: var(--find-input-w); min-height: 30px; background: var(--surface-alt); }
 

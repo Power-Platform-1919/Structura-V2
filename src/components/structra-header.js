@@ -26,6 +26,8 @@ class StructraHeader extends StructraElement {
     if (back) back.disabled = !Structra.nav.canBack();
     if (fwd) fwd.disabled = !Structra.nav.canForward();
     if (mark) mark.classList.toggle('active', Structra.bookmarks.has(Structra.state.currentPath));
+    const count = this.$('#bmCount');
+    if (count) { const n = Structra.bookmarks.list().length; count.textContent = n ? String(n) : ''; }
   }
 
   render() {
@@ -51,8 +53,11 @@ class StructraHeader extends StructraElement {
       <button class="toolbar-btn" data-action="copy-path" title="Copy path">
         ${Structra.icons.svg('copy')}
       </button>
-      <button class="toolbar-btn" data-action="bookmark" title="Bookmark path">
+      <button class="toolbar-btn" data-action="bookmark" title="Bookmark this path (Ctrl+B)">
         ${Structra.icons.svg('bookmark')}
+      </button>
+      <button class="toolbar-btn" data-action="bookmarks" title="Show my bookmarks" aria-haspopup="menu">
+        ${Structra.icons.svg('list')}<span class="bm-count" id="bmCount"></span>
       </button>
       <span class="sep"></span>
 
@@ -78,6 +83,7 @@ class StructraHeader extends StructraElement {
       else if (action === 'back') Structra.nav.back();
       else if (action === 'forward') Structra.nav.forward();
       else if (action === 'bookmark') this._toggleBookmark();
+      else if (action === 'bookmarks') this._showBookmarks(btn);
       else if (action === 'toggle-theme') Structra.theme.toggle();
       else if (action === 'appearance') Structra.events.emit('theme:open');
       else if (action === 'command-palette') Structra.events.emit('command-palette:toggle');
@@ -122,7 +128,40 @@ class StructraHeader extends StructraElement {
   _toggleBookmark() {
     const path = Structra.state.currentPath;
     if (!path || path === '$') { Structra.toast('Select a path to bookmark'); return; }
-    Structra.toast(Structra.bookmarks.toggle(path) ? 'Bookmarked ' + path : 'Bookmark removed');
+    Structra.toast(Structra.bookmarks.toggle(path) ? `Bookmarked ${path}. The list button next to it shows all your bookmarks.` : 'Bookmark removed');
+  }
+
+  /** A menu of the bookmarks for this file: click one to go there, the x removes it */
+  _showBookmarks(anchor) {
+    const old = document.querySelector('.bm-menu');
+    if (old) { old.remove(); return; }
+    const items = Structra.bookmarks.list();
+    const esc = Structra.util.esc;
+    const menu = document.createElement('div');
+    menu.className = 'bm-menu';
+    menu.setAttribute('role', 'menu');
+    menu.innerHTML = items.length
+      ? items.map((b) => `<div class="bm-item" role="menuitem" tabindex="0" data-path="${esc(b.path)}"><span class="bm-path">${esc(b.path)}</span><button class="bm-remove" type="button" data-remove="${esc(b.path)}" aria-label="Remove bookmark ${esc(b.path)}">${Structra.icons.svg('x', { size: 12 })}</button></div>`).join('')
+      : '<div class="bm-empty">No bookmarks in this file yet. Select a line and press Ctrl+B.</div>';
+    const r = anchor.getBoundingClientRect();
+    menu.style.top = (r.bottom + 4) + 'px';
+    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 300)) + 'px';
+    document.body.appendChild(menu);
+    const close = () => { menu.remove(); document.removeEventListener('mousedown', outside, true); document.removeEventListener('keydown', onKey, true); };
+    const outside = (e) => { if (!menu.contains(e.target) && !anchor.contains(e.target)) close(); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('mousedown', outside, true);
+    document.addEventListener('keydown', onKey, true);
+    menu.addEventListener('click', (e) => {
+      const rm = e.target.closest('[data-remove]');
+      if (rm) { Structra.bookmarks.remove(rm.dataset.remove); close(); return; }
+      const item = e.target.closest('.bm-item');
+      if (!item) return;
+      close();
+      this.$('#pathInput').value = item.dataset.path;
+      this._goToPath(item.dataset.path);
+    });
+    menu.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('bm-item')) e.target.click(); });
   }
 
   _copyPath() {

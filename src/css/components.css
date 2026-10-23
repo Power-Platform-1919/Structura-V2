@@ -2038,3 +2038,12 @@ structra-schemagen {
 .rep-bar { height: 6px; background: var(--surface-alt); border-radius: 3px; overflow: hidden; }
 .rep-bar span { display: block; height: 100%; background: var(--accent); }
 .rep-n { text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+.bm-count { font-size: var(--fs-xxs); margin-left: 2px; color: var(--accent); font-weight: var(--fw-semibold); }
+.bm-menu { position: fixed; z-index: 3000; min-width: 16rem; max-width: 28rem; max-height: 50vh; overflow: auto; padding: var(--sp-1); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); }
+.bm-item { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); border-radius: var(--radius-sm); cursor: pointer; font-size: var(--fs-sm); }
+.bm-item:hover, .bm-item:focus-visible { background: var(--surface-hover); outline: none; }
+.bm-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: var(--fs-xs); }
+.bm-remove { display: inline-flex; padding: 2px; border: 0; background: none; color: var(--text-muted); border-radius: var(--radius-sm); cursor: pointer; }
+.bm-remove:hover { background: var(--surface-alt); color: var(--text); }
+.bm-empty { padding: var(--sp-2); font-size: var(--fs-sm); color: var(--text-muted); }

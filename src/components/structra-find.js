@@ -154,6 +154,12 @@ class StructraFind extends StructraElement {
     const bar = this.$('#findBar');
     if (!bar) return;
     bar.classList.toggle('show', show);
+    // The bar floats over the top right of the canvas: leave room for it so it never covers the first lines
+    const canvas = document.getElementById('canvas');
+    if (canvas) {
+      canvas.classList.toggle('find-open', !!show);
+      canvas.style.setProperty('--find-h', show ? (bar.offsetHeight + 8) + 'px' : '0px');
+    }
     if (show) this.$('#findInput').focus();
   }
 
@@ -161,6 +167,7 @@ class StructraFind extends StructraElement {
     this._replaceOpen = !this._replaceOpen;
     const row = this.$('#replaceRow');
     if (row) row.style.display = this._replaceOpen ? 'flex' : 'none';
+    this._toggle(true);
     // Type the search first: the cursor goes to Find while it is empty, and to Replace once there is something to replace
     if (this._replaceOpen) (this.$('#findInput').value ? this.$('#replaceInput') : this.$('#findInput')).focus();
   }

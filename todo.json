@@ -612,12 +612,12 @@
         {
           "id": "13.22",
           "title": "Find behaves like a filter: after a search the tree shows only the matching line, with no highlight and none of its parents (Status, the record), so the match has no context. Find should keep the tree, expand the parents, highlight every match, scroll to the first and step with next/previous; filtering belongs to the Filter bar",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.23",
           "title": "Find bar floats over the first lines of the tree; keep it from covering content (reserve space or anchor it in the toolbar row)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.24",
@@ -732,12 +732,12 @@
         {
           "id": "13.46",
           "title": "Bookmark: the button turns amber but there is no visible bookmarks list or entry point (bookmarks only show in the Node panel after selecting a node); allow bookmarking a path that does not exist",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.47",
           "title": "Header Copy path and Bookmark buttons give no visible feedback (no toast seen) after click",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.48",
@@ -767,7 +767,7 @@
         {
           "id": "13.53",
           "title": "Opening a second document keeps the previous document's drawer tab (Expressions) with a stale source/path message ('Select a path in the tree...'); reset the drawer's context per tab",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.54",
@@ -817,12 +817,12 @@
         {
           "id": "13.63",
           "title": "At laptop heights (700 px) the bottom drawer takes about 40% of the screen and leaves 6 table rows; the drawer needs a smaller default, remember its size, and offer one click to hide it",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.64",
           "title": "Tree view after switching documents and back renders duplicated lines (line numbers 12, 13 then again 12, 13, and 20, 21 twice) and the fold arrows sit on top of key names (value, $select, #ref, $values) while the first array line has no arrow; reproduce: open two files, switch tab 2 then tab 1, Tree",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.65",
@@ -962,7 +962,7 @@
         {
           "id": "13.92",
           "title": "Gear at the bottom of the rail opens only 'Appearance'; there is no real Settings (default panel layout, toolbar, SQL on/off, shortcuts, clear data), so the gear label is misleading",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.93",
@@ -997,12 +997,12 @@
         {
           "id": "13.99",
           "title": "Copy Share Link puts the whole JSON in the URL hash (913 chars for a tiny file); large files will give an unusable or truncated link, and there is no size warning or note that the data is in the link. Opening it names the tab 'Shared JSON' and drops the other open tabs",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.100",
           "title": "Share link: after opening it the hash is removed from the address bar, so refreshing loses the data; the shared tab also keeps no original file name",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.101",
@@ -1107,12 +1107,12 @@
         {
           "id": "13.121",
           "title": "Workspace export saves only the active tab's data (995 B file with one 'data' list), not the other open tabs, the current view, expressions source, chosen columns or loop name; it is the only way to keep a session and it cannot restore one. The dialog stays open after export and gives no hint where the file went",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.122",
           "title": "Workspace import replaces the active tab's data with no confirmation and no summary of what was restored (tabs, bookmarks, snippets); the toast 'Workspace imported successfully' is all the feedback, and the file picker is the unstyled browser 'Choose File' control with a separate Import button",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.123",
@@ -1267,7 +1267,7 @@
         {
           "id": "13.153",
           "title": "Find counts look wrong: 'contoso' appears in 6 strings of the sample but the bar says '1 found'; and the case-sensitive 'Aa' toggle is on by default so a maker typing 'laptop' finds nothing. The three mode buttons are tiny symbols (Aa, ~, .*) with only a hover title, the replace pencil has no label, and the box floats over the top right of the Tree and its scrollbar",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.154",
