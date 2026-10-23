@@ -1354,7 +1354,7 @@
     {
       "id": "14",
       "title": "UI audit with the scripts in tests/ui: colours and themes, layout at four sizes, network calls, keyboard and relevance",
-      "status": "todo",
+      "status": "done",
       "brief": "Found by running tests/ui/run-all.js and by clicking through the live app in the Playwright browser (screenshots in .playwright-mcp/ui-audit). Each item is a gap to fix; add a smoke test with each fix.",
       "subtasks": [
         {

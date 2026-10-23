@@ -68,7 +68,7 @@ class StructraDrawerStats extends StructraElement {
 
     // Quality bar (if available)
     if (q) {
-      const color = q.overall >= 80 ? 'var(--success)' : q.overall >= 50 ? 'var(--warning)' : 'var(--danger)';
+      const color = q.overall >= 80 ? 'var(--success-ink)' : q.overall >= 50 ? 'var(--warning-ink)' : 'var(--danger-ink)';       // readable on the panel in every theme
       html += `<div class="ds-quality">
         <div class="ds-q-header"><span>Data Quality</span><span class="ds-q-score" style="color:${color}">${q.overall}%</span></div>
         <div class="ds-q-track"><div class="ds-q-fill" style="width:${q.overall}%;background:${color}"></div></div>

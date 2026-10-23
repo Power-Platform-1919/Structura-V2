@@ -50,9 +50,12 @@ class StructraRail extends StructraElement {
         case 'query':
           Structra.set('queryPanelOpen', !Structra.state.queryPanelOpen);
           break;
-        case 'power':         // the Power Platform tools: expressions for the selected value
-          Structra.events.emit('drawer:show', 'expressions');
+        case 'power': {        // the Power Platform tools: expressions for the selected value; a second click folds them away
+          const showing = Structra.state.drawerState !== 'collapsed' && !!document.querySelector('structra-drawer .drawer-tabs .tab.active[data-tab="expressions"]');
+          if (showing) Structra.set('drawerState', 'collapsed');
+          else Structra.events.emit('drawer:show', 'expressions');
           break;
+        }
         case 'overview':
           Structra.set('activeView', 'overview');
           break;

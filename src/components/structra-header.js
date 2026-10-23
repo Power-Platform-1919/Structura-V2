@@ -62,9 +62,6 @@ class StructraHeader extends StructraElement {
       <span class="sep"></span>
 
       <div class="header-right">
-        <button class="toolbar-btn" data-action="appearance" title="Appearance and themes">
-          ${Structra.icons.svg('palette')}
-        </button>
         <button class="toolbar-btn" data-action="toggle-theme" title="Switch light and dark">
           ${Structra.icons.svg('moon')}
         </button>

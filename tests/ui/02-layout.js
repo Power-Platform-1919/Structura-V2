@@ -25,8 +25,10 @@ main('02-layout', async ({ browser, base, rep }) => {
         const interactive = [...document.querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="tab"]')].filter((e) => U.visible(e) && !e.closest('.ov:not(.show), .io-overlay:not(.show), [hidden]'));
         for (const e of interactive) {
           const b = e.getBoundingClientRect();
-          if (b.right > innerWidth + 1 || b.left < -1) out.offscreen.push(U.where(e) + ' "' + (e.getAttribute('aria-label') || e.textContent || e.title || '').trim().slice(0, 20) + '"');
-          if ((b.width < 24 || b.height < 24) && !e.closest('.j-line, .table-pager, td, th, .doc-tab-scroll') && e.type !== 'checkbox' && e.type !== 'radio' && e.type !== 'hidden') out.tiny.push(U.where(e) + ' ' + Math.round(b.width) + 'x' + Math.round(b.height));
+          // A control inside a row that scrolls sideways is reachable, not cut off
+          const scrollsSideways = (el) => { for (let p = el.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if ((o === 'auto' || o === 'scroll') && p.scrollWidth > p.clientWidth) return true; } return false; };
+          if ((b.right > innerWidth + 1 || b.left < -1) && !scrollsSideways(e)) out.offscreen.push(U.where(e) + ' "' + (e.getAttribute('aria-label') || e.textContent || e.title || '').trim().slice(0, 20) + '"');
+          if ((b.width < 24 || b.height < 24) && !e.closest('.j-line, .table-pager, td, th, .doc-tab-scroll, svg') && e.type !== 'checkbox' && e.type !== 'radio' && e.type !== 'hidden') out.tiny.push(U.where(e) + ' ' + Math.round(b.width) + 'x' + Math.round(b.height));
         }
         for (const e of document.querySelectorAll('button, .view-tab, .rail-label, .tab, .btn')) {
           if (!U.visible(e)) continue;

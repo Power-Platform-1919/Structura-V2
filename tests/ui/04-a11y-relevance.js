@@ -41,7 +41,9 @@ main('04-a11y-relevance', async ({ browser, base, rep }) => {
       if (!e || e === document.body) return null;
       const st = getComputedStyle(e);
       const outline = st.outlineStyle !== 'none' && parseFloat(st.outlineWidth) > 0;
-      const shadow = st.boxShadow !== 'none';
+      // A ring on the wrapper (a path bar around its input) counts
+      const par = e.parentElement && e.parentElement.matches(':focus-within') ? getComputedStyle(e.parentElement) : null;
+      const shadow = st.boxShadow !== 'none' || (!!par && (par.boxShadow !== 'none' || (par.outlineStyle !== 'none' && parseFloat(par.outlineWidth) > 0)));
       const b = e.getBoundingClientRect();
       return { where: window.__ui.where(e), ring: outline || shadow, name: (e.getAttribute('aria-label') || e.title || e.textContent || '').trim().slice(0, 24), inView: b.bottom > 0 && b.top < innerHeight && b.right > 0 && b.left < innerWidth };
     });

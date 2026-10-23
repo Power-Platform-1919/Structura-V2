@@ -168,6 +168,7 @@ Structra.theme = (() => {
     const { mode, theme } = current();
     const root = document.documentElement;
     root.setAttribute('data-theme', mode);
+    root.setAttribute('data-theme-id', theme.id || '');
 
     // Base colours go on :root as inline custom properties; the CSS derives the rest from them
     for (const key of BASE_KEYS) {
@@ -175,6 +176,9 @@ Structra.theme = (() => {
       root.style.setProperty(CSS_VAR[key], value);
     }
     root.style.setProperty('--text-on-accent', onAccent(theme.colors.accent));
+    // Status text drawn on its own tinted background: pulled toward the text colour so it stays readable (computed here, not with color-mix, which image export cannot read)
+    const towardText = (hex) => { const a = toRgb(hex), b = toRgb(theme.colors.text); return '#' + a.map((v, i) => Math.round(v * 0.78 + b[i] * 0.22).toString(16).padStart(2, '0')).join(''); };
+    for (const k of ['success', 'warning', 'danger']) root.style.setProperty('--' + k + '-ink', towardText(theme.colors[k] || '#000000'));
 
     const fonts = theme.fonts || {};
     const setFont = (cssVar, value) => {

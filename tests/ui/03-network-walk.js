@@ -27,10 +27,10 @@ main('03-network-walk', async ({ browser, base, rep }) => {
 
   // 2. Click every view tab and rail button, noting new requests and whether anything changed
   const changed = async (fn) => {
-    const before = await page.evaluate(() => document.body.innerText.length + '|' + Structra.state.activeView + '|' + document.querySelectorAll('.ov.show, .io-overlay.show').length);
+    const before = await page.evaluate(() => document.body.innerText.length + '|' + Structra.state.activeView + '|' + document.querySelectorAll('.ov.show, .io-overlay.show').length + '|' + Structra.state.drawerState + '|' + ((document.querySelector('.drawer-tabs .tab.active') || {}).dataset || {}).tab + '|' + Structra.state.queryPanelOpen);
     await fn();
     await page.waitForTimeout(500);
-    const after = await page.evaluate(() => document.body.innerText.length + '|' + Structra.state.activeView + '|' + document.querySelectorAll('.ov.show, .io-overlay.show').length);
+    const after = await page.evaluate(() => document.body.innerText.length + '|' + Structra.state.activeView + '|' + document.querySelectorAll('.ov.show, .io-overlay.show').length + '|' + Structra.state.drawerState + '|' + ((document.querySelector('.drawer-tabs .tab.active') || {}).dataset || {}).tab + '|' + Structra.state.queryPanelOpen);
     return before !== after;
   };
   for (const v of ['Overview', 'Tree', 'Table', 'Graph', 'Schema', 'Editor']) {

@@ -375,8 +375,8 @@
   font-weight: 600;
 }
 
-.bool-true { background: var(--success-soft); color: var(--success); }
-.bool-false { background: var(--danger-soft); color: var(--danger); }
+.bool-true { background: var(--success-soft); color: var(--success-ink); }
+.bool-false { background: var(--danger-soft); color: var(--danger-ink); }
 
 /* ===== LOADING OVERLAY ===== */
 /* ===== FIND BAR HIGHLIGHTS ===== */
@@ -2099,3 +2099,10 @@ structra-schemagen {
 .app-drawer.collapsed .drawer-max { display: none; }
 
 .col-pick-sys { font-size: var(--fs-xs); color: var(--text-muted); margin-left: var(--sp-1); }
+
+/* Small controls stay big enough to hit */
+.st-duck, .ed-status, .app-canvas-header .toolbar-group .toolbar-btn { min-height: 24px; min-width: 24px; }
+.ed-status { padding-top: 2px; padding-bottom: 2px; }
+.ds-q-score { filter: none; }
+/* High Contrast: the canvas gets a visible edge */
+:root[data-theme-id="high-contrast"] .app-canvas { border-left: 1px solid var(--border); }
