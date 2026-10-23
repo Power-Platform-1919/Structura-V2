@@ -1731,6 +1731,36 @@
           "id": "14.75",
           "title": "After the Tree scrolls to a selected line, the first line is cut in half under the breadcrumb row (line 1 partly hidden)",
           "status": "todo"
+        },
+        {
+          "id": "14.76",
+          "title": "Table 'Split into columns' ticks every key, including system ones (@odata.type, Claims), so DisplayName and Email end up far to the right; use the same smart defaults as the Power Platform column chooser (system columns off) and write headers as 'Requester > Email'",
+          "status": "todo"
+        },
+        {
+          "id": "14.77",
+          "title": "Power Platform commands run from the palette in the Table or Overview view say 'Select a path in the tree' (the Table has no selection); pick the main list automatically, or switch to the Tree and say so",
+          "status": "todo"
+        },
+        {
+          "id": "14.78",
+          "title": "Loading a snippet replaces the open document in place without asking (the tab is renamed 'Requester sample.json' and the earlier document is gone), and the path bar and breadcrumb keep the old path ($.value[0].Requester) that does not exist in it; open snippets in a new tab and reset the path",
+          "status": "todo"
+        },
+        {
+          "id": "14.79",
+          "title": "Snippets, Bookmarks and Recent are three ways to remember something with no explanation of what each is for; say so in each dialog's first line, or drop the Snippet Library from the main list of commands",
+          "status": "todo"
+        },
+        {
+          "id": "14.80",
+          "title": "Table for a single object (no list) says only 'No tabular data found'; show a two-column Field and Value table instead",
+          "status": "todo"
+        },
+        {
+          "id": "14.81",
+          "title": "Compare with two documents open does not offer the other open tab as a side (Left is 'Current Data', Right asks to paste JSON) and starts with two empty panes and a button already called 'Compare again'; add 'Another open tab' as a choice and explain what to do first",
+          "status": "todo"
         }
       ]
     }
