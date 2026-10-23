@@ -84,7 +84,7 @@ Structra.expressions = (() => {
     // Inside a list item the position does not matter: it is "the current item" of the loop
     const inLoop = Structra.paths.powerAutomateInLoop(path, source.loopName);
     if (inLoop) {
-      rows.unshift(row(`Inside Apply to each over ${inLoop.listPath}`, inLoop.expr));
+      rows.unshift(row(`Inside Apply to each over ${listName(inLoop.listPath)}`, inLoop.expr));
       rows.splice(1, 0, row('Inside Select, Filter array or Condition', Structra.paths.powerAutomateInItem(path).expr));
     }
 
@@ -348,6 +348,9 @@ Structra.expressions = (() => {
   const columnOff = new Map();
 
   /** listColumns plus the person's choice: each column carries on: true or false */
+  /** A list at the top of the document is called the whole list, not $ */
+  function listName(p) { return !p || p === '$' || p === '(root)' ? 'the whole list' : p; }
+
   function pickedColumns(listPath, rows) {
     const off = columnOff.get(listPath);
     return listColumns(rows).map((c) => ({ ...c, on: off ? !off.has(c.id) : !c.noise }));
@@ -372,8 +375,8 @@ Structra.expressions = (() => {
     // Inside a list item, the item is "the current record": no position in the list is needed
     const rec = Structra.paths.powerFxInRecord(path, 'ThisRecord');
     if (rec) {
-      rows.push(row(`Inside ForAll, Filter or Sum over ${rec.listPath}`, rec.expr));
-      rows.push(row(`In a gallery or data table over ${rec.listPath}`, Structra.paths.powerFxInRecord(path, 'ThisItem').expr));
+      rows.push(row(`Inside ForAll, Filter or Sum over ${listName(rec.listPath)}`, rec.expr));
+      rows.push(row(`In a gallery or data table over ${listName(rec.listPath)}`, Structra.paths.powerFxInRecord(path, 'ThisItem').expr));
     }
 
     switch (kindOf(value)) {
@@ -773,7 +776,7 @@ Structra.expressions = (() => {
     const out = [];
     const loop = Structra.paths.powerAutomateInLoop(path, source.loopName);
     if (loop) {
-      out.push({ app: 'Power Automate', label: `In Apply to each over ${loop.listPath}`, code: loop.expr });
+      out.push({ app: 'Power Automate', label: `In Apply to each over ${listName(loop.listPath)}`, code: loop.expr });
       out.push({ app: 'Power Automate', label: 'In Select, Filter array or Condition', code: Structra.paths.powerAutomateInItem(path).expr });
     }
     out.push({ app: 'Power Automate', label: loop ? 'With the position in the list' : 'Expression', code: pa(path) });

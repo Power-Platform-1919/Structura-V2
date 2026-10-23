@@ -88,7 +88,7 @@ class StructraTheme extends StructraOverlay {
           </div>
         </div>
         <div class="th-meta">
-          <span class="th-name">${esc(t.name)}</span>
+          <span class="th-name" title="${esc(t.name)}">${esc(t.name)}</span>
           <span class="tag">${t.mode === 'dark' ? 'Dark' : 'Light'}${t.builtIn ? '' : ' · custom'}</span>
         </div>
         ${t.builtIn ? '' : `<div class="th-actions">

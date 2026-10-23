@@ -84,7 +84,9 @@ class StructraShortcuts extends StructraOverlay {
     }
     // Shortcuts that are handled outside the table
     categories.General.push({ key: '?', desc: 'Show this list' });
-    categories.Views.push({ key: 'ctrl+=', desc: 'Zoom in (Ctrl+- zooms out, Ctrl+0 resets)' });
+    categories.Views.push({ key: 'ctrl+=', desc: 'Zoom in' });
+    categories.Views.push({ key: 'ctrl+-', desc: 'Zoom out' });
+    categories.Views.push({ key: 'ctrl+0', desc: 'Reset zoom' });
 
     // Remove empty categories
     for (const key of Object.keys(categories)) {

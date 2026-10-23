@@ -12,7 +12,7 @@ Structra.constants = {
 
   RAIL_ITEMS: [
     { id: 'explorer',  title: 'Explorer',        icon: 'folder' },
-    { id: 'query',     title: 'Query & Filter',  icon: 'filter' },
+    { id: 'query',     title: 'Query and Transform',  icon: 'filter' },
     { id: 'power',     title: 'Power Platform',  icon: 'zap' },
     { id: 'overview',  title: 'Overview',        icon: 'bar-chart' },
     { id: 'transform', title: 'Transform',       icon: 'wand' },

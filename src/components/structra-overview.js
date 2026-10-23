@@ -118,7 +118,7 @@ class StructraOverview extends StructraElement {
     const arrays = ins.arrays.length
       ? `<ul class="ovw-lists">${ins.arrays.map((a) => `
           <li><button class="ovw-list" type="button" data-action="go-list" data-path="${esc(a.path)}">
-            <code>${esc(a.pattern.replace(/^\$\.?/, '') || 'root')}</code>
+            <code>${esc(a.pattern.replace(/^\$\.?/, '') || 'the whole document')}</code>
             <span>${a.lists > 1 ? `${a.lists.toLocaleString()} lists, ${a.items.toLocaleString()} items` : `${a.items.toLocaleString()} ${a.items === 1 ? 'item' : 'items'}`}</span>
           </button></li>`).join('')}</ul>`
       : '<p class="ovw-clear">This document has no lists.</p>';

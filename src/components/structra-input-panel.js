@@ -533,6 +533,10 @@ class StructraInputPanel extends StructraElement {
   async _apiSend() {
     const url = this.$('[data-role="api-url"]').value.trim();
     if (!url) return;
+    if (!/^https?:\/\//i.test(url)) {
+      this.$('[data-role="url-error"]').textContent = 'A web address starts with http:// or https://. Check it and try again.';
+      return;
+    }
 
     const sendBtn = this.$('[data-role="api-send"]');
     const statusEl = this.$('[data-role="api-status"]');

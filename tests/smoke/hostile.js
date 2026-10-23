@@ -127,9 +127,9 @@ function serve() {
     };
     let r = await tryTab('JSONPath', '$[?(@.v==2)]');
     if (r.count !== '10 rows match') failures.push('the JSONPath filter should find 10 rows: ' + JSON.stringify(r));
-    r = await tryTab('Expression', 'row.v === 3 && row.id > 10');
+    r = await tryTab('Formula', 'row.v === 3 && row.id > 10');
     if (!/^\d+ rows? match$/.test(r.count) || r.count === '50 rows match') failures.push('the Expression filter did not filter: ' + JSON.stringify(r));
-    r = await tryTab('Expression', 'row.v ===');
+    r = await tryTab('Formula', 'row.v ===');
     if (!/could not be read/.test(r.toast)) failures.push('a broken expression should say it could not be read: ' + r.toast);
     await page.evaluate(() => Structra.set('filterBarOpen', false));
 

@@ -7,6 +7,8 @@ class StructraQuery extends StructraElement {
   static get observedAttributes() { return ['mode']; }
 
   /** What each mode is for, with an example that works on most documents */
+  static get MODE_NAMES() { return { path: 'Path', jsonpath: 'JSONPath', regex: 'Pattern', js: 'JavaScript' }; }
+
   static get MODE_HELP() {
     return {
       path: { example: 'value[*].Title', hint: 'A path through the data. [*] means every item, so value[*].Title lists every Title.' },
@@ -42,7 +44,7 @@ class StructraQuery extends StructraElement {
 
     this.innerHTML = `
       <div class="panel-head">
-        <span class="panel-title">Query &amp; Filter</span>
+        <span class="panel-title">Query and Transform</span>
         <button class="btn btn-icon btn-ghost" type="button" data-action="close" aria-label="Close panel" title="Close">
           ${Structra.icons.svg('x', { size: 16 })}
         </button>
@@ -53,7 +55,7 @@ class StructraQuery extends StructraElement {
       </div>
       <div class="qp-tab-body" id="qpQueryBody">
         <div class="seg qp-modes">
-          ${modes.map(m => `<button class="seg-btn ${m === this._mode ? 'active' : ''}" type="button" data-mode="${m}">${m.charAt(0).toUpperCase() + m.slice(1)}</button>`).join('')}
+          ${modes.map(m => `<button class="seg-btn ${m === this._mode ? 'active' : ''}" type="button" data-mode="${m}">${StructraQuery.MODE_NAMES[m] || m}</button>`).join('')}
         </div>
         <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder=""></textarea>
         <div class="qp-hint" id="queryHint"></div>
@@ -130,7 +132,7 @@ class StructraQuery extends StructraElement {
   _switchTab(tab) {
     this._tab = tab;
     const title = this.$('.panel-title');
-    if (title) title.textContent = tab === 'transform' ? 'Transform' : 'Query & Filter';
+    if (title) title.textContent = tab === 'transform' ? 'Transform' : 'Query and Transform';
     Structra.events.emit('query:tab-switched', tab);
     this.querySelectorAll('.tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.qtab === tab));
     this.$('#qpQueryBody').hidden = tab !== 'query';

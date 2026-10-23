@@ -1415,12 +1415,12 @@
         {
           "id": "14.12",
           "title": "Rail: the bottom button opens Settings but is still labelled 'Theme' with a palette icon, and the header also has Appearance and light/dark buttons (three controls for the look); name it Settings with a gear icon and keep one quick light/dark switch in the header",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.13",
           "title": "Rail: several rail buttons stay highlighted at the same time (Transform, Power and Overview after clicking through them); only the open panel should look active",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.14",
@@ -1430,7 +1430,7 @@
         {
           "id": "14.15",
           "title": "Query panel modes read 'Path | Jsonpath | Regex | Js'; name them 'Path', 'JSONPath', 'Pattern' (as in Find) and 'JavaScript'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.16",
@@ -1440,7 +1440,7 @@
         {
           "id": "14.17",
           "title": "The path bar has no visible keyboard focus ring, so a keyboard user cannot see where they are",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.18",
@@ -1510,12 +1510,12 @@
         {
           "id": "14.31",
           "title": "Filter starts on the first column (id), so typing a name finds nothing; start on the first text column, or leave the field to be chosen",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.32",
           "title": "Filter tabs read Structured, JSONPath, Regex, Expression; use plain names for makers (Simple, JSONPath, Pattern, Formula)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.33",
@@ -1535,12 +1535,12 @@
         {
           "id": "14.36",
           "title": "Charts list picker still reads '$ (5 items)' for a top-level list (the friendly name only handles '(root)'); and there is no chart of totals by a category (Units by Region), only a histogram and a line for one column",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.37",
           "title": "Expressions for a top-level list say 'In Apply to each over $'; say 'over the whole list'; the Node panel and the Expressions drawer tab list nearly the same expressions side by side",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.38",
@@ -1555,12 +1555,12 @@
         {
           "id": "14.40",
           "title": "Shortcuts dialog: the zoom line reads 'Ctrl + = Zoom in (Ctrl+- zooms out, Ctrl+0 resets)'; split into three clear rows",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.41",
           "title": "Load URL: text that is not a web address (bob, a) plus Enter sends a request for a relative path (404 in the console); check it starts with http:// or https:// and say so before sending",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.42",
@@ -1580,7 +1580,7 @@
         {
           "id": "14.45",
           "title": "Tab right-click menu looks broken: its items are plain browser buttons with default borders, uneven widths and no padding, and the menu sits on top of the tab; give .menu-item a reset (no border, transparent, full width, left aligned)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.46",
@@ -1620,12 +1620,12 @@
         {
           "id": "14.53",
           "title": "Appearance: the theme name 'Power Platform Dark' is cut to 'Power Platfor…' with no tooltip; allow two lines or add a title",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.54",
           "title": "Overview: 'Biggest lists' and Arrays found show '(root)' for a top-level list; say 'the whole document'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.55",
@@ -1720,7 +1720,7 @@
         {
           "id": "14.73",
           "title": "The Query panel is titled 'Query & Filter' but holds Query and Transform (Filter is in the toolbar); title it 'Query and Transform'",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "14.74",

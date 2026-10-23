@@ -41,7 +41,7 @@ class StructraCharts extends StructraOverlay {
 
     this._sources = Structra.engine.findAllArrays(data, '')
       .filter((a) => Array.isArray(a.data) && a.data.length > 0)
-      .map((a) => ({ path: a.path, label: `${a.path === '(root)' ? 'The whole document' : a.path} (${a.data.length.toLocaleString()} ${a.data.length === 1 ? 'item' : 'items'})`, rows: a.data }));
+      .map((a) => ({ path: a.path, label: `${a.path === '(root)' || a.path === '$' ? 'The whole list' : a.path} (${a.data.length.toLocaleString()} ${a.data.length === 1 ? 'item' : 'items'})`, rows: a.data }));
     if (!this._sources.length) { Structra.toast('No arrays to chart in this document'); return; }
 
     const esc = Structra.util.esc;

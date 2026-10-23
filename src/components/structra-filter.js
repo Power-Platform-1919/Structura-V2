@@ -46,10 +46,10 @@ class StructraFilter extends StructraElement {
         <div class="filter-scope" id="filterScope"></div>
         <div class="filter-summary" id="filterSummary" hidden></div>
         <div class="tabs filter-mode-tabs">
-          <button class="tab filter-mode-tab active" type="button" data-fmode="structured">Structured</button>
+          <button class="tab filter-mode-tab active" type="button" data-fmode="structured">Simple</button>
           <button class="tab filter-mode-tab" type="button" data-fmode="jsonpath">JSONPath</button>
-          <button class="tab filter-mode-tab" type="button" data-fmode="regex">Regex</button>
-          <button class="tab filter-mode-tab" type="button" data-fmode="expression">Expression</button>
+          <button class="tab filter-mode-tab" type="button" data-fmode="regex">Pattern</button>
+          <button class="tab filter-mode-tab" type="button" data-fmode="expression">Formula</button>
         </div>
         <div class="filter-body" id="filterBody">
           <div class="filter-conditions" id="filterConditions"></div>
@@ -168,12 +168,24 @@ class StructraFilter extends StructraElement {
 
   /* ======== CONDITION ROWS ======== */
 
+  /** Typing a name finds nothing in an id column, so the first condition starts on the first column that holds text */
+  _firstTextColumn() {
+    const cols = this._columns || [];
+    try {
+      const main = Structra.engine.mainList();
+      const sample = main ? main.rows.slice(0, 50) : [];
+      const hit = cols.find((c) => sample.some((r) => typeof Structra.engine.fieldValue(r, c) === 'string'));
+      if (hit) return hit;
+    } catch { /* no list: use the first column */ }
+    return cols[0] || '';
+  }
+
   _addCondition() {
     const container = this.$('#filterConditions');
     if (!container) return;
 
     const idx = this._conditions.length;
-    this._conditions.push({ field: this._columns[0] || '', op: 'contains', value: '', logic: 'AND' });
+    this._conditions.push({ field: this._firstTextColumn(), op: 'contains', value: '', logic: 'AND' });
 
     const row = document.createElement('div');
     row.className = 'fc-row';
@@ -186,7 +198,7 @@ class StructraFilter extends StructraElement {
 
     // Field selector
     const fieldOpts = this._columns.map(c =>
-      `<option value="${Structra.util.esc(c)}">${Structra.util.esc(c)}</option>`
+      `<option value="${Structra.util.esc(c)}"${c === this._conditions[idx].field ? ' selected' : ''}>${Structra.util.esc(c)}</option>`
     ).join('');
 
     // Operator selector

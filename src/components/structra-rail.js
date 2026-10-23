@@ -25,7 +25,7 @@ class StructraRail extends StructraElement {
       </button>
       <div style="flex:1"></div>
       <button class="rail-btn" data-rail="settings" title="Settings: appearance, shortcuts and saved data" aria-label="Settings">
-        ${Structra.icons.svg('palette')}<span class="rail-label">Theme</span>
+        ${Structra.icons.svg('settings')}<span class="rail-label">Settings</span>
       </button>`;
 
     this.addEventListener('click', (e) => {

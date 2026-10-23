@@ -2066,3 +2066,8 @@ structra-schemagen {
 .pivot-actions { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) 0; }
 .pivot-count { margin-right: auto; font-size: var(--fs-sm); color: var(--text-muted); }
 .pivot-table th.num, .pivot-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* The path bar shows where keyboard focus is; long theme names wrap instead of being cut */
+.search-bar:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.search-bar input:focus-visible { outline: none; }
+.th-name { white-space: normal; overflow-wrap: anywhere; }
