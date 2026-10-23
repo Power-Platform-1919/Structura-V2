@@ -642,7 +642,7 @@
         {
           "id": "13.28",
           "title": "Filter panel is cramped: title row, Apply and Clear sit tight against the tabs, no spacing between sections",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.29",
@@ -792,7 +792,7 @@
         {
           "id": "13.58",
           "title": "Filter panel offers only the top-level keys (just 'data' for {data:[...]}), not the columns of the list being viewed; filtering 'item1' collapsed 120 rows to one {…} row. Filter the main list's rows by its columns (value, id) and show the matching count",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.59",
@@ -802,7 +802,7 @@
         {
           "id": "13.60",
           "title": "Filter panel header shows '1 rows' (grammar) and no way to see which condition produced it; add 'No rows match' empty state in the table",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.61",
@@ -812,7 +812,7 @@
         {
           "id": "13.62",
           "title": "After Clear in the Filter panel the condition row disappears (only '+ Add condition' remains) and the open panel keeps covering the toolbar buttons; Clear should reset to one empty row and Escape should close the panel",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.63",
@@ -857,12 +857,12 @@
         {
           "id": "13.71",
           "title": "Pivot dialog lists the document's top-level keys (@odata.context, @odata.nextLink, value, $metadata) as fields instead of the main list's columns (id, displayName...), so it cannot pivot the data a user sees; the Rows, Columns and Values zones wrap into an odd 2-row layout (Values under Rows) with a huge empty result area, and nothing says how to use it (drag chips? click?)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.72",
           "title": "Same root cause as Filter and Pivot: several tools (Filter, Pivot, probably Null finder and Charts defaults) work on the document root instead of the main list; one shared 'working list' (the main list, switchable) should drive them all",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.73",
@@ -882,12 +882,12 @@
         {
           "id": "13.76",
           "title": "Null and Empty Finder 'missing' results are mostly false positives (28 found on edge_odata.json): it reports keys such as @odata.type, id, displayName as missing inside value[0].#ref and nested.dotted.key by comparing against the parent record's keys; compare only sibling objects in the same list, and show the count per kind",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.77",
           "title": "Null finder list uses the $.a.b path form and a Unicode triangle on Prev; clicking a result should jump to it (check) and the dialog should say how many of each kind (null, empty, missing)",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.78",
@@ -1082,7 +1082,7 @@
         {
           "id": "13.116",
           "title": "Pivot dialog: the drop zones are empty boxes with no hint until a field is clicked, chips look draggable but only click works, 'Generate Pivot' on a field with no rows shows 'No results' without saying why (the file has no list of records), and the Count/Sum selector floats under Values without a label",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "13.117",
