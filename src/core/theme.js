@@ -29,6 +29,9 @@
      Structra.theme.BASE_KEYS, Structra.theme.LABELS
 
    Events: 'theme:changed'
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Emits: theme:changed
    ============================================================ */
 
 window.Structra = window.Structra || {};

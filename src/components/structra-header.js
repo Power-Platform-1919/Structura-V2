@@ -1,6 +1,12 @@
 /* ============================================================
    STRUCTRA V2 - Header Component
    <structra-header> - brand, path bar, toolbar buttons
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:currentPath, nav:changed, bookmarks:changed, state:jsonData
+     Emits: theme:open, command-palette:toggle, autocomplete:hide, tree:navigate-path,
+          tree:node-selected
+     Sets state: activeView, currentPath
    ============================================================ */
 
 class StructraHeader extends StructraElement {

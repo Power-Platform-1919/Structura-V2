@@ -6,6 +6,9 @@
  *
  *   Structra.undoStack.push(data, 'Sort Keys A→Z')   record a state (call it before a change for the original, and after it for the result)
  *   Structra.undoStack.undo() / redo()               return the document to show, or null when there is nothing to do
+ *
+ * Wiring (generated from the code below; update it when you add or remove an event):
+ *   Listens to: tabs:closed
  */
 Structra.undoStack = (() => {
   const MAX_SNAPSHOTS = 20;

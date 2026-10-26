@@ -5,6 +5,12 @@
    - Virtual scrolling via Structra.virtualList for large datasets
    - Sticky header, row selection, column sort indicators
    - Page-size selector + keyboard navigation
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:jsonData, view:switched, engine:ingested, settings:changed,
+          engine:filter-changed
+     Emits: tree:node-selected, charts:open
+     Sets state: currentPath
    ============================================================ */
 
 class StructraTable extends StructraElement {

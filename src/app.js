@@ -1,6 +1,14 @@
 /* ============================================================
    STRUCTRA V2 - App Bootstrap
    Initializes the application after all components are loaded
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: tabs:switched, state:currentPath, state:activeView, state:jsonData,
+          state:fileName, state:fileSize, tabs:closed
+     Emits: tabs:changed, command:run, shortcut, command-palette:toggle, find:toggle-replace,
+          tabs:add, tabs:close-active, tabs:switched
+     Sets state: jsonData, fileName, fileSize, currentPath, activeView, findBarOpen,
+          filterBarOpen
    ============================================================ */
 
 (function () {

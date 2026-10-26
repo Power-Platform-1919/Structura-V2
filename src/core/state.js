@@ -2,6 +2,10 @@
    STRUCTRA V2 - Global State & Event Bus
    Single namespace: window.Structra
    Console-accessible: Structra.state, Structra.events, Structra.tabs
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: theme:toggle
+     Emits: state:, toast
    ============================================================ */
 
 window.Structra = window.Structra || {};

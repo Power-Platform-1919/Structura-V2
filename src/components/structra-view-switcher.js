@@ -1,6 +1,10 @@
 /* ============================================================
    STRUCTRA V2 - View Switcher Component
    <structra-view-switcher> - manages view panels (tree/table/graph/schema/editor/stats)
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:activeView
+     Emits: view:switched
    ============================================================ */
 
 class StructraViewSwitcher extends StructraElement {

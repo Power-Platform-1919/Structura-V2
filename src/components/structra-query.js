@@ -1,6 +1,12 @@
 /* ============================================================
    STRUCTRA V2 - Query Panel Component
    <structra-query> - query/filter panel (path/jsonpath/regex/js)
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: query:show-tab, tabs:switched, tabs:closed, engine:ingested,
+          state:queryPanelOpen, state:jsonData
+     Emits: pivot:open, query:tab-switched, tree:navigate-path
+     Sets state: queryPanelOpen, activeView, currentPath
    ============================================================ */
 
 class StructraQuery extends StructraElement {

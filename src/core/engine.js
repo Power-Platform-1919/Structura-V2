@@ -29,6 +29,12 @@
    Console:
      Structra.engine.getActive()
      Structra.engine.runSql('SELECT COUNT(*) FROM data')
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: engine:duckdb-failed, engine:data-modified
+     Emits: engine:persisted, engine:ingested, engine:duckdb-registered, engine:removed,
+          engine:active, engine:duckdb-ready, engine:data-modified, engine:filter-changed,
+          engine:duckdb-starting, loading:show, loading:hide
    ============================================================ */
 
 window.Structra = window.Structra || {};

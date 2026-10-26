@@ -7,6 +7,11 @@
    there. Nothing is precomputed, so it stays fast on large files.
 
    Keys:  ArrowUp / ArrowDown move, Enter or Tab accept, Escape closes.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: autocomplete:hide
+     Emits: tree:navigate-path
+     Sets state: currentPath
    ============================================================ */
 
 class StructraAutocomplete extends StructraElement {

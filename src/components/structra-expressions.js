@@ -6,6 +6,11 @@
 
    Data comes from Structra.expressions (rows / sections).
    Click any expression to copy it.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:currentPath, state:jsonData, expressions:source-changed,
+          expressions:columns-changed, tabs:switched, drawer:tab-switched
+     Sets state: activeView
    ============================================================ */
 
 class StructraExpressions extends StructraElement {

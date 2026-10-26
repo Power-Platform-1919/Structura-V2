@@ -1,6 +1,12 @@
 /* ============================================================
    STRUCTRA V2 - Canvas Header Component
    <structra-canvas-header> - view tabs + tree toolbar buttons
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: tree:wrap-state, toolbar:reset, state:activeView, state:findBarOpen,
+          state:filterBarOpen
+     Emits: tree:expand-all, tree:collapse-all, tree:collapse-depth, tree:toggle-wrap
+     Sets state: activeView, findBarOpen, filterBarOpen
    ============================================================ */
 
 class StructraCanvasHeader extends StructraElement {

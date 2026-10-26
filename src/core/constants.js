@@ -10,6 +10,8 @@ Structra.constants = {
 
   DRAWER_STATES: ['collapsed', 'medium', 'expanded'],
 
+  // Older rail description. The rail is built by hand in components/structra-rail.js, so nothing reads
+  // RAIL_ITEMS or RAIL_BOTTOM today. Change the rail there.
   RAIL_ITEMS: [
     { id: 'explorer',  title: 'Explorer',        icon: 'folder' },
     { id: 'query',     title: 'Query and Transform',  icon: 'filter' },

@@ -1,6 +1,10 @@
 /* ============================================================
    STRUCTRA V2 - Tabs Component
    <structra-tabs> - document tab bar (multi-tab system)
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: tabs:changed, tabs:add, tabs:close-active
+     Emits: tabs:changed, tabs:switched, tabs:closed
    ============================================================ */
 
 class StructraTabs extends StructraElement {

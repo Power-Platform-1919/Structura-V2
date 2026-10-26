@@ -1,6 +1,10 @@
 /* ============================================================
    STRUCTRA V2 - Schema View Component
    <structra-schema> - inferred JSON schema display
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:jsonData, view:switched, engine:ingested
+     Sets state: currentPath
    ============================================================ */
 
 class StructraSchema extends StructraElement {

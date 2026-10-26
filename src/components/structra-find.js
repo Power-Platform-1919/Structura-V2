@@ -4,6 +4,12 @@
    optionally replace them.  Queries go through DuckDB when
    available, falls back to in-memory engine search.
    Works across all views (tree, table, graph).
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:findBarOpen, overlay:close, find:toggle-replace, find:open,
+          tree:search-key, find:prefill, engine:data-modified
+     Emits: state:jsonData, tree:node-selected, tree:navigate-path
+     Sets state: filterBarOpen, findBarOpen
    ============================================================ */
 
 class StructraFind extends StructraElement {

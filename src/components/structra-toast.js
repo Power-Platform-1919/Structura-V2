@@ -1,6 +1,9 @@
 /* ============================================================
    STRUCTRA V2 - Toast Component
    <structra-toast> - floating notification
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: toast
    ============================================================ */
 
 class StructraToast extends StructraElement {

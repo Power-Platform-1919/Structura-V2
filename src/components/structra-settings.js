@@ -2,6 +2,10 @@
    STRUCTRA V2 - Settings
    <structra-settings> - one place for the things you can change or clear:
    appearance, keyboard shortcuts, the SQL engine, and what is saved in this browser.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: settings:open, engine:duckdb-ready
+     Emits: theme:open, shortcuts:open, bookmarks:changed
    ============================================================ */
 
 class StructraSettings extends StructraOverlay {

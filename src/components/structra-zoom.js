@@ -2,6 +2,10 @@
    STRUCTRA V2 - Font Zoom Component
    <structra-zoom> - Ctrl+/- zoom with persistent preference.
    Uses CSS custom property --structra-font-size.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: zoom:in, zoom:out, zoom:reset, zoom:fit
+     Sets state: fontSize
    ============================================================ */
 
 class StructraZoom extends StructraElement {

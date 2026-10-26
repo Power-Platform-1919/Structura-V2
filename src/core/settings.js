@@ -20,6 +20,9 @@
      Structra.settings.getAll()
      Structra.settings.set('pageSize', 100)
      Structra.settings.reset()
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Emits: settings:changed, settings:reset
    ============================================================ */
 
 window.Structra = window.Structra || {};

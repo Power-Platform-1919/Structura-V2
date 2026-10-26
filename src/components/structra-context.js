@@ -1,6 +1,12 @@
 /* ============================================================
    STRUCTRA V2 - Context Panel Component
    <structra-context> - right detail panel (value, meta, actions)
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: tree:node-selected, state:contextPanelOpen, overlay:close,
+          bookmarks:changed, state:fileName
+     Emits: drawer:show, find:prefill
+     Sets state: contextPanelOpen, currentPath
    ============================================================ */
 
 class StructraContext extends StructraElement {

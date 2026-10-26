@@ -2,6 +2,9 @@
    STRUCTRA V2 - Size Heatmap Component
    <structra-heatmap> - Toggle heatmap coloring on tree/table
    based on byte size of values. Uses engine data for sizing.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: heatmap:toggle, state:jsonData, tree:rendered, view:switched
    ============================================================ */
 
 class StructraHeatmap extends StructraElement {

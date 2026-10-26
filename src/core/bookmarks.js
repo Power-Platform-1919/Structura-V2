@@ -16,6 +16,10 @@
 
    Events:
      'bookmarks:changed'
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: bookmark:add
+     Emits: bookmarks:changed
    ============================================================ */
 
 window.Structra = window.Structra || {};

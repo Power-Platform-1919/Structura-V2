@@ -2,6 +2,9 @@
    STRUCTRA V2 - Keyboard Shortcuts Overlay
    <structra-shortcuts> - Modal overlay showing all available
    keyboard shortcuts grouped by category.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: shortcuts:open
    ============================================================ */
 
 class StructraShortcuts extends StructraOverlay {

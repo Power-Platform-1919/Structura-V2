@@ -16,8 +16,8 @@ A local JSON analyzer for everyone, with a built-in Power Platform add-on for ma
 
 | Item | Value |
 |---|---|
-| Location | `C:\Users\228295\Personal Github Repos\structra-v2` |
-| Remote | `https://github.com/Hemanth-PPlatform-1919/structra-v2` (private), branch `main` |
+| Location | the repo root (clone of Power-Platform-1919/Structura-V2) |
+| Remote | https://github.com/Power-Platform-1919/Structura-V2 (public), branches dev, test, prod; main mirrors prod |
 | Stack | Vanilla JS custom elements (no Shadow DOM), plain `<script>` tags, no build step, no ES modules in app code |
 | Namespace | everything under `window.Structra`. No `window.App`, no V1 compatibility layers |
 | Entry point | `index.html` (`structra-v2.html` and `samples/` are old design prototypes) |
@@ -83,5 +83,5 @@ Workers: `src/workers` (csv, yaml, toml, xml parsers, engine worker). JSON itsel
 - Unit tests (47) cover engine analysis, schema generation, expressions, paths and insights. The DuckDB paths and the views are covered only by the browser smoke test.
 - Share links are limited to about 30 KB of encoded data.
 - `components.css` is still large (view styles for tree, table, graph and the input panel); more can move to the shared patterns.
-- `docs/`, `samples/` and `structra-v2.html` are history and can be deleted.
+- `docs/` (except DEVELOPER-GUIDE.md), `samples/` and `structra-v2.html` are history and can be deleted.
 - Overview and the new toolbar menu have been checked in dark mode more than light mode.

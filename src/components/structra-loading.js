@@ -2,6 +2,9 @@
    STRUCTRA V2 - Loading Overlay Component
    <structra-loading> - full-screen loading spinner with card UI
    Uses g-loading styles (backdrop-filter, card-style inner container).
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: loading:show, loading:hide
    ============================================================ */
 
 class StructraLoading extends StructraElement {

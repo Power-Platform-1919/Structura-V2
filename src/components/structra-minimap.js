@@ -2,6 +2,9 @@
    STRUCTRA V2 - Minimap Component
    <structra-minimap> - Bird's-eye canvas overview of JSON
    structure with viewport indicator and click-to-scroll.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:jsonData, minimap:toggle, view:switched
    ============================================================ */
 
 class StructraMinimap extends StructraElement {

@@ -56,7 +56,8 @@ The browser tests use [Playwright](https://playwright.dev). Set `PW_CHANNEL=msed
 | `src/components` | the UI, as vanilla JS custom elements (no build, no framework) |
 | `src/css` | styles, built on the design tokens in `tokens.css` |
 | `tests` | unit, smoke, perf and UI audit scripts |
-| `memory-bank.md` | notes on the architecture for contributors |
+| `docs/DEVELOPER-GUIDE.md` | how the app is built and how to extend it |
+| `memory-bank.md` | detailed notes on behaviour and architecture |
 
 ## Branches and deployment
 

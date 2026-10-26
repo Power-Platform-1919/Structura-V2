@@ -3,6 +3,9 @@
    <structra-typedef> - Code generation overlay with language tabs,
    syntax highlighting preview, and copy/download actions.
    Uses Structra.codeGen for all language generation.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: typedef:open
    ============================================================ */
 
 class StructraTypedef extends StructraOverlay {

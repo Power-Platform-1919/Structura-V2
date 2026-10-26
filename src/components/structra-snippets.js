@@ -2,6 +2,9 @@
    STRUCTRA V2 - Snippet Library Component
    <structra-snippets> - Save/load reusable JSON fragments.
    Stored in localStorage. Integrates with engine for validation.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: snippets:open, snippets:save
    ============================================================ */
 
 class StructraSnippets extends StructraOverlay {

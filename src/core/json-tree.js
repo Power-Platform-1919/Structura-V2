@@ -24,6 +24,9 @@
      Structra.jsonTree.setFilterByRegex(container, regex)
      Structra.jsonTree.clearFilter(container)
      Structra.jsonTree.renderInto(container, data)
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Emits: tree:search-key, loading:show, loading:hide, tree:inline-edit
    ============================================================ */
 
 window.Structra = window.Structra || {};

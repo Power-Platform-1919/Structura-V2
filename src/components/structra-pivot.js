@@ -2,6 +2,9 @@
    STRUCTRA V2 - Pivot Table Component
    <structra-pivot> - Aggregate/group tabular data with drag-and-
    drop field placement. Uses DuckDB GROUP BY / aggregate SQL.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: pivot:open, engine:ingested, tabs:switched
    ============================================================ */
 
 class StructraPivot extends StructraOverlay {

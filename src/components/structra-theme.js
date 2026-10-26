@@ -3,6 +3,9 @@
    <structra-theme> - choose light, dark or system; pick a built-in theme;
    build your own with a live preview; export it as JSON and import it back.
    Built on StructraOverlay; the theme logic itself is Structra.theme.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: theme:open, theme:changed
    ============================================================ */
 
 class StructraTheme extends StructraOverlay {

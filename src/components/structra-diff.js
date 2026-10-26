@@ -3,6 +3,9 @@
    <structra-diff> - Two-pane JSON comparison with line-by-line
    difference highlighting. Uses DuckDB for structural comparison
    when both sides are tabular arrays.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: diff:open
    ============================================================ */
 
 class StructraDiff extends StructraOverlay {

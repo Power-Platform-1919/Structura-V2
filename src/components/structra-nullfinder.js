@@ -3,6 +3,11 @@
    <structra-nullfinder> - Locate all null, empty, and missing
    values with navigation. Uses DuckDB WHERE col IS NULL queries
    when available.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: nullfinder:open
+     Emits: tree:navigate-path
+     Sets state: activeView, currentPath
    ============================================================ */
 
 class StructraNullfinder extends StructraOverlay {

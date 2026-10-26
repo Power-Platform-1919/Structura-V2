@@ -12,6 +12,12 @@
    6. Field profiler (type, coverage, min/max/avg, top values)
 
    All data from Structra.engine - zero window.App, zero DOM queries
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:jsonData, view:switched, tabs:switched, state:duplicateKeys,
+          engine:ingested
+     Emits: engine:analysisComplete, tree:node-selected, drawer:show, tree:search-key
+     Sets state: currentPath, activeView
    ============================================================ */
 
 class StructraOverview extends StructraElement {

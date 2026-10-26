@@ -1,6 +1,12 @@
 /* ============================================================
    STRUCTRA V2 - Drawer Component
    <structra-drawer> - bottom drawer with tabs (Stats, Expressions, Schema Gen)
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: drawer:show, state:drawerState, state:activeView, engine:ingested,
+          state:jsonData
+     Emits: drawer:tab-switched
+     Sets state: drawerState
    ============================================================ */
 
 class StructraDrawer extends StructraElement {

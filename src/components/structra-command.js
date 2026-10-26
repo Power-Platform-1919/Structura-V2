@@ -1,6 +1,17 @@
 /* ============================================================
    STRUCTRA V2 - Command Palette Component
    <structra-command> - searchable command palette overlay
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: command-palette:toggle, overlay:close, command:run, tree:inline-edit
+     Emits: find:open, drawer:show, validate:open, charts:open, theme:open, theme:toggle,
+          welcome:open, diff:open, nullfinder:open, pivot:open, minimap:toggle,
+          snippets:open, workspace:open, heatmap:toggle, zoom:in, zoom:out, zoom:reset,
+          toolbar:reset, zoom:fit, tree:expand-all, tree:collapse-all, tree:collapse-depth,
+          tree:toggle-wrap, tabs:add, input:show-tab, command:exec, tabs:changed,
+          typedef:open, shortcuts:open
+     Sets state: activeView, findBarOpen, filterBarOpen, duplicateKeys, jsonData, fileSize,
+          fileName, currentPath
    ============================================================ */
 
 class StructraCommand extends StructraElement {

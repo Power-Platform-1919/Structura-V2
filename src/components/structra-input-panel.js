@@ -3,6 +3,11 @@
    <structra-input-panel> - shared input card (overlay & in-canvas)
    Same card everywhere. Wrap in .io-overlay div for fullscreen mode.
    5 tabs: Upload File | Paste JSON | Import CSV | Load URL | Recent
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: input:show-tab
+     Emits: loading:show, loading:hide, tabs:add
+     Sets state: jsonData, fileName, fileSize, currentPath, activeView, duplicateKeys
    ============================================================ */
 
 class StructraInputPanel extends StructraElement {

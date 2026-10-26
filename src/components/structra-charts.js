@@ -4,6 +4,9 @@
    Numbers: summary, histogram and a trend line.
    Text and booleans: the most common values.
    Drawn as inline SVG, no chart library.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: charts:open
    ============================================================ */
 
 class StructraCharts extends StructraOverlay {

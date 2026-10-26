@@ -1,6 +1,12 @@
 /* ============================================================
    STRUCTRA V2 - Editor View Component
    <structra-editor> - raw JSON editor (format/minify/validate/apply)
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: tabs:closed, editor:repair, editor:format, editor:minify, state:jsonData,
+          view:switched
+     Emits: tabs:changed, loading:show, loading:hide
+     Sets state: jsonData
    ============================================================ */
 
 class StructraEditor extends StructraElement {

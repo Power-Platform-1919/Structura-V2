@@ -21,6 +21,9 @@
 
    Console:
      Structra.duckdb.query('SELECT 1 as test').then(console.log)
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Emits: engine:duckdb-failed
    ============================================================ */
 
 window.Structra = window.Structra || {};

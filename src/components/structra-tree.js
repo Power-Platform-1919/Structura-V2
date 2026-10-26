@@ -3,6 +3,13 @@
    <structra-tree> - Virtualized JSON tree view with chunked
    lazy-loading, DOM recycling, and rehydration for 200k+ nodes.
    Delegates rendering to Structra.jsonTree (V2 renderer).
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:jsonData, state:currentPath, bookmarks:changed, tree:expand-all,
+          tree:collapse-all, tree:collapse-depth, tree:navigate-path, tree:toggle-wrap,
+          engine:filter-changed
+     Emits: tree:wrap-state, tree:node-selected, tree:rendered, find:prefill
+     Sets state: currentPath, activeView
    ============================================================ */
 
 class StructraTree extends StructraElement {

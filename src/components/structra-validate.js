@@ -3,6 +3,10 @@
    <structra-validate> - validate the open data against a JSON Schema.
    Paste a schema, or start from one inferred from the data.
    Click an error to jump to that path in the tree.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: validate:open
+     Sets state: activeView, currentPath
    ============================================================ */
 
 class StructraValidate extends StructraOverlay {

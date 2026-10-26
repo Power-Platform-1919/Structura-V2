@@ -21,6 +21,11 @@
      }
 
    sizes: 'sm' | 'md' | 'lg' | 'xl'
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: overlay:close
+     Emits: command-palette:toggle
+     Sets state: findBarOpen, filterBarOpen, contextPanelOpen, queryPanelOpen
    ============================================================ */
 
 /** The dialogs that are open, in the order they were opened */

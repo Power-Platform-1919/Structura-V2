@@ -3,6 +3,10 @@
    <structra-schemagen> - JSON Schema for the Power Automate
    "Parse JSON" action, generated from the loaded data.
    Lives in the Schema Gen tab of <structra-drawer>.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:currentPath, state:jsonData, tabs:switched, drawer:tab-switched,
+          state:drawerState
    ============================================================ */
 
 class StructraSchemaGen extends StructraElement {

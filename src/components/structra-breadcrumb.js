@@ -2,6 +2,10 @@
    STRUCTRA V2 - Breadcrumb
    <structra-breadcrumb> - the selected path as clickable segments.
    Click a segment to jump back up to that level.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:currentPath, state:jsonData
+     Sets state: currentPath
    ============================================================ */
 
 class StructraBreadcrumb extends StructraElement {

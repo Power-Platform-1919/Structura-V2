@@ -7,6 +7,11 @@
    Conditions: [{field, op, value, logic}]
    Operators:  eq, neq, gt, lt, gte, lte, contains,
                notcontains, startswith, endswith, isnull, notnull
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:filterBarOpen, overlay:close, engine:ingested, engine:active,
+          state:jsonData, tabs:switched
+     Sets state: findBarOpen, filterBarOpen, activeView
    ============================================================ */
 
 class StructraFilter extends StructraElement {

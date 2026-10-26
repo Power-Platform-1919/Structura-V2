@@ -2,6 +2,11 @@
    STRUCTRA V2 - Workspace Export/Import Component
    <structra-workspace> - Serialize and restore full workspace
    state (tabs, bookmarks, settings, query history, undo stack).
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: workspace:export, workspace:import, workspace:open
+     Emits: tabs:add, bookmarks:changed
+     Sets state: activeView, currentPath, fontSize
    ============================================================ */
 
 class StructraWorkspace extends StructraOverlay {

@@ -1,6 +1,10 @@
 /* ============================================================
    STRUCTRA V2 - Status Bar Component
    <structra-status> - bottom status bar
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:currentPath, state:fileName, tabs:switched, engine:duckdb-starting,
+          engine:duckdb-ready, engine:duckdb-failed, state:duplicateKeys
    ============================================================ */
 
 class StructraStatus extends StructraElement {

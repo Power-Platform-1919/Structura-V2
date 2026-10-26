@@ -1,6 +1,13 @@
 /* ============================================================
    STRUCTRA V2 - Rail Component
    <structra-rail> - left icon sidebar
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:activeView, state:queryPanelOpen, state:jsonData, state:drawerState,
+          tabs:switched, query:tab-switched, drawer:tab-switched
+     Emits: rail:action, tabs:changed, tabs:switched, tabs:add, input:show-tab, drawer:show,
+          query:show-tab, theme:open, settings:open
+     Sets state: queryPanelOpen, drawerState, activeView
    ============================================================ */
 
 class StructraRail extends StructraElement {

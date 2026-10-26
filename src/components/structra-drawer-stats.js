@@ -4,6 +4,11 @@
 
    Shows: mini-grid (rows/keys/gaps), quick quality bar, clickable
    field list. Renders into the drawer's #dp-analyze panel.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: engine:ingested, state:jsonData, engine:active, engine:data-modified,
+          drawer:tab-switched
+     Sets state: activeView
    ============================================================ */
 
 class StructraDrawerStats extends StructraElement {

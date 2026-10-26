@@ -4,6 +4,10 @@
    Says what the app is for, lets the person pick light or dark, and offers
    the two ways to start (a sample or their own file). Reopen it from the
    command palette ("Welcome"). Built on StructraOverlay.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: welcome:open
+     Emits: theme:open
    ============================================================ */
 
 class StructraWelcome extends StructraOverlay {

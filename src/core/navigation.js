@@ -11,6 +11,11 @@
 
    Events:
      'nav:changed' → emitted whenever history or the active tab changes
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:currentPath, state:jsonData, tabs:switched, tabs:closed
+     Emits: nav:changed
+     Sets state: currentPath
    ============================================================ */
 
 window.Structra = window.Structra || {};

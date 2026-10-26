@@ -1,6 +1,12 @@
 /* ============================================================
    STRUCTRA V2 - Graph View Component
    <structra-graph> - SVG node graph with zoom/pan/expand
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Listens to: state:currentPath, state:jsonData, view:switched, engine:ingested,
+          engine:filter-changed
+     Emits: tree:node-selected
+     Sets state: currentPath
    ============================================================ */
 
 class StructraGraph extends StructraElement {

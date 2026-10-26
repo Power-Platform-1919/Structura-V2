@@ -15,6 +15,9 @@
         where the JSON comes from, so expressions start at the right place:
         { kind: 'action' | 'trigger' | 'item' | 'custom', name, fxVar, fullOutput: 'auto' | true | false }
         Changing it emits 'expressions:source-changed'.
+
+   Wiring (generated from the code below; update it when you add or remove an event):
+     Emits: expressions:source-changed, expressions:columns-changed
    ============================================================ */
 
 window.Structra = window.Structra || {};
