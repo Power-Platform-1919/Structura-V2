@@ -30,7 +30,7 @@
 .qp-tabs { padding: 0 var(--sp-3); flex-shrink: 0; }
 .qp-tab-body { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-4); }
 .qp-tab-body[hidden] { display: none; }
-.qp-modes { align-self: flex-start; }
+.qp-modes { align-self: flex-start; max-width: 100%; flex-wrap: wrap; }
 
 .qp-input {
   width: 100%;
@@ -156,3 +156,32 @@
 .wl-list { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; color: var(--text-sec); font-size: var(--fs-sm); line-height: var(--lh-normal); }
 .wl-list kbd { padding: 0 5px; border: 1px solid var(--border); border-radius: var(--radius-sm, 4px); background: var(--surface-alt, var(--surface-hover)); font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text); }
 .wl-theme { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding-top: var(--sp-4); border-top: 1px solid var(--border-subtle); color: var(--text-sec); font-size: var(--fs-base); }
+
+/* ===== QUERY PANEL: SQL MODE ===== */
+.qp-input.is-sql { min-height: 9rem; tab-size: 2; white-space: pre; overflow: auto; }
+.qp-sql-examples { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.qp-sql-examples[hidden], .qp-sql-schema[hidden], .qp-sql-history[hidden] { display: none; }
+.qp-run-row { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.qp-kbd { margin-left: var(--sp-2); padding: 0 5px; border: 1px solid color-mix(in srgb, currentColor 40%, transparent); border-radius: 4px; font-family: var(--font-sans); font-size: var(--fs-xs); opacity: 0.85; }
+.qp-sql-history { max-width: 14rem; min-height: 28px; padding: 0 var(--sp-2); background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-sec); font-size: var(--fs-sm); }
+.qp-sql-schema { font-size: var(--fs-sm); color: var(--text-sec); }
+.qp-sql-schema summary { cursor: pointer; color: var(--text); font-weight: var(--fw-medium); width: fit-content; }
+.qp-sql-schema code { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--accent); }
+.qp-sql-columns { display: flex; flex-direction: column; margin-top: var(--sp-2); max-height: 9rem; overflow: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius); }
+.qp-sql-col { display: flex; justify-content: space-between; gap: var(--sp-3); padding: 3px var(--sp-3); background: transparent; border: 0; border-bottom: 1px solid var(--border-subtle); color: var(--text); font-family: var(--font-mono); font-size: var(--fs-xs); text-align: left; }
+.qp-sql-col:last-child { border-bottom: 0; }
+.qp-sql-col:hover { background: var(--accent-soft); color: var(--accent); }
+.qp-sql-col em { color: var(--text-muted); font-style: normal; white-space: nowrap; }
+.qp-sql-grid { overflow: auto; max-height: 28rem; border: 1px solid var(--border-subtle); border-radius: var(--radius); }
+.qp-sql-grid table { border-collapse: separate; border-spacing: 0; min-width: 100%; font-family: var(--font-mono); font-size: var(--fs-xs); }
+.qp-sql-grid th, .qp-sql-grid td { padding: 3px var(--sp-3); border-bottom: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); white-space: nowrap; max-width: 18rem; overflow: hidden; text-overflow: ellipsis; text-align: left; color: var(--text); }
+.qp-sql-grid thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-alt); font-weight: var(--fw-semibold); color: var(--text); }
+.qp-sql-grid tbody tr:hover td { background: var(--surface-hover); }
+.qp-sql-grid .qp-sql-n { position: sticky; left: 0; background: var(--surface-alt); color: var(--text-muted); text-align: right; }
+.qp-sql-grid thead .qp-sql-n { z-index: 2; }
+.qp-sql-grid td.qp-sql-num { text-align: right; }
+.qp-sql-grid td.qp-sql-null { color: var(--text-muted); font-style: italic; }
+
+/* In SQL mode the whole panel scrolls, so the result grid is never squeezed under the editor */
+structra-query.is-sql { overflow-y: auto; }
+structra-query.is-sql .qp-results { flex: none; overflow: visible; }

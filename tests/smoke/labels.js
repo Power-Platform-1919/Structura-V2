@@ -66,7 +66,7 @@ function serve() {
     await page.evaluate(() => Structra.set('queryPanelOpen', true));
     await page.waitForTimeout(300);
     const modes = (await text('structra-query [data-mode]')).join(',');
-    if (modes !== 'Path,JSONPath,Pattern,JavaScript') failures.push('Query modes should read Path, JSONPath, Pattern, JavaScript: ' + modes);
+    if (modes !== 'Path,JSONPath,Pattern,JavaScript,SQL') failures.push('Query modes should read Path, JSONPath, Pattern, JavaScript, SQL: ' + modes);
     const title = (await text('structra-query .panel-title'))[0];
     if (title !== 'Query and Transform') failures.push('the Query panel title should be Query and Transform: ' + title);
     await page.evaluate(() => Structra.set('queryPanelOpen', false));

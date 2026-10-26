@@ -235,15 +235,24 @@
 /* ===== INPUT PANEL INLINE (in-canvas, same look as overlay) ===== */
 .io-inline {
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
   flex: 1;
   width: 100%;
   min-height: 100%;
-  padding: max(var(--sp-4), 8vh) var(--sp-4) var(--sp-4);
+  padding: var(--sp-6) var(--sp-4);
   overflow-y: auto;
   background: var(--bg);
 }
+/* margin:auto centres the card both ways, and still lets a tall card scroll from its top edge */
+.io-inline .io-box { margin: auto; width: min(760px, 94vw); max-height: none; overflow: visible; }
+
+.io-features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); margin-top: var(--sp-5); }
+.io-feature { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3); border: 1px solid var(--border-subtle); border-radius: var(--radius); background: var(--surface-alt); }
+.io-feature > svg { flex-shrink: 0; width: 18px; height: 18px; padding: 6px; box-sizing: content-box; border-radius: var(--radius); background: var(--accent-soft); color: var(--accent); }
+.io-feature strong { display: block; font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text); }
+.io-feature span { display: block; margin-top: 2px; font-size: var(--fs-sm); line-height: var(--lh-normal); color: var(--text-sec); }
+.io-tips .io-kbd { margin-left: 0; }
+.io-tips { margin: var(--sp-4) 0 0; font-size: var(--fs-sm); color: var(--text-sec); }
+@media (max-width: 560px) { .io-features { grid-template-columns: 1fr; } }
 
 /* ===== DATA TABLE (main table view) ===== */
 .table-container {

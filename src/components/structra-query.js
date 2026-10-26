@@ -1,6 +1,7 @@
 /* ============================================================
    STRUCTRA V2 - Query Panel Component
-   <structra-query> - query/filter panel (path/jsonpath/regex/js)
+   <structra-query> - query and transform panel. Query modes: path, jsonpath, regex (pattern), js, sql.
+   The SQL mode runs read-only queries on the open file (the table "data") through Structra.engine.runSql
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: query:show-tab, tabs:switched, tabs:closed, engine:ingested,
@@ -13,7 +14,12 @@ class StructraQuery extends StructraElement {
   static get observedAttributes() { return ['mode']; }
 
   /** What each mode is for, with an example that works on most documents */
-  static get MODE_NAMES() { return { path: 'Path', jsonpath: 'JSONPath', regex: 'Pattern', js: 'JavaScript' }; }
+  static get MODE_NAMES() { return { path: 'Path', jsonpath: 'JSONPath', regex: 'Pattern', js: 'JavaScript', sql: 'SQL' }; }
+
+  /** Rows read from one SQL query, and rows drawn in the result grid (the rest can be copied or opened in a tab) */
+  static get SQL_MAX_ROWS() { return 10000; }
+  static get SQL_SHOW_ROWS() { return 500; }
+  static get SQL_HISTORY_KEY() { return 'structra.sqlHistory'; }
 
   static get MODE_HELP() {
     return {
@@ -21,6 +27,7 @@ class StructraQuery extends StructraElement {
       jsonpath: { example: '$.value[?(@.Cost > 100)].Title', hint: 'JSONPath: $ is the document, [?(...)] keeps items that pass a test, $..name finds name at any depth.' },
       regex: { example: '^[A-Z][a-z]+$', hint: 'Finds text values that match a pattern (not case sensitive).' },
       js: { example: 'data.value.filter(x => x.Approved)', hint: 'JavaScript where data is the whole document. It runs only in this browser.' },
+      sql: { example: 'SELECT * FROM data LIMIT 100', hint: 'The open file is a table named data. Press Ctrl+Enter to run. Select part of the text to run only that part. Queries only read the data, they never change it.' },
     };
   }
 
@@ -63,9 +70,17 @@ class StructraQuery extends StructraElement {
         <div class="seg qp-modes">
           ${modes.map(m => `<button class="seg-btn ${m === this._mode ? 'active' : ''}" type="button" data-mode="${m}">${StructraQuery.MODE_NAMES[m] || m}</button>`).join('')}
         </div>
+        <div class="qp-sql-examples" id="sqlExamples" hidden></div>
         <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder=""></textarea>
         <div class="qp-hint" id="queryHint"></div>
-        <button class="btn btn-primary qp-run" type="button" data-action="run">Run query</button>
+        <div class="qp-run-row">
+          <button class="btn btn-primary qp-run" type="button" data-action="run" id="queryRun">Run query</button>
+          <select class="qp-sql-history" id="sqlHistory" aria-label="Earlier queries" hidden></select>
+        </div>
+        <details class="qp-sql-schema" id="sqlSchema" hidden>
+          <summary id="sqlSchemaTitle">Table <code>data</code></summary>
+          <div class="qp-sql-columns" id="sqlColumns"></div>
+        </details>
       </div>
       <div class="qp-tab-body" id="qpTransformBody" hidden>
         <div class="qp-transform-presets" id="transformPresets"></div>
@@ -109,6 +124,14 @@ class StructraQuery extends StructraElement {
         this._runTransform();                       // a preset is a ready-made answer: it runs at once
         return;
       }
+      const example = e.target.closest('[data-sql-example]');
+      if (example) {                                    // a ready-made query runs at once
+        this.$('#queryInput').value = example.dataset.sqlExample;
+        this._runQuery();
+        return;
+      }
+      const col = e.target.closest('[data-sql-col]');
+      if (col) { this._insertAtCursor(col.dataset.sqlCol); return; }
       const mode = e.target.closest('[data-mode]');
       if (mode) {
         this._mode = mode.dataset.mode;
@@ -120,6 +143,9 @@ class StructraQuery extends StructraElement {
       if (!action) return;
       if (action.dataset.action === 'close') Structra.set('queryPanelOpen', false);
       else if (action.dataset.action === 'run') this._runQuery();
+      else if (action.dataset.action === 'sqlCopy') this._sqlExport('copy');
+      else if (action.dataset.action === 'sqlCsv') this._sqlExport('csv');
+      else if (action.dataset.action === 'sqlOpen') this._sqlExport('tab');
       else if (action.dataset.action === 'copyMatches') this._copyMatches();
       else if (action.dataset.action === 'openMatches') this._openMatches();
       else if (action.dataset.action === 'runTransform') this._runTransform();
@@ -128,11 +154,25 @@ class StructraQuery extends StructraElement {
     });
 
     this.$('#queryInput').addEventListener('keydown', (e) => {
+      if (this._mode === 'sql') {                        // SQL is written over several lines: Ctrl+Enter runs, Enter starts a new line
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this._runQuery(); }
+        return;
+      }
       if (e.key === 'Enter' && !e.shiftKey) {            // Enter runs, Shift+Enter starts a new line
         e.preventDefault();
         this._runQuery();
       }
     });
+    this.$('#sqlHistory').addEventListener('change', (e) => {
+      if (e.target.value === '') return;
+      this.$('#queryInput').value = this._sqlHistory()[Number(e.target.value)] || '';
+      e.target.value = '';
+      this.$('#queryInput').focus();
+    });
+    // A different file has different columns
+    const reloadSchema = () => { if (this._mode === 'sql' && this.classList.contains('show')) this._loadSqlSchema(); };
+    this.on('tabs:switched', reloadSchema);
+    this.on('engine:ingested', reloadSchema);
     this.$('#transformInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
@@ -254,9 +294,203 @@ class StructraQuery extends StructraElement {
     if (input) input.placeholder = 'Example: ' + help.example;
     const hint = this.$('#queryHint');
     if (hint) hint.textContent = help.hint;
+
+    // SQL has its own extras: example queries, the columns of the table, and earlier queries
+    const sql = this._mode === 'sql';
+    this.classList.toggle('is-sql', sql);
+    ['#sqlExamples', '#sqlSchema'].forEach((id) => { const el = this.$(id); if (el) el.hidden = !sql; });
+    const run = this.$('#queryRun');
+    if (run) run.innerHTML = sql ? 'Run query <kbd class="qp-kbd">Ctrl+Enter</kbd>' : 'Run query';
+    if (input) { input.rows = sql ? 8 : 3; input.classList.toggle('is-sql', sql); }
+    this._renderSqlHistory();
+    if (sql) this._loadSqlSchema();
+  }
+
+  /* ======== SQL ======== */
+
+  _sqlHistory() {
+    try { return JSON.parse(localStorage.getItem(StructraQuery.SQL_HISTORY_KEY)) || []; } catch { return []; }
+  }
+
+  _rememberSql(text) {
+    const list = [text, ...this._sqlHistory().filter((q) => q !== text)].slice(0, 20);
+    try { localStorage.setItem(StructraQuery.SQL_HISTORY_KEY, JSON.stringify(list)); } catch { /* storage blocked: history is just not kept */ }
+    this._renderSqlHistory();
+  }
+
+  _renderSqlHistory() {
+    const select = this.$('#sqlHistory');
+    if (!select) return;
+    const list = this._sqlHistory();
+    select.hidden = this._mode !== 'sql' || !list.length;
+    select.innerHTML = '<option value="">Earlier queries</option>' + list.map((q, i) => {
+      const line = q.replace(/\s+/g, ' ').trim();
+      return `<option value="${i}">${Structra.util.esc(line.length > 60 ? line.slice(0, 60) + '…' : line)}</option>`;
+    }).join('');
+  }
+
+  /** Put text where the cursor is (or over the selection), like a SQL tool does when you click a column name */
+  _insertAtCursor(text) {
+    const box = this.$('#queryInput');
+    const from = box.selectionStart, to = box.selectionEnd;
+    box.value = box.value.slice(0, from) + text + box.value.slice(to);
+    box.focus();
+    box.selectionStart = box.selectionEnd = from + text.length;
+  }
+
+  /** A column name as SQL wants it: quoted unless it is a plain lower-case word */
+  _sqlName(name) {
+    return /^[a-z_][a-z0-9_]*$/.test(name) ? name : '"' + String(name).replace(/"/g, '""') + '"';
+  }
+
+  /** Show the columns of the open file as a table named data, and offer queries written for those columns */
+  async _loadSqlSchema() {
+    const box = this.$('#sqlColumns');
+    const examples = this.$('#sqlExamples');
+    if (!box) return;
+    if (!Structra.state.jsonData) {
+      box.innerHTML = '<div class="qp-summary">Open a file to see its columns.</div>';
+      examples.innerHTML = '';
+      return;
+    }
+    const token = (this._schemaToken = (this._schemaToken || 0) + 1);
+    box.innerHTML = '<div class="qp-summary">Starting the SQL engine…</div>';
+    let cols = [];
+    try {
+      if (await Structra.engine.enableSql()) cols = await Structra.engine.describeTable();
+    } catch { cols = []; }
+    if (token !== this._schemaToken) return;           // the file changed while this was loading
+    if (!cols.length) {
+      box.innerHTML = '<div class="qp-summary">SQL is not available for this file. It needs a list of records or an object.</div>';
+      examples.innerHTML = '';
+      return;
+    }
+    this.$('#sqlSchemaTitle').innerHTML = `Table <code>data</code> (${cols.length} ${cols.length === 1 ? 'column' : 'columns'}, click to show)`;
+    box.innerHTML = cols.map((c) =>
+      `<button class="qp-sql-col" type="button" data-sql-col="${Structra.util.esc(this._sqlName(c.name))}" title="Add ${Structra.util.esc(c.name)} to the query">
+        <span>${Structra.util.esc(c.name)}</span><em>${Structra.util.esc(c.type)}</em></button>`).join('');
+    examples.innerHTML = this._sqlExamples(cols).map((e) =>
+      `<button class="qp-preset-btn" type="button" data-sql-example="${Structra.util.esc(e.sql)}" title="${Structra.util.esc(e.sql)}">${Structra.util.esc(e.label)}</button>`).join('');
+  }
+
+  /** Ready-made queries that use the file's real column names, so they run as they are */
+  _sqlExamples(cols) {
+    const isNum = (t) => /^(U?(TINY|SMALL|BIG|HUGE)?INT|INTEGER|DOUBLE|FLOAT|REAL|DECIMAL)/i.test(t);
+    const text = cols.find((c) => /^VARCHAR/i.test(c.type));
+    const num = cols.find((c) => isNum(c.type));
+    const list = [
+      { label: 'First 100 rows', sql: 'SELECT *\nFROM data\nLIMIT 100' },
+      { label: 'Count rows', sql: 'SELECT COUNT(*) AS rows\nFROM data' },
+    ];
+    if (text) {
+      const t = this._sqlName(text.name);
+      list.push({ label: 'Count by ' + text.name, sql: `SELECT ${t}, COUNT(*) AS n\nFROM data\nGROUP BY ${t}\nORDER BY n DESC` });
+    }
+    if (num) {
+      const n = this._sqlName(num.name);
+      list.push({ label: 'Totals of ' + num.name, sql: `SELECT SUM(${n}) AS total, AVG(${n}) AS average, MIN(${n}) AS smallest, MAX(${n}) AS biggest\nFROM data` });
+      list.push({ label: 'Top 10 by ' + num.name, sql: `SELECT *\nFROM data\nORDER BY ${n} DESC\nLIMIT 10` });
+    }
+    list.push({ label: 'Summary of every column', sql: 'SUMMARIZE data' });
+    return list;
+  }
+
+  /** The text to run: the selected part if there is one, like a SQL tool, otherwise everything */
+  _sqlText() {
+    const box = this.$('#queryInput');
+    const selected = box.value.slice(box.selectionStart, box.selectionEnd).trim();
+    return selected || box.value.trim();
+  }
+
+  /** The engine's messages, in plainer words */
+  _sqlError(message) {
+    let text = String(message || 'The query did not run.')
+      .split('\n').filter((l) => !/^\s*(LINE \d+:|\^)/.test(l)).join(' ')
+      .replace(/^(Parser|Binder|Catalog|Conversion|Invalid Input|Syntax|Runtime|Out of Range|Constraint) Error:\s*/i, '').trim();
+    if (/does not exist/i.test(text) && /table/i.test(text)) text += ' The open file is the table named data.';
+    return text;
+  }
+
+  async _runSql() {
+    const results = this.$('#queryResults');
+    const text = this._sqlText();
+    if (!text) { results.innerHTML = '<div class="qp-summary">Type a query first. Example: <code>SELECT * FROM data LIMIT 100</code></div>'; return; }
+    if (!Structra.state.jsonData) { results.innerHTML = '<div class="qp-summary">Open a file first</div>'; return; }
+    results.innerHTML = '<div class="qp-summary">Running…</div>';
+    const result = await Structra.engine.runSql(text, { quiet: true, readOnly: true, maxRows: StructraQuery.SQL_MAX_ROWS });
+    if (result.error) {
+      this._lastSql = null;
+      results.innerHTML = `<div class="qp-summary is-error">${Structra.util.esc(this._sqlError(result.error))}</div>`;
+      return;
+    }
+    this._rememberSql(this.$('#queryInput').value.trim());
+    this._lastSql = result;
+    this._renderSqlResult(result);
+    this._loadSqlSchemaIfStale();
+  }
+
+  _loadSqlSchemaIfStale() {
+    if (!this.$('#sqlColumns').querySelector('.qp-sql-col')) this._loadSqlSchema();
+  }
+
+  /** One cell as text. Dates, big numbers and nested values from the engine are turned into plain text */
+  _cell(v) {
+    if (v === null || v === undefined) return null;
+    if (typeof v === 'bigint') return Number.isSafeInteger(Number(v)) ? Number(v) : v.toString();
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'object') {
+      try { return JSON.stringify(v, (k, x) => (typeof x === 'bigint' ? x.toString() : x)); } catch { return String(v); }
+    }
+    return v;
+  }
+
+  _renderSqlResult(result) {
+    const results = this.$('#queryResults');
+    const esc = Structra.util.esc;
+    const cols = result.columns;
+    const rows = result.rows.map((r) => cols.map((c) => this._cell(r[c])));
+    const shown = rows.slice(0, StructraQuery.SQL_SHOW_ROWS);
+    const ms = result.duration < 1000 ? Math.round(result.duration) + ' ms' : (result.duration / 1000).toFixed(1) + ' s';
+    let note = `${rows.length.toLocaleString()}${result.truncated ? '+' : ''} ${rows.length === 1 ? 'row' : 'rows'} in ${ms}`;
+    if (result.truncated) note += `. Only the first ${rows.length.toLocaleString()} rows were read. Add a WHERE or LIMIT to narrow it.`;
+    else if (rows.length > shown.length) note += `. The first ${shown.length.toLocaleString()} are shown below; copy or open the result to get them all.`;
+    if (!cols.length) { results.innerHTML = `<div class="qp-summary">The query ran and returned no rows (${esc(ms)}).</div>`; return; }
+    const head = cols.map((c) => `<th title="${esc(c)}">${esc(c)}</th>`).join('');
+    const body = shown.map((r, i) => `<tr><td class="qp-sql-n">${i + 1}</td>${r.map((v) => {
+      if (v === null) return '<td class="qp-sql-null">NULL</td>';
+      const t = String(v);
+      return `<td${typeof v === 'number' ? ' class="qp-sql-num"' : ''} title="${esc(t.length > 300 ? t.slice(0, 300) + '…' : t)}">${esc(t.length > 120 ? t.slice(0, 120) + '…' : t)}</td>`;
+    }).join('')}</tr>`).join('');
+    results.innerHTML = `<div class="qp-summary">${esc(note)}</div>
+      <div class="qp-actions">
+        <button class="btn btn-sm" type="button" data-action="sqlOpen">Open as a table in a new tab</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-action="sqlCopy">Copy as JSON</button>
+        <button class="btn btn-sm btn-ghost" type="button" data-action="sqlCsv">Download CSV</button>
+      </div>
+      <div class="qp-sql-grid"><table><thead><tr><th class="qp-sql-n">#</th>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  _sqlExport(how) {
+    const result = this._lastSql;
+    if (!result || !result.rows.length) return;
+    const cols = result.columns;
+    const rows = result.rows.map((r) => Object.fromEntries(cols.map((c) => [c, this._cell(r[c])])));
+    const base = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '');
+    if (how === 'copy') {
+      Structra.util.copy(JSON.stringify(rows, null, 2), `${rows.length} ${rows.length === 1 ? 'row' : 'rows'} copied`);
+    } else if (how === 'csv') {
+      const q = (v) => (v === null ? '' : /[",\n\r]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v));
+      const csv = [cols.map(q).join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\r\n');
+      Structra.util.download('﻿' + csv, base + ' (query).csv', 'text/csv;charset=utf-8');
+      Structra.toast('CSV downloaded');
+    } else {
+      const cmd = document.querySelector('structra-command');
+      if (cmd) cmd._openInNewTab(rows, base + ' (SQL)').then((opened) => { if (opened) Structra.toast('Result opened in a new tab'); });
+    }
   }
 
   async _runQuery() {
+    if (this._mode === 'sql') { await this._runSql(); return; }
     const input = this.$('#queryInput').value.trim();
     const results = this.$('#queryResults');
     const help = StructraQuery.MODE_HELP[this._mode];

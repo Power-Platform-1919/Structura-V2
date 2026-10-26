@@ -37,6 +37,25 @@ class StructraInputPanel extends StructraElement {
           </h2>
           <div class="io-sub">Open a flow run's output, an API response or any data file, see what is in it, and copy the exact Power Automate or Power Fx expression for any value. Everything stays in your browser.</div>
           ${this._innerContent()}
+          <div class="io-features">
+            <div class="io-feature">
+              ${Structra.icons.svg('chart-column')}
+              <div><strong>Overview first</strong><span>A plain summary of what the file holds and what to look at first.</span></div>
+            </div>
+            <div class="io-feature">
+              ${Structra.icons.svg('layout-grid')}
+              <div><strong>Five ways to look</strong><span>Tree, Table, Graph, Schema and Overview. Switch with Ctrl+1 to Ctrl+5.</span></div>
+            </div>
+            <div class="io-feature">
+              ${Structra.icons.svg('zap')}
+              <div><strong>Made for Power Platform</strong><span>Click any value to copy its Power Automate expression, Power Fx formula or Parse JSON schema.</span></div>
+            </div>
+            <div class="io-feature">
+              ${Structra.icons.svg('lock')}
+              <div><strong>Private by design</strong><span>Your data stays in this browser. Nothing is uploaded.</span></div>
+            </div>
+          </div>
+          <p class="io-tips">Tip: press <kbd class="io-kbd">Ctrl</kbd> + <kbd class="io-kbd">K</kbd> for every command, <kbd class="io-kbd">?</kbd> for all shortcuts, or use <strong>Themes</strong> on the left to change the colours.</p>
           <details class="io-help">
             <summary>Where do I get JSON?</summary>
             <ul>

@@ -714,8 +714,37 @@ Structra.engine = (() => {
     return _filterInMemory(ds, conditions);
   }
 
-  /** Execute raw SQL, store as active query */
-  async function runSql(sqlText) {
+  /** Words a read-only query may start with (comments and spaces before them are skipped) */
+  const SQL_READ_ONLY = /^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*(select|with|from|values|describe|show|summarize|explain)\b/i;
+  /** Words a query that can sit inside another query starts with */
+  const SQL_SELECT_LIKE = /^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*(select|with|from|values)\b/i;
+
+  /** The query without its text in quotes or comments, so a ; or a word inside a string is not mistaken for SQL */
+  function _sqlSkeleton(sqlText) {
+    return sqlText
+      .replace(/'(?:[^']|'')*'/g, "''")
+      .replace(/"(?:[^"]|"")*"/g, '""')
+      .replace(/--[^\n]*/g, ' ')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ');
+  }
+
+  /**
+   * Execute SQL against the open document, which is the table "data" (SELECT * FROM data).
+   * @param {string} sqlText
+   * @param {Object} [opts]
+   * @param {boolean} [opts.quiet]    do not change what the Tree and Table show (the Query panel uses this)
+   * @param {boolean} [opts.readOnly] refuse anything that is not a query that reads data
+   * @param {number}  [opts.maxRows]  stop reading after this many rows; the result then has truncated: true
+   */
+  async function runSql(sqlText, opts = {}) {
+    if (opts.readOnly) {
+      if (!SQL_READ_ONLY.test(sqlText)) {
+        return { error: 'Only queries that read data can run here. Start with SELECT, WITH, DESCRIBE, SHOW or SUMMARIZE.' };
+      }
+      if (/;\s*\S/.test(_sqlSkeleton(sqlText))) {
+        return { error: 'Run one statement at a time. Select the statement you want, or remove the extra ones.' };
+      }
+    }
     if (!(await enableSql())) {
       return { error: 'The SQL engine could not start' };
     }
@@ -728,7 +757,17 @@ Structra.engine = (() => {
       } else if (/\bdata\b/i.test(sqlText)) {
         return { error: 'This document is not a list or object, so there is no table named data to query' };
       }
-      const rows = await Structra.duckdb.query(sqlText);
+      let text = sqlText.trim().replace(/;+\s*$/, '');
+      let capped = false;
+      // Cap the rows read, so a query that returns a million rows cannot freeze the page.
+      // DESCRIBE, SHOW and SUMMARIZE cannot sit inside another query and are small anyway.
+      if (opts.maxRows && SQL_SELECT_LIKE.test(text)) {
+        text = `SELECT * FROM (\n${text}\n) AS q LIMIT ${opts.maxRows + 1}`;
+        capped = true;
+      }
+      let rows = await Structra.duckdb.query(text);
+      let truncated = false;
+      if (capped && rows.length > opts.maxRows) { rows = rows.slice(0, opts.maxRows); truncated = true; }
       const duration = performance.now() - t0;
       const cols = rows.length > 0 ? Object.keys(rows[0]) : [];
       const result = {
@@ -739,8 +778,10 @@ Structra.engine = (() => {
         matchedPaths: null,
         total: rows.length,
         columns: cols,
+        truncated,
+        duration,
       };
-      _setActiveQuery(result);
+      if (!opts.quiet) _setActiveQuery(result);
       Structra.log.info('Engine', `SQL executed: ${rows.length} rows (${duration.toFixed(0)}ms)`);
       return result;
     } catch (err) {

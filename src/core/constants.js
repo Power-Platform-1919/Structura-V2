@@ -51,7 +51,7 @@ Structra.constants = {
     'escape':       'close-overlay',
   },
 
-  QUERY_MODES: ['path', 'jsonpath', 'regex', 'js'],
+  QUERY_MODES: ['path', 'jsonpath', 'regex', 'js', 'sql'],
 
   DRAWER_TABS: [
     { id: 'analyze',     label: 'Analyze' },
