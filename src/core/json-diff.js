@@ -63,7 +63,7 @@ Structra.jsonDiff = (() => {
         if (longest > MAX_ARRAY) return longest;
         for (let i = 0; i < current.length; i++) stack.push(current[i]);
       } else {
-        for (const idKey in current) stack.push(current[idKey]);
+        for (const key in current) stack.push(current[key]);
       }
     }
     return longest;
@@ -175,12 +175,12 @@ Structra.jsonDiff = (() => {
       }
       return;
     }
-    for (const idKey of Object.keys(left)) {
-      if (!(idKey in right)) add(out, 'removed', keyPath(leftPath, idKey), undefined, left[idKey], undefined);
-      else byPosition(left[idKey], right[idKey], keyPath(leftPath, idKey), keyPath(rightPath, idKey), out);
+    for (const key of Object.keys(left)) {
+      if (!(key in right)) add(out, 'removed', keyPath(leftPath, key), undefined, left[key], undefined);
+      else byPosition(left[key], right[key], keyPath(leftPath, key), keyPath(rightPath, key), out);
     }
-    for (const idKey of Object.keys(right)) {
-      if (!(idKey in left)) add(out, 'added', undefined, keyPath(rightPath, idKey), undefined, right[idKey]);
+    for (const key of Object.keys(right)) {
+      if (!(key in left)) add(out, 'added', undefined, keyPath(rightPath, key), undefined, right[key]);
     }
   }
 

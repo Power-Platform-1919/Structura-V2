@@ -27,7 +27,7 @@ Structra.powerPlatformExpressions = (() => {
 
   const kindOf = Structra.sharedHelpers.jsonTypeOf;
 
-  const cap = (text) => (text ? text[0].toUpperCase() + text.slice(1) : text);
+  const capitalizeFirst = (text) => (text ? text[0].toUpperCase() + text.slice(1) : text);
   const looksLikeDate = (text) => /\d{4}-\d{2}-\d{2}/.test(text) || /\d{2}\/\d{2}\/\d{4}/.test(text);
   const looksLikeUrl = (text) => /^https?:\/\//i.test(text);
   const looksLikeGuid = (text) => /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(text);
@@ -312,7 +312,7 @@ Structra.powerPlatformExpressions = (() => {
 
   const peek = (rows, parts) => rows.slice(0, 50).map((row) => {
     let current = row;
-    for (const expression of parts) { if (current === null || typeof current !== 'object') return undefined; current = current[expression]; }
+    for (const step of parts) { if (current === null || typeof current !== 'object') return undefined; current = current[step]; }
     return current;
   });
 
@@ -448,7 +448,7 @@ Structra.powerPlatformExpressions = (() => {
 
       case 'object': {
         const keys = Object.keys(value);
-        const name = cap(Structra.dataPaths.lastKey(path));
+        const name = capitalizeFirst(Structra.dataPaths.lastKey(path));
         add('Store in variable', `Set(var${name}, ${expression})`);
         add('UpdateContext', `UpdateContext({loc${name}: ${expression}})`);
         add('To JSON string', `JSON(${expression})`);
@@ -719,7 +719,7 @@ Structra.powerPlatformExpressions = (() => {
         if (keys && firstKey) {
           const map = {};
           pickedColumns(Structra.dataPaths.strip(path), value).filter((column) => column.on).slice(0, 40).forEach((column) => {
-            map[column.name] = at(`item()${column.parts.map((x) => `?['${x.replace(/'/g, "''")}']`).join('')}`);
+            map[column.name] = at(`item()${column.parts.map((part) => `?['${part.replace(/'/g, "''")}']`).join('')}`);
           });
           out.push(flowAction('Select: keep the chosen columns', 'Builds a smaller list with only the columns you chose.', 'Select',
             { type: 'Select', inputs: { from: at(expression), select: map } }));

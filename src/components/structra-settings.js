@@ -107,9 +107,9 @@ class StructraSettings extends StructraDialog {
     if (this._confirming !== key) { this._confirming = key; this._renderSaved(); return; }
     this._confirming = null;
     if (key === '*') {
-      const mine = [];
-      for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (/^structra[._]/.test(key) && key !== 'structra.welcomeSeen') mine.push(key); }
-      mine.forEach((key) => localStorage.removeItem(key));
+      const ownKeys = [];
+      for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (/^structra[._]/.test(key) && key !== 'structra.welcomeSeen') ownKeys.push(key); }
+      ownKeys.forEach((key) => localStorage.removeItem(key));
       Structra.events.emit('bookmarks:changed');
       Structra.toast('Everything saved in this browser was cleared. Reload to see the default theme.');
     } else {

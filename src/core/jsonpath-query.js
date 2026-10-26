@@ -127,8 +127,8 @@ Structra.jsonpathQuery = (() => {
       out.push(current);
       return out;
     };
-    const ors = splitOn(body, '||').map((part) => splitOn(part, '&&').map(parseComparison));
-    return (node) => ors.some((ands) => ands.every((trimmed) => trimmed(node)));
+    const orGroups = splitOn(body, '||').map((part) => splitOn(part, '&&').map(parseComparison));
+    return (node) => orGroups.some((andGroup) => andGroup.every((predicate) => predicate(node)));
   }
 
   function parseComparison(text) {
@@ -139,22 +139,22 @@ Structra.jsonpathQuery = (() => {
       return (node) => keys.reduce((value, index) => (value === null || value === undefined ? undefined : value[index]), node);
     };
     if (!match) {
-      if (/^!?@[\w$.]*$/.test(condition)) { const neg = condition[0] === '!'; const get = read(condition.replace(/^!/, '')); return (node) => (get(node) !== undefined && get(node) !== null && get(node) !== false) !== neg; }
+      if (/^!?@[\w$.]*$/.test(condition)) { const isNegated = condition[0] === '!'; const get = read(condition.replace(/^!/, '')); return (node) => (get(node) !== undefined && get(node) !== null && get(node) !== false) !== isNegated; }
       throw new Error(`Cannot read the filter test "${condition}". Try @.field == "value"`);
     }
     const get = read(match[1]);
-    const lit = literal(match[3].trim());
+    const literalValue = literal(match[3].trim());
     const operation = match[2];
     return (node) => {
       const found = get(node);
       switch (operation) {
-        case '==': return found === lit || (found != null && lit != null && typeof found !== 'object' && String(found) === String(lit));
-        case '!=': return !(found === lit || (found != null && lit != null && typeof found !== 'object' && String(found) === String(lit)));
-        case '>': return found > lit;
-        case '>=': return found >= lit;
-        case '<': return found < lit;
-        case '<=': return found <= lit;
-        case '=~': return typeof found === 'string' && lit instanceof RegExp && lit.test(found);
+        case '==': return found === literalValue || (found != null && literalValue != null && typeof found !== 'object' && String(found) === String(literalValue));
+        case '!=': return !(found === literalValue || (found != null && literalValue != null && typeof found !== 'object' && String(found) === String(literalValue)));
+        case '>': return found > literalValue;
+        case '>=': return found >= literalValue;
+        case '<': return found < literalValue;
+        case '<=': return found <= literalValue;
+        case '=~': return typeof found === 'string' && literalValue instanceof RegExp && literalValue.test(found);
         default: return false;
       }
     };
@@ -177,7 +177,7 @@ Structra.jsonpathQuery = (() => {
   const children = (node) => {
     const value = node.value;
     if (Array.isArray(value)) return value.map((x, i) => ({ path: childPath(node.path, i), value: x, key: i }));
-    if (value && typeof value === 'object') return Object.keys(value).map((index) => ({ path: childPath(node.path, index), value: value[index], key: index }));
+    if (value && typeof value === 'object') return Object.keys(value).map((key) => ({ path: childPath(node.path, key), value: value[key], key: key }));
     return [];
   };
 

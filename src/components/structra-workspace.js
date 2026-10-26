@@ -125,7 +125,7 @@ class StructraWorkspace extends StructraDialog {
       const skipped = rawTabs.length - tabs.length;
       const okList = (value) => (Array.isArray(value) ? value : null);
       const bookmarks = okList(workspace.bookmarks) ? workspace.bookmarks.filter((bookmark) => isObject(bookmark) && typeof bookmark.path === 'string') : null;
-      const snippets = okList(workspace.snippets) ? workspace.snippets.filter((x) => isObject(x) && typeof x.name === 'string' && typeof x.content === 'string') : null;
+      const snippets = okList(workspace.snippets) ? workspace.snippets.filter((snippet) => isObject(snippet) && typeof snippet.name === 'string' && typeof snippet.content === 'string') : null;
       const history = okList(workspace.queryHistory);
       const settings = isObject(workspace.settings) ? Object.fromEntries(Object.entries(workspace.settings).filter(([key, value]) => /^structra_setting_\w+$/.test(key) && typeof value === 'string' && value.length < 200)) : null;
       this.close();

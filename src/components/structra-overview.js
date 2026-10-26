@@ -81,7 +81,7 @@ class StructraOverview extends StructraComponent {
 
     const analysis = await Structra.dataEngine.getAnalysis();
     if (!analysis) return;
-    const { stats: stats, firstArr: firstArray, profile } = analysis;
+    const { stats, firstArr: firstArray, profile } = analysis;
     let html = '';
 
     this._insights = Structra.overviewInsights.build({
@@ -116,30 +116,30 @@ class StructraOverview extends StructraComponent {
      ==================================================== */
 
   _renderSummary(insertion) {
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const icons = Structra.icons;
-    const facts = insertion.facts.map((finding) => `<div class="ovw-fact"><dt>${esc(finding.label)}</dt><dd>${esc(finding.value)}</dd></div>`).join('');
+    const facts = insertion.facts.map((fact) => `<div class="ovw-fact"><dt>${escapeHtml(fact.label)}</dt><dd>${escapeHtml(fact.value)}</dd></div>`).join('');
 
     const findings = insertion.findings.length
       ? `<ul class="ovw-findings">${insertion.findings.map((finding, i) => `
           <li><button class="ovw-find sev-${finding.severity}" type="button" data-action="go" data-i="${i}">
             ${icons.svg(finding.severity === 'info' ? 'info' : 'triangle-alert', { size: 18, color: finding.severity === 'high' ? 'danger' : finding.severity === 'med' ? 'warning' : 'info' })}
-            <span class="ovw-find-text"><strong>${esc(finding.title)}</strong>${finding.detail ? `<span>${esc(finding.detail)}</span>` : ''}</span>
+            <span class="ovw-find-text"><strong>${escapeHtml(finding.title)}</strong>${finding.detail ? `<span>${escapeHtml(finding.detail)}</span>` : ''}</span>
             ${icons.svg('chevron-right', { size: 16 })}
           </button></li>`).join('')}</ul>`
       : `<p class="ovw-clear">${icons.svg('check', { size: 18, color: 'success' })} Nothing unusual found. Missing values, mixed types and repeated keys all look fine.</p>`;
 
     const arrays = insertion.arrays.length
       ? `<ul class="ovw-lists">${insertion.arrays.map((list) => `
-          <li><button class="ovw-list" type="button" data-action="go-list" data-path="${esc(list.path)}">
-            <code>${esc(list.pattern.replace(/^\$\.?/, '') || 'the whole document')}</code>
+          <li><button class="ovw-list" type="button" data-action="go-list" data-path="${escapeHtml(list.path)}">
+            <code>${escapeHtml(list.pattern.replace(/^\$\.?/, '') || 'the whole document')}</code>
             <span>${list.lists > 1 ? `${list.lists.toLocaleString()} lists, ${list.items.toLocaleString()} items` : `${list.items.toLocaleString()} ${list.items === 1 ? 'item' : 'items'}`}</span>
           </button></li>`).join('')}</ul>`
       : '<p class="ovw-clear">This document has no lists.</p>';
 
     return `
       <section class="ovw-summary">
-        <h2 class="ovw-headline">${esc(insertion.headline)}</h2>
+        <h2 class="ovw-headline">${escapeHtml(insertion.headline)}</h2>
         <dl class="ovw-facts">${facts}</dl>
       </section>
       <div class="ovw-columns">
@@ -224,8 +224,8 @@ class StructraOverview extends StructraComponent {
             <div class="pf-q-track"><div class="pf-q-fill" style="width:${quality.uniqueness}%;background:${barColor(quality.uniqueness)}"></div></div>
             <span class="pf-q-val">${quality.uniqueness}%</span></div>
         </div>
-        ${quality.issues.length > 0 ? `<div class="pf-q-issues"><span class="pf-q-issues-title">Top Issues</span>${quality.issues.map(i =>
-          `<div class="pf-q-issue pf-q-issue-${i.severity}"><span class="pf-q-issue-field">${Structra.sharedHelpers.escapeHtml(i.field)}</span> ${Structra.sharedHelpers.escapeHtml(i.msg)}</div>`
+        ${quality.issues.length > 0 ? `<div class="pf-q-issues"><span class="pf-q-issues-title">Top Issues</span>${quality.issues.map(issue =>
+          `<div class="pf-q-issue pf-q-issue-${issue.severity}"><span class="pf-q-issue-field">${Structra.sharedHelpers.escapeHtml(issue.field)}</span> ${Structra.sharedHelpers.escapeHtml(issue.msg)}</div>`
         ).join('')}</div>` : ''}
       </div></div>`;
     return html;
@@ -278,9 +278,9 @@ class StructraOverview extends StructraComponent {
     return [...map.values()].map(group => ({
       ...group,
       avg: (group.totalItems / group.occurrences).toFixed(1),
-      primaryType: Object.entries(group.types).sort((list, bin) => bin[1] - list[1])[0]?.[0] || 'unknown',
+      primaryType: Object.entries(group.types).sort((first, second) => second[1] - first[1])[0]?.[0] || 'unknown',
       min: group.min === Infinity ? 0 : group.min,
-    })).sort((list, bin) => bin.totalItems - list.totalItems);
+    })).sort((first, second) => second.totalItems - first.totalItems);
   }
 
   /** Summary tab - one row per unique schema path */
@@ -306,7 +306,7 @@ class StructraOverview extends StructraComponent {
 
   /** Top by Size tab - top 100 largest arrays */
   _renderArraysTop(arraysDetail) {
-    const sorted = [...arraysDetail].sort((list, bin) => bin.count - list.count).slice(0, 100);
+    const sorted = [...arraysDetail].sort((first, second) => second.count - first.count).slice(0, 100);
     let html = '<table class="arr-table"><thead><tr><th>#</th><th>Path</th><th>Items</th><th>Element Type</th></tr></thead><tbody>';
     for (let i = 0; i < sorted.length; i++) {
       const item = sorted[i];
@@ -411,7 +411,7 @@ class StructraOverview extends StructraComponent {
     let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage: ${Structra.sharedHelpers.escapeHtml(path)} (${rows.length} rows)${backButton}</div>`;
     html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th title="Rows where the key is there and not empty">Has a value</th><th></th></tr></thead><tbody>';
 
-    const sorted = [...coverage].sort((list, bin) => bin.missing - list.missing || bin.empty - list.empty || list.key.localeCompare(bin.key));
+    const sorted = [...coverage].sort((first, second) => second.missing - first.missing || second.empty - first.empty || first.key.localeCompare(second.key));
     for (const key of sorted) {
       // "Has a value": present and not empty (a key that is there but null is not a value)
       const hasValue = rows.length ? Math.round(Math.max(0, key.present - key.empty) / rows.length * 100) : 0;
@@ -469,17 +469,17 @@ class StructraOverview extends StructraComponent {
     html += '<th>Top Values</th>';
     html += '</tr></thead><tbody>';
 
-    for (const finding of profileData.fields) {
-      const topText = finding.topValues ? finding.topValues.map(topValue => `${Structra.sharedHelpers.escapeHtml(topValue.val)} (${topValue.cnt})`).join(', ') : '-';
+    for (const field of profileData.fields) {
+      const topText = field.topValues ? field.topValues.map(topValue => `${Structra.sharedHelpers.escapeHtml(topValue.val)} (${topValue.cnt})`).join(', ') : '-';
       html += `<tr>
-        <td class="pf-key">${Structra.sharedHelpers.escapeHtml(finding.key)}</td>
-        <td><span class="pf-type pf-type-${finding.primaryType}">${finding.primaryType}</span></td>
-        <td>${finding.coverage}%</td>
-        <td style="${parseFloat(finding.nullPct) > 20 ? 'color:var(--danger);font-weight:600' : ''}">${finding.nullPct}%</td>
-        <td>${finding.uniqueCapped ? '\u2265 ' : ''}${finding.unique} <small>(${finding.uniquePct}%)</small></td>
-        <td>${finding.min != null ? finding.min : '-'}</td>
-        <td>${finding.max != null ? finding.max : '-'}</td>
-        <td>${finding.avg != null ? finding.avg : '-'}</td>`;
+        <td class="pf-key">${Structra.sharedHelpers.escapeHtml(field.key)}</td>
+        <td><span class="pf-type pf-type-${field.primaryType}">${field.primaryType}</span></td>
+        <td>${field.coverage}%</td>
+        <td style="${parseFloat(field.nullPct) > 20 ? 'color:var(--danger);font-weight:600' : ''}">${field.nullPct}%</td>
+        <td>${field.uniqueCapped ? '\u2265 ' : ''}${field.unique} <small>(${field.uniquePct}%)</small></td>
+        <td>${field.min != null ? field.min : '-'}</td>
+        <td>${field.max != null ? field.max : '-'}</td>
+        <td>${field.avg != null ? field.avg : '-'}</td>`;
       html += `<td class="pf-top">${topText}</td>
       </tr>`;
     }
@@ -494,17 +494,17 @@ class StructraOverview extends StructraComponent {
   _renderDistribution(profile) {
     // Identifiers, tags and time stamps have a different value every row: their "distribution" says nothing
     const NOISE = /^(@|odata)|(^|[_.])(id|guid|uuid|etag)$|^itemInternalId$|^(created|modified|updated|timestamp)(at|on|date|time|by)?$/i;
-    const fields = profile.fields.filter((finding) => (finding.histogram || finding.distTop) && !NOISE.test(finding.key));
+    const fields = profile.fields.filter((field) => (field.histogram || field.distTop) && !NOISE.test(field.key));
     if (!fields.length) return '';
 
     let html = '<div class="stats-section"><div class="stats-section-title">Value Distribution</div><div class="dist-grid">';
-    for (const finding of fields) {
+    for (const field of fields) {
       html += `<div class="dist-card">
-        <div class="dist-card-title">${Structra.sharedHelpers.escapeHtml(finding.key)} <span class="dist-card-type">${finding.histogram ? 'numeric' : 'categorical'}</span></div>`;
-      if (finding.histogram) {
-        const maxBin = Math.max(...finding.histogram.map((bin) => bin.count), 1);
+        <div class="dist-card-title">${Structra.sharedHelpers.escapeHtml(field.key)} <span class="dist-card-type">${field.histogram ? 'numeric' : 'categorical'}</span></div>`;
+      if (field.histogram) {
+        const maxBin = Math.max(...field.histogram.map((bin) => bin.count), 1);
         html += '<div class="dist-histogram">';
-        for (const bin of finding.histogram) {
+        for (const bin of field.histogram) {
           html += `<div class="dist-bin">
             <span class="dist-bin-label">${bin.label}</span>
             <div class="dist-bin-bar"><div class="dist-bin-fill" style="width:${Math.round(bin.count / maxBin * 100)}%"></div></div>
@@ -513,16 +513,16 @@ class StructraOverview extends StructraComponent {
         }
         html += '</div>';
       } else {
-        const maxValue = Math.max(...finding.distTop.map((entry) => entry.count), 1);
+        const maxValue = Math.max(...field.distTop.map((entry) => entry.count), 1);
         html += '<div class="dist-categorical">';
-        for (const topEntry of finding.distTop) {
+        for (const topEntry of field.distTop) {
           html += `<div class="dist-cat-row">
             <span class="dist-cat-label" title="${Structra.sharedHelpers.escapeHtml(String(topEntry.value))}">${Structra.sharedHelpers.escapeHtml(String(topEntry.value).slice(0, 24))}</span>
             <div class="dist-cat-bar"><div class="dist-cat-fill" style="width:${Math.round(topEntry.count / maxValue * 100)}%"></div></div>
             <span class="dist-cat-count">${topEntry.count}</span>
           </div>`;
         }
-        if (finding.distUnique > finding.distTop.length) html += `<div class="dist-cat-more">+${finding.distUnique - finding.distTop.length} more unique values</div>`;
+        if (field.distUnique > field.distTop.length) html += `<div class="dist-cat-more">+${field.distUnique - field.distTop.length} more unique values</div>`;
         html += '</div>';
       }
       html += '</div>';
@@ -555,7 +555,7 @@ class StructraOverview extends StructraComponent {
         if (!content || !this._arraysDetail) break;
 
         // Update active tab styling
-        this.querySelectorAll('.arr-tab').forEach(bin => bin.classList.remove('arr-tab-active'));
+        this.querySelectorAll('.arr-tab').forEach(button => button.classList.remove('arr-tab-active'));
         action.classList.add('arr-tab-active');
 
         // Render selected tab content

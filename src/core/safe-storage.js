@@ -10,14 +10,14 @@
     catch (error) { return false; }
   }
   function memoryStore() {
-    var mem = {};
+    var memory = {};
     return {
-      getItem: function (key) { return Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null; },
-      setItem: function (key, value) { mem[String(key)] = String(value); },
-      removeItem: function (key) { delete mem[key]; },
-      clear: function () { mem = {}; },
-      key: function (i) { return Object.keys(mem)[i] === undefined ? null : Object.keys(mem)[i]; },
-      get length() { return Object.keys(mem).length; }
+      getItem: function (key) { return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null; },
+      setItem: function (key, value) { memory[String(key)] = String(value); },
+      removeItem: function (key) { delete memory[key]; },
+      clear: function () { memory = {}; },
+      key: function (i) { return Object.keys(memory)[i] === undefined ? null : Object.keys(memory)[i]; },
+      get length() { return Object.keys(memory).length; }
     };
   }
   ['localStorage', 'sessionStorage'].forEach(function (name) {

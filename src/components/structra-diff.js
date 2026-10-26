@@ -77,7 +77,7 @@ class StructraDiff extends StructraDialog {
       }
       const mode = event.target.closest('[data-diff-mode]');
       if (mode) {
-        this.querySelectorAll('[data-diff-mode]').forEach(target => target.classList.toggle('active', target === mode));
+        this.querySelectorAll('[data-diff-mode]').forEach(button => button.classList.toggle('active', button === mode));
         this._mode = mode.dataset.diffMode;
         this._renderDiff();
       }
@@ -269,7 +269,7 @@ class StructraDiff extends StructraDialog {
     }
     const lines = [];
     const classes = new Map();                                  // line number -> class
-    const put = (text, className) => { if (className) classes.set(lines.length, className); lines.push(text); };
+    const addLine = (text, className) => { if (className) classes.set(lines.length, className); lines.push(text); };
     const walk = (value, path, indent, key, last, inherited) => {
       const className = mark.get(path) || inherited;
       const prefix = indent + (key === undefined ? '' : JSON.stringify(key) + ': ');
@@ -280,16 +280,16 @@ class StructraDiff extends StructraDialog {
         const size = isList ? value.length : keys.length;
         const open = isList ? '[' : '{';
         const close = isList ? ']' : '}';
-        if (!size) { put(prefix + open + close + comma, className); return; }
-        put(prefix + open, className);
+        if (!size) { addLine(prefix + open + close + comma, className); return; }
+        addLine(prefix + open, className);
         for (let i = 0; i < size; i++) {
           const key = isList ? i : keys[i];
           const childPath = isList ? `${path}[${key}]` : `${path}.${key}`;
           walk(value[key], childPath, indent + '  ', isList ? undefined : key, i === size - 1, className);
         }
-        put(indent + close + comma, className);
+        addLine(indent + close + comma, className);
       } else {
-        put(prefix + JSON.stringify(value) + comma, className);
+        addLine(prefix + JSON.stringify(value) + comma, className);
       }
     };
     walk(value, '$', '', undefined, true, '');

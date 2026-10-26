@@ -161,7 +161,7 @@ class StructraTable extends StructraComponent {
       for (const key of keys) {
         const subs = this._expanded.get(key);
         if (subs && subs.length) {
-          const names = subs.map((text) => key + '.' + text);
+          const names = subs.map((subKey) => key + '.' + subKey);
           names.forEach((name) => this._expandParent.set(name, key));
           plan.push({ col: key, subs, names });
         } else {
@@ -175,8 +175,8 @@ class StructraTable extends StructraComponent {
         for (const part of plan) {
           if (!part.subs) { flat[part.col] = row[part.col]; continue; }
           const object = row[part.col];
-          part.subs.forEach((text, i) => {
-            flat[part.names[i]] = object && typeof object === 'object' ? object[text] : undefined;
+          part.subs.forEach((subKey, i) => {
+            flat[part.names[i]] = object && typeof object === 'object' ? object[subKey] : undefined;
           });
         }
         this._origOf.set(flat, row);
@@ -266,9 +266,9 @@ class StructraTable extends StructraComponent {
   }
 
   _sortRows(rows, column, asc) {
-    return rows.sort((action, button) => {
-      const firstValue = action ? action[column] : undefined;
-      const secondValue = button ? button[column] : undefined;
+    return rows.sort((first, second) => {
+      const firstValue = first ? first[column] : undefined;
+      const secondValue = second ? second[column] : undefined;
       if (firstValue == null && secondValue == null) return 0;
       if (firstValue == null) return 1;
       if (secondValue == null) return -1;
@@ -295,13 +295,13 @@ class StructraTable extends StructraComponent {
 
     const resolved = this._applyColumnFiltersToResult(this._resolveData());
     if (!resolved) {
-      const doc = Structra.state.jsonData;
-      if (doc && typeof doc === 'object' && !Array.isArray(doc) && Object.keys(doc).length) {
+      const jsonDocument = Structra.state.jsonData;
+      if (jsonDocument && typeof jsonDocument === 'object' && !Array.isArray(jsonDocument) && Object.keys(jsonDocument).length) {
         // One record, no list: show it as a Field and Value table
         const shown = (value) => value !== null && typeof value === 'object' ? JSON.stringify(value) : value;
         head.innerHTML = '<tr><th>Field</th><th>Value</th></tr>';
-        body.innerHTML = Object.entries(doc).map(([column, value]) => `<tr><td>${Structra.sharedHelpers.escapeHtml(column)}</td><td>${this._formatCell(shown(value))}</td></tr>`).join('');
-        if (pager) pager.innerHTML = `<span class="table-page-info">${Object.keys(doc).length.toLocaleString()} fields</span>`;
+        body.innerHTML = Object.entries(jsonDocument).map(([column, value]) => `<tr><td>${Structra.sharedHelpers.escapeHtml(column)}</td><td>${this._formatCell(shown(value))}</td></tr>`).join('');
+        if (pager) pager.innerHTML = `<span class="table-page-info">${Object.keys(jsonDocument).length.toLocaleString()} fields</span>`;
         return;
       }
       head.innerHTML = '';
@@ -406,8 +406,8 @@ class StructraTable extends StructraComponent {
 
     // Page size options
     const sizes = [25, 50, 100, 250, 500];
-    const sizeOptions = sizes.map(text =>
-      `<span class="table-size-opt ${text === this._pageSize ? 'active' : ''}" data-page-size="${text}">${text}</span>`
+    const sizeOptions = sizes.map(size =>
+      `<span class="table-size-opt ${size === this._pageSize ? 'active' : ''}" data-page-size="${size}">${size}</span>`
     ).join('');
 
     const useVirtual = totalRows > this._VIRTUAL_THRESHOLD;
@@ -549,7 +549,7 @@ class StructraTable extends StructraComponent {
    * useful part is one field (Value, DisplayName, Title...), so show that instead of "{…}".
    */
   _formatNested(value) {
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const FRIENDLY = ['Value', 'DisplayName', 'Title', 'Name', 'Email', 'value', 'displayName', 'title', 'name', 'label', 'text'];
     const brief = (object) => {
       if (object === null || object === undefined) return 'null';
@@ -557,22 +557,22 @@ class StructraTable extends StructraComponent {
       const field = FRIENDLY.find((field) => object[field] !== undefined && object[field] !== null && typeof object[field] !== 'object');
       return field === undefined ? null : String(object[field]);
     };
-    const full = esc(JSON.stringify(value).slice(0, 300));
+    const full = escapeHtml(JSON.stringify(value).slice(0, 300));
 
     if (Array.isArray(value)) {
       if (!value.length) return '<span class="tree-null">[ ] empty</span>';
       const parts = value.slice(0, 3).map(brief);
       if (parts.every((part) => part !== null)) {
         const more = value.length > 3 ? ` <span class="tree-bracket">+${value.length - 3}</span>` : '';
-        return `<span title="${full}">${esc(parts.join(', '))}${more}</span>`;
+        return `<span title="${full}">${escapeHtml(parts.join(', '))}${more}</span>`;
       }
       return `<span class="tree-bracket" title="${full}">[${value.length} ${value.length === 1 ? 'item' : 'items'}]</span>`;
     }
     const one = brief(value);
-    if (one !== null) return `<span title="${full}">${esc(one)}</span>`;
+    if (one !== null) return `<span title="${full}">${escapeHtml(one)}</span>`;
     const keys = Object.keys(value).filter((column) => !column.startsWith('@'));
     if (!keys.length) return '<span class="tree-null">{ } empty</span>';
-    return `<span class="tree-bracket" title="${full}">{ ${esc(keys.slice(0, 3).join(', '))}${keys.length > 3 ? ', …' : ''} }</span>`;
+    return `<span class="tree-bracket" title="${full}">{ ${escapeHtml(keys.slice(0, 3).join(', '))}${keys.length > 3 ? ', …' : ''} }</span>`;
   }
 
 
@@ -661,7 +661,7 @@ class StructraTable extends StructraComponent {
         this._showExpandPicker(column);
         break;
       case 'chart':
-        Structra.events.emit('charts:open', { path: this._basePath === '$' ? '(root)' : this._basePath, column: column });
+        Structra.events.emit('charts:open', { path: this._basePath === '$' ? '(root)' : this._basePath, column });
         break;
       case 'collapse': {
         const parent = this._expandParent.get(column);
@@ -707,19 +707,19 @@ class StructraTable extends StructraComponent {
   _showColumnReport(column, kind) {
     this._dismissColumnMenu();
     const rows = this._rows || [];
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const text = (value) => (value === null || value === undefined ? '(empty)' : value === '' ? '(empty text)' : typeof value === 'object' ? JSON.stringify(value).slice(0, 80) : String(value));
     const values = rows.map((row) => (row ? row[column] : undefined));
     const filled = values.filter((value) => value !== null && value !== undefined && value !== '');
     const frequency = new Map();
     values.forEach((value) => { const label = text(value); frequency.set(label, (frequency.get(label) || 0) + 1); });
-    const ranked = [...frequency.entries()].sort((action, button) => button[1] - action[1] || String(action[0]).localeCompare(String(button[0]), undefined, { numeric: true }));
+    const ranked = [...frequency.entries()].sort((first, second) => second[1] - first[1] || String(first[0]).localeCompare(String(second[0]), undefined, { numeric: true }));
 
     let body;
     if (kind === 'distinct') {
       const max = ranked.length ? ranked[0][1] : 1;
       body = `<div class="rep-note">${ranked.length.toLocaleString()} different ${ranked.length === 1 ? 'value' : 'values'} in ${rows.length.toLocaleString()} ${rows.length === 1 ? 'row' : 'rows'}</div>
-        <div class="rep-list">${ranked.slice(0, 200).map(([label, count]) => `<div class="rep-row"><span class="rep-val" title="${esc(label)}">${esc(label)}</span><span class="rep-bar"><span style="width:${Math.round(count / max * 100)}%"></span></span><span class="rep-n">${count.toLocaleString()}</span></div>`).join('')}</div>
+        <div class="rep-list">${ranked.slice(0, 200).map(([label, count]) => `<div class="rep-row"><span class="rep-val" title="${escapeHtml(label)}">${escapeHtml(label)}</span><span class="rep-bar"><span style="width:${Math.round(count / max * 100)}%"></span></span><span class="rep-n">${count.toLocaleString()}</span></div>`).join('')}</div>
         ${ranked.length > 200 ? `<div class="rep-note">The 200 most common are shown.</div>` : ''}`;
     } else {
       const numbers = filled.filter((value) => typeof value === 'number');
@@ -730,11 +730,11 @@ class StructraTable extends StructraComponent {
         ['With a value', `${filled.length.toLocaleString()} (${rows.length ? Math.round(filled.length / rows.length * 100) : 0}%)`],
         ['Empty', (rows.length - filled.length).toLocaleString()],
         ['Different values', frequency.size.toLocaleString()],
-        ['Kinds', Object.entries(kinds).map(([tab, name]) => `${name} ${tab}`).join(', ')],
+        ['Kinds', Object.entries(kinds).map(([kind, name]) => `${name} ${kind}`).join(', ')],
       ];
       if (numbers.length) {
-        const sorted = [...numbers].sort((action, button) => action - button);
-        const sum = numbers.reduce((action, button) => action + button, 0);
+        const sorted = [...numbers].sort((first, second) => first - second);
+        const sum = numbers.reduce((total, item) => total + item, 0);
         const mid = sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
         const round = (number) => Math.round(number * 1000) / 1000;
         facts.push(['Smallest', round(sorted[0])], ['Largest', round(sorted[sorted.length - 1])], ['Total', round(sum)], ['Average', round(sum / numbers.length)], ['Middle value', round(mid)]);
@@ -743,7 +743,7 @@ class StructraTable extends StructraComponent {
         if (texts.length) facts.push(['First (A to Z)', texts[0].slice(0, 60)], ['Last (A to Z)', texts[texts.length - 1].slice(0, 60)]);
       }
       if (ranked.length) facts.push(['Most common', `${ranked[0][0].slice(0, 50)} (${ranked[0][1]})`]);
-      body = `<dl class="rep-facts">${facts.map(([column, value]) => `<dt>${esc(column)}</dt><dd>${esc(String(value))}</dd>`).join('')}</dl>`;
+      body = `<dl class="rep-facts">${facts.map(([column, value]) => `<dt>${escapeHtml(column)}</dt><dd>${escapeHtml(String(value))}</dd>`).join('')}</dl>`;
     }
 
     const box = document.createElement('div');
@@ -751,7 +751,7 @@ class StructraTable extends StructraComponent {
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-label', `${kind === 'distinct' ? 'Every different value' : 'Summary'} of ${column}`);
     box.innerHTML = `
-      <div class="col-pick-title">${kind === 'distinct' ? 'Every different value in' : 'Summary of'} "${esc(column)}"</div>
+      <div class="col-pick-title">${kind === 'distinct' ? 'Every different value in' : 'Summary of'} "${escapeHtml(column)}"</div>
       ${body}
       <div class="col-pick-actions">
         ${kind === 'distinct' ? '<button class="btn" data-rep="copy">Copy the list</button>' : ''}
@@ -783,7 +783,7 @@ class StructraTable extends StructraComponent {
     }
     // System keys (@odata.type, Claims, ItemInternalId) go last and start unticked, so the useful ones come first
     const isSystem = (key) => /^(@|__|odata\.|_x|Claims$|ItemInternalId$)/i.test(key);
-    const keys = [...frequency.entries()].sort((action, button) => (isSystem(action[0]) - isSystem(button[0])) || (button[1] - action[1])).map(([column]) => column);
+    const keys = [...frequency.entries()].sort((first, second) => (isSystem(first[0]) - isSystem(second[0])) || (second[1] - first[1])).map(([column]) => column);
     if (!keys.length) { Structra.toast('No keys to expand in this column'); return; }
     const ticked = new Set(keys.filter((column) => !isSystem(column)).slice(0, 12));
 
@@ -805,7 +805,7 @@ class StructraTable extends StructraComponent {
       const button = event.target.closest('[data-pick]');
       if (!button) return;
       if (button.dataset.pick === 'ok') {
-        const chosen = [...box.querySelectorAll('input:checked')].map((i) => i.value);
+        const chosen = [...box.querySelectorAll('input:checked')].map((checkbox) => checkbox.value);
         if (chosen.length) {
           this._expanded.set(column, chosen);
           this._page = 0;
@@ -833,7 +833,7 @@ class StructraTable extends StructraComponent {
       const key = value == null ? '(null)' : String(value);
       frequency[key] = (frequency[key] || 0) + 1;
     }
-    const uniqueValues = Object.entries(frequency).sort((action, button) => button[1] - action[1]);
+    const uniqueValues = Object.entries(frequency).sort((first, second) => second[1] - first[1]);
 
     const panel = document.createElement('div');
     panel.className = 'col-filter-panel';

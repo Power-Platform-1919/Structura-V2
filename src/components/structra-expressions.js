@@ -84,10 +84,10 @@ class StructraExpressions extends StructraComponent {
     if (this._tab === 'helpers') { element.hidden = true; return; }
     element.hidden = false;
     const source = Structra.powerPlatformExpressions.getSource();
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     if (this._tab === 'canvas') {
       element.innerHTML = `<label class="expr-src-field">Text variable that holds the JSON
-        <input type="text" data-src="fxvar" value="${esc(source.fxVar)}" spellcheck="false"></label>`;
+        <input type="text" data-src="fxvar" value="${escapeHtml(source.fxVar)}" spellcheck="false"></label>`;
     } else {
       const named = source.kind === 'action' || source.kind === 'item' || source.kind === 'custom';
       const label = source.kind === 'custom' ? 'Expression' : source.kind === 'item' ? 'Loop name' : 'Action name';
@@ -101,7 +101,7 @@ class StructraExpressions extends StructraComponent {
             <option value="custom"${selection('custom', source.kind)}>A custom expression</option>
           </select></label>
         ${named ? `<label class="expr-src-field">${label}
-          <input type="text" data-src="name" value="${esc(source.name)}" spellcheck="false"></label>` : ''}
+          <input type="text" data-src="name" value="${escapeHtml(source.name)}" spellcheck="false"></label>` : ''}
         <label class="expr-src-field">Whole action output
           <select data-src="full" title="An action output has statusCode, headers and body. The body is the main part, so it is not repeated in the expression.">
             <option value="auto"${selection('auto', source.fullOutput)}>Detect</option>
@@ -165,7 +165,7 @@ class StructraExpressions extends StructraComponent {
     if (!Array.isArray(value) || !value.length || !value[0] || typeof value[0] !== 'object' || Array.isArray(value[0])) return '';
     const columns = Structra.powerPlatformExpressions.pickedColumns(this._path, value);
     if (!columns.length) return '';
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const shownCount = columns.filter((column) => column.on).length;
     return `<div class="expr-cols">
       <div class="expr-cols-head"><strong>Columns</strong>
@@ -173,7 +173,7 @@ class StructraExpressions extends StructraComponent {
         <button class="btn btn-sm btn-ghost" type="button" data-cols-all="on">All</button>
         <button class="btn btn-sm btn-ghost" type="button" data-cols-all="off">None</button>
       </div>
-      <div class="expr-cols-list">${columns.slice(0, 80).map((column) => `<label class="expr-col${column.on ? ' on' : ''}${column.noise ? ' noise' : ''}" title="${esc(column.noise ? column.id + ' (system field, off by default)' : column.id)}"><input type="checkbox" data-col="${esc(column.id)}"${column.on ? ' checked' : ''}>${esc(column.name)}</label>`).join('')}</div>
+      <div class="expr-cols-list">${columns.slice(0, 80).map((column) => `<label class="expr-col${column.on ? ' on' : ''}${column.noise ? ' noise' : ''}" title="${escapeHtml(column.noise ? column.id + ' (system field, off by default)' : column.id)}"><input type="checkbox" data-col="${escapeHtml(column.id)}"${column.on ? ' checked' : ''}>${escapeHtml(column.name)}</label>`).join('')}</div>
     </div>`;
   }
 
@@ -190,13 +190,13 @@ class StructraExpressions extends StructraComponent {
       Structra.log.error('Expressions', 'Could not build flow actions', error);
       return this._empty('Could not build flow actions for this data');
     }
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     return '<p class="expr-note">Paste into a cloud flow with Peek code or the code view, under "actions".</p>' + items.map((item) => `
       <section class="expr-block">
-        <header class="expr-block-head"><strong>${esc(item.label)}</strong>
+        <header class="expr-block-head"><strong>${escapeHtml(item.label)}</strong>
           <button class="btn btn-sm" type="button" data-copy-block>Copy</button></header>
-        <p class="expr-note">${esc(item.note)}</p>
-        <pre>${esc(item.code)}</pre>
+        <p class="expr-note">${escapeHtml(item.note)}</p>
+        <pre>${escapeHtml(item.code)}</pre>
       </section>`).join('');
   }
 
@@ -217,12 +217,12 @@ class StructraExpressions extends StructraComponent {
       Structra.log.error('Expressions', 'Could not build expressions', error);
       return this._empty('Could not build expressions for this data');
     }
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     return sections.map((section) => `
       <section class="expr-section">
-        ${section.title ? `<h4 class="expr-title">${esc(section.title)}</h4>` : ''}
-        ${section.note ? `<p class="expr-note">${esc(section.note)}</p>` : ''}
-        ${section.rows.map((row) => `<div class="expr-row"><span class="elabel" title="${esc(row.label)}">${esc(row.label)}</span><div class="ecode" title="Click to copy">${esc(row.code)}</div><button class="expr-copy" type="button" title="Copy" aria-label="Copy ${esc(row.label)}">${Structra.icons.svg('copy', { size: 14 })}</button></div>`).join('')}
+        ${section.title ? `<h4 class="expr-title">${escapeHtml(section.title)}</h4>` : ''}
+        ${section.note ? `<p class="expr-note">${escapeHtml(section.note)}</p>` : ''}
+        ${section.rows.map((row) => `<div class="expr-row"><span class="elabel" title="${escapeHtml(row.label)}">${escapeHtml(row.label)}</span><div class="ecode" title="Click to copy">${escapeHtml(row.code)}</div><button class="expr-copy" type="button" title="Copy" aria-label="Copy ${escapeHtml(row.label)}">${Structra.icons.svg('copy', { size: 14 })}</button></div>`).join('')}
       </section>`).join('');
   }
 }

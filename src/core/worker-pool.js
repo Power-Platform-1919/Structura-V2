@@ -57,8 +57,8 @@ Structra.createWorkerPool = function(config) {
       }
       try {
         const entry = { worker: worker, busy: false, _cb: null, taskCount: 0, _idleTimer: null };
-        worker.addEventListener('message', (code) => {
-          const message = code.data;
+        worker.addEventListener('message', (event) => {
+          const message = event.data;
           if (entry._cb && entry._cb.id === message.id) {
             const callback = entry._cb;
             entry._cb = null;
@@ -77,9 +77,9 @@ Structra.createWorkerPool = function(config) {
             this._drain();
           }
         });
-        worker.addEventListener('error', (code) => {
-          code.preventDefault();
-          const message = code.message || 'Worker crashed';
+        worker.addEventListener('error', (event) => {
+          event.preventDefault();
+          const message = event.message || 'Worker crashed';
           Structra.log.error('WorkerPool', 'Worker error: ' + message);
           if (entry._cb) {
             const callback = entry._cb;
@@ -95,15 +95,15 @@ Structra.createWorkerPool = function(config) {
         });
         this.workers.push(entry);
         return entry;
-      } catch (code) {
-        Structra.log.error('WorkerPool', 'Failed to create worker: ' + code.message, code);
+      } catch (error) {
+        Structra.log.error('WorkerPool', 'Failed to create worker: ' + error.message, error);
         return null;
       }
     },
 
     _drain() {
       if (this.queue.length === 0) return;
-      const idle = this.workers.find(code => !code.busy);
+      const idle = this.workers.find(entry => !entry.busy);
       if (!idle) return;
       const request = this.queue.shift();
       this._dispatch(idle, request);
@@ -169,9 +169,9 @@ Structra.createWorkerPool = function(config) {
     },
 
     terminate() {
-      this.workers.forEach(code => {
-        if (code._idleTimer) clearTimeout(code._idleTimer);
-        try { code.worker.terminate(); } catch (_) {}
+      this.workers.forEach(entry => {
+        if (entry._idleTimer) clearTimeout(entry._idleTimer);
+        try { entry.worker.terminate(); } catch (_) {}
       });
       this.workers = [];
       this.queue.forEach(request => request.reject(new Error('Pool terminated')));
@@ -181,8 +181,8 @@ Structra.createWorkerPool = function(config) {
     stats() {
       return {
         totalWorkers: this.workers.length,
-        busyWorkers: this.workers.filter(code => code.busy).length,
-        idleWorkers: this.workers.filter(code => !code.busy).length,
+        busyWorkers: this.workers.filter(entry => entry.busy).length,
+        idleWorkers: this.workers.filter(entry => !entry.busy).length,
         pendingTasks: this.queue.length,
         maxQueueSize: this.maxQueueSize
       };
@@ -212,7 +212,7 @@ Structra.createWorkerPool = function(config) {
         // Task timeout: reject and terminate worker if it takes too long
         if (taskTimeout > 0) {
           request._timer = setTimeout(() => {
-            const victim = pool.workers.find(code => code._cb === request);
+            const victim = pool.workers.find(entry => entry._cb === request);
             if (victim) {
               victim._cb = null;
               victim.busy = false;
@@ -228,7 +228,7 @@ Structra.createWorkerPool = function(config) {
           }, taskTimeout);
         }
 
-        const idle = pool.workers.find(code => !code.busy);
+        const idle = pool.workers.find(entry => !entry.busy);
         if (idle) {
           pool._dispatch(idle, request);
           return;
@@ -267,13 +267,13 @@ Structra.protectBigNumbers = function (source) {
     if (code === 45 || (code >= 48 && code <= 57)) {
       var j = i + 1;
       while (j < length) { var digitCode = source.charCodeAt(j); if ((digitCode >= 48 && digitCode <= 57) || digitCode === 46 || digitCode === 101 || digitCode === 69 || digitCode === 43 || digitCode === 45) j++; else break; }
-      var tok = source.slice(i, j);
-      if (tok.length >= 16 || /[eE]/.test(tok)) {
-        var number = Number(tok), lossy = false;
+      var token = source.slice(i, j);
+      if (token.length >= 16 || /[eE]/.test(token)) {
+        var number = Number(token), lossy = false;
         if (!isFinite(number)) lossy = true;
-        else if (/^-?\d+$/.test(tok)) { try { lossy = BigInt(tok).toString() !== BigInt(number).toString(); } catch (error) { lossy = false; } }
-        else lossy = tok.replace(/^-/, '').replace(/[eE].*$/, '').replace(/\./, '').replace(/^0+/, '').length > 17;
-        if (lossy) { out.push(source.slice(last, i), '"' + tok + '"'); last = j; count++; }
+        else if (/^-?\d+$/.test(token)) { try { lossy = BigInt(token).toString() !== BigInt(number).toString(); } catch (error) { lossy = false; } }
+        else lossy = token.replace(/^-/, '').replace(/[eE].*$/, '').replace(/\./, '').replace(/^0+/, '').length > 17;
+        if (lossy) { out.push(source.slice(last, i), '"' + token + '"'); last = j; count++; }
       }
       i = j;
       continue;
@@ -353,9 +353,9 @@ Structra.parseXmlAsync = function(text) {
   var startTime = performance.now();
   return new Promise(function(resolve, reject) {
     if (!text || typeof text !== 'string') { reject(new Error('No XML input')); return; }
-    var doc = new DOMParser().parseFromString(text, 'application/xml');
-    var bad = doc.querySelector('parsererror');
-    if (bad) { reject(new Error('XML parse error: ' + bad.textContent.replace(/\s+/g, ' ').trim().substring(0, 200))); return; }
+    var xmlDocument = new DOMParser().parseFromString(text, 'application/xml');
+    var parserError = xmlDocument.querySelector('parsererror');
+    if (parserError) { reject(new Error('XML parse error: ' + parserError.textContent.replace(/\s+/g, ' ').trim().substring(0, 200))); return; }
     var domToObject = function(node) {
       if (node.nodeType === 3) return node.textContent.trim() || null;
       if (node.nodeType !== 1) return null;
@@ -385,7 +385,7 @@ Structra.parseXmlAsync = function(text) {
       return object;
     };
     var result = {};
-    result[doc.documentElement.nodeName] = domToObject(doc.documentElement);
+    result[xmlDocument.documentElement.nodeName] = domToObject(xmlDocument.documentElement);
     Structra.log.perf('WorkerPool', 'XML parse', performance.now() - startTime);
     resolve(result);
   });

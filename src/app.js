@@ -51,19 +51,19 @@
 
   // Mirror global state changes back to the active tab object
   Structra.events.on('state:currentPath', (change) => {
-    const tab = Structra.tabs.list.find(target => target.id === Structra.tabs.activeId);
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
     if (tab) tab.path = change.value;
   });
   Structra.events.on('state:activeView', (change) => {
-    const tab = Structra.tabs.list.find(target => target.id === Structra.tabs.activeId);
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
     if (tab) tab.view = change.value;
   });
   Structra.events.on('state:jsonData', (change) => {
-    const tab = Structra.tabs.list.find(target => target.id === Structra.tabs.activeId);
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
     if (tab) tab.data = change.value;
   });
   Structra.events.on('state:fileName', (change) => {
-    const tab = Structra.tabs.list.find(target => target.id === Structra.tabs.activeId);
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
     if (tab) {
       tab.fileName = change.value;
       if (change.value && !tab.customLabel) tab.label = change.value;       // a name the user typed is kept
@@ -71,7 +71,7 @@
     }
   });
   Structra.events.on('state:fileSize', (change) => {
-    const tab = Structra.tabs.list.find(target => target.id === Structra.tabs.activeId);
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
     if (tab) tab.fileSize = change.value;
   });
 
@@ -121,7 +121,7 @@
   // Edits (Mask, Sort, Editor changes...) live in the open tab only. A reload brings back the file as it was opened,
   // so ask before leaving with changes that would be lost.
   window.addEventListener('beforeunload', (event) => {
-    if (Structra.tabs.list.some((target) => target.modified)) { event.preventDefault(); event.returnValue = ''; }
+    if (Structra.tabs.list.some((tab) => tab.modified)) { event.preventDefault(); event.returnValue = ''; }
   });
 
   // Saving is blocked in this browser: say so once, because nothing will be remembered next time
@@ -273,7 +273,7 @@
   // ingest into engine if not already ingested
   Structra.events.on('state:jsonData', async (change) => {
     if (!change.value) return;
-    const activeTab = Structra.tabs.list.find(target => target.id === Structra.tabs.activeId);
+    const activeTab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
     if (!activeTab) return;
     // Skip if engine already has this dataset (input-panel already ingested)
     const existing = Structra.dataEngine.getActive();
@@ -313,11 +313,11 @@
 
   let _sessionTimer = null;
   function saveSession() {
-    const tabs = Structra.tabs.list.map((target) => {
-      const dataset = Structra.dataEngine.getDataset(target.id);
+    const tabs = Structra.tabs.list.map((tab) => {
+      const dataset = Structra.dataEngine.getDataset(tab.id);
       return {
-        id: target.id, label: target.label, fileName: target.fileName, fileSize: target.fileSize,
-        path: target.path, view: target.view, hash: (dataset && dataset.meta.hash) || target.hash || null,
+        id: tab.id, label: tab.label, fileName: tab.fileName, fileSize: tab.fileSize,
+        path: tab.path, view: tab.view, hash: (dataset && dataset.meta.hash) || tab.hash || null,
       };
     });
     Structra.browserDatabase.session.save({
@@ -350,17 +350,17 @@
   async function restoreSession() {
     if (/^#share=/.test(location.hash)) return;                     // an explicit link wins
     const session = await Structra.browserDatabase.session.load();
-    if (!session || !Array.isArray(session.tabs) || !session.tabs.some((target) => target.hash)) return;
+    if (!session || !Array.isArray(session.tabs) || !session.tabs.some((tab) => tab.hash)) return;
 
     Structra.tabs.list.length = 0;
-    for (const target of session.tabs) {
+    for (const savedTab of session.tabs) {
       Structra.tabs.list.push({
-        id: target.id, label: target.label, data: null, fileName: target.fileName, fileSize: target.fileSize,
-        path: target.path || '$', view: target.view || 'tree', modified: false, hash: target.hash,
+        id: savedTab.id, label: savedTab.label, data: null, fileName: savedTab.fileName, fileSize: savedTab.fileSize,
+        path: savedTab.path || '$', view: savedTab.view || 'tree', modified: false, hash: savedTab.hash,
       });
     }
-    Structra.tabs.nextId = session.nextId || Math.max(...session.tabs.map((target) => target.id)) + 1;
-    const active = Structra.tabs.list.find((target) => target.id === session.activeId) || Structra.tabs.list[0];
+    Structra.tabs.nextId = session.nextId || Math.max(...session.tabs.map((savedTab) => savedTab.id)) + 1;
+    const active = Structra.tabs.list.find((tab) => tab.id === session.activeId) || Structra.tabs.list[0];
     Structra.tabs.activeId = active.id;
     Structra.events.emit('tabs:changed');
     Structra.events.emit('tabs:switched', active);                  // loads the active tab's document

@@ -65,8 +65,8 @@ class StructraPivot extends StructraDialog {
       if (field && !field.closest('.pivot-zone-drop')) {
         this._addFieldToZone(field.dataset.field);
       }
-      const actionName = event.target.closest('[data-pivot-act]');
-      if (actionName) { if (actionName.dataset.pivotAct === 'copy') this._copyAll(); else this._openAll(); return; }
+      const actionButton = event.target.closest('[data-pivot-act]');
+      if (actionButton) { if (actionButton.dataset.pivotAct === 'copy') this._copyAll(); else this._openAll(); return; }
       // Remove from zone
       const removeButton = event.target.closest('[data-rm-zone]');
       if (removeButton) {
@@ -213,17 +213,17 @@ class StructraPivot extends StructraDialog {
     }
 
     const columns = data.columns;
-    const numeric = new Set(columns.filter((comparison) => data.rows.every((row) => row[comparison] === '' || row[comparison] === null || typeof row[comparison] === 'number')));
+    const numeric = new Set(columns.filter((column) => data.rows.every((row) => row[column] === '' || row[column] === null || typeof row[column] === 'number')));
     let html = `<div class="pivot-actions">
         <span class="pivot-count">${data.rows.length.toLocaleString()} ${data.rows.length === 1 ? 'row' : 'rows'}</span>
         <button class="btn btn-sm" type="button" data-pivot-act="copy" title="Copy every row, ready to paste into Excel">Copy all rows</button>
         <button class="btn btn-sm" type="button" data-pivot-act="tab" title="Open every row as a table in a new tab">Open in a new tab</button>
       </div>`;
     html += '<table class="pivot-table"><thead><tr>';
-    html += columns.map(comparison => `<th${numeric.has(comparison) ? ' class="num"' : ''}>${Structra.sharedHelpers.escapeHtml(comparison)}</th>`).join('');
+    html += columns.map(column => `<th${numeric.has(column) ? ' class="num"' : ''}>${Structra.sharedHelpers.escapeHtml(column)}</th>`).join('');
     html += '</tr></thead><tbody>';
     for (const row of data.rows.slice(0, 500)) {
-      html += '<tr>' + columns.map(comparison => `<td${numeric.has(comparison) ? ' class="num"' : ''}>${row[comparison] != null ? Structra.sharedHelpers.escapeHtml(String(row[comparison])) : ''}</td>`).join('') + '</tr>';
+      html += '<tr>' + columns.map(column => `<td${numeric.has(column) ? ' class="num"' : ''}>${row[column] != null ? Structra.sharedHelpers.escapeHtml(String(row[column])) : ''}</td>`).join('') + '</tr>';
     }
     html += '</tbody></table>';
     if (data.rows.length > 500) html += `<div class="pivot-more">Showing the first 500 of ${data.rows.length.toLocaleString()} rows. Copy all rows or open them in a new tab to get every row.</div>`;
@@ -234,7 +234,7 @@ class StructraPivot extends StructraDialog {
     if (!this._last) return;
     const { rows, columns } = this._last;
     const cell = (value) => String(value == null ? '' : value).replace(/[\t\r\n]+/g, ' ');
-    const text = [columns.join('\t'), ...rows.map((row) => columns.map((comparison) => cell(row[comparison])).join('\t'))].join('\n');
+    const text = [columns.join('\t'), ...rows.map((row) => columns.map((column) => cell(row[column])).join('\t'))].join('\n');
     Structra.sharedHelpers.copyToClipboard(text, `${rows.length.toLocaleString()} rows copied: paste them into Excel`);
   }
 

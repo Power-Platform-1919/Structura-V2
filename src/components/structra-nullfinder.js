@@ -126,11 +126,11 @@ class StructraNullfinder extends StructraDialog {
       group.counts[result.type] = (group.counts[result.type] || 0) + 1;
       group.total++;
     });
-    const rows = [...groups.values()].sort((action, second) => second.total - action.total);
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const rows = [...groups.values()].sort((first, second) => second.total - first.total);
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     container.innerHTML = rows.slice(0, 200).map((group) => `
-      <div class="nf-item" data-nf-path="${esc(group.first)}" data-nf-idx="${group.firstIdx}" title="Show the first one">
-        <span class="nf-path">${esc(group.pattern)}</span>
+      <div class="nf-item" data-nf-path="${escapeHtml(group.first)}" data-nf-idx="${group.firstIdx}" title="Show the first one">
+        <span class="nf-path">${escapeHtml(group.pattern)}</span>
         <span class="nf-kinds">${Object.entries(group.counts).map(([key, value]) => `<span class="nf-badge nf-badge-${key}">${value.toLocaleString()} ${key}</span>`).join('')}</span>
       </div>`).join('') + (rows.length > 200 ? `<div class="nf-more">…and ${rows.length - 200} more fields</div>` : '');
   }

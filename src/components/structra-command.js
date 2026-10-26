@@ -566,19 +566,19 @@ class StructraCommand extends StructraComponent {
 
   /** Dot notation. Two paths that give the same name are recorded in `clash` instead of one overwriting the other. */
   _flattenObj(object, prefix = '', result = {}, clash = []) {
-    const put = (key, value) => {
+    const addEntry = (key, value) => {
       if (Object.prototype.hasOwnProperty.call(result, key)) clash.push(key);
       else result[key] = value;
     };
     if (Array.isArray(object)) {
-      if (!object.length) put(prefix, []);
+      if (!object.length) addEntry(prefix, []);
       object.forEach((item, i) => this._flattenObj(item, prefix ? `${prefix}[${i}]` : `[${i}]`, result, clash));
     } else if (object && typeof object === 'object') {
       const entries = Object.entries(object);
-      if (!entries.length) put(prefix, {});
+      if (!entries.length) addEntry(prefix, {});
       for (const [key, item] of entries) this._flattenObj(item, prefix ? `${prefix}.${key}` : key, result, clash);
     } else {
-      put(prefix, object);
+      addEntry(prefix, object);
     }
     return result;
   }

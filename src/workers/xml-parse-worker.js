@@ -57,16 +57,16 @@
       try {
         var startTime = performance.now();
         var parser = new DOMParser();
-        var doc = parser.parseFromString(text, 'application/xml');
-        var parseError = doc.querySelector('parsererror');
+        var xmlDocument = parser.parseFromString(text, 'application/xml');
+        var parseError = xmlDocument.querySelector('parsererror');
         if (parseError) {
           self.postMessage({ id: id, success: false, error: 'XML parse error: ' + parseError.textContent.substring(0, 200) });
           return;
         }
-        var data = domToObject(doc.documentElement);
+        var data = domToObject(xmlDocument.documentElement);
         // Wrap in root element name
         var result = {};
-        result[doc.documentElement.nodeName] = data;
+        result[xmlDocument.documentElement.nodeName] = data;
         var elapsed = (performance.now() - startTime).toFixed(1);
         console.log('[Worker:XML] #' + id + ' Parse OK in ' + elapsed + 'ms');
         self.postMessage({ id: id, success: true, data: result });

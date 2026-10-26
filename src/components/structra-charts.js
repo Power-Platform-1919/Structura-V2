@@ -18,7 +18,7 @@ class StructraCharts extends StructraDialog {
   init() {
     super.init();
     this._sources = [];       // [{ path, label, rows }]
-    this.on('charts:open', (pathData) => this._open(pathData || {}));
+    this.on('charts:open', (options) => this._open(options || {}));
   }
 
   render() {
@@ -47,9 +47,9 @@ class StructraCharts extends StructraDialog {
       .map((list) => ({ path: list.path, label: `${list.path === '(root)' || list.path === '$' ? 'The whole list' : list.path} (${list.data.length.toLocaleString()} ${list.data.length === 1 ? 'item' : 'items'})`, rows: list.data }));
     if (!this._sources.length) { Structra.toast('No arrays to chart in this document'); return; }
 
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     this.queryOne('#chSource').innerHTML = this._sources
-      .map((source, i) => `<option value="${i}">${esc(source.label)}</option>`).join('');
+      .map((source, i) => `<option value="${i}">${escapeHtml(source.label)}</option>`).join('');
 
     // Prefer the requested array, then the first array of objects
     let index = this._sources.findIndex((source) => source.path === (path || '(root)') || source.path === path);
@@ -69,7 +69,7 @@ class StructraCharts extends StructraDialog {
   _fillColumns(preferred) {
     const source = this._sources[parseInt(this.queryOne('#chSource').value, 10)];
     const selection = this.queryOne('#chColumn');
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     let columns;
     if (this._isObjectRows(source.rows)) {
       const seen = new Map();
@@ -84,7 +84,7 @@ class StructraCharts extends StructraDialog {
     } else {
       columns = [StructraCharts.VALUE_COLUMN];
     }
-    selection.innerHTML = columns.map((count) => `<option value="${esc(count)}">${esc(count)}</option>`).join('');
+    selection.innerHTML = columns.map((column) => `<option value="${escapeHtml(column)}">${escapeHtml(column)}</option>`).join('');
     if (preferred && columns.includes(preferred)) selection.value = preferred;
   }
 
@@ -128,7 +128,7 @@ class StructraCharts extends StructraDialog {
     const count = values.length;
     let min = values[0], max = values[0], sum = 0;
     for (const value of values) { if (value < min) min = value; if (value > max) max = value; sum += value; }
-    const sorted = [...values].sort((list, second) => list - second);
+    const sorted = [...values].sort((first, second) => first - second);
     const median = count % 2 ? sorted[(count - 1) / 2] : (sorted[count / 2 - 1] + sorted[count / 2]) / 2;
 
     const stats = [
@@ -193,10 +193,10 @@ class StructraCharts extends StructraDialog {
       const text = typeof value === 'string' ? value : String(value);
       frequency.set(text, (frequency.get(text) || 0) + 1);
     }
-    const ranked = [...frequency.entries()].sort((list, second) => second[1] - list[1]);
+    const ranked = [...frequency.entries()].sort((first, second) => second[1] - first[1]);
     const top = ranked.slice(0, StructraCharts.MAX_BARS);
     const peak = top[0][1];
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
 
     const stats = [
       this._statLine('values', values.length.toLocaleString()), this._statLine('empty', nulls.toLocaleString()),
@@ -204,8 +204,8 @@ class StructraCharts extends StructraDialog {
     ].join('');
 
     const rows = top.map(([label, count]) => `
-      <div class="ch-hrow" title="${esc(label)}: ${count.toLocaleString()}">
-        <span class="ch-hlabel">${esc(label.length > 40 ? label.slice(0, 39) + '…' : label)}</span>
+      <div class="ch-hrow" title="${escapeHtml(label)}: ${count.toLocaleString()}">
+        <span class="ch-hlabel">${escapeHtml(label.length > 40 ? label.slice(0, 39) + '…' : label)}</span>
         <span class="ch-htrack"><span class="ch-hbar" style="width:${((count / peak) * 100).toFixed(1)}%"></span></span>
         <span class="ch-hcount">${count.toLocaleString()}</span>
       </div>`).join('');

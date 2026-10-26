@@ -17,9 +17,9 @@ class StructraContext extends StructraComponent {
       Structra.log.debug('Context', 'Node selected: ' + path);
       this._show(path);
     });
-    this.on('state:contextPanelOpen', (date) => {
-      Structra.log.debug('Context', 'contextPanel ' + (date.value ? 'opened' : 'closed'));
-      this.classList.toggle('show', date.value);
+    this.on('state:contextPanelOpen', (isOpen) => {
+      Structra.log.debug('Context', 'contextPanel ' + (isOpen.value ? 'opened' : 'closed'));
+      this.classList.toggle('show', isOpen.value);
     });
     this.on('overlay:close', () => Structra.setState('contextPanelOpen', false));
     this.on('bookmarks:changed', () => this._renderBookmarks());
@@ -68,20 +68,20 @@ class StructraContext extends StructraComponent {
       </div>`;
     this._renderBookmarks();
 
-    this.addEventListener('click', (e) => {
-      const button = e.target.closest('[data-action]');
+    this.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
       if (!button) return;
-      const a = button.dataset.action;
-      if (a === 'close') Structra.setState('contextPanelOpen', false);
-      else if (a === 'copy-value') this._copyValue();
-      else if (a === 'copy-path') this._copyPath();
-      else if (a === 'bookmark') this._toggleBookmark();
-      else if (a === 'go-bookmark') Structra.setState('currentPath', button.dataset.path);
-      else if (a === 'del-bookmark') Structra.bookmarks.remove(button.dataset.path);
-      else if (a === 'find-value') this._findValue();
-      else if (a === 'mock') this._mockFromContext();
-      else if (a === 'copy-pp') Structra.sharedHelpers.copyToClipboard(button.dataset.code, 'Copied');
-      else if (a === 'pp-source') Structra.events.emit('drawer:show', 'expressions');
+      const actionName = button.dataset.action;
+      if (actionName === 'close') Structra.setState('contextPanelOpen', false);
+      else if (actionName === 'copy-value') this._copyValue();
+      else if (actionName === 'copy-path') this._copyPath();
+      else if (actionName === 'bookmark') this._toggleBookmark();
+      else if (actionName === 'go-bookmark') Structra.setState('currentPath', button.dataset.path);
+      else if (actionName === 'del-bookmark') Structra.bookmarks.remove(button.dataset.path);
+      else if (actionName === 'find-value') this._findValue();
+      else if (actionName === 'mock') this._mockFromContext();
+      else if (actionName === 'copy-pp') Structra.sharedHelpers.copyToClipboard(button.dataset.code, 'Copied');
+      else if (actionName === 'pp-source') Structra.events.emit('drawer:show', 'expressions');
     });
   }
 
@@ -94,12 +94,12 @@ class StructraContext extends StructraComponent {
   _renderBookmarks() {
     const element = this.queryOne('#ctxBookmarks');
     if (!element) return;
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const items = Structra.bookmarks.list();
     element.innerHTML = items.length
-      ? items.map((b) => `<div class="ctx-bm">
-          <button class="ctx-bm-path" data-action="go-bookmark" data-path="${esc(b.path)}" title="${esc(b.preview || b.path)}">${esc(b.path)}</button>
-          <button class="ctx-bm-del" data-action="del-bookmark" data-path="${esc(b.path)}" title="Remove bookmark">${Structra.icons.svg('x', { size: 14 })}</button>
+      ? items.map((item) => `<div class="ctx-bm">
+          <button class="ctx-bm-path" data-action="go-bookmark" data-path="${escapeHtml(item.path)}" title="${escapeHtml(item.preview || item.path)}">${escapeHtml(item.path)}</button>
+          <button class="ctx-bm-del" data-action="del-bookmark" data-path="${escapeHtml(item.path)}" title="Remove bookmark">${Structra.icons.svg('x', { size: 14 })}</button>
         </div>`).join('')
       : '<div class="ctx-bm-empty">No bookmarks yet. Press Ctrl+B on a path.</div>';
   }
@@ -140,17 +140,17 @@ class StructraContext extends StructraComponent {
    */
   _previewJson(value) {
     const KEEP = 12;
-    const trim = (v, depth) => {
-      if (v === null || typeof v !== 'object') return v;
-      if (depth > 3) return Array.isArray(v) ? ['…'] : { '…': '…' };
-      if (Array.isArray(v)) {
-        const part = v.slice(0, KEEP).map((x) => trim(x, depth + 1));
-        if (v.length > KEEP) part.push('… ' + (v.length - KEEP).toLocaleString() + ' more');
+    const trim = (value, depth) => {
+      if (value === null || typeof value !== 'object') return value;
+      if (depth > 3) return Array.isArray(value) ? ['…'] : { '…': '…' };
+      if (Array.isArray(value)) {
+        const part = value.slice(0, KEEP).map((x) => trim(x, depth + 1));
+        if (value.length > KEEP) part.push('… ' + (value.length - KEEP).toLocaleString() + ' more');
         return part;
       }
       const out = {};
-      const keys = Object.keys(v);
-      for (const k of keys.slice(0, KEEP)) out[k] = trim(v[k], depth + 1);
+      const keys = Object.keys(value);
+      for (const k of keys.slice(0, KEEP)) out[k] = trim(value[k], depth + 1);
       if (keys.length > KEEP) out['…'] = (keys.length - KEEP).toLocaleString() + ' more';
       return out;
     };
@@ -177,65 +177,65 @@ class StructraContext extends StructraComponent {
     }
 
     section.hidden = false;
-    preview.innerHTML = detections.map(d => `<div class="ctx-detection">
-      <span class="ctx-det-badge ctx-det-${d.type}">${d.type}</span>
-      <span class="ctx-det-value">${d.html || Structra.sharedHelpers.escapeHtml(d.display || value.slice(0, 80))}</span>
+    preview.innerHTML = detections.map(detection => `<div class="ctx-detection">
+      <span class="ctx-det-badge ctx-det-${detection.type}">${detection.type}</span>
+      <span class="ctx-det-value">${detection.html || Structra.sharedHelpers.escapeHtml(detection.display || value.slice(0, 80))}</span>
     </div>`).join('');
   }
 
   _detectPatterns(text) {
     const detections = [];
-    const s = text.trim();
+    const trimmed = text.trim();
 
     // URL
-    if (/^https?:\/\/.+/i.test(s)) {
-      detections.push({ type: 'url', html: `<a href="${Structra.sharedHelpers.escapeHtml(s)}" target="_blank" rel="noopener" class="ctx-link">${Structra.sharedHelpers.escapeHtml(s.slice(0, 60))}</a>` });
+    if (/^https?:\/\/.+/i.test(trimmed)) {
+      detections.push({ type: 'url', html: `<a href="${Structra.sharedHelpers.escapeHtml(trimmed)}" target="_blank" rel="noopener" class="ctx-link">${Structra.sharedHelpers.escapeHtml(trimmed.slice(0, 60))}</a>` });
     }
 
     // Email
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
-      detections.push({ type: 'email', display: s });
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      detections.push({ type: 'email', display: trimmed });
     }
 
     // UUID
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) {
-      detections.push({ type: 'uuid', display: s });
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+      detections.push({ type: 'uuid', display: trimmed });
     }
 
     // ISO date / datetime
-    if (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?/.test(s)) {
-      const d = new Date(s);
-      if (!isNaN(d.getTime())) {
-        detections.push({ type: 'date', display: d.toLocaleString() });
+    if (/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2})?/.test(trimmed)) {
+      const date = new Date(trimmed);
+      if (!isNaN(date.getTime())) {
+        detections.push({ type: 'date', display: date.toLocaleString() });
       }
     }
 
     // IPv4
-    if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(s)) {
-      detections.push({ type: 'ip', display: s });
+    if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(trimmed)) {
+      detections.push({ type: 'ip', display: trimmed });
     }
 
     // JWT
-    if (/^eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(s)) {
+    if (/^eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(trimmed)) {
       try {
-        const payload = JSON.parse(atob(s.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        const payload = JSON.parse(atob(trimmed.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
         detections.push({ type: 'jwt', display: `JWT, sub: ${payload.sub || '?'}, exp: ${payload.exp ? new Date(payload.exp * 1000).toISOString() : '?'}` });
       } catch { detections.push({ type: 'jwt', display: 'JWT token (could not be decoded)' }); }
     }
 
     // Color hex
-    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(s)) {
-      detections.push({ type: 'color', html: `<span class="ctx-color-swatch" style="background:${s}"></span> ${s}` });
+    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) {
+      detections.push({ type: 'color', html: `<span class="ctx-color-swatch" style="background:${trimmed}"></span> ${trimmed}` });
     }
 
     // Base64
-    if (/^[A-Za-z0-9+/]{20,}={0,2}$/.test(s) && s.length > 30) {
-      detections.push({ type: 'base64', display: `Base64 (${s.length} chars → ~${Math.floor(s.length * 0.75)} bytes)` });
+    if (/^[A-Za-z0-9+/]{20,}={0,2}$/.test(trimmed) && trimmed.length > 30) {
+      detections.push({ type: 'base64', display: `Base64 (${trimmed.length} chars → ~${Math.floor(trimmed.length * 0.75)} bytes)` });
     }
 
     // Phone number
-    if (/^[\+]?[\d\s\-\(\)]{7,15}$/.test(s) && /\d{7,}/.test(s.replace(/\D/g, ''))) {
-      detections.push({ type: 'phone', display: s });
+    if (/^[\+]?[\d\s\-\(\)]{7,15}$/.test(trimmed) && /\d{7,}/.test(trimmed.replace(/\D/g, ''))) {
+      detections.push({ type: 'phone', display: trimmed });
     }
 
     return detections;
@@ -247,26 +247,26 @@ class StructraContext extends StructraComponent {
     const box = this.queryOne('#ctxPp');
     if (!section || !box) return;
     if (!path || path === '$') { section.hidden = true; return; }
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const rows = Structra.powerPlatformExpressions.quick(path, value);
     const source = Structra.powerPlatformExpressions.getSource();
     const srcText = source.kind === 'trigger' ? 'the trigger body' : source.kind === 'item' ? 'the current loop item' : source.kind === 'custom' ? 'your own expression' : `the action ${source.name}`;
-    box.innerHTML = rows.map((r) => `
+    box.innerHTML = rows.map((row) => `
       <div class="ctx-pp-row">
-        <div class="ctx-pp-head"><span class="ctx-pp-app ctx-pp-${r.app === 'Power Fx' ? 'fx' : 'pa'}">${esc(r.app)}</span><span class="ctx-pp-label">${esc(r.label)}</span></div>
+        <div class="ctx-pp-head"><span class="ctx-pp-app ctx-pp-${row.app === 'Power Fx' ? 'fx' : 'pa'}">${escapeHtml(row.app)}</span><span class="ctx-pp-label">${escapeHtml(row.label)}</span></div>
         <div class="ctx-pp-line">
-          <code class="ctx-pp-code">${esc(r.code)}</code>
-          <button class="ctx-pp-copy" type="button" data-action="copy-pp" data-code="${esc(r.code)}" title="Copy" aria-label="Copy ${esc(r.label)}">${Structra.icons.svg('copy', { size: 14 })}</button>
+          <code class="ctx-pp-code">${escapeHtml(row.code)}</code>
+          <button class="ctx-pp-copy" type="button" data-action="copy-pp" data-code="${escapeHtml(row.code)}" title="Copy" aria-label="Copy ${escapeHtml(row.label)}">${Structra.icons.svg('copy', { size: 14 })}</button>
         </div>
-      </div>`).join('') + `<div class="ctx-pp-src">Reading from ${esc(srcText)}. <button class="ctx-link-btn" type="button" data-action="pp-source">Change</button></div>`;
+      </div>`).join('') + `<div class="ctx-pp-src">Reading from ${escapeHtml(srcText)}. <button class="ctx-link-btn" type="button" data-action="pp-source">Change</button></div>`;
     section.hidden = false;
   }
 
   /** Search the whole document for this value (a number or text; objects and lists have no single value to search for) */
   _findValue() {
-    const v = this._currentValue;
-    if (v === null || v === undefined || typeof v === 'object') { Structra.toast('Select a text, number or true/false value to find where else it appears'); return; }
-    Structra.events.emit('find:prefill', String(v));
+    const currentValue = this._currentValue;
+    if (currentValue === null || currentValue === undefined || typeof currentValue === 'object') { Structra.toast('Select a text, number or true/false value to find where else it appears'); return; }
+    Structra.events.emit('find:prefill', String(currentValue));
   }
 
   _mockFromContext() {
@@ -283,8 +283,8 @@ class StructraContext extends StructraComponent {
 
   _copyValue() {
     // The whole value, not the shortened text shown on screen
-    const v = this._currentValue;
-    const text = v === undefined ? '' : (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+    const currentValue = this._currentValue;
+    const text = currentValue === undefined ? '' : (typeof currentValue === 'string' ? currentValue : JSON.stringify(currentValue, null, 2));
     Structra.sharedHelpers.copyToClipboard(text, 'Value copied');
   }
 

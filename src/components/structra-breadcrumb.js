@@ -32,7 +32,7 @@ class StructraBreadcrumb extends StructraComponent {
       return;
     }
 
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     let running = '';
     const parts = [`<button class="bc-seg" data-path="$">root</button>`];
     tokens.forEach((token, i) => {
@@ -40,7 +40,7 @@ class StructraBreadcrumb extends StructraComponent {
       else running += `[${token.value}]`;
       const label = token.type === 'key' ? token.value : `[${token.value}]`;
       const last = i === tokens.length - 1;
-      parts.push(`<span class="bc-sep">›</span><button class="bc-seg${last ? ' bc-current' : ''}" data-path="${esc(running)}">${esc(label)}</button>`);
+      parts.push(`<span class="bc-sep">›</span><button class="bc-seg${last ? ' bc-current' : ''}" data-path="${escapeHtml(running)}">${escapeHtml(label)}</button>`);
     });
     this.innerHTML = parts.join('');
     this.classList.add('show');

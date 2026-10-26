@@ -65,13 +65,13 @@ class StructraZoom extends StructraComponent {
 
   _showIndicator() {
     const percent = Math.round((this._size / 14) * 100);
-    const ind = this.queryOne('#zoomIndicator');
+    const indicator = this.queryOne('#zoomIndicator');
     const label = this.queryOne('#zoomLabel');
     label.textContent = `${percent}%`;
-    ind.style.display = '';
+    indicator.style.display = '';
     Structra.toast(`Zoom: ${percent}% (${this._size}px)`, 'info');
     clearTimeout(this._hideTimer);
-    this._hideTimer = setTimeout(() => { ind.style.display = 'none'; }, 2000);
+    this._hideTimer = setTimeout(() => { indicator.style.display = 'none'; }, 2000);
   }
 }
 

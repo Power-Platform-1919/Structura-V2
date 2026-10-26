@@ -89,14 +89,14 @@ class StructraRail extends StructraComponent {
     const sync = () => {
       const panel = !!Structra.state.queryPanelOpen;
       const drawerOpen = Structra.state.drawerState !== 'collapsed';
-      const lit = {
+      const litButtons = {
         explorer: !Structra.state.jsonData,
         query: panel && qTab === 'query',
         transform: panel && qTab === 'transform',
         power: drawerOpen && drawerTab === 'expressions' && !!Structra.state.jsonData,
         overview: Structra.state.activeView === 'overview' && !!Structra.state.jsonData,
       };
-      this.queryAll('.rail-btn').forEach((button) => button.classList.toggle('active', !!lit[button.dataset.rail]));
+      this.queryAll('.rail-btn').forEach((button) => button.classList.toggle('active', !!litButtons[button.dataset.rail]));
     };
     this.on('state:activeView', sync);
     this.on('state:queryPanelOpen', sync);

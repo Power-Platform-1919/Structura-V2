@@ -76,10 +76,10 @@ class StructraTheme extends StructraDialog {
   }
 
   _card(theme, selected) {
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const colors = theme.colors;
     return `
-      <div class="th-card${selected ? ' selected' : ''}" role="button" tabindex="0" data-use="${esc(theme.id)}" aria-pressed="${selected}">
+      <div class="th-card${selected ? ' selected' : ''}" role="button" tabindex="0" data-use="${escapeHtml(theme.id)}" aria-pressed="${selected}">
         <div class="th-preview" style="background:${colors.bg};border-color:${colors.border}">
           <div class="th-pv-panel" style="background:${colors.surface};border-color:${colors.border}">
             <span class="th-pv-bar" style="background:${colors.accent}"></span>
@@ -91,12 +91,12 @@ class StructraTheme extends StructraDialog {
           </div>
         </div>
         <div class="th-meta">
-          <span class="th-name" title="${esc(theme.name)}">${esc(theme.name)}</span>
+          <span class="th-name" title="${escapeHtml(theme.name)}">${escapeHtml(theme.name)}</span>
           <span class="tag">${theme.mode === 'dark' ? 'Dark' : 'Light'}${theme.builtIn ? '' : ' · custom'}</span>
         </div>
         ${theme.builtIn ? '' : `<div class="th-actions">
-          <button class="btn btn-ghost btn-sm" type="button" data-edit="${esc(theme.id)}">Edit</button>
-          <button class="btn btn-ghost btn-sm btn-danger" type="button" data-del="${esc(theme.id)}">Delete</button>
+          <button class="btn btn-ghost btn-sm" type="button" data-edit="${escapeHtml(theme.id)}">Edit</button>
+          <button class="btn btn-ghost btn-sm btn-danger" type="button" data-del="${escapeHtml(theme.id)}">Delete</button>
         </div>`}
       </div>`;
   }
@@ -147,13 +147,13 @@ class StructraTheme extends StructraDialog {
   }
 
   _renderEditor() {
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const draft = this._draft;
     const rows = Structra.themeEngine.BASE_KEYS.map((key) => `
       <div class="th-color">
-        <label for="thc-${key}">${esc(Structra.themeEngine.LABELS[key])}</label>
+        <label for="thc-${key}">${escapeHtml(Structra.themeEngine.LABELS[key])}</label>
         <input type="color" id="thc-${key}" data-color="${key}" value="${this._toSixDigitHex(draft.colors[key])}">
-        <input type="text" class="th-hex" data-hex="${key}" value="${esc(draft.colors[key])}" maxlength="7" spellcheck="false" aria-label="${esc(Structra.themeEngine.LABELS[key])} hex value">
+        <input type="text" class="th-hex" data-hex="${key}" value="${escapeHtml(draft.colors[key])}" maxlength="7" spellcheck="false" aria-label="${escapeHtml(Structra.themeEngine.LABELS[key])} hex value">
       </div>`).join('');
 
     this.queryOne('#thEditor').innerHTML = `
@@ -162,7 +162,7 @@ class StructraTheme extends StructraDialog {
         <div class="hint">Changes preview live. Save to keep them.</div>
       </div>
       <div class="th-edit-top">
-        <div class="field grow"><label for="thName">Name</label><input type="text" id="thName" value="${esc(draft.name)}" maxlength="60"></div>
+        <div class="field grow"><label for="thName">Name</label><input type="text" id="thName" value="${escapeHtml(draft.name)}" maxlength="60"></div>
         <div class="field"><label>Mode</label>
           <div class="seg" id="thEdMode" role="group" aria-label="Theme mode">
             <button class="seg-btn" type="button" data-edmode="light" aria-pressed="${draft.mode === 'light'}">Light</button>
@@ -172,15 +172,15 @@ class StructraTheme extends StructraDialog {
         <div class="field"><label for="thBase">Start from</label>
           <select id="thBase">
             <option value="">Keep current colours</option>
-            ${Structra.themeEngine.list().map((theme) => `<option value="${esc(theme.id)}">${esc(theme.name)}</option>`).join('')}
+            ${Structra.themeEngine.list().map((theme) => `<option value="${escapeHtml(theme.id)}">${escapeHtml(theme.name)}</option>`).join('')}
           </select>
         </div>
       </div>
       <div class="th-colors">${rows}</div>
       <div class="th-fonts">
-        <div class="field grow"><label for="thFontUi">Interface font (optional)</label><input type="text" id="thFontUi" value="${esc(draft.fonts.ui || '')}" placeholder="IBM Plex Sans"></div>
-        <div class="field grow"><label for="thFontMono">Code font (optional)</label><input type="text" id="thFontMono" value="${esc(draft.fonts.mono || '')}" placeholder="JetBrains Mono"></div>
-        <div class="field"><label for="thFontSize">Text size</label><input type="number" id="thFontSize" min="12" max="20" value="${esc(draft.fonts.size || '')}" placeholder="15"></div>
+        <div class="field grow"><label for="thFontUi">Interface font (optional)</label><input type="text" id="thFontUi" value="${escapeHtml(draft.fonts.ui || '')}" placeholder="IBM Plex Sans"></div>
+        <div class="field grow"><label for="thFontMono">Code font (optional)</label><input type="text" id="thFontMono" value="${escapeHtml(draft.fonts.mono || '')}" placeholder="JetBrains Mono"></div>
+        <div class="field"><label for="thFontSize">Text size</label><input type="number" id="thFontSize" min="12" max="20" value="${escapeHtml(draft.fonts.size || '')}" placeholder="15"></div>
       </div>
       <div class="th-contrast" id="thContrast" aria-live="polite"></div>
       <div class="th-edit-actions">
@@ -193,7 +193,7 @@ class StructraTheme extends StructraDialog {
 
   _toSixDigitHex(hex) {
     let digits = String(hex).replace('#', '');
-    if (digits.length === 3) digits = digits.split('').map((colors) => colors + colors).join('');
+    if (digits.length === 3) digits = digits.split('').map((digit) => digit + digit).join('');
     return '#' + digits.padEnd(6, '0').slice(0, 6);
   }
 

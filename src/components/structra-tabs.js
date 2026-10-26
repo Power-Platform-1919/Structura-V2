@@ -90,7 +90,7 @@ class StructraTabs extends StructraComponent {
     const tab = event.target.closest('.doc-tab');
     if (!tab || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Enter' && event.key !== ' ')) return;
     const list = Structra.tabs.list;
-    const i = list.findIndex((tabElement) => tabElement.id === Number(tab.dataset.id));
+    const i = list.findIndex((candidate) => candidate.id === Number(tab.dataset.id));
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this._switchTab(list[i].id); return; }
     const next = list[(i + (event.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
     event.preventDefault();

@@ -79,7 +79,7 @@ class StructraValidate extends StructraDialog {
       if (valid) { this._summary('Valid. The data matches the schema.', 'ok'); return; }
 
       // The same problem in thousands of rows is one line with a count and the first place it happens
-      const esc = Structra.sharedHelpers.escapeHtml;
+      const escapeHtml = Structra.sharedHelpers.escapeHtml;
       const groups = new Map();
       for (const error of errors) {
         const general = (error.path || 'root').replace(/\[\d+\]/g, '[*]');
@@ -88,13 +88,13 @@ class StructraValidate extends StructraDialog {
         if (!group) { group = { general, message: error.message, count: 0, first: error.path }; groups.set(key, group); }
         group.count++;
       }
-      const list = [...groups.values()].sort((action, second) => second.count - action.count);
+      const list = [...groups.values()].sort((first, second) => second.count - first.count);
       const kinds = list.length;
       this._summary(`${errors.length.toLocaleString()} problem${errors.length === 1 ? '' : 's'} found, of ${kinds} kind${kinds === 1 ? '' : 's'}`, 'bad');
       results.innerHTML = list.slice(0, StructraValidate.MAX_SHOWN).map((group) => `
         <div class="val-err">
-          <button class="val-path" type="button" data-action="goto" data-path="${esc(group.first)}" title="Show the first one in the tree">${esc(group.general)}</button>
-          <span class="val-msg">${esc(group.message)}</span>
+          <button class="val-path" type="button" data-action="goto" data-path="${escapeHtml(group.first)}" title="Show the first one in the tree">${escapeHtml(group.general)}</button>
+          <span class="val-msg">${escapeHtml(group.message)}</span>
           <span class="val-count">${group.count === 1 ? '1 place' : group.count.toLocaleString() + ' places'}</span>
         </div>`).join('');
     } catch (error) {

@@ -55,7 +55,7 @@ class StructraDrawerStats extends StructraComponent {
 
     const analysis = await Structra.dataEngine.getAnalysis();
     if (!analysis) return;
-    const { stats: stats, firstArr: firstArray, profile, gaps } = analysis;
+    const { stats, firstArr: firstArray, profile, gaps } = analysis;
     const quality = profile ? profile.quality : null;
     const rows = firstArray ? firstArray.rows.length : 0;
 

@@ -70,8 +70,8 @@ Structra.mockDataGenerator = (() => {
           if (/quantity|qty|count/.test(lowerKey)) return randomInt(1, 100);
           if (/price|cost|amount|salary/.test(lowerKey)) return randomInt(10, 10000);
         }
-        const mag = Math.max(Math.abs(sample), 10);
-        return randomInt(-mag, mag);
+        const magnitude = Math.max(Math.abs(sample), 10);
+        return randomInt(-magnitude, magnitude);
       }
       if (keyName) {
         const lowerKey = keyName.toLowerCase();

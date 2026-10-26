@@ -63,7 +63,7 @@ class StructraTree extends StructraComponent {
       if (current < 0) current = lines.findIndex((line) => line.classList.contains('highlighted'));
       const select = (line) => {
         if (!line) return;
-        view.querySelectorAll('.j-line.highlighted').forEach((x) => x.classList.remove('highlighted'));
+        view.querySelectorAll('.j-line.highlighted').forEach((line) => line.classList.remove('highlighted'));
         line.classList.add('highlighted');
         this._kcur = line;
         const path = Structra.dataPaths.canonical(line.dataset.path);
@@ -192,7 +192,7 @@ class StructraTree extends StructraComponent {
       <div class="tree-ctx-item" data-ctx="copy-fx">${iconSpan('zap')} Copy Power Fx formula</div>
       <div class="tree-ctx-item tree-ctx-sub-parent" data-ctx="copy-as">${iconSpan('code-xml')} Copy as type definition
         <div class="tree-ctx-submenu">
-          ${codeGenLangs.map(line => `<div class="tree-ctx-item" data-ctx="gen" data-lang="${line.id}">${line.label}</div>`).join('')}
+          ${codeGenLangs.map(language => `<div class="tree-ctx-item" data-ctx="gen" data-lang="${language.id}">${language.label}</div>`).join('')}
         </div>
       </div>
       <div class="tree-ctx-sep"></div>
@@ -266,8 +266,8 @@ class StructraTree extends StructraComponent {
         try {
           const code = Structra.typeCodeGenerator.generate(lang, value, 'Data');
           Structra.sharedHelpers.copyToClipboard(code, `Copied as ${lang}`);
-        } catch (event) {
-          Structra.toast('Could not generate the code: ' + event.message, 'error');
+        } catch (error) {
+          Structra.toast('Could not generate the code: ' + error.message, 'error');
         }
         break;
       }

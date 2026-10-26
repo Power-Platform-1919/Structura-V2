@@ -150,11 +150,11 @@ class StructraAutocomplete extends StructraComponent {
   }
 
   _paint() {
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const dropdown = this.queryOne('#acDropdown');
     dropdown.innerHTML = this._items.map((item, i) =>
       `<div class="ac-item${i === this._selected ? ' ac-selected' : ''}" role="option" data-ac-idx="${i}">
-        <span class="ac-path">${esc(item.path)}</span><span class="ac-type">${esc(item.type)}</span>
+        <span class="ac-path">${escapeHtml(item.path)}</span><span class="ac-type">${escapeHtml(item.type)}</span>
       </div>`).join('');
     dropdown.onmousedown = (event) => {
       const element = event.target.closest('[data-ac-idx]');

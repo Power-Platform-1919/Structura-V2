@@ -36,7 +36,7 @@ Structra.jsonTreeRenderer = (() => {
 
   const CHUNK_SIZE = 100;
   const OFFSCREEN_MARGIN = 3000;
-  const esc = Structra.sharedHelpers.escapeHtml;
+  const escapeHtml = Structra.sharedHelpers.escapeHtml;
 
   /* ============================
      RENDER STATE (per container)
@@ -101,24 +101,24 @@ Structra.jsonTreeRenderer = (() => {
      ============================ */
 
   function makeLine(treeState, content, path) {
-    return `<span class="j-line" data-path="${esc(path)}" data-ln="${++treeState.fileLine}">${content}</span>`;
+    return `<span class="j-line" data-path="${escapeHtml(path)}" data-ln="${++treeState.fileLine}">${content}</span>`;
   }
 
   function valSpan(value, path) {
-    if (value === null) return `<span class="j-null" data-path="${esc(path)}">null</span>`;
+    if (value === null) return `<span class="j-null" data-path="${escapeHtml(path)}">null</span>`;
     if (typeof value === 'string') {
-      const escaped = esc(
+      const escaped = escapeHtml(
         value.replace(/\\/g, '\\\\')
            .replace(/"/g, '\\"')
            .replace(/\n/g, '\\n')
            .replace(/\r/g, '\\r')
            .replace(/\t/g, '\\t')
       ).replace(/\\(?:[nrt\\]|&quot;)/g, match => `<span class="j-esc">${match}</span>`);
-      return `<span class="j-str" data-path="${esc(path)}">&quot;${escaped}&quot;</span>`;
+      return `<span class="j-str" data-path="${escapeHtml(path)}">&quot;${escaped}&quot;</span>`;
     }
-    if (typeof value === 'number') return `<span class="j-num" data-path="${esc(path)}">${value}</span>`;
-    if (typeof value === 'boolean') return `<span class="j-bool" data-path="${esc(path)}">${value}</span>`;
-    return `<span data-path="${esc(path)}">${esc(String(value))}</span>`;
+    if (typeof value === 'number') return `<span class="j-num" data-path="${escapeHtml(path)}">${value}</span>`;
+    if (typeof value === 'boolean') return `<span class="j-bool" data-path="${escapeHtml(path)}">${value}</span>`;
+    return `<span data-path="${escapeHtml(path)}">${escapeHtml(String(value))}</span>`;
   }
 
   function countFileLines(value) {
@@ -160,8 +160,8 @@ Structra.jsonTreeRenderer = (() => {
       if (chunkHtml.endLine != null) treeState.fileLine = chunkHtml.endLine;
 
       // Wrap in recyclable container
-      const cid = 'jchunk' + (treeState.chunkId++);
-      let blockContent = `<span class="j-chunk" id="${cid}" data-chunkpath="${esc(path || '')}" data-chunkindent="${indent}" data-chunkstart="0" data-chunkend="${renderCount}" data-chunktotal="${object.length}" data-chunkstartline="${chunkStartLine}">${chunkHtml.join('')}</span>`;
+      const chunkKey = 'jchunk' + (treeState.chunkId++);
+      let blockContent = `<span class="j-chunk" id="${chunkKey}" data-chunkpath="${escapeHtml(path || '')}" data-chunkindent="${indent}" data-chunkstart="0" data-chunkend="${renderCount}" data-chunktotal="${object.length}" data-chunkstartline="${chunkStartLine}">${chunkHtml.join('')}</span>`;
 
       // Sentinel for remaining items
       if (object.length > CHUNK_SIZE) {
@@ -175,7 +175,7 @@ Structra.jsonTreeRenderer = (() => {
       }
 
       lines.push(`<span class="j-block" data-block="${id}">${blockContent}</span>`);
-      lines.push(`<span class="j-line j-close" data-path="${esc(path)}" data-close="${id}" data-ln="${++treeState.fileLine}">${pad}<span class="j-bracket">]</span></span>`);
+      lines.push(`<span class="j-line j-close" data-path="${escapeHtml(path)}" data-close="${id}" data-ln="${++treeState.fileLine}">${pad}<span class="j-bracket">]</span></span>`);
 
     } else if (object && typeof object === 'object') {
       const keys = Object.keys(object);
@@ -196,12 +196,12 @@ Structra.jsonTreeRenderer = (() => {
         const comma = i < keys.length - 1 ? ',' : '';
         const value = object[key];
         if (value && typeof value === 'object') {
-          const keyText = `${innerPad}<span class="j-key" data-path="${esc(childPath)}">"${esc(key)}"</span>: `;
-          const sub = buildLines(treeState, value, childPath, indent + 1);
-          if (sub.length > 0) {
-            const first = sub[0].replace(/^<span class="j-line"[^>]*>(\s*)/, '');
-            sub[0] = `<span class="j-line" data-path="${esc(childPath)}" data-ln="${sub[0].match(/data-ln="(\d+)"/)[1]}">${keyText}${first}`;
-            for (let index = 0; index < sub.length; index++) inner.push(sub[index]);
+          const keyText = `${innerPad}<span class="j-key" data-path="${escapeHtml(childPath)}">"${escapeHtml(key)}"</span>: `;
+          const subLines = buildLines(treeState, value, childPath, indent + 1);
+          if (subLines.length > 0) {
+            const first = subLines[0].replace(/^<span class="j-line"[^>]*>(\s*)/, '');
+            subLines[0] = `<span class="j-line" data-path="${escapeHtml(childPath)}" data-ln="${subLines[0].match(/data-ln="(\d+)"/)[1]}">${keyText}${first}`;
+            for (let index = 0; index < subLines.length; index++) inner.push(subLines[index]);
             if (comma && inner.length) {
               const last = inner[inner.length - 1];
               const index = last.lastIndexOf('</span>');
@@ -209,11 +209,11 @@ Structra.jsonTreeRenderer = (() => {
             }
           }
         } else {
-          inner.push(makeLine(treeState, `${innerPad}<span class="j-key" data-path="${esc(childPath)}">"${esc(key)}"</span>: ${valSpan(value, childPath)}${comma}`, childPath));
+          inner.push(makeLine(treeState, `${innerPad}<span class="j-key" data-path="${escapeHtml(childPath)}">"${escapeHtml(key)}"</span>: ${valSpan(value, childPath)}${comma}`, childPath));
         }
       }
       lines.push(`<span class="j-block" data-block="${id}">${inner.join('')}</span>`);
-      lines.push(`<span class="j-line j-close" data-path="${esc(path)}" data-close="${id}" data-ln="${++treeState.fileLine}">${pad}<span class="j-bracket">}</span></span>`);
+      lines.push(`<span class="j-line j-close" data-path="${escapeHtml(path)}" data-close="${id}" data-ln="${++treeState.fileLine}">${pad}<span class="j-bracket">}</span></span>`);
 
     } else {
       lines.push(makeLine(treeState, pad + valSpan(object, path), path));
@@ -232,10 +232,10 @@ Structra.jsonTreeRenderer = (() => {
       if (item && typeof item === 'object') {
         const savedFileLine = treeState.fileLine;
         treeState.fileLine = currentLine;
-        const sub = buildLines(treeState, item, childPath, indent + 1);
+        const subLines = buildLines(treeState, item, childPath, indent + 1);
         currentLine = treeState.fileLine;
         treeState.fileLine = savedFileLine;
-        for (let index = 0; index < sub.length; index++) lines.push(sub[index]);
+        for (let index = 0; index < subLines.length; index++) lines.push(subLines[index]);
         if (needsComma && lines.length) {
           const last = lines[lines.length - 1];
           const index = last.lastIndexOf('</span>');
@@ -244,7 +244,7 @@ Structra.jsonTreeRenderer = (() => {
       } else {
         currentLine++;
         const comma = needsComma ? ',' : '';
-        lines.push(`<span class="j-line" data-path="${esc(childPath)}" data-ln="${currentLine}">${innerPad}${valSpan(item, childPath)}${comma}</span>`);
+        lines.push(`<span class="j-line" data-path="${escapeHtml(childPath)}" data-ln="${currentLine}">${innerPad}${valSpan(item, childPath)}${comma}</span>`);
       }
     }
     lines.endLine = currentLine;
@@ -254,7 +254,7 @@ Structra.jsonTreeRenderer = (() => {
   function makeSentinel(path, indent, start, total, startLine) {
     const remaining = total - start;
     const pad = '  '.repeat(indent + 1);
-    return `<span class="j-lazy-sentinel j-line" data-lazypath="${esc(path || '')}" data-indent="${indent}" data-start="${start}" data-total="${total}" data-startline="${startLine}" data-ln=""><span class="j-muted">${pad}// ${remaining} more items below...</span></span>`;
+    return `<span class="j-lazy-sentinel j-line" data-lazypath="${escapeHtml(path || '')}" data-indent="${indent}" data-start="${start}" data-total="${total}" data-startline="${startLine}" data-ln=""><span class="j-muted">${pad}// ${remaining} more items below...</span></span>`;
   }
 
   /* ============================
@@ -290,7 +290,7 @@ Structra.jsonTreeRenderer = (() => {
       }
     }, { root: container, rootMargin: `${OFFSCREEN_MARGIN}px` });
 
-    container.querySelectorAll('.j-lazy-sentinel').forEach(index => treeState.loadObserver.observe(index));
+    container.querySelectorAll('.j-lazy-sentinel').forEach(sentinel => treeState.loadObserver.observe(sentinel));
     container.querySelectorAll('.j-chunk').forEach(closer => {
       const total = parseInt(closer.dataset.chunktotal);
       if (total > CHUNK_SIZE) treeState.recycleObserver.observe(closer);
@@ -387,18 +387,18 @@ Structra.jsonTreeRenderer = (() => {
     const onPathSelect = treeState.opts.onPathSelect;
     const onContextMenu = treeState.opts.onContextMenu;
 
-    container.addEventListener('click', ellipsis => {
-      const toggle = ellipsis.target.closest('.j-toggle');
-      if (toggle) { ellipsis.stopPropagation(); toggleCollapse(container, toggle); return; }
-      const ellipsisElement = ellipsis.target.closest('.j-ellipsis');
+    container.addEventListener('click', event => {
+      const toggle = event.target.closest('.j-toggle');
+      if (toggle) { event.stopPropagation(); toggleCollapse(container, toggle); return; }
+      const ellipsisElement = event.target.closest('.j-ellipsis');
       if (ellipsisElement && ellipsisElement.dataset.block) {
         const owner = container.querySelector(`.j-toggle[data-block="${ellipsisElement.dataset.block}"]`);
-        if (owner) { ellipsis.stopPropagation(); toggleCollapse(container, owner); return; }
+        if (owner) { event.stopPropagation(); toggleCollapse(container, owner); return; }
       }
 
-      const keyElement = ellipsis.target.closest('.j-key');
+      const keyElement = event.target.closest('.j-key');
       if (keyElement) {
-        ellipsis.stopPropagation();
+        event.stopPropagation();
         highlightKeyOccurrences(container, keyElement);
         const path = keyElement.getAttribute('data-path');
         if (path && onPathSelect) {
@@ -410,9 +410,9 @@ Structra.jsonTreeRenderer = (() => {
 
       clearKeyHighlights(container);
 
-      const pathElement = ellipsis.target.closest('[data-path]');
+      const pathElement = event.target.closest('[data-path]');
       if (pathElement) {
-        ellipsis.stopPropagation();
+        event.stopPropagation();
         const path = pathElement.getAttribute('data-path');
         if (path && onPathSelect) {
           clearTimeout(clickScrollTimer);
@@ -421,29 +421,29 @@ Structra.jsonTreeRenderer = (() => {
       }
     });
 
-    container.addEventListener('dblclick', ellipsis => {
+    container.addEventListener('dblclick', event => {
       clearTimeout(clickScrollTimer);
 
-      const keyElement = ellipsis.target.closest('.j-key');
+      const keyElement = event.target.closest('.j-key');
       if (keyElement) {
-        ellipsis.stopPropagation();
+        event.stopPropagation();
         const keyName = extractKeyName(keyElement);
         if (keyName) Structra.events.emit('tree:search-key', keyName);
         return;
       }
 
-      const valElement = ellipsis.target.closest('.j-str, .j-num, .j-bool, .j-null');
+      const valElement = event.target.closest('.j-str, .j-num, .j-bool, .j-null');
       if (valElement && valElement.dataset.path) {
-        ellipsis.stopPropagation();
+        event.stopPropagation();
         startInlineEdit(container, treeState, valElement);
       }
     });
 
-    container.addEventListener('contextmenu', ellipsis => {
-      const pathElement = ellipsis.target.closest('[data-path]');
+    container.addEventListener('contextmenu', event => {
+      const pathElement = event.target.closest('[data-path]');
       if (pathElement) {
-        ellipsis.preventDefault(); ellipsis.stopPropagation();
-        if (onContextMenu) onContextMenu(ellipsis.clientX, ellipsis.clientY, pathElement.getAttribute('data-path'));
+        event.preventDefault(); event.stopPropagation();
+        if (onContextMenu) onContextMenu(event.clientX, event.clientY, pathElement.getAttribute('data-path'));
       }
     });
   }
@@ -626,8 +626,8 @@ Structra.jsonTreeRenderer = (() => {
     if (!treeState) return;
     for (let i = 0; i < treeState.bookmarkedEls.length; i++) treeState.bookmarkedEls[i].classList.remove('bookmarked');
     treeState.bookmarkedEls = [];
-    for (const block of bookmarks) {
-      const element = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.dataPaths.strip(block))}"]`);
+    for (const bookmark of bookmarks) {
+      const element = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.dataPaths.strip(bookmark))}"]`);
       if (element) { element.classList.add('bookmarked'); treeState.bookmarkedEls.push(element); }
     }
   }
@@ -765,9 +765,9 @@ Structra.jsonTreeRenderer = (() => {
     while (currentPath) {
       const lastDot = currentPath.lastIndexOf('.');
       const lastBracket = currentPath.lastIndexOf('[');
-      const cut = Math.max(lastDot, lastBracket);
-      if (cut <= 0) break;
-      currentPath = currentPath.substring(0, cut);
+      const splitAt = Math.max(lastDot, lastBracket);
+      if (splitAt <= 0) break;
+      currentPath = currentPath.substring(0, splitAt);
       if (matchedPaths.has(currentPath)) return true;
     }
     return false;
@@ -784,9 +784,9 @@ Structra.jsonTreeRenderer = (() => {
     for (const filterMatchedPath of treeState.filterMatchedPaths) {
       let currentPath = filterMatchedPath;
       while (currentPath) {
-        const cut = Math.max(currentPath.lastIndexOf('.'), currentPath.lastIndexOf('['));
-        if (cut <= 0) break;
-        currentPath = currentPath.substring(0, cut);
+        const splitAt = Math.max(currentPath.lastIndexOf('.'), currentPath.lastIndexOf('['));
+        if (splitAt <= 0) break;
+        currentPath = currentPath.substring(0, splitAt);
         if (treeState.filterAncestors.has(currentPath)) break;
         treeState.filterAncestors.add(currentPath);
       }
@@ -827,10 +827,10 @@ Structra.jsonTreeRenderer = (() => {
 
     container.querySelectorAll('.filter-hidden').forEach(element => element.classList.remove('filter-hidden'));
     container.querySelectorAll('.filter-match').forEach(element => element.classList.remove('filter-match'));
-    container.querySelectorAll('.j-lazy-sentinel').forEach(index => {
-      index.style.visibility = '';
-      index.style.height = '';
-      index.style.overflow = '';
+    container.querySelectorAll('.j-lazy-sentinel').forEach(sentinel => {
+      sentinel.style.visibility = '';
+      sentinel.style.height = '';
+      sentinel.style.overflow = '';
     });
 
     if (parent) {
@@ -838,7 +838,7 @@ Structra.jsonTreeRenderer = (() => {
       else parent.appendChild(container);
     }
     if (treeState.loadObserver) {
-      container.querySelectorAll('.j-lazy-sentinel').forEach(index => treeState.loadObserver.observe(index));
+      container.querySelectorAll('.j-lazy-sentinel').forEach(sentinel => treeState.loadObserver.observe(sentinel));
     }
     Structra.events.emit('loading:hide');
   }

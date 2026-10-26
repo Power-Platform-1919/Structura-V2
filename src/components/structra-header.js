@@ -27,10 +27,10 @@ class StructraHeader extends StructraComponent {
   _syncButtons() {
     if (!this._mounted) return;
     const back = this.queryOne('[data-action="back"]');
-    const fwd = this.queryOne('[data-action="forward"]');
+    const forwardButton = this.queryOne('[data-action="forward"]');
     const mark = this.queryOne('[data-action="bookmark"]');
     if (back) back.disabled = !Structra.pathHistory.canBack();
-    if (fwd) fwd.disabled = !Structra.pathHistory.canForward();
+    if (forwardButton) forwardButton.disabled = !Structra.pathHistory.canForward();
     if (mark) mark.classList.toggle('active', Structra.bookmarks.has(Structra.state.currentPath));
     const count = this.queryOne('#bmCount');
     if (count) { const bookmarkCount = Structra.bookmarks.list().length; count.textContent = bookmarkCount ? String(bookmarkCount) : ''; }
@@ -139,12 +139,12 @@ class StructraHeader extends StructraComponent {
     const old = document.querySelector('.bm-menu');
     if (old) { old.remove(); return; }
     const items = Structra.bookmarks.list();
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const menu = document.createElement('div');
     menu.className = 'bm-menu';
     menu.setAttribute('role', 'menu');
     menu.innerHTML = items.length
-      ? items.map((item) => `<div class="bm-item" role="menuitem" tabindex="0" data-path="${esc(item.path)}"><span class="bm-path">${esc(item.path)}</span><button class="bm-remove" type="button" data-remove="${esc(item.path)}" aria-label="Remove bookmark ${esc(item.path)}">${Structra.icons.svg('x', { size: 12 })}</button></div>`).join('')
+      ? items.map((item) => `<div class="bm-item" role="menuitem" tabindex="0" data-path="${escapeHtml(item.path)}"><span class="bm-path">${escapeHtml(item.path)}</span><button class="bm-remove" type="button" data-remove="${escapeHtml(item.path)}" aria-label="Remove bookmark ${escapeHtml(item.path)}">${Structra.icons.svg('x', { size: 12 })}</button></div>`).join('')
       : '<div class="bm-empty">No bookmarks in this file yet. Select a line and press Ctrl+B.</div>';
     const rect = anchor.getBoundingClientRect();
     menu.style.top = (rect.bottom + 4) + 'px';

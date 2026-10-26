@@ -281,9 +281,9 @@ Structra.codeView = (() => {
       create: () => Decoration.none,
       update(value, transaction) {
         value = value.map(transaction.changes);
-        for (const end of transaction.effects) {
-          if (!end.is(setShade)) continue;
-          const lines = [...end.value.entries()].filter(([line]) => line + 1 <= transaction.state.doc.lines).sort((first, builder) => first[0] - builder[0]);
+        for (const effect of transaction.effects) {
+          if (!effect.is(setShade)) continue;
+          const lines = [...effect.value.entries()].filter(([line]) => line + 1 <= transaction.state.doc.lines).sort((first, second) => first[0] - second[0]);
           const builder = new RangeSetBuilder();
           for (const [line, lineClass] of lines) builder.add(transaction.state.doc.line(line + 1).from, transaction.state.doc.line(line + 1).from, Decoration.line({ class: lineClass }));
           value = builder.finish();
@@ -297,13 +297,13 @@ Structra.codeView = (() => {
       create: () => Decoration.none,
       update(value, transaction) {
         value = value.map(transaction.changes);
-        for (const end of transaction.effects) {
-          if (!end.is(setError)) continue;
-          if (end.value === null || end.value >= transaction.state.doc.length) { value = Decoration.none; continue; }
-          const line = transaction.state.doc.lineAt(end.value);
+        for (const effect of transaction.effects) {
+          if (!effect.is(setError)) continue;
+          if (effect.value === null || effect.value >= transaction.state.doc.length) { value = Decoration.none; continue; }
+          const line = transaction.state.doc.lineAt(effect.value);
           value = Decoration.set([
             Decoration.line({ class: 'cv-error-line' }).range(line.from),
-            Decoration.mark({ class: 'cv-error' }).range(end.value, end.value + 1),
+            Decoration.mark({ class: 'cv-error' }).range(effect.value, effect.value + 1),
           ]);
         }
         return value;
@@ -384,8 +384,8 @@ Structra.codeView = (() => {
 
     // Escape closes an open suggestion list first. It must not also reach the app and close a panel.
     let listWasOpen = false;
-    host.addEventListener('keydown', (end) => { if (end.key === 'Escape') listWasOpen = completionStatus(view.state) === 'active'; }, true);
-    host.addEventListener('keydown', (end) => { if (end.key === 'Escape' && listWasOpen) { end.stopPropagation(); listWasOpen = false; } });
+    host.addEventListener('keydown', (event) => { if (event.key === 'Escape') listWasOpen = completionStatus(view.state) === 'active'; }, true);
+    host.addEventListener('keydown', (event) => { if (event.key === 'Escape' && listWasOpen) { event.stopPropagation(); listWasOpen = false; } });
 
     let big = initial.length > BIG_FOLD;
     const lineAt = (lineIndex) => view.state.doc.line(Math.max(1, Math.min(view.state.doc.lines, lineIndex + 1)));

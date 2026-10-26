@@ -19,7 +19,7 @@ Structra.personalDataMasker = (() => {
       return value.replace(/\d/g, (match) => (++seen <= total - 4 ? '*' : match));
     } },
     { type: 'uuid', regex: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, mask: () => '********-****-****-****-************' },
-    { type: 'ip', regex: /^(\d{1,3}\.){3}\d{1,3}$/, mask: value => value.split('.').map((pattern, i) => i < 2 ? pattern : '***').join('.') },
+    { type: 'ip', regex: /^(\d{1,3}\.){3}\d{1,3}$/, mask: value => value.split('.').map((part, i) => i < 2 ? part : '***').join('.') },
     { type: 'creditcard', regex: /^\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}$/, mask: value => '**** **** **** ' + value.replace(/[\s-]/g, '').slice(-4) },
   ];
 

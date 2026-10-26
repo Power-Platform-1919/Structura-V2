@@ -332,10 +332,10 @@ Structra.dataEngine = (() => {
 
     switch (callback) {
       case 'count': return values.length;
-      case 'sum': return values.reduce((first, second) => first + (Number(second) || 0), 0);
+      case 'sum': return values.reduce((total, item) => total + (Number(item) || 0), 0);
       case 'avg': {
         const numbers = values.filter(value => typeof value === 'number');
-        return numbers.length ? numbers.reduce((first, second) => first + second, 0) / numbers.length : null;
+        return numbers.length ? numbers.reduce((total, item) => total + item, 0) / numbers.length : null;
       }
       case 'min': {
         const numbers = values.filter(value => typeof value === 'number');
@@ -615,8 +615,8 @@ Structra.dataEngine = (() => {
         const objects = values.filter((value) => typeof value === 'object' && !Array.isArray(value));
         if (values.length && objects.length === values.length) {
           const children = [];
-          objects.forEach((object) => Object.keys(object).forEach((condition) => { if (!children.includes(condition) && !condition.startsWith('@') && (object[condition] === null || typeof object[condition] !== 'object')) children.push(condition); }));
-          children.slice(0, 8).forEach((condition) => columns.push(`${key}.${condition}`));
+          objects.forEach((object) => Object.keys(object).forEach((childKey) => { if (!children.includes(childKey) && !childKey.startsWith('@') && (object[childKey] === null || typeof object[childKey] !== 'object')) children.push(childKey); }));
+          children.slice(0, 8).forEach((childKey) => columns.push(`${key}.${childKey}`));
         } else if (!values.length || values.some((value) => typeof value !== 'object')) {
           columns.push(key);
         }
@@ -1001,8 +1001,8 @@ Structra.dataEngine = (() => {
 
   /** Get column names from DuckDB-registered dataset */
   function _getDuckColumnNames(dataset) {
-    if (dataset._duckColumns) return dataset._duckColumns.map(condition => condition.name);
-    if (dataset.indexes.columns) return dataset.indexes.columns.map(condition => condition.name);
+    if (dataset._duckColumns) return dataset._duckColumns.map(column => column.name);
+    if (dataset.indexes.columns) return dataset.indexes.columns.map(column => column.name);
     return [];
   }
 
@@ -1278,8 +1278,8 @@ Structra.dataEngine = (() => {
             if (value && typeof value === 'object') {
               const childPath = `${path}[*].${key}`;
               if (!result.some(known => known.path === childPath)) {
-                const sub = _allArrays(value, childPath, seen);
-                for (const subPath of sub) {
+                const subPaths = _allArrays(value, childPath, seen);
+                for (const subPath of subPaths) {
                   if (!result.some(known => known.path === subPath.path)) result.push(subPath);
                 }
               }
@@ -1289,8 +1289,8 @@ Structra.dataEngine = (() => {
       }
     } else if (object && typeof object === 'object') {
       for (const [key, value] of Object.entries(object)) {
-        const sub = _allArrays(value, path === '$' ? key : `${path}.${key}`, seen);
-        for (const subPath of sub) result.push(subPath);
+        const subPaths = _allArrays(value, path === '$' ? key : `${path}.${key}`, seen);
+        for (const subPath of subPaths) result.push(subPath);
       }
     }
     return result;
@@ -1521,50 +1521,50 @@ Structra.dataEngine = (() => {
     const fields = [];
     const coverage = [];
     let gaps = 0;
-    for (const condition of columns.values()) {
+    for (const column of columns.values()) {
       const types = {};
-      if (condition.nStr) types.string = condition.nStr;
-      if (condition.nNum) types.number = condition.nNum;
-      if (condition.nBool) types.boolean = condition.nBool;
-      if (condition.nNull) types.null = condition.nNull;
-      if (condition.nObj) types.object = condition.nObj;
-      if (condition.nArr) types.array = condition.nArr;
+      if (column.nStr) types.string = column.nStr;
+      if (column.nNum) types.number = column.nNum;
+      if (column.nBool) types.boolean = column.nBool;
+      if (column.nNull) types.null = column.nNull;
+      if (column.nObj) types.object = column.nObj;
+      if (column.nArr) types.array = column.nArr;
       const primaryType = Object.entries(types).sort((first, second) => second[1] - first[1])[0]?.[0] || 'unknown';
-      const unique = condition.freq.size + condition.uniq.size;
+      const unique = column.freq.size + column.uniq.size;
       const field = {
-        key: condition.key,
-        count: condition.present,
+        key: column.key,
+        count: column.present,
         total,
-        coverage: ((condition.present / total) * 100).toFixed(0),
-        nullPct: (((condition.present - condition.nonNull) / total) * 100).toFixed(0),
+        coverage: ((column.present / total) * 100).toFixed(0),
+        nullPct: (((column.present - column.nonNull) / total) * 100).toFixed(0),
         types,
         primaryType,
         unique,
-        uniqueCapped: condition.capped,
-        uniquePct: ((unique / Math.max(condition.nonNull, 1)) * 100).toFixed(0),
+        uniqueCapped: column.capped,
+        uniquePct: ((unique / Math.max(column.nonNull, 1)) * 100).toFixed(0),
       };
-      if (condition.nNum > 0) { field.min = condition.min; field.max = condition.max; field.avg = (condition.sum / condition.nNum).toFixed(2); }
-      if ((primaryType === 'string' || primaryType === 'boolean') && condition.freq.size) {
-        field.topValues = [...condition.freq.entries()].sort((first, second) => second[1] - first[1]).slice(0, 5).map(([key, value]) => ({ val: key, cnt: value }));
+      if (column.nNum > 0) { field.min = column.min; field.max = column.max; field.avg = (column.sum / column.nNum).toFixed(2); }
+      if ((primaryType === 'string' || primaryType === 'boolean') && column.freq.size) {
+        field.topValues = [...column.freq.entries()].sort((first, second) => second[1] - first[1]).slice(0, 5).map(([key, value]) => ({ val: key, cnt: value }));
       }
       // Value distribution for the stats view
-      if (condition.numericLike && condition.nums && condition.nums.length) {
-        field.histogram = _histogram(condition.nums);
-      } else if (condition.freq.size && condition.nonNull) {
-        field.distTop = [...condition.freq.entries()].sort((first, second) => second[1] - first[1]).slice(0, 8).map(([value, count]) => ({ value, count }));
-        field.distUnique = condition.freq.size;
+      if (column.numericLike && column.nums && column.nums.length) {
+        field.histogram = _histogram(column.nums);
+      } else if (column.freq.size && column.nonNull) {
+        field.distTop = [...column.freq.entries()].sort((first, second) => second[1] - first[1]).slice(0, 8).map(([value, count]) => ({ value, count }));
+        field.distUnique = column.freq.size;
       }
       fields.push(field);
 
       coverage.push({
-        key: condition.key,
-        present: condition.present,
-        missing: total - condition.present,
-        empty: condition.empty,
-        pct: Math.round((condition.present / total) * 100),
-        types: new Set(Object.keys(types).filter((valueType) => valueType !== 'null')),
+        key: column.key,
+        present: column.present,
+        missing: total - column.present,
+        empty: column.empty,
+        pct: Math.round((column.present / total) * 100),
+        types: new Set(Object.keys(types).filter((typeName) => typeName !== 'null')),
       });
-      gaps += total - condition.present;
+      gaps += total - column.present;
     }
 
     return { fields, rowCount: total, fieldCount: columns.size, quality: computeQuality(fields), coverage, gaps };
@@ -1579,32 +1579,32 @@ Structra.dataEngine = (() => {
   function computeQuality(fields) {
     if (!fields || fields.length === 0) return { overall: 100, completeness: 100, consistency: 100, uniqueness: 100, issues: [] };
 
-    const avgNull = fields.reduce((statistics, frame) => statistics + parseFloat(frame.nullPct), 0) / fields.length;
+    const avgNull = fields.reduce((total, field) => total + parseFloat(field.nullPct), 0) / fields.length;
     const completeness = Math.max(0, 100 - avgNull);
 
-    const consistentCount = fields.filter(frame => {
-      const typeKeys = Object.keys(frame.types).filter(valueType => valueType !== 'null');
+    const consistentCount = fields.filter(field => {
+      const typeKeys = Object.keys(field.types).filter(typeName => typeName !== 'null');
       return typeKeys.length <= 1;
     }).length;
     const consistency = (consistentCount / fields.length) * 100;
 
     // Only a column that is meant to differ in every record (an id, a key, an email) is judged on being unique: a Status has three values by design
     const idLike = (fieldName) => /(^|[^a-z])(id|guid|uuid|key|code|ref|reference|number|email|sku)$|id$/i.test(String(fieldName).split('.').pop());
-    const uniqFields = fields.filter(frame => (frame.primaryType === 'string' || frame.primaryType === 'number') && idLike(frame.key));
+    const uniqFields = fields.filter(field => (field.primaryType === 'string' || field.primaryType === 'number') && idLike(field.key));
     const uniqueness = uniqFields.length > 0
-      ? uniqFields.reduce((statistics, frame) => statistics + parseFloat(frame.uniquePct), 0) / uniqFields.length
+      ? uniqFields.reduce((total, field) => total + parseFloat(field.uniquePct), 0) / uniqFields.length
       : 100;
 
     const overall = Math.round(completeness * 0.4 + consistency * 0.35 + uniqueness * 0.25);
 
     const issues = [];
-    for (const frame of fields) {
-      const nullPercent = parseFloat(frame.nullPct);
-      if (nullPercent >= 30) issues.push({ field: frame.key, msg: `${nullPercent}% null`, severity: nullPercent >= 60 ? 'high' : 'med' });
-      const typeKeys = Object.keys(frame.types).filter(valueType => valueType !== 'null');
-      if (typeKeys.length > 1) issues.push({ field: frame.key, msg: `mixed types (${typeKeys.join(', ')})`, severity: 'high' });
-      if (idLike(frame.key) && (frame.primaryType === 'string' || frame.primaryType === 'number') && parseFloat(frame.uniquePct) < 90 && parseFloat(frame.coverage) > 50) {
-        issues.push({ field: frame.key, msg: `repeats: only ${frame.uniquePct}% of its values are different, but it looks like an identifier`, severity: 'med' });
+    for (const field of fields) {
+      const nullPercent = parseFloat(field.nullPct);
+      if (nullPercent >= 30) issues.push({ field: field.key, msg: `${nullPercent}% null`, severity: nullPercent >= 60 ? 'high' : 'med' });
+      const typeKeys = Object.keys(field.types).filter(typeName => typeName !== 'null');
+      if (typeKeys.length > 1) issues.push({ field: field.key, msg: `mixed types (${typeKeys.join(', ')})`, severity: 'high' });
+      if (idLike(field.key) && (field.primaryType === 'string' || field.primaryType === 'number') && parseFloat(field.uniquePct) < 90 && parseFloat(field.coverage) > 50) {
+        issues.push({ field: field.key, msg: `repeats: only ${field.uniquePct}% of its values are different, but it looks like an identifier`, severity: 'med' });
       }
     }
     issues.sort((first, second) => (first.severity === 'high' ? 0 : 1) - (second.severity === 'high' ? 0 : 1));
@@ -1902,7 +1902,7 @@ Structra.dataEngine = (() => {
       if (!isPlain(row)) return { value: row };
       const out = {};
       for (const [key, value] of Object.entries(row)) {
-        if (isPlain(value)) { for (const [condition, nestedValue] of Object.entries(value)) out[key + '.' + condition] = nestedValue; }
+        if (isPlain(value)) { for (const [nestedKey, nestedValue] of Object.entries(value)) out[key + '.' + nestedKey] = nestedValue; }
         else out[key] = value;
       }
       return out;

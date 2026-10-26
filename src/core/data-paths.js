@@ -70,9 +70,9 @@ Structra.dataPaths = (() => {
       if (!Array.isArray(node)) return undefined;
       const out = [];
       for (const item of node) {
-        const sub = _walk(item, tokens, at + 1);
-        if (sub === undefined) continue;
-        if (Array.isArray(sub)) out.push(...sub); else out.push(sub);
+        const subResults = _walk(item, tokens, at + 1);
+        if (subResults === undefined) continue;
+        if (Array.isArray(subResults)) out.push(...subResults); else out.push(subResults);
       }
       return out;
     }

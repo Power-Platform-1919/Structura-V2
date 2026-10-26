@@ -52,7 +52,7 @@ Structra.overviewInsights = (() => {
   }
 
   function build({ analysis, meta = {}, data, duplicateKeys = [] }) {
-    const { stats: stats, firstArr: firstArray, profile } = analysis;
+    const { stats, firstArr: firstArray, profile } = analysis;
     const findings = [];
 
     if (duplicateKeys.length) {
@@ -102,7 +102,7 @@ Structra.overviewInsights = (() => {
       });
     }
 
-    findings.sort((list, second) => SEVERITY_ORDER[list.severity] - SEVERITY_ORDER[second.severity]);
+    findings.sort((first, second) => SEVERITY_ORDER[first.severity] - SEVERITY_ORDER[second.severity]);
 
     // Lists that repeat inside every record (items[0].tags, items[1].tags ...) are one line, not dozens
     const groups = new Map();
@@ -115,7 +115,7 @@ Structra.overviewInsights = (() => {
       if (list.count > group.count) { group.count = list.count; group.path = list.path; }   // open the biggest one
       groups.set(pattern, group);
     }
-    const arrays = [...groups.values()].sort((list, second) => second.items - list.items).slice(0, 5);
+    const arrays = [...groups.values()].sort((first, second) => second.items - first.items).slice(0, 5);
 
     return {
       headline: describe(data, firstArray, profile),

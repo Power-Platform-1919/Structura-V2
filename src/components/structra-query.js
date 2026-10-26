@@ -40,9 +40,9 @@ class StructraQuery extends StructraComponent {
     this.on('tabs:switched', clear);
     this.on('tabs:closed', clear);
     this.on('engine:ingested', clear);
-    this.on('state:queryPanelOpen', (date) => {
-      Structra.log.info('Query', 'queryPanel ' + (date.value ? 'opened' : 'closed'));
-      this.classList.toggle('show', date.value);
+    this.on('state:queryPanelOpen', (isOpen) => {
+      Structra.log.info('Query', 'queryPanel ' + (isOpen.value ? 'opened' : 'closed'));
+      this.classList.toggle('show', isOpen.value);
     });
   }
 
@@ -70,7 +70,7 @@ class StructraQuery extends StructraComponent {
       </div>
       <div class="qp-tab-body" id="qpQueryBody">
         <div class="seg qp-modes">
-          ${modes.map(modeButton => `<button class="seg-btn ${modeButton === this._mode ? 'active' : ''}" type="button" data-mode="${modeButton}">${StructraQuery.MODE_NAMES[modeButton] || modeButton}</button>`).join('')}
+          ${modes.map(mode => `<button class="seg-btn ${mode === this._mode ? 'active' : ''}" type="button" data-mode="${mode}">${StructraQuery.MODE_NAMES[mode] || mode}</button>`).join('')}
         </div>
         <div class="qp-sql-examples" id="sqlExamples" hidden></div>
         <div class="qp-editor">
@@ -106,38 +106,38 @@ class StructraQuery extends StructraComponent {
     this.on('state:jsonData', () => this._renderTransformPresets());
     this.on('engine:ingested', () => this._renderTransformPresets());
 
-    this.addEventListener('click', (exampleItem) => {
-      const tab = exampleItem.target.closest('[data-qtab]');
+    this.addEventListener('click', (event) => {
+      const tab = event.target.closest('[data-qtab]');
       if (tab) {
         this._switchTab(tab.dataset.qtab);
         return;
       }
-      const copy = exampleItem.target.closest('[data-copy-expr]');
+      const copy = event.target.closest('[data-copy-expr]');
       if (copy) {
-        exampleItem.stopPropagation();
+        event.stopPropagation();
         const path = copy.closest('.qp-result').dataset.path;
         const expression = copy.dataset.copyExpr === 'pa' ? Structra.dataPaths.powerAutomate(path) : Structra.dataPaths.powerFx(path);
         Structra.sharedHelpers.copyToClipboard(expression, copy.dataset.copyExpr === 'pa' ? 'Power Automate expression copied' : 'Power Fx expression copied');
         return;
       }
-      const match = exampleItem.target.closest('.qp-result[data-path]');
+      const match = event.target.closest('.qp-result[data-path]');
       if (match) { this._showMatch(match.dataset.path); return; }
-      if (exampleItem.target.closest('[data-action="openPivot"]')) { Structra.events.emit('pivot:open'); return; }
-      const preset = exampleItem.target.closest('[data-preset]');
+      if (event.target.closest('[data-action="openPivot"]')) { Structra.events.emit('pivot:open'); return; }
+      const preset = event.target.closest('[data-preset]');
       if (preset) {
         this.queryOne('#transformInput').value = preset.dataset.preset;
         this._runTransform();                       // a preset is a ready-made answer: it runs at once
         return;
       }
-      const example = exampleItem.target.closest('[data-sql-example]');
+      const example = event.target.closest('[data-sql-example]');
       if (example) {                                    // a ready-made query runs at once
         this._sqlSet(example.dataset.sqlExample);
         this._runQuery();
         return;
       }
-      const column = exampleItem.target.closest('[data-sql-col]');
+      const column = event.target.closest('[data-sql-col]');
       if (column) { this._insertAtCursor(column.dataset.sqlCol); return; }
-      const mode = exampleItem.target.closest('[data-mode]');
+      const mode = event.target.closest('[data-mode]');
       if (mode) {
         const changed = mode.dataset.mode !== this._mode;
         this._mode = mode.dataset.mode;
@@ -146,7 +146,7 @@ class StructraQuery extends StructraComponent {
         if (changed) this._resetResults();                 // the old result belongs to the mode that made it
         return;
       }
-      const action = exampleItem.target.closest('[data-action]');
+      const action = event.target.closest('[data-action]');
       if (!action) return;
       if (action.dataset.action === 'close') Structra.setState('queryPanelOpen', false);
       else if (action.dataset.action === 'run') this._runQuery();
@@ -161,24 +161,24 @@ class StructraQuery extends StructraComponent {
     });
 
     // The other modes use this plain box: Enter runs, Shift+Enter starts a new line (SQL has its own editor)
-    this.queryOne('#queryInput').addEventListener('keydown', (example) => {
-      if (example.key === 'Enter' && !example.shiftKey) {
-        example.preventDefault();
+    this.queryOne('#queryInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
         this._runQuery();
       }
     });
-    this.queryOne('#sqlHistory').addEventListener('change', (example) => {
-      if (example.target.value === '') return;
-      this._sqlSet(this._sqlHistory()[Number(example.target.value)] || '');
-      example.target.value = '';
+    this.queryOne('#sqlHistory').addEventListener('change', (event) => {
+      if (event.target.value === '') return;
+      this._sqlSet(this._sqlHistory()[Number(event.target.value)] || '');
+      event.target.value = '';
     });
     // A different file has different columns
     const reloadSchema = () => { if (this._mode === 'sql' && this.classList.contains('show')) this._loadSqlSchema(); };
     this.on('tabs:switched', reloadSchema);
     this.on('engine:ingested', reloadSchema);
-    this.queryOne('#transformInput').addEventListener('keydown', (example) => {
-      if (example.key === 'Enter' && (example.ctrlKey || example.metaKey)) {
-        example.preventDefault();
+    this.queryOne('#transformInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
         this._runTransform();
       }
     });
@@ -190,7 +190,7 @@ class StructraQuery extends StructraComponent {
     const title = this.queryOne('.panel-title');
     if (title) title.textContent = tab === 'transform' ? 'Transform' : 'Query and Transform';
     Structra.events.emit('query:tab-switched', tab);
-    this.querySelectorAll('.tabs .tab').forEach(type => type.classList.toggle('active', type.dataset.qtab === tab));
+    this.querySelectorAll('.tabs .tab').forEach(tabButton => tabButton.classList.toggle('active', tabButton.dataset.qtab === tab));
     this.queryOne('#qpQueryBody').hidden = tab !== 'query';
     this.queryOne('#qpTransformBody').hidden = tab !== 'transform';
   }
@@ -247,8 +247,8 @@ class StructraQuery extends StructraComponent {
     const container = this.queryOne('#transformPresets');
     if (!container) return;
     const { presets, example } = this._transformPresets();
-    container.innerHTML = presets.map(path =>
-      `<button class="qp-preset-btn" type="button" data-preset="${Structra.sharedHelpers.escapeHtml(path.expr)}" title="${Structra.sharedHelpers.escapeHtml(path.expr)}">${Structra.sharedHelpers.escapeHtml(path.label)}</button>`
+    container.innerHTML = presets.map(preset =>
+      `<button class="qp-preset-btn" type="button" data-preset="${Structra.sharedHelpers.escapeHtml(preset.expr)}" title="${Structra.sharedHelpers.escapeHtml(preset.expr)}">${Structra.sharedHelpers.escapeHtml(preset.label)}</button>`
     ).join('');
     const input = this.queryOne('#transformInput');
     if (input) input.placeholder = `Steps joined with |\nExample: ${example}`;
@@ -538,21 +538,21 @@ class StructraQuery extends StructraComponent {
 
   _renderSqlResult(result) {
     const results = this.queryOne('#queryResults');
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const { cols: columns, kinds, plain: rows } = result.table;
     const shown = rows.slice(0, StructraQuery.SQL_SHOW_ROWS);
     const milliseconds = result.duration < 1000 ? Math.round(result.duration) + ' ms' : (result.duration / 1000).toFixed(1) + ' s';
     let note = `${rows.length.toLocaleString()}${result.truncated ? '+' : ''} ${rows.length === 1 ? 'row' : 'rows'} in ${milliseconds}`;
     if (result.truncated) note += `. Only the first ${rows.length.toLocaleString()} rows were read. Add a WHERE or LIMIT to narrow it.`;
     else if (rows.length > shown.length) note += `. The first ${shown.length.toLocaleString()} are shown below; copy or open the result to get them all.`;
-    if (!columns.length) { results.innerHTML = `<div class="qp-summary">The query ran and returned no rows (${esc(milliseconds)}).</div>`; return; }
-    const head = columns.map((column) => `<th title="${esc(column)}">${esc(column)}</th>`).join('');
+    if (!columns.length) { results.innerHTML = `<div class="qp-summary">The query ran and returned no rows (${escapeHtml(milliseconds)}).</div>`; return; }
+    const head = columns.map((column) => `<th title="${escapeHtml(column)}">${escapeHtml(column)}</th>`).join('');
     const body = shown.map((row, i) => `<tr><td class="qp-sql-n">${i + 1}</td>${row.map((value, index) => {
       if (value === null) return '<td class="qp-sql-null">NULL</td>';
       const text = this._cellText(value, kinds[index]);
-      return `<td${kinds[index].numeric ? ' class="qp-sql-num"' : ''} title="${esc(text.length > 300 ? text.slice(0, 300) + '…' : text)}">${esc(text.length > 120 ? text.slice(0, 120) + '…' : text)}</td>`;
+      return `<td${kinds[index].numeric ? ' class="qp-sql-num"' : ''} title="${escapeHtml(text.length > 300 ? text.slice(0, 300) + '…' : text)}">${escapeHtml(text.length > 120 ? text.slice(0, 120) + '…' : text)}</td>`;
     }).join('')}</tr>`).join('');
-    results.innerHTML = `<div class="qp-summary">${esc(note)}</div>
+    results.innerHTML = `<div class="qp-summary">${escapeHtml(note)}</div>
       <div class="qp-actions">
         <button class="btn btn-sm" type="button" data-action="sqlOpen">Open as a table in a new tab</button>
         <button class="btn btn-sm btn-ghost" type="button" data-action="sqlCopy">Copy as JSON</button>
@@ -643,20 +643,20 @@ class StructraQuery extends StructraComponent {
     // Every match is marked in the Tree, and the clicked one is brought into view
     setTimeout(() => {
       const view = document.getElementById('jsonView');
-      const all = (this._lastMatches || []).map((modeButton) => modeButton.path).filter((path) => typeof path === 'string' && path.startsWith('$'));
+      const all = (this._lastMatches || []).map((match) => match.path).filter((path) => typeof path === 'string' && path.startsWith('$'));
       if (view && all.length) Structra.jsonTreeRenderer.highlightPaths(view, all);
       Structra.events.emit('tree:navigate-path', path);
     }, 60);
   }
 
   _copyMatches() {
-    const values = (this._lastMatches || []).map((modeButton) => modeButton.value);
+    const values = (this._lastMatches || []).map((match) => match.value);
     Structra.sharedHelpers.copyToClipboard(JSON.stringify(values, null, 2), `${values.length} ${values.length === 1 ? 'value' : 'values'} copied`);
   }
 
   _openMatches() {
     const command = document.querySelector('structra-command');
-    const values = (this._lastMatches || []).map((modeButton) => modeButton.value);
+    const values = (this._lastMatches || []).map((match) => match.value);
     if (!command || !values.length) return;
     const name = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '') + ' (query)';
     command._openInNewTab(values, name).then((opened) => { if (opened) Structra.toast('Matches opened in a new tab'); });
@@ -670,7 +670,7 @@ class StructraQuery extends StructraComponent {
     try { expression = new RegExp(source, 'i'); }
     catch (error) { throw new Error('That is not a valid pattern: ' + error.message.replace(/^Invalid regular expression: /, '')); }
     const walk = (value, path) => {
-      if (typeof value === 'string' && expression.test(value)) matches.push({ path, value: value });
+      if (typeof value === 'string' && expression.test(value)) matches.push({ path, value });
       if (value && typeof value === 'object') {
         const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
         entries.forEach(([field, child]) => {

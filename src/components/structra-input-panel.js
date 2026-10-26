@@ -451,8 +451,8 @@ class StructraInputPanel extends StructraComponent {
     if (head.startsWith('%PDF-')) return 'a PDF document';
     if (head.startsWith('PK\u0003\u0004')) return 'a zip file, an Excel workbook (.xlsx) or a Word document';
     if (head.includes('\u0000')) return 'a binary file';
-    const bad = (head.match(/�/g) || []).length;
-    if (head.length > 200 && bad / head.length > 0.05) return 'a binary file';
+    const badCharacters = (head.match(/�/g) || []).length;
+    if (head.length > 200 && badCharacters / head.length > 0.05) return 'a binary file';
     return '';
   }
 
@@ -898,13 +898,13 @@ class StructraInputPanel extends StructraComponent {
 
   _showError(message, rawText, title) {
     const element = this.queryOne('[data-role="error"]');
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const kind = (/^(\w+) parse error/i.exec(message) || [])[1] || 'JSON';
     const { detail, where } = this._explainError(message, rawText);
     const canRepair = !!rawText && /^json$/i.test(kind);
     element.innerHTML = `
-      <div class="io-error-title">${esc(title || 'This is not valid ' + kind)}</div>
-      <div class="io-error-detail">${esc(detail)}${where ? ' ' + esc(where) : ''}</div>
+      <div class="io-error-title">${escapeHtml(title || 'This is not valid ' + kind)}</div>
+      <div class="io-error-detail">${escapeHtml(detail)}${where ? ' ' + escapeHtml(where) : ''}</div>
       ${canRepair ? `<div class="io-error-actions">
         <button class="io-btn-repair" data-action="repair">${Structra.icons.svg('wrench', { size: 14 })} Fix it for me</button>
         <span class="io-error-hint">Fixes trailing commas, single quotes, comments and True, False or None.</span>
@@ -919,7 +919,7 @@ class StructraInputPanel extends StructraComponent {
           Structra.toast('Fixed: the data now opens');
           this._loadSuccess(data, fixed, 'Repaired JSON');
         } catch (error) {
-          element.innerHTML = `<div class="io-error-title">It could not be fixed automatically</div><div class="io-error-detail">${esc(this._explainError(error.message, rawText).detail)}</div>`;
+          element.innerHTML = `<div class="io-error-title">It could not be fixed automatically</div><div class="io-error-detail">${escapeHtml(this._explainError(error.message, rawText).detail)}</div>`;
         }
       });
     }

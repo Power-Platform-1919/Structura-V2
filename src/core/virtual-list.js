@@ -181,7 +181,7 @@ Structra.virtualList = (() => {
       }, { root: scrollRoot, rootMargin: `${offscreenPx}px` });
 
       // Observe existing sentinels and chunks
-      container.querySelectorAll('.vl-sentinel').forEach(startIndex => _loadObserver.observe(startIndex));
+      container.querySelectorAll('.vl-sentinel').forEach(sentinel => _loadObserver.observe(sentinel));
       container.querySelectorAll('.vl-chunk').forEach(element => {
         if (parseInt(element.dataset.vlTotal) > chunkSize) _recycleObserver.observe(element);
       });

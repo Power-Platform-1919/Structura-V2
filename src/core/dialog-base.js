@@ -57,12 +57,12 @@ class StructraDialog extends StructraComponent {
    * @param {{ title: string, body?: string, foot?: string, head?: string, size?: string }} spec
    */
   mount({ title, body = '', foot = '', head = '', size = 'md' }) {
-    const esc = Structra.sharedHelpers.escapeHtml;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     this.innerHTML = `
       <div class="ov" role="presentation">
-        <section class="ov-box ov-${size}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+        <section class="ov-box ov-${size}" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
           <header class="ov-head">
-            <h2 class="ov-title">${esc(title)}</h2>
+            <h2 class="ov-title">${escapeHtml(title)}</h2>
             ${head}
             <button class="ov-close btn-icon btn" type="button" data-ov-close aria-label="Close">
               ${Structra.icons.svg('x', { size: 2 })}

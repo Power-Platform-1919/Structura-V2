@@ -119,7 +119,7 @@ class StructraEditor extends StructraComponent {
     this._box.clearError();
     this._dirty = true;
     const id = Structra.tabs.activeId;
-    const tab = Structra.tabs.list.find((text) => text.id === id);
+    const tab = Structra.tabs.list.find((candidate) => candidate.id === id);
     if (tab && !tab.draft) { tab.draft = true; Structra.events.emit('tabs:changed'); }
     this._dataOf.set(id, Structra.state.jsonData);
     // The text itself is read later (when checking, or when the tab is left): reading it on every key would copy it each time
@@ -133,7 +133,7 @@ class StructraEditor extends StructraComponent {
   _dropDraft(id) {
     this._drafts.delete(id);
     this._dataOf.delete(id);
-    const tab = Structra.tabs.list.find((text) => text.id === id);
+    const tab = Structra.tabs.list.find((candidate) => candidate.id === id);
     if (tab && tab.draft) { tab.draft = false; Structra.events.emit('tabs:changed'); }
   }
 
@@ -343,7 +343,7 @@ class StructraEditor extends StructraComponent {
       this._dirty = false;
       Structra.setState('jsonData', data);
       Structra.undoStack.push(data, 'Edited in the Editor', tabId);
-      const tab = Structra.tabs.list.find((text) => text.id === tabId);
+      const tab = Structra.tabs.list.find((candidate) => candidate.id === tabId);
       if (tab) { tab.modified = true; Structra.events.emit('tabs:changed'); }
       Structra.toast('Changes applied. Ctrl+Z (outside this box) undoes them.');
     } catch (error) {

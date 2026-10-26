@@ -109,7 +109,7 @@ class StructraStatus extends StructraComponent {
     const duplicates = Structra.state.duplicateKeys || [];
     element.hidden = duplicates.length === 0;
     element.textContent = duplicates.length + ' duplicate key' + (duplicates.length === 1 ? '' : 's');
-    element.title = duplicates.slice(0, 20).map((x) => x.path + ' (line ' + x.line + ')').join('\n');
+    element.title = duplicates.slice(0, 20).map((duplicate) => duplicate.path + ' (line ' + duplicate.line + ')').join('\n');
   }
 
   _updatePath() {

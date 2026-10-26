@@ -82,19 +82,19 @@ class StructraMinimap extends StructraComponent {
     const lines = [];
     const walk = (value, depth) => {
       if (depth > 30) return; // Safety
-      if (value === null) { lines.push({ depth: depth, type: 'null', density: 0.2 }); return; }
+      if (value === null) { lines.push({ depth, type: 'null', density: 0.2 }); return; }
       if (typeof value !== 'object') {
         const length = typeof value === 'string' ? Math.min(value.length / 100, 1) : 0.3;
-        lines.push({ depth: depth, type: typeof value, density: length });
+        lines.push({ depth, type: typeof value, density: length });
         return;
       }
       if (Array.isArray(value)) {
-        lines.push({ depth: depth, type: 'array', density: Math.min(value.length / 50, 1) });
+        lines.push({ depth, type: 'array', density: Math.min(value.length / 50, 1) });
         // Show first 200 items
         const limit = Math.min(value.length, 200);
         for (let i = 0; i < limit; i++) walk(value[i], depth + 1);
       } else {
-        lines.push({ depth: depth, type: 'object', density: Math.min(Object.keys(value).length / 20, 1) });
+        lines.push({ depth, type: 'object', density: Math.min(Object.keys(value).length / 20, 1) });
         for (const key of Object.keys(value)) walk(value[key], depth + 1);
       }
     };
