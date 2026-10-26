@@ -58,7 +58,7 @@ function serve() {
     await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
     await page.keyboard.press('Escape');
     await load('one.json', JSON.stringify({ user: { name: 'Ann', tags: ['a', 'b'] }, count: 3 }));
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     await page.waitForTimeout(500);
 
     // Arrow keys move the selection, Left folds, Right unfolds, Enter selects
@@ -81,7 +81,7 @@ function serve() {
     if (!lv) failures.push('the 1 2 3 buttons should be labelled Levels');
 
     // a single object becomes a Field and Value table
-    await page.evaluate(() => Structra.set('activeView', 'table'));
+    await page.evaluate(() => Structra.setState('activeView', 'table'));
     await page.waitForTimeout(600);
     const heads = await page.evaluate(() => [...document.querySelectorAll('structra-table thead th')].map((t) => t.textContent.trim()));
     if (heads.join() !== 'Field,Value') failures.push('a single object should show Field and Value columns: ' + heads.join());

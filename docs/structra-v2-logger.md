@@ -1,7 +1,7 @@
 # Structra V2 Logger
 
 ## File: `src/core/logger.js`
-- Loaded FIRST in index.html (before base.js, state.js)
+- Loaded FIRST in index.html (before component-base.js, app-state-and-events.js)
 - 3 modes: `dev` (all logs), `normal` (info/warn/error), `off` (errors only)
 - Persisted in localStorage key `structra-log-mode`
 - Console toggle: `Structra.log.setMode('dev')`

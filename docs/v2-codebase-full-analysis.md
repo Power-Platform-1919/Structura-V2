@@ -34,11 +34,11 @@ JsonAnalyzerV2/
 ├── src/
 │   ├── app.js                 (App bootstrap)
 │   ├── core/                  (Foundation)
-│   │   ├── base.js            (StructraElement base class)
+│   │   ├── component-base.js            (StructraComponent base class)
 │   │   ├── constants.js       (Config, shortcuts, view definitions)
 │   │   ├── dom-shim.js        (V1 json-view.js compatibility layer)
 │   │   ├── logger.js          (Centralized logging system)
-│   │   ├── state.js           (Global state + event bus)
+│   │   ├── app-state-and-events.js           (Global state + event bus)
 │   │   └── worker-pool.js     (Generic worker pool factory)
 │   ├── components/            (21 Web Components)
 │   │   ├── structra-canvas-header.js
@@ -137,8 +137,8 @@ JsonAnalyzerV2/
 
 **Phase 0: Foundation (Core)**
 1. `src/core/logger.js` - Centralized logging
-2. `src/core/base.js` - StructraElement base class
-3. `src/core/state.js` - Global state + event bus
+2. `src/core/component-base.js` - StructraComponent base class
+3. `src/core/app-state-and-events.js` - Global state + event bus
 4. `src/workers/json-parse-worker.js` - JSON parser worker
 5. `src/workers/xml-parse-worker.js` - XML parser worker
 6. `src/libs/papaparse.min.js` - CSV parsing library
@@ -147,7 +147,7 @@ JsonAnalyzerV2/
 9. `src/core/worker-pool.js` - Generic worker pool factory
 10. `src/core/dom-shim.js` - DOM compatibility layer
 11. `src/utils/path.js` - Path utilities
-12. `src/core/constants.js` - Config & constants
+12. `src/core/app-constants.js` - Config & constants
 
 **Phase 1: Shell Components** (UI frame)
 13. `src/components/structra-toast.js`
@@ -193,9 +193,9 @@ JsonAnalyzerV2/
 | File | Purpose | Key Export |
 |------|---------|-----------|
 | `src/core/logger.js` | Centralized logging system with dev/normal/off modes | `Structra.log` methods |
-| `src/core/base.js` | Base class for all Web Components (~30 lines) | `StructraElement` class |
-| `src/core/state.js` | Global state management + event bus | `Structra.events`, `Structra.state` |
-| `src/core/constants.js` | App configuration, shortcuts, view/rail definitions | `Structra.constants` |
+| `src/core/component-base.js` | Base class for all Web Components (~30 lines) | `StructraComponent` class |
+| `src/core/app-state-and-events.js` | Global state management + event bus | `Structra.events`, `Structra.state` |
+| `src/core/app-constants.js` | App configuration, shortcuts, view/rail definitions | `Structra.constants` |
 | `src/core/worker-pool.js` | Generic worker pool for offloading heavy parsing | `Structra.createWorkerPool()` |
 | `src/core/dom-shim.js` | Compatibility layer for V1 json-view.js | `window.App.dom` utilities |
 | `src/workers/json-parse-worker.js` | Web Worker: JSON parsing with Transferable ArrayBuffer support | Self-executing worker |
@@ -341,8 +341,8 @@ These exist in the workspace but are **NOT** loaded via script tags. They're lik
 
 **CORE:**
 - **logger.js** → Persistent logging system, 4 modes (dev/normal/off), console-accessible
-- **base.js** → ~30-line StructraElement base class with connectedCallback, _readProps, render pattern
-- **state.js** → Event bus (on/off/emit), state management, tabs tracking
+- **component-base.js** → ~30-line StructraComponent base class with connectedCallback, _readProps, render pattern
+- **app-state-and-events.js** → Event bus (on/off/emit), state management, tabs tracking
 - **constants.js** → 8 MAX_TABS, VIEWS, RAIL_ITEMS, DRAWER_STATES, SHORTCUTS, QUERY_MODES
 - **worker-pool.js** → Generic worker pool factory with queue, timeouts, Transferable ArrayBuffer support
 - **dom-shim.js** → window.App.dom utilities ($, esc, toast, loading controls for json-view.js compatibility)

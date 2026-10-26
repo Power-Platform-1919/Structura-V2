@@ -107,9 +107,9 @@ function serve() {
     await page.evaluate(() => Structra.events.emit('tabs:add'));
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     const expected = await page.evaluate(() => { let n = 0; const walk = (v) => { if (v && typeof v === 'object') Object.values(v).forEach(walk); else if (typeof v === 'string' && /contoso/i.test(v)) n++; }; walk(Structra.state.jsonData); return n; });
-    await page.evaluate(() => Structra.set('findBarOpen', true));
+    await page.evaluate(() => Structra.setState('findBarOpen', true));
     await page.locator('#findInput').fill('contoso');
     await page.keyboard.press('Enter');
     await page.waitForTimeout(900);
@@ -117,7 +117,7 @@ function serve() {
     if (found.count !== expected + ' found') failures.push('Find should count every matching value (' + expected + '): "' + found.count + '"');
     if (found.lit < 1) failures.push('the matching lines should be highlighted in the Tree');
     if (found.visible <= found.lit) failures.push('the lines around a match (its record) should stay visible: ' + JSON.stringify(found));
-    await page.evaluate(() => Structra.set('findBarOpen', false));
+    await page.evaluate(() => Structra.setState('findBarOpen', false));
 
     // ---- Workspace: all open tabs are saved, and importing opens them as new tabs ----
     const snap = await page.evaluate(() => document.querySelector('structra-workspace')._tabsSnapshot().map((t) => t.label));
@@ -133,7 +133,7 @@ function serve() {
     if (after.length !== tabCount + 2 || !after.includes('One') || !after.includes('Two')) failures.push('importing should add the two saved tabs and keep the open ones: ' + after.join(', '));
 
     // ---- Share link: keeps the file name, stays in the address bar after opening ----
-    const link = await page.evaluate(async () => (await Structra.share.createUrl({ k: [1, 2, 3] }, 'orders.json')).url);
+    const link = await page.evaluate(async () => (await Structra.shareLink.createUrl({ k: [1, 2, 3] }, 'orders.json')).url);
     await page.goto('about:blank');
     await page.goto(link);
     await page.waitForTimeout(2000);
@@ -147,7 +147,7 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => { Structra.set('currentPath', '$.value[0].Title'); });
+    await page.evaluate(() => { Structra.setState('currentPath', '$.value[0].Title'); });
     await page.locator('structra-header [data-action="bookmark"]').click();
     await page.waitForTimeout(200);
     if ((await page.locator('#bmCount').textContent()) !== '1') failures.push('the bookmark button should show a count of 1');
@@ -165,9 +165,9 @@ function serve() {
     await page.mouse.move(bar.x + 40, bar.y - 90, { steps: 5 });
     await page.mouse.up();
     const dragged = await page.evaluate(() => Math.round(document.querySelector('structra-drawer').offsetHeight));
-    await page.evaluate(() => { Structra.set('drawerState', 'collapsed'); });
+    await page.evaluate(() => { Structra.setState('drawerState', 'collapsed'); });
     await page.waitForTimeout(200);
-    await page.evaluate(() => { Structra.set('drawerState', 'medium'); });
+    await page.evaluate(() => { Structra.setState('drawerState', 'medium'); });
     await page.waitForTimeout(300);
     const again = await page.evaluate(() => Math.round(document.querySelector('structra-drawer').offsetHeight));
     if (Math.abs(again - dragged) > 4) failures.push('the drawer should reopen at the height it was dragged to (' + dragged + '): ' + again);
@@ -179,7 +179,7 @@ function serve() {
     await page.waitForTimeout(1500);
     const tabNow = await page.evaluate(() => (document.querySelector('.drawer-tabs .tab.active') || {}).dataset.tab);
     if (tabNow !== 'analyze') failures.push('a newly opened document should start on the Analyze tab, the drawer is on: ' + tabNow);
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     for (let i = 0; i < 3; i++) {
       await page.evaluate(() => { const other = Structra.tabs.list.find((x) => x.id !== Structra.tabs.activeId); document.querySelector('structra-tabs')._switchTab(other.id); });
       await page.waitForTimeout(600);
@@ -201,7 +201,7 @@ function serve() {
     await page.keyboard.press('Escape');
 
     // ---- Wrap says what it did, the theme editor has one set of buttons, the URL tab explains itself ----
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     await page.locator('structra-canvas-header [data-action="wrap"]').click();
     await page.waitForTimeout(300);
     const wrap = await page.evaluate(() => ({ pressed: document.querySelector('structra-canvas-header [data-action="wrap"]').getAttribute('aria-pressed'), cls: document.querySelector('#jsonView').classList.contains('wrap-mode'), toast: document.querySelector('structra-toast').textContent }));
@@ -213,7 +213,7 @@ function serve() {
     const foot = await page.evaluate(() => document.querySelector('structra-theme .ov-foot').hidden);
     if (!foot) failures.push('while a theme is being edited there should be no second Done button');
     await page.keyboard.press('Escape');
-    const hc = await page.evaluate(() => Structra.theme.contrast(Structra.theme.get('high-contrast').colors.border, Structra.theme.get('high-contrast').colors.bg));
+    const hc = await page.evaluate(() => Structra.themeEngine.contrast(Structra.themeEngine.get('high-contrast').colors.border, Structra.themeEngine.get('high-contrast').colors.bg));
     if (hc < 7) failures.push('the High Contrast border should contrast strongly with the background (7:1), it is ' + hc.toFixed(1));
     await page.evaluate(() => Structra.events.emit('input:show-tab', 'url'));
     const help = await page.evaluate(() => (document.querySelector('.io-url-help') || {}).textContent || '');
@@ -227,7 +227,7 @@ function serve() {
     }));
     if (a11y.reachable) failures.push('closed dialogs should not be reachable: ' + a11y.reachable);
     if (a11y.selected !== 1 || a11y.bare) failures.push('exactly one drawer tab should be selected and all should say so: ' + JSON.stringify(a11y));
-    await page.evaluate(() => Structra.set('activeView', 'graph'));
+    await page.evaluate(() => Structra.setState('activeView', 'graph'));
     await page.waitForTimeout(500);
     const node = await page.evaluate(() => { const g = document.querySelector('.graph-svg g[data-path]'); return g ? { role: g.getAttribute('role'), label: g.getAttribute('aria-label') } : null; });
     if (!node || node.role !== 'button' || !node.label) failures.push('graph nodes should be buttons with a name: ' + JSON.stringify(node));
@@ -238,14 +238,14 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     const ask = async (mode, text) => {
-      await page.evaluate(() => Structra.set('findBarOpen', true));
+      await page.evaluate(() => Structra.setState('findBarOpen', true));
       await page.locator(`.fb-mode[data-mode="${mode}"]`).click();
       await page.locator('#findInput').fill(text);
       await page.locator('#findInput').press('Enter');
       await page.waitForTimeout(700);
-      return page.evaluate(() => ({ count: document.querySelector('#findCount').textContent, lit: document.querySelectorAll('.j-line.find-match').length, sql: Structra.engine.duckReady }));
+      return page.evaluate(() => ({ count: document.querySelector('#findCount').textContent, lit: document.querySelectorAll('.j-line.find-match').length, sql: Structra.dataEngine.duckReady }));
     };
     let fz = await ask('fuzzy', 'Laptp refresh');
     if (fz.count !== '1 found' || fz.lit < 1) failures.push('Fuzzy "Laptp refresh" should find the Laptop refresh title and mark it: ' + JSON.stringify(fz));
@@ -256,10 +256,10 @@ function serve() {
     fz = await ask('text', '(');
     if (fz.count === 'Error') failures.push('searching for the text "(" should not fail');
     if (fz.sql) failures.push('Find should not start the SQL engine');
-    await page.evaluate(() => Structra.set('findBarOpen', false));
+    await page.evaluate(() => Structra.setState('findBarOpen', false));
 
     // ---- Recent: contents can be switched off, and an address is remembered with its headers (never credentials) ----
-    await page.evaluate(() => { Structra.settings.set('keepRecentContent', false); localStorage.removeItem('structra_recent'); });
+    await page.evaluate(() => { Structra.appSettings.set('keepRecentContent', false); localStorage.removeItem('structra_recent'); });
     await page.evaluate(() => Structra.events.emit('tabs:add'));
     await page.waitForTimeout(300);
     await page.evaluate(() => { const p = document.querySelector('structra-input-panel'); p._pendingRequest = { url: 'https://example.com/data.json', method: 'GET', headers: { Accept: 'application/json' } }; return p._saveRecent('data.json', '{"k": 1}', 8); });
@@ -272,11 +272,11 @@ function serve() {
     await page.waitForTimeout(300);
     const filled = await page.evaluate(() => ({ url: document.querySelector('[data-role="api-url"]').value, hdr: [...document.querySelectorAll('.io-kv-key')].map((i) => i.value).join() }));
     if (filled.url !== 'https://example.com/data.json' || !/Accept/.test(filled.hdr)) failures.push('clicking a remembered address should fill in the Load URL tab: ' + JSON.stringify(filled));
-    await page.evaluate(() => Structra.settings.set('keepRecentContent', true));
+    await page.evaluate(() => Structra.appSettings.set('keepRecentContent', true));
 
     // ---- Starting SQL says what the wait is ----
     await page.evaluate(() => { window.__msgs = []; Structra.events.on('loading:show', (m) => window.__msgs.push(String(m))); });
-    await page.evaluate(() => Structra.engine.enableSql());
+    await page.evaluate(() => Structra.dataEngine.enableSql());
     const msgs = await page.evaluate(() => window.__msgs.join(' | '));
     if (!/Preparing the SQL engine \(first use only\)/.test(msgs)) failures.push('starting SQL should say it is preparing the engine: ' + msgs);
   } catch (err) {

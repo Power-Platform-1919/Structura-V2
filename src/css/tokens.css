@@ -4,7 +4,7 @@
 
    Themes only set the BASE colours (the ones marked "base").
    Everything else is derived from them with color-mix(), so a custom
-   theme needs about 17 values. Structra.theme (src/core/theme.js) writes
+   theme needs about 17 values. Structra.themeEngine (src/core/theme-engine.js) writes
    the base values onto :root; the defaults below are the two built-in
    themes so the first paint is already correct.
    ============================================================ */
@@ -116,7 +116,7 @@
   --syn-number: #b45309;
   --syn-boolean: #1c6fd1;
   --syn-null: #8a94a8;
-  --text-on-accent: #ffffff;       /* chosen by Structra.theme from the accent's brightness */
+  --text-on-accent: #ffffff;       /* chosen by Structra.themeEngine from the accent's brightness */
 
   /* ===== DERIVED COLOURS (do not set in themes) ===== */
   --bg-alt: color-mix(in srgb, var(--bg) 70%, var(--surface));

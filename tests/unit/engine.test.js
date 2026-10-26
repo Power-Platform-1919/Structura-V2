@@ -1,7 +1,7 @@
 const { load, test, eq, truthy } = require('./harness');
-Structra.duckdb = undefined;                 // no SQL engine here: the JavaScript path is the one under test
-load(['util', 'paths', 'engine']);
-const E = Structra.engine;
+Structra.duckdbAdapter = undefined;                 // no SQL engine here: the JavaScript path is the one under test
+load(['shared-helpers', 'data-paths', 'data-engine']);
+const E = Structra.dataEngine;
 
 console.log('engine analysis');
 
@@ -75,10 +75,10 @@ test('a list of plain values has no list of objects', async () => {
 console.log('sorting, replacing and odd column names');
 
 test('values sort like a spreadsheet: capitals ignored, numbers inside text in natural order, mixed kinds grouped', () => {
-  const sorted = ['pear', 'Apple', 'banana', 'apple', 'Cherry', 'item 10', 'item 2'].sort(Structra.util.compareValues);
+  const sorted = ['pear', 'Apple', 'banana', 'apple', 'Cherry', 'item 10', 'item 2'].sort(Structra.sharedHelpers.compareValues);
   eq(sorted.slice(0, 4), ['Apple', 'apple', 'banana', 'Cherry']);
   eq(sorted.slice(-3), ['item 2', 'item 10', 'pear'].slice(0, 2).concat(['pear']).slice(0, 3));
-  eq([3, 'b', true, 1, 'a', 2].sort(Structra.util.compareValues), [1, 2, 3, 'a', 'b', true]);
+  eq([3, 'b', true, 1, 'a', 2].sort(Structra.sharedHelpers.compareValues), [1, 2, 3, 'a', 'b', true]);
 });
 
 test('Replace matches the way Find does and says what it left alone', async () => {

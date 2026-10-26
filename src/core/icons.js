@@ -22,8 +22,8 @@
 window.Structra = window.Structra || {};
 
 Structra.icons = (() => {
-  const lib = window.lucide;
-  if (!lib || !lib.icons) {
+  const library = window.lucide;
+  if (!library || !library.icons) {
     if (Structra.log) Structra.log.error('Icons', 'The Lucide library did not load');
   }
 
@@ -31,18 +31,18 @@ Structra.icons = (() => {
     'syn-key', 'syn-string', 'syn-number', 'syn-boolean', 'syn-null'];
 
   /** Theme colour names resolve to the CSS variables, so icons follow light, dark and custom themes */
-  function colorValue(c) {
-    if (c === 'muted') return 'var(--text-muted)';
-    return TOKENS.includes(c) ? `var(--${c})` : c;
+  function colorValue(color) {
+    if (color === 'muted') return 'var(--text-muted)';
+    return TOKENS.includes(color) ? `var(--${color})` : color;
   }
 
-  const pascal = (name) => name.replace(/(^|-)([a-z0-9])/g, (_, __, ch) => ch.toUpperCase());
-  const nodes = (name) => (lib && lib.icons ? lib.icons[pascal(name)] : undefined);
+  const pascal = (name) => name.replace(/(^|-)([a-z0-9])/g, (_, __, letter) => letter.toUpperCase());
+  const nodes = (name) => (library && library.icons ? library.icons[pascal(name)] : undefined);
 
-  const attrString = (attrs) => Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+  const attrString = (attrs) => Object.entries(attrs).map(([key, value]) => `${key}="${value}"`).join(' ');
   const childrenString = (children) => children.map(([tag, attrs]) => `<${tag} ${attrString(attrs)}/>`).join('');
 
-  function svg(name, opts = {}) {
+  function svg(name, options = {}) {
     const node = nodes(name);
     if (!node) {
       if (Structra.log) Structra.log.warn('Icons', 'Unknown icon: ' + name);
@@ -50,18 +50,18 @@ Structra.icons = (() => {
     }
     const [, base, children] = node;
     const attrs = { ...base, 'aria-hidden': 'true', focusable: 'false' };
-    if (opts.size) { attrs.width = opts.size; attrs.height = opts.size; }
-    if (opts.stroke) attrs['stroke-width'] = opts.stroke;
-    if (opts.cls) attrs.class = opts.cls;
-    if (opts.color) attrs.style = `color:${colorValue(opts.color)}`;
+    if (options.size) { attrs.width = options.size; attrs.height = options.size; }
+    if (options.stroke) attrs['stroke-width'] = options.stroke;
+    if (options.cls) attrs.class = options.cls;
+    if (options.color) attrs.style = `color:${colorValue(options.color)}`;
     return `<svg ${attrString(attrs)}>${childrenString(children)}</svg>`;
   }
 
   /** Static HTML can say <i data-icon="search"></i>; this swaps in the artwork */
   function hydrate(root = document) {
-    root.querySelectorAll('[data-icon]').forEach((el) => {
-      const html = svg(el.dataset.icon, { size: el.dataset.size, cls: el.dataset.cls, color: el.dataset.color });
-      if (html) el.outerHTML = html;
+    root.querySelectorAll('[data-icon]').forEach((element) => {
+      const html = svg(element.dataset.icon, { size: element.dataset.size, cls: element.dataset.cls, color: element.dataset.color });
+      if (html) element.outerHTML = html;
     });
   }
 

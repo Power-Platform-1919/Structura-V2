@@ -12,7 +12,7 @@ main('01-themes-colors', async ({ browser, base, rep }) => {
   // The SQL editor lives in the Query panel: open it in SQL mode with text that has every kind of colour in it
   const sqlView = async (pg) => {
     await view(pg, 'tree');
-    await pg.evaluate(() => Structra.set('queryPanelOpen', true));
+    await pg.evaluate(() => Structra.setState('queryPanelOpen', true));
     await pg.locator('.seg-btn[data-mode="sql"]').click();
     await pg.waitForSelector('#sqlColumns .qp-sql-col', { state: 'attached', timeout: 60000 });
     await pg.evaluate(() => {
@@ -21,9 +21,9 @@ main('01-themes-colors', async ({ browser, base, rep }) => {
     });
     await pg.waitForTimeout(300);
   };
-  const themes = await page.evaluate(() => Structra.theme.list().map((t) => ({ id: t.id, name: t.name })));
+  const themes = await page.evaluate(() => Structra.themeEngine.list().map((t) => ({ id: t.id, name: t.name })));
   for (const t of themes) {
-    await page.evaluate((id) => Structra.theme.use(id), t.id);
+    await page.evaluate((id) => Structra.themeEngine.use(id), t.id);
     for (const v of ['overview', 'tree', 'table', 'editor', 'sql']) {
       if (v === 'sql') await sqlView(page); else await view(page, v);
       await shot(page, `theme-${t.id}-${v}`);

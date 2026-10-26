@@ -1,6 +1,6 @@
 const { load, test, eq, truthy } = require('./harness');
-load(['jsonpath']);
-const J = Structra.jsonpath;
+load(['jsonpath-query']);
+const J = Structra.jsonpathQuery;
 
 console.log('jsonpath');
 

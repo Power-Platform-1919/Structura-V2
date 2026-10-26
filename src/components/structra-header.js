@@ -9,13 +9,13 @@
      Sets state: activeView, currentPath
    ============================================================ */
 
-class StructraHeader extends StructraElement {
+class StructraHeader extends StructraComponent {
   static get observedAttributes() { return ['path', 'show-bookmark']; }
 
   init() {
-    this.on('state:currentPath', (d) => {
-      const input = this.$('#pathInput');
-      if (input) input.value = d.value === '$' ? '' : d.value;     // nothing selected: show the hint text
+    this.on('state:currentPath', (change) => {
+      const input = this.queryOne('#pathInput');
+      if (input) input.value = change.value === '$' ? '' : change.value;     // nothing selected: show the hint text
       this._syncButtons();
     });
     this.on('nav:changed', () => this._syncButtons());
@@ -26,14 +26,14 @@ class StructraHeader extends StructraElement {
   /** Back and forward enabled state, and whether the current path is bookmarked */
   _syncButtons() {
     if (!this._mounted) return;
-    const back = this.$('[data-action="back"]');
-    const fwd = this.$('[data-action="forward"]');
-    const mark = this.$('[data-action="bookmark"]');
-    if (back) back.disabled = !Structra.nav.canBack();
-    if (fwd) fwd.disabled = !Structra.nav.canForward();
+    const back = this.queryOne('[data-action="back"]');
+    const forwardButton = this.queryOne('[data-action="forward"]');
+    const mark = this.queryOne('[data-action="bookmark"]');
+    if (back) back.disabled = !Structra.pathHistory.canBack();
+    if (forwardButton) forwardButton.disabled = !Structra.pathHistory.canForward();
     if (mark) mark.classList.toggle('active', Structra.bookmarks.has(Structra.state.currentPath));
-    const count = this.$('#bmCount');
-    if (count) { const n = Structra.bookmarks.list().length; count.textContent = n ? String(n) : ''; }
+    const count = this.queryOne('#bmCount');
+    if (count) { const bookmarkCount = Structra.bookmarks.list().length; count.textContent = bookmarkCount ? String(bookmarkCount) : ''; }
   }
 
   render() {
@@ -78,40 +78,40 @@ class StructraHeader extends StructraElement {
         </button>
       </div>`;
 
-    this.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const action = btn.dataset.action;
+    this.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.dataset.action;
       if (action === 'copy-path') this._copyPath();
-      else if (action === 'back') Structra.nav.back();
-      else if (action === 'forward') Structra.nav.forward();
+      else if (action === 'back') Structra.pathHistory.back();
+      else if (action === 'forward') Structra.pathHistory.forward();
       else if (action === 'bookmark') this._toggleBookmark();
-      else if (action === 'bookmarks') this._showBookmarks(btn);
-      else if (action === 'toggle-theme') Structra.theme.toggle();
+      else if (action === 'bookmarks') this._showBookmarks(button);
+      else if (action === 'toggle-theme') Structra.themeEngine.toggle();
       else if (action === 'appearance') Structra.events.emit('theme:open');
       else if (action === 'command-palette') Structra.events.emit('command-palette:toggle');
     });
 
-    this.$('#pathInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this._goToPath(e.target.value);
-      else if (e.key === 'Escape') { e.target.blur(); }
+    this.queryOne('#pathInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') this._goToPath(event.target.value);
+      else if (event.key === 'Escape') { event.target.blur(); }
     });
-    this.$('#pathInput').addEventListener('input', (e) => e.target.classList.remove('invalid'));
+    this.queryOne('#pathInput').addEventListener('input', (event) => event.target.classList.remove('invalid'));
 
     this._syncButtons();
   }
 
   /** Enter in the path bar: check the path exists, show it in a view that can show it, and move there */
   _goToPath(raw) {
-    const input = this.$('#pathInput');
+    const input = this.queryOne('#pathInput');
     const text = String(raw || '').trim();
     Structra.events.emit('autocomplete:hide');
     if (!text) return;
     const data = Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first'); return; }
-    const path = Structra.paths.canonical(text);
+    const path = Structra.dataPaths.canonical(text);
     let value;
-    try { value = path === '$' ? data : Structra.paths.resolve(data, path); } catch { value = undefined; }
+    try { value = path === '$' ? data : Structra.dataPaths.resolve(data, path); } catch { value = undefined; }
     if (value === undefined) {
       input.classList.add('invalid');
       Structra.toast(`Nothing at ${text}. Paths are case sensitive: check the spelling, or start typing to see suggestions.`);
@@ -119,8 +119,8 @@ class StructraHeader extends StructraElement {
     }
     input.classList.remove('invalid');
     // Overview, Editor and the others have no place to show a path: go to the Tree
-    if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.set('activeView', 'tree');
-    Structra.set('currentPath', path);
+    if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.setState('activeView', 'tree');
+    Structra.setState('currentPath', path);
     input.value = path;
     setTimeout(() => {
       Structra.events.emit('tree:navigate-path', path);
@@ -139,38 +139,38 @@ class StructraHeader extends StructraElement {
     const old = document.querySelector('.bm-menu');
     if (old) { old.remove(); return; }
     const items = Structra.bookmarks.list();
-    const esc = Structra.util.esc;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     const menu = document.createElement('div');
     menu.className = 'bm-menu';
     menu.setAttribute('role', 'menu');
     menu.innerHTML = items.length
-      ? items.map((b) => `<div class="bm-item" role="menuitem" tabindex="0" data-path="${esc(b.path)}"><span class="bm-path">${esc(b.path)}</span><button class="bm-remove" type="button" data-remove="${esc(b.path)}" aria-label="Remove bookmark ${esc(b.path)}">${Structra.icons.svg('x', { size: 12 })}</button></div>`).join('')
+      ? items.map((item) => `<div class="bm-item" role="menuitem" tabindex="0" data-path="${escapeHtml(item.path)}"><span class="bm-path">${escapeHtml(item.path)}</span><button class="bm-remove" type="button" data-remove="${escapeHtml(item.path)}" aria-label="Remove bookmark ${escapeHtml(item.path)}">${Structra.icons.svg('x', { size: 12 })}</button></div>`).join('')
       : '<div class="bm-empty">No bookmarks in this file yet. Select a line and press Ctrl+B.</div>';
-    const r = anchor.getBoundingClientRect();
-    menu.style.top = (r.bottom + 4) + 'px';
-    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 300)) + 'px';
+    const rect = anchor.getBoundingClientRect();
+    menu.style.top = (rect.bottom + 4) + 'px';
+    menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 300)) + 'px';
     document.body.appendChild(menu);
     const close = () => { menu.remove(); document.removeEventListener('mousedown', outside, true); document.removeEventListener('keydown', onKey, true); };
-    const outside = (e) => { if (!menu.contains(e.target) && !anchor.contains(e.target)) close(); };
-    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    const outside = (event) => { if (!menu.contains(event.target) && !anchor.contains(event.target)) close(); };
+    const onKey = (event) => { if (event.key === 'Escape') close(); };
     document.addEventListener('mousedown', outside, true);
     document.addEventListener('keydown', onKey, true);
-    menu.addEventListener('click', (e) => {
-      const rm = e.target.closest('[data-remove]');
-      if (rm) { Structra.bookmarks.remove(rm.dataset.remove); close(); return; }
-      const item = e.target.closest('.bm-item');
+    menu.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('[data-remove]');
+      if (removeButton) { Structra.bookmarks.remove(removeButton.dataset.remove); close(); return; }
+      const item = event.target.closest('.bm-item');
       if (!item) return;
       close();
-      this.$('#pathInput').value = item.dataset.path;
+      this.queryOne('#pathInput').value = item.dataset.path;
       this._goToPath(item.dataset.path);
     });
-    menu.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('bm-item')) e.target.click(); });
+    menu.addEventListener('keydown', (event) => { if (event.key === 'Enter' && event.target.classList.contains('bm-item')) event.target.click(); });
   }
 
   _copyPath() {
-    const path = this.$('#pathInput').value;
+    const path = this.queryOne('#pathInput').value;
     if (path) {
-      Structra.util.copy(path, 'Path copied');
+      Structra.sharedHelpers.copyToClipboard(path, 'Path copied');
     }
   }
 }

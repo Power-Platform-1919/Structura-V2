@@ -33,7 +33,7 @@ window.Structra = window.Structra || {};
 
 Structra.virtualList = (() => {
 
-  function create(opts) {
+  function create(options) {
     const {
       container,
       totalItems,
@@ -46,7 +46,7 @@ Structra.virtualList = (() => {
       root: scrollRoot = container,   // element that scrolls (observer root)
       chunkTag = 'div',               // 'tbody' when the container is a <table>
       sentinelTag = chunkTag,
-    } = opts;
+    } = options;
 
     let _total = totalItems;
     let _loadObserver = null;
@@ -57,47 +57,47 @@ Structra.virtualList = (() => {
     /* --- Sentinel Factory --- */
     function makeSentinel(start) {
       const remaining = _total - start;
-      const el = document.createElement(sentinelTag);
-      el.className = 'vl-sentinel';
-      el.dataset.vlStart = start;
-      el.dataset.vlTotal = _total;
+      const element = document.createElement(sentinelTag);
+      element.className = 'vl-sentinel';
+      element.dataset.vlStart = start;
+      element.dataset.vlTotal = _total;
       if (sentinelHtml) {
-        el.innerHTML = sentinelHtml(remaining, start);
+        element.innerHTML = sentinelHtml(remaining, start);
       } else {
-        el.innerHTML = `<span class="vl-muted">// ${remaining} more items…</span>`;
+        element.innerHTML = `<span class="vl-muted">// ${remaining} more items…</span>`;
       }
-      return el;
+      return element;
     }
 
     /* --- Chunk Wrapper --- */
     function wrapChunk(content, start, end) {
-      const el = document.createElement(chunkTag);
-      el.className = 'vl-chunk';
-      el.dataset.vlStart = start;
-      el.dataset.vlEnd = end;
-      el.dataset.vlTotal = _total;
-      el.id = 'vlc' + (_chunkId++);
+      const element = document.createElement(chunkTag);
+      element.className = 'vl-chunk';
+      element.dataset.vlStart = start;
+      element.dataset.vlEnd = end;
+      element.dataset.vlTotal = _total;
+      element.id = 'vlc' + (_chunkId++);
 
       if (typeof content === 'string') {
-        el.innerHTML = content;
+        element.innerHTML = content;
       } else if (content instanceof HTMLElement) {
-        el.appendChild(content);
+        element.appendChild(content);
       }
 
-      return el;
+      return element;
     }
 
     /* --- Recycle / Rehydrate --- */
     function recycleChunk(chunk) {
-      const h = chunk.offsetHeight;
-      if (h === 0) return;
+      const height = chunk.offsetHeight;
+      if (height === 0) return;
       chunk.dataset.vlRecycled = '1';
       if (chunk.tagName === 'TBODY') {
         // An empty row group collapses, so keep its height with a spacer row
-        chunk.innerHTML = `<tr class="vl-spacer" style="height:${h}px"><td></td></tr>`;
+        chunk.innerHTML = `<tr class="vl-spacer" style="height:${height}px"><td></td></tr>`;
       } else {
         chunk.innerHTML = '';
-        chunk.style.height = h + 'px';
+        chunk.style.height = height + 'px';
       }
     }
 
@@ -129,10 +129,10 @@ Structra.virtualList = (() => {
 
       // Build chunk content
       const content = buildChunk(start, end, total);
-      const chunkEl = wrapChunk(content, start, end);
+      const chunkElement = wrapChunk(content, start, end);
 
       // Insert before sentinel
-      sentinel.parentNode.insertBefore(chunkEl, sentinel);
+      sentinel.parentNode.insertBefore(chunkElement, sentinel);
 
       // Update or remove sentinel
       if (end < total) {
@@ -150,10 +150,10 @@ Structra.virtualList = (() => {
 
       // Observe for recycling if total > chunkSize
       if (_recycleObserver && total > chunkSize) {
-        _recycleObserver.observe(chunkEl);
+        _recycleObserver.observe(chunkElement);
       }
 
-      if (onChunkLoaded) onChunkLoaded(chunkEl, start, end);
+      if (onChunkLoaded) onChunkLoaded(chunkElement, start, end);
     }
 
     /* --- Setup Observers --- */
@@ -181,9 +181,9 @@ Structra.virtualList = (() => {
       }, { root: scrollRoot, rootMargin: `${offscreenPx}px` });
 
       // Observe existing sentinels and chunks
-      container.querySelectorAll('.vl-sentinel').forEach(s => _loadObserver.observe(s));
-      container.querySelectorAll('.vl-chunk').forEach(c => {
-        if (parseInt(c.dataset.vlTotal) > chunkSize) _recycleObserver.observe(c);
+      container.querySelectorAll('.vl-sentinel').forEach(sentinel => _loadObserver.observe(sentinel));
+      container.querySelectorAll('.vl-chunk').forEach(element => {
+        if (parseInt(element.dataset.vlTotal) > chunkSize) _recycleObserver.observe(element);
       });
     }
 
@@ -194,9 +194,9 @@ Structra.virtualList = (() => {
       // Render first chunk inline
       const firstEnd = Math.min(_total, chunkSize);
       const content = buildChunk(0, firstEnd, _total);
-      const chunkEl = wrapChunk(content, 0, firstEnd);
-      container.appendChild(chunkEl);
-      if (onChunkLoaded) onChunkLoaded(chunkEl, 0, firstEnd);
+      const chunkElement = wrapChunk(content, 0, firstEnd);
+      container.appendChild(chunkElement);
+      if (onChunkLoaded) onChunkLoaded(chunkElement, 0, firstEnd);
 
       // Add sentinel for remaining items
       if (_total > chunkSize) {
@@ -225,10 +225,10 @@ Structra.virtualList = (() => {
 
     function getChunk(index) {
       const chunks = container.querySelectorAll('.vl-chunk');
-      for (const c of chunks) {
-        const s = parseInt(c.dataset.vlStart);
-        const e = parseInt(c.dataset.vlEnd);
-        if (index >= s && index < e) return c;
+      for (const chunk of chunks) {
+        const startIndex = parseInt(chunk.dataset.vlStart);
+        const endIndex = parseInt(chunk.dataset.vlEnd);
+        if (index >= startIndex && index < endIndex) return chunk;
       }
       return null;
     }
@@ -240,8 +240,8 @@ Structra.virtualList = (() => {
       }
     }
 
-    function applyToChunks(fn) {
-      container.querySelectorAll('.vl-chunk').forEach(fn);
+    function applyToChunks(callback) {
+      container.querySelectorAll('.vl-chunk').forEach(callback);
     }
 
     function reset(newTotal) {
@@ -249,7 +249,7 @@ Structra.virtualList = (() => {
       _total = newTotal;
       _chunkId = 0;
       // Only remove what this list created (the container may also hold a table header)
-      container.querySelectorAll(':scope > .vl-chunk, :scope > .vl-sentinel').forEach((el) => el.remove());
+      container.querySelectorAll(':scope > .vl-chunk, :scope > .vl-sentinel').forEach((element) => element.remove());
       init();
     }
 

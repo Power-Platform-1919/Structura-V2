@@ -9,7 +9,7 @@
           state:drawerState
    ============================================================ */
 
-class StructraSchemaGen extends StructraElement {
+class StructraSchemaGen extends StructraComponent {
   init() {
     this._allItems = true;
     this._integers = false;     // false: every number is "number" (safe); true: whole numbers are "integer"
@@ -50,18 +50,18 @@ class StructraSchemaGen extends StructraElement {
       </div>
       <pre class="sg-output" id="sgOutput"></pre>`;
 
-    this.addEventListener('click', (e) => {
-      if (!e.target.closest('[data-action="copy"]')) return;
-      const text = this.$('#sgOutput').dataset.schema;
+    this.addEventListener('click', (event) => {
+      if (!event.target.closest('[data-action="copy"]')) return;
+      const text = this.queryOne('#sgOutput').dataset.schema;
       if (!text) { Structra.toast('No schema to copy'); return; }
-      Structra.util.copy(text, 'Schema copied');
+      Structra.sharedHelpers.copyToClipboard(text, 'Schema copied');
     });
-    this.addEventListener('change', (e) => {
-      const a = e.target.dataset && e.target.dataset.action;
-      if (a === 'integers') this._integers = e.target.checked;
-      else if (a === 'required') this._required = e.target.checked;
-      else if (a === 'all-items') this._allItems = e.target.checked;
-      else if (a === 'selected') this._selected = e.target.checked;
+    this.addEventListener('change', (event) => {
+      const action = event.target.dataset && event.target.dataset.action;
+      if (action === 'integers') this._integers = event.target.checked;
+      else if (action === 'required') this._required = event.target.checked;
+      else if (action === 'all-items') this._allItems = event.target.checked;
+      else if (action === 'selected') this._selected = event.target.checked;
       else return;
       this._stale = true;
       this._refresh();
@@ -72,12 +72,12 @@ class StructraSchemaGen extends StructraElement {
 
   /** Names the selected value on the option, and turns it off when nothing is selected */
   _syncScope() {
-    const label = this.$('#sgScope');
+    const label = this.queryOne('#sgScope');
     if (!label) return;
-    const p = Structra.state.currentPath;
-    const usable = !!p && p !== '$';
-    label.textContent = usable ? 'Only the selected value (' + p.replace(/^\$\.?/, '') + ')' : 'Only the selected value (select one in the Tree)';
-    const box = this.$('[data-action="selected"]');
+    const path = Structra.state.currentPath;
+    const usable = !!path && path !== '$';
+    label.textContent = usable ? 'Only the selected value (' + path.replace(/^\$\.?/, '') + ')' : 'Only the selected value (select one in the Tree)';
+    const box = this.queryOne('[data-action="selected"]');
     box.disabled = !usable;
     if (!usable && this._selected) { this._selected = false; box.checked = false; this._stale = true; this._refresh(); }
   }
@@ -85,10 +85,10 @@ class StructraSchemaGen extends StructraElement {
   _refresh() {
     if (!this._mounted || !this._visible() || !this._stale) return;
     this._stale = false;
-    const out = this.$('#sgOutput');
+    const out = this.queryOne('#sgOutput');
     let data = Structra.state.jsonData;
     if (data && this._selected && Structra.state.currentPath) {
-      const part = Structra.paths.resolve(data, Structra.state.currentPath);
+      const part = Structra.dataPaths.resolve(data, Structra.state.currentPath);
       if (part !== undefined) data = part;
     }
     if (!out) return;
@@ -98,13 +98,13 @@ class StructraSchemaGen extends StructraElement {
       return;
     }
     try {
-      const opts = { integers: this._integers, required: this._required };
-      const schema = this._allItems ? Structra.schemaGen.smart(data, opts) : Structra.schemaGen.basic(data, opts);
+      const options = { integers: this._integers, required: this._required };
+      const schema = this._allItems ? Structra.parseJsonSchemaGenerator.smart(data, options) : Structra.parseJsonSchemaGenerator.basic(data, options);
       const text = JSON.stringify(schema, null, 2);
       out.dataset.schema = text;
       Structra.codeView.colorize(out, text, 'json');
-    } catch (err) {
-      Structra.log.error('SchemaGen', 'Schema generation failed', err);
+    } catch (error) {
+      Structra.log.error('SchemaGen', 'Schema generation failed', error);
       out.dataset.schema = '';
       out.textContent = 'Could not generate a schema for this data';
     }

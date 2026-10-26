@@ -1,7 +1,7 @@
 /* Getting around: the path bar, Back and Forward, selecting in the Tree, the right-click menu,
    and opening a collapsed node. Paths are written one way everywhere ($.value[0].Title).
 
-   Run:  node tests/smoke/navigation.js          (PW_CHANNEL=msedge uses the installed Edge)
+   Run:  node tests/smoke/path-history.js          (PW_CHANNEL=msedge uses the installed Edge)
 */
 const http = require('http');
 const fs = require('fs');
@@ -64,7 +64,7 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     await page.waitForTimeout(400);
 
     // ---- A click in the Tree selects it, written as $.…, and opens the Node panel ----
@@ -93,7 +93,7 @@ function serve() {
     if (s.path !== before) failures.push('a wrong path changed the selection to ' + s.path);
 
     // ---- A path typed in a view that cannot show it opens the Tree ----
-    await page.evaluate(() => Structra.set('activeView', 'overview'));
+    await page.evaluate(() => Structra.setState('activeView', 'overview'));
     await page.waitForTimeout(300);
     await typePath('$.value[0].Title');
     s = await state();

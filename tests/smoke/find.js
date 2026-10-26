@@ -53,7 +53,7 @@ function serve() {
       await page.keyboard.press('Escape');
       await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(FIXTURES, file));
       await page.waitForTimeout(1200);
-      await page.evaluate(() => Structra.set('activeView', 'tree'));
+      await page.evaluate(() => Structra.setState('activeView', 'tree'));
       await page.waitForTimeout(400);
 
       // A word that is really in the document: the first text value of 4 or more letters
@@ -71,8 +71,8 @@ function serve() {
 
       for (const sql of [false, true]) {
         const label = `${file} (${sql ? 'SQL on' : 'SQL off'}), searching "${term}"`;
-        if (sql) await page.evaluate(() => Structra.engine.enableSql());
-        await page.evaluate(() => { Structra.set('findBarOpen', true); });
+        if (sql) await page.evaluate(() => Structra.dataEngine.enableSql());
+        await page.evaluate(() => { Structra.setState('findBarOpen', true); });
         await page.waitForTimeout(300);
         await page.locator('#findInput').fill(term);
         await page.keyboard.press('Enter');
@@ -91,13 +91,13 @@ function serve() {
         if (/^0|error/i.test(seen.count.trim())) failures.push(`${label}: the count says "${seen.count}"`);
 
         // clear before the next round
-        await page.evaluate(() => Structra.set('findBarOpen', false));
+        await page.evaluate(() => Structra.setState('findBarOpen', false));
         await page.waitForTimeout(400);
       }
 
       // `data` is the open document in SQL
       const sqlCheck = await page.evaluate(async () => {
-        const r = await Structra.engine.runSql('SELECT COUNT(*) AS n FROM data');
+        const r = await Structra.dataEngine.runSql('SELECT COUNT(*) AS n FROM data');
         return r.error ? { error: r.error } : { n: Number(Object.values(r.rows[0])[0]) };
       });
       if (sqlCheck.error) failures.push(`${file}: SELECT COUNT(*) FROM data failed: ${sqlCheck.error}`);

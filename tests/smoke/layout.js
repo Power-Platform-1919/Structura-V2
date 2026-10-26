@@ -51,7 +51,7 @@ function serve() {
     await page.waitForTimeout(1500);
 
     // ---- Overview scrolls with the mouse wheel, and its scroll area ends inside the view ----
-    await page.evaluate(() => Structra.set('activeView', 'overview'));
+    await page.evaluate(() => Structra.setState('activeView', 'overview'));
     await page.waitForTimeout(800);
     const ov = await page.evaluate(() => {
       const el = document.querySelector('structra-overview .stats-view');
@@ -74,13 +74,13 @@ function serve() {
     // ---- The Overview and the Analyze tab show the same figures: the drawer stays folded on the Overview ----
     const ovDrawer = await page.evaluate(() => document.querySelector('structra-drawer').getBoundingClientRect().height);
     if (ovDrawer > 60) failures.push(`Overview: the bottom drawer is open (${Math.round(ovDrawer)}px) and repeats the Overview's figures`);
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     await page.waitForTimeout(500);
     const treeDrawer = await page.evaluate(() => document.querySelector('structra-drawer').getBoundingClientRect().height);
     if (treeDrawer < 150) failures.push(`the drawer did not open when leaving the Overview (${Math.round(treeDrawer)}px)`);
 
     // ---- Toolbar: every button stays inside the toolbar at normal and narrow widths, with the side panels open ----
-    await page.evaluate(() => { Structra.set('activeView', 'tree'); Structra.set('queryPanelOpen', true); Structra.set('contextPanelOpen', true); });
+    await page.evaluate(() => { Structra.setState('activeView', 'tree'); Structra.setState('queryPanelOpen', true); Structra.setState('contextPanelOpen', true); });
     await page.evaluate(() => Structra.events.emit('tree:node-selected', '$.value[0].Title'));
     for (const width of [1440, 1100, 900, 820]) {
       await page.setViewportSize({ width, height: 760 });
@@ -110,22 +110,22 @@ function serve() {
 
     // Buttons that only act on the Tree are not shown in the other views
     for (const view of ['table', 'graph', 'schema', 'editor', 'overview']) {
-      await page.evaluate((v) => Structra.set('activeView', v), view);
+      await page.evaluate((v) => Structra.setState('activeView', v), view);
       await page.waitForTimeout(150);
       const shown = await page.evaluate(() => [...document.querySelectorAll('structra-canvas-header .tree-only')].filter((e) => e.offsetParent !== null).length);
       if (shown) failures.push(`Toolbar: ${shown} tree-only button(s) are shown in the ${view} view`);
     }
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
 
     // ---- Find and Filter never sit on top of each other, and Find's X closes it ----
-    await page.evaluate(() => Structra.set('findBarOpen', true));
+    await page.evaluate(() => Structra.setState('findBarOpen', true));
     await page.waitForTimeout(150);
-    await page.evaluate(() => Structra.set('filterBarOpen', true));
+    await page.evaluate(() => Structra.setState('filterBarOpen', true));
     await page.waitForTimeout(150);
     const both = await page.evaluate(() => ({ find: document.querySelector('.find-bar').classList.contains('show'), filter: document.querySelector('.filter-panel').classList.contains('show') }));
     if (both.find && both.filter) failures.push('Find and Filter are open at the same time');
-    await page.evaluate(() => Structra.set('filterBarOpen', false));
-    await page.evaluate(() => Structra.set('findBarOpen', true));
+    await page.evaluate(() => Structra.setState('filterBarOpen', false));
+    await page.evaluate(() => Structra.setState('findBarOpen', true));
     await page.waitForTimeout(150);
     await page.locator('structra-find [data-action="close-find"]').click();
     await page.waitForTimeout(150);
@@ -156,7 +156,7 @@ function serve() {
     if (dragged.h > dragged.w * 0.61) failures.push(`Drawer: dragging it to the top gave ${dragged.h}px, more than 60% of ${dragged.w}px`);
 
     // ---- With no document open there is no drawer to get in the way ----
-    await page.evaluate(() => Structra.set('jsonData', null));
+    await page.evaluate(() => Structra.setState('jsonData', null));
     await page.waitForTimeout(300);
     const noDoc = await page.evaluate(() => document.querySelector('structra-drawer').offsetParent !== null);
     if (noDoc) failures.push('the drawer is still shown when no document is open');

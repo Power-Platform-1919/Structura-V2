@@ -1,9 +1,10 @@
 /* ============================================================
-   STRUCTRA V2 - Base Element Class
-   All custom elements extend this. ~30 lines, no magic.
+   STRUCTRA V2 - Component base class
+   StructraComponent: every custom element of the app extends this. Small, no magic.
+   Helpers: this.queryOne(selector) and this.queryAll(selector) search inside the element.
    ============================================================ */
 
-class StructraElement extends HTMLElement {
+class StructraComponent extends HTMLElement {
   constructor() {
     super();
     this._mounted = false;
@@ -24,30 +25,30 @@ class StructraElement extends HTMLElement {
 
   /** Reads HTML attributes into this.props (camelCase keys) */
   _readProps() {
-    for (const attr of this.attributes) {
-      this.props[this._camel(attr.name)] = attr.value;
+    for (const attribute of this.attributes) {
+      this.props[this._camel(attribute.name)] = attribute.value;
     }
   }
 
   /** Called when an observed attribute changes - updates props and re-renders */
-  attributeChangedCallback(name, oldVal, newVal) {
-    if (oldVal === newVal) return;
-    this.props[this._camel(name)] = newVal;
-    if (this._mounted) this.update(name, oldVal, newVal);
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    this.props[this._camel(name)] = newValue;
+    if (this._mounted) this.update(name, oldValue, newValue);
   }
 
   /** Override for targeted prop-change handling (default: full re-render) */
-  update(name, oldVal, newVal) {
+  update(name, oldValue, newValue) {
     this.render();
   }
 
   /** Set a prop programmatically and trigger update */
   set(key, value) {
-    const attr = this._kebab(key);
+    const attribute = this._kebab(key);
     if (value == null || value === false) {
-      this.removeAttribute(attr);
+      this.removeAttribute(attribute);
     } else {
-      this.setAttribute(attr, value === true ? '' : value);
+      this.setAttribute(attribute, value === true ? '' : value);
     }
   }
 
@@ -56,8 +57,8 @@ class StructraElement extends HTMLElement {
     return this.props[key];
   }
 
-  _camel(s) { return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase()); }
-  _kebab(s) { return s.replace(/[A-Z]/g, c => '-' + c.toLowerCase()); }
+  _camel(text) { return text.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); }
+  _kebab(text) { return text.replace(/[A-Z]/g, letter => '-' + letter.toLowerCase()); }
 
   /** Override in subclass for one-time setup (event listeners, state subscriptions) */
   init() {}
@@ -81,12 +82,12 @@ class StructraElement extends HTMLElement {
   }
 
   /** Shorthand: query inside this element */
-  $(selector) {
+  queryOne(selector) {
     return this.querySelector(selector);
   }
 
   /** Shorthand: queryAll inside this element */
-  $$(selector) {
+  queryAll(selector) {
     return this.querySelectorAll(selector);
   }
 }

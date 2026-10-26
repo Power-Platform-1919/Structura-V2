@@ -49,7 +49,7 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => Structra.set('activeView', 'schema'));
+    await page.evaluate(() => Structra.setState('activeView', 'schema'));
     await page.waitForTimeout(600);
 
     const lines = await page.evaluate(() => [...document.querySelectorAll('structra-schema .s-line')].map((l) => l.textContent.replace(/\s+/g, ' ').trim()));
@@ -61,7 +61,7 @@ function serve() {
     if (!lines.some((l) => /^Title: string.*required/.test(l))) failures.push('Title is in every record, so it should be marked required');
     // The Schema view and the Schema Gen tab must tell the same story
     const gen = await page.evaluate(() => {
-      const s = Structra.schemaGen.smart(Structra.state.jsonData, { integers: true, required: true });
+      const s = Structra.parseJsonSchemaGenerator.smart(Structra.state.jsonData, { integers: true, required: true });
       return s.properties.value.items.properties.Requester.properties.Department.type;
     });
     if (JSON.stringify(gen) !== JSON.stringify(['string', 'null'])) failures.push('Schema Gen disagrees about Department: ' + JSON.stringify(gen));

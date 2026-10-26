@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 - Overlay Base
-   StructraOverlay - one implementation of "a dialog on top of the app".
+   STRUCTRA V2 - Dialog base class
+   StructraDialog - one implementation of "a dialog on top of the app".
    Dialogs (validate, charts, theme, shortcuts, ...) extend this and only
    describe their content. The base owns:
      - the shell markup (backdrop, box, header, close button, body, footer)
@@ -10,11 +10,11 @@
    Styling is in ui.css (.ov, .ov-box, .ov-head ...).
 
    A dialog class:
-     class StructraThing extends StructraOverlay {
+     class StructraThing extends StructraDialog {
        init() { super.init(); this.on('thing:open', () => this.open()); }
        render() {
          this.mount({ title: 'Thing', size: 'md', body: '<p>...</p>', foot: '<button ...>' });
-         // attach your own listeners to this.body / this.$(...)
+         // attach your own listeners to this.body / this.queryOne(...)
        }
        onOpen() { ... }          // optional
        onClose() { ... }         // optional
@@ -40,14 +40,14 @@ Structra.closeTop = function () {
   if (dialog) { dialog.close(); return true; }
   const palette = document.querySelector('#cmdOverlay.show');
   if (palette) { Structra.events.emit('command-palette:toggle'); return true; }
-  if (Structra.state.findBarOpen) { Structra.set('findBarOpen', false); return true; }
-  if (Structra.state.filterBarOpen) { Structra.set('filterBarOpen', false); return true; }
-  if (Structra.state.contextPanelOpen) { Structra.set('contextPanelOpen', false); return true; }
-  if (Structra.state.queryPanelOpen) { Structra.set('queryPanelOpen', false); return true; }
+  if (Structra.state.findBarOpen) { Structra.setState('findBarOpen', false); return true; }
+  if (Structra.state.filterBarOpen) { Structra.setState('filterBarOpen', false); return true; }
+  if (Structra.state.contextPanelOpen) { Structra.setState('contextPanelOpen', false); return true; }
+  if (Structra.state.queryPanelOpen) { Structra.setState('queryPanelOpen', false); return true; }
   return false;
 };
 
-class StructraOverlay extends StructraElement {
+class StructraDialog extends StructraComponent {
   init() {
     this.on('overlay:close', () => this.close());
   }
@@ -57,12 +57,12 @@ class StructraOverlay extends StructraElement {
    * @param {{ title: string, body?: string, foot?: string, head?: string, size?: string }} spec
    */
   mount({ title, body = '', foot = '', head = '', size = 'md' }) {
-    const esc = Structra.util.esc;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     this.innerHTML = `
       <div class="ov" role="presentation">
-        <section class="ov-box ov-${size}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+        <section class="ov-box ov-${size}" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
           <header class="ov-head">
-            <h2 class="ov-title">${esc(title)}</h2>
+            <h2 class="ov-title">${escapeHtml(title)}</h2>
             ${head}
             <button class="ov-close btn-icon btn" type="button" data-ov-close aria-label="Close">
               ${Structra.icons.svg('x', { size: 2 })}
@@ -74,13 +74,13 @@ class StructraOverlay extends StructraElement {
       </div>`;
 
     const root = this.querySelector('.ov');
-    root.addEventListener('mousedown', (e) => { this._downOnBackdrop = e.target === root; });
-    root.addEventListener('click', (e) => {
+    root.addEventListener('mousedown', (event) => { this._downOnBackdrop = event.target === root; });
+    root.addEventListener('click', (event) => {
       // Only a click that started and ended on the backdrop closes (not a drag that ended there)
-      if (e.target === root && this._downOnBackdrop) this.close();
-      if (e.target.closest('[data-ov-close]')) this.close();
+      if (event.target === root && this._downOnBackdrop) this.close();
+      if (event.target.closest('[data-ov-close]')) this.close();
     });
-    root.addEventListener('keydown', (e) => this._onKey(e));
+    root.addEventListener('keydown', (event) => this._onKey(event));
     return this.body;
   }
 
@@ -110,15 +110,15 @@ class StructraOverlay extends StructraElement {
     if (this.onClose) this.onClose();
   }
 
-  _onKey(e) {
-    if (e.key === 'Escape') { e.stopPropagation(); this.close(); return; }
-    if (e.key !== 'Tab') return;
+  _onKey(event) {
+    if (event.key === 'Escape') { event.stopPropagation(); this.close(); return; }
+    if (event.key !== 'Tab') return;
     const focusable = [...this.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
-      .filter((el) => !el.disabled && el.offsetParent !== null);
+      .filter((element) => !element.disabled && element.offsetParent !== null);
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 }

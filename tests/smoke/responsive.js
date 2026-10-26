@@ -79,32 +79,32 @@ function serve() {
     await load('recs2.json', JSON.stringify(recs));
     const folded = await page.evaluate(() => Structra.state.drawerState);
     if (folded !== 'collapsed') failures.push('on a 700 px high screen the drawer should start folded, it is ' + folded);
-    await page.evaluate(() => Structra.set('drawerState', 'medium'));
+    await page.evaluate(() => Structra.setState('drawerState', 'medium'));
     await page.waitForTimeout(300);
     const before = await page.evaluate(() => document.querySelector('structra-drawer').offsetHeight);
     await page.locator('[data-action="maximise"]').click();
     await page.waitForTimeout(500);
     const after = await page.evaluate(() => document.querySelector('structra-drawer').offsetHeight);
     if (!(after > before)) failures.push(`the maximise button should make the panel taller: ${before} then ${after}`);
-    await page.evaluate(() => Structra.set('drawerState', 'collapsed'));
+    await page.evaluate(() => Structra.setState('drawerState', 'collapsed'));
 
     // Schema Gen can cover only the selected value
-    await page.evaluate(() => { Structra.set('currentPath', '$[0].owner'); Structra.set('drawerState', 'medium'); document.querySelector('structra-drawer')._switchTab('schema-gen'); });
+    await page.evaluate(() => { Structra.setState('currentPath', '$[0].owner'); Structra.setState('drawerState', 'medium'); document.querySelector('structra-drawer')._switchTab('schema-gen'); });
     await page.waitForTimeout(500);
     await page.locator('structra-schemagen [data-action="selected"]').check();
     await page.waitForTimeout(500);
     const sg = await page.evaluate(() => document.querySelector('#sgOutput').dataset.schema);
     if (!/DisplayName/.test(sg) || /payload/.test(sg)) failures.push('Schema Gen for the selected value should describe only owner');
-    await page.evaluate(() => Structra.set('drawerState', 'collapsed'));
+    await page.evaluate(() => Structra.setState('drawerState', 'collapsed'));
 
     // Schema view has a Copy schema button and no red
-    await page.evaluate(() => Structra.set('activeView', 'schema'));
+    await page.evaluate(() => Structra.setState('activeView', 'schema'));
     await page.waitForTimeout(500);
     const sc = await page.evaluate(() => ({ btn: !!document.querySelector('[data-schema-copy]'), red: getComputedStyle(document.querySelector('.s-req') || document.body).color }));
     if (!sc.btn) failures.push('the Schema view should have a Copy schema button');
 
     // Split into columns: system keys are last and unticked
-    await page.evaluate(() => Structra.set('activeView', 'table'));
+    await page.evaluate(() => Structra.setState('activeView', 'table'));
     await page.waitForTimeout(600);
     await page.evaluate(() => document.querySelector('structra-table')._showExpandPicker('owner'));
     const picks = await page.evaluate(() => [...document.querySelectorAll('.col-pick-item')].map((l) => ({ t: l.textContent.trim(), on: l.querySelector('input').checked })));
@@ -115,7 +115,7 @@ function serve() {
     await page.mouse.click(5, 300);
 
     // Filter panel is docked above the table, not over it
-    await page.evaluate(() => Structra.set('filterBarOpen', true));
+    await page.evaluate(() => Structra.setState('filterBarOpen', true));
     await page.waitForTimeout(500);
     const dock = await page.evaluate(() => {
       const f = document.querySelector('structra-filter .filter-panel').getBoundingClientRect();
@@ -123,7 +123,7 @@ function serve() {
       return { filterBottom: f.bottom, tableTop: t.top };
     });
     if (dock.filterBottom > dock.tableTop + 1) failures.push('the filter panel should sit above the table, not over it: ' + JSON.stringify(dock));
-    await page.evaluate(() => Structra.set('filterBarOpen', false));
+    await page.evaluate(() => Structra.setState('filterBarOpen', false));
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));
   }

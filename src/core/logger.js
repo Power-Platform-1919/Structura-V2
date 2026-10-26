@@ -29,7 +29,7 @@ Structra.log = (() => {
   // Priority: URL param > settings > localStorage > default
   const _urlMode = new URLSearchParams(window.location.search).get('log');
   let _mode = (['dev', 'normal', 'off'].includes(_urlMode) ? _urlMode : null)
-    || (Structra.settings && Structra.settings.get('logMode'))
+    || (Structra.appSettings && Structra.appSettings.get('logMode'))
     || localStorage.getItem('structra.logMode')
     || 'normal';
 
@@ -72,9 +72,9 @@ Structra.log = (() => {
 
   function _prefix(tag) {
     const now = new Date();
-    const ts = now.toLocaleTimeString('en-GB', { hour12: false }) + '.' + String(now.getMilliseconds()).padStart(3, '0');
+    const timestamp = now.toLocaleTimeString('en-GB', { hour12: false }) + '.' + String(now.getMilliseconds()).padStart(3, '0');
     return [
-      `%c${ts} %c[Structra]%c[${tag}]`,
+      `%c${timestamp} %c[Structra]%c[${tag}]`,
       'color:#888;font-weight:normal',
       'color:#7c4dff;font-weight:bold',
       `color:${_color(tag)};font-weight:bold`
@@ -99,8 +99,8 @@ Structra.log = (() => {
       }
       _mode = mode;
       // Persist via settings if available, else direct localStorage
-      if (Structra.settings) {
-        Structra.settings.set('logMode', mode);
+      if (Structra.appSettings) {
+        Structra.appSettings.set('logMode', mode);
       } else {
         localStorage.setItem('structra.logMode', mode);
       }
@@ -112,50 +112,50 @@ Structra.log = (() => {
     },
 
     /** Debug - only in dev mode */
-    debug(tag, msg, ...data) {
+    debug(tag, message, ...data) {
       if (!_shouldLog('debug')) return;
-      const p = _prefix(tag);
-      if (data.length) console.debug(p[0] + ' ' + msg, p[1], p[2], p[3], ...data);
-      else console.debug(p[0] + ' ' + msg, p[1], p[2], p[3]);
+      const prefix = _prefix(tag);
+      if (data.length) console.debug(prefix[0] + ' ' + message, prefix[1], prefix[2], prefix[3], ...data);
+      else console.debug(prefix[0] + ' ' + message, prefix[1], prefix[2], prefix[3]);
     },
 
     /** Info - dev + normal modes */
-    info(tag, msg, ...data) {
+    info(tag, message, ...data) {
       if (!_shouldLog('info')) return;
-      const p = _prefix(tag);
-      if (data.length) console.log(p[0] + ' ' + msg, p[1], p[2], p[3], ...data);
-      else console.log(p[0] + ' ' + msg, p[1], p[2], p[3]);
+      const prefix = _prefix(tag);
+      if (data.length) console.log(prefix[0] + ' ' + message, prefix[1], prefix[2], prefix[3], ...data);
+      else console.log(prefix[0] + ' ' + message, prefix[1], prefix[2], prefix[3]);
     },
 
     /** Warn - dev + normal modes */
-    warn(tag, msg, ...data) {
+    warn(tag, message, ...data) {
       if (!_shouldLog('warn')) return;
-      const p = _prefix(tag);
-      if (data.length) console.warn(p[0] + ' ' + msg, p[1], p[2], p[3], ...data);
-      else console.warn(p[0] + ' ' + msg, p[1], p[2], p[3]);
+      const prefix = _prefix(tag);
+      if (data.length) console.warn(prefix[0] + ' ' + message, prefix[1], prefix[2], prefix[3], ...data);
+      else console.warn(prefix[0] + ' ' + message, prefix[1], prefix[2], prefix[3]);
     },
 
     /** Error - always logged */
-    error(tag, msg, ...data) {
+    error(tag, message, ...data) {
       if (!_shouldLog('error')) return;
-      const p = _prefix(tag);
-      if (data.length) console.error(p[0] + ' ' + msg, p[1], p[2], p[3], ...data);
-      else console.error(p[0] + ' ' + msg, p[1], p[2], p[3]);
+      const prefix = _prefix(tag);
+      if (data.length) console.error(prefix[0] + ' ' + message, prefix[1], prefix[2], prefix[3], ...data);
+      else console.error(prefix[0] + ' ' + message, prefix[1], prefix[2], prefix[3]);
     },
 
     /** Performance timing - dev mode only */
     perf(tag, action, durationMs) {
       if (!_shouldLog('perf')) return;
-      const p = _prefix(tag);
+      const prefix = _prefix(tag);
       const rounded = typeof durationMs === 'number' ? durationMs.toFixed(1) : durationMs;
-      console.log(p[0] + ' ⏱ ' + action + ' - ' + rounded + 'ms', p[1], p[2], p[3]);
+      console.log(prefix[0] + ' ⏱ ' + action + ' - ' + rounded + 'ms', prefix[1], prefix[2], prefix[3]);
     },
 
     /** Grouped logs - dev mode only */
     group(tag, label) {
       if (!_shouldLog('debug')) return;
-      const p = _prefix(tag);
-      console.groupCollapsed(p[0] + ' ' + label, p[1], p[2], p[3]);
+      const prefix = _prefix(tag);
+      console.groupCollapsed(prefix[0] + ' ' + label, prefix[1], prefix[2], prefix[3]);
     },
 
     /** End grouped logs */
@@ -167,8 +167,8 @@ Structra.log = (() => {
     /** Table output - dev mode only */
     table(tag, label, data) {
       if (!_shouldLog('debug')) return;
-      const p = _prefix(tag);
-      console.log(p[0] + ' ' + label, p[1], p[2]);
+      const prefix = _prefix(tag);
+      console.log(prefix[0] + ' ' + label, prefix[1], prefix[2]);
       console.table(data);
     }
   };

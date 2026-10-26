@@ -62,17 +62,17 @@ function serve() {
 
       // Every node is exactly one kind of value: the type counts must add up to the node count
       const kinds = await page.evaluate(async () => {
-        const a = await Structra.engine.getAnalysis();
+        const a = await Structra.dataEngine.getAnalysis();
         if (!a) return null;
         const t = a.stats;
-        const root = Structra.engine.getActive().raw;
+        const root = Structra.dataEngine.getActive().raw;
         return { total: t.totalNodes, sum: t.strings + t.numbers + t.booleans + t.nulls + t.objects + t.arrays, objectsInAScalar: (root === null || typeof root !== 'object') && t.objects > 0 };
       });
       if (kinds && kinds.objectsInAScalar) failures.push(`${f}: a single value is counted as an object`);
       if (kinds && kinds.total !== kinds.sum) failures.push(`${f}: ${kinds.total} nodes but the type counts add up to ${kinds.sum}`);
 
       // Line numbers in the Tree must count up: each line is one more than the one above it
-      await page.evaluate(() => Structra.set('activeView', 'tree'));
+      await page.evaluate(() => Structra.setState('activeView', 'tree'));
       await page.waitForTimeout(300);
       const order = await page.evaluate(() => {
         const nums = [...document.querySelectorAll('structra-tree .j-line[data-ln]')].map((l) => Number(l.dataset.ln)).filter((n) => Number.isFinite(n) && n > 0);
@@ -82,7 +82,7 @@ function serve() {
       if (order) failures.push(`${f}: tree line numbers go ${order.before} then ${order.got}`);
 
       for (const v of VIEWS) {
-        await page.evaluate((view) => Structra.set('activeView', view), v);
+        await page.evaluate((view) => Structra.setState('activeView', view), v);
         await page.waitForTimeout(120);
       }
 

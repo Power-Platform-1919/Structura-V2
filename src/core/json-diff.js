@@ -34,19 +34,19 @@ Structra.jsonDiff = (() => {
   /** Fields that name a record, tried in this order, to tell which item of a list is which */
   const ID_KEYS = ['id', 'Id', 'ID', '_id', 'key', 'Key', 'guid', 'uuid', 'ItemInternalId', 'name', 'Name'];
 
-  let lib = null;          // the jsondiffpatch module
+  let diffLibrary = null;          // the jsondiffpatch module
   let patchFormat = null;  // its JSON Patch formatter
 
   /** Give the library (used by the tests, which load it in Node) */
   function use(library, jsonPatchFormatter) {
-    lib = library;
+    diffLibrary = library;
     patchFormat = jsonPatchFormatter;
   }
 
   async function ready() {
-    if (lib && patchFormat) return;
-    lib = await Structra.libs.require('jsondiffpatch');
-    patchFormat = await Structra.libs.require('jsondiffpatch-jsonpatch');
+    if (diffLibrary && patchFormat) return;
+    diffLibrary = await Structra.libraryLoader.loadLibrary('jsondiffpatch');
+    patchFormat = await Structra.libraryLoader.loadLibrary('jsondiffpatch-jsonpatch');
   }
 
   /** The longest list in a value, or Infinity when the value is too big to look through */
@@ -55,15 +55,15 @@ Structra.jsonDiff = (() => {
     let seen = 0;
     const stack = [value];
     while (stack.length) {
-      const v = stack.pop();
-      if (v === null || typeof v !== 'object') continue;
+      const current = stack.pop();
+      if (current === null || typeof current !== 'object') continue;
       if (++seen > SCAN_BUDGET) return Infinity;
-      if (Array.isArray(v)) {
-        if (v.length > longest) longest = v.length;
+      if (Array.isArray(current)) {
+        if (current.length > longest) longest = current.length;
         if (longest > MAX_ARRAY) return longest;
-        for (let i = 0; i < v.length; i++) stack.push(v[i]);
+        for (let i = 0; i < current.length; i++) stack.push(current[i]);
       } else {
-        for (const k in v) stack.push(v[k]);
+        for (const key in current) stack.push(current[key]);
       }
     }
     return longest;
@@ -73,9 +73,9 @@ Structra.jsonDiff = (() => {
   function objectHash(item) {
     if (item === null || typeof item !== 'object') return undefined;
     if (!Array.isArray(item)) {
-      for (const k of ID_KEYS) {
-        const v = item[k];
-        if (v !== undefined && v !== null && typeof v !== 'object') return k + ':' + v;
+      for (const idKey of ID_KEYS) {
+        const idValue = item[idKey];
+        if (idValue !== undefined && idValue !== null && typeof idValue !== 'object') return idKey + ':' + idValue;
       }
     }
     return JSON.stringify(item);
@@ -90,27 +90,27 @@ Structra.jsonDiff = (() => {
     out.push({ type, path: type === 'removed' ? leftPath : rightPath, leftPath, rightPath, left, right });
   }
 
-  function fromDelta(delta, left, right, lp, rp, out) {
+  function fromDelta(delta, left, right, leftPath, rightPath, out) {
     if (delta === undefined || delta === null) return;
     if (Array.isArray(delta)) {                               // a whole value was added, changed or removed
-      if (delta.length === 1) add(out, 'added', undefined, rp, undefined, delta[0]);
-      else if (delta.length === 2) add(out, 'changed', lp, rp, delta[0], delta[1]);
-      else if (delta[2] === 0) add(out, 'removed', lp, undefined, delta[0], undefined);
+      if (delta.length === 1) add(out, 'added', undefined, rightPath, undefined, delta[0]);
+      else if (delta.length === 2) add(out, 'changed', leftPath, rightPath, delta[0], delta[1]);
+      else if (delta[2] === 0) add(out, 'removed', leftPath, undefined, delta[0], undefined);
       return;
     }
-    if (delta._t === 'a') { fromListDelta(delta, left, right, lp, rp, out); return; }
+    if (delta._t === 'a') { fromListDelta(delta, left, right, leftPath, rightPath, out); return; }
     for (const key of Object.keys(delta)) {
       const child = delta[key];
-      const l = left !== null && typeof left === 'object' ? left[key] : undefined;
-      const r = right !== null && typeof right === 'object' ? right[key] : undefined;
-      const lpath = keyPath(lp, key);
-      const rpath = keyPath(rp, key);
+      const leftChild = left !== null && typeof left === 'object' ? left[key] : undefined;
+      const rightChild = right !== null && typeof right === 'object' ? right[key] : undefined;
+      const lpath = keyPath(leftPath, key);
+      const rpath = keyPath(rightPath, key);
       if (Array.isArray(child)) {
         if (child.length === 1) add(out, 'added', undefined, rpath, undefined, child[0]);
         else if (child.length === 2) add(out, 'changed', lpath, rpath, child[0], child[1]);
         else if (child[2] === 0) add(out, 'removed', lpath, undefined, child[0], undefined);
       } else {
-        fromDelta(child, l, r, lpath, rpath, out);
+        fromDelta(child, leftChild, rightChild, lpath, rpath, out);
       }
     }
   }
@@ -120,22 +120,22 @@ Structra.jsonDiff = (() => {
    * changed items by their place in the right list ("5"). To say where a changed item was on the left, the items that
    * stayed are lined up in order on both sides.
    */
-  function fromListDelta(delta, leftList, rightList, lp, rp, out) {
+  function fromListDelta(delta, leftList, rightList, leftPath, rightPath, out) {
     const removed = new Set();
     const movedFrom = new Map();      // place on the left -> place on the right
     const inserted = new Map();       // place on the right -> the new value
     const nested = [];                // [place on the right, change]
     for (const key of Object.keys(delta)) {
       if (key === '_t') continue;
-      const d = delta[key];
+      const change = delta[key];
       if (key[0] === '_') {
         const i = Number(key.slice(1));
-        if (Array.isArray(d) && d[2] === 3) movedFrom.set(i, d[1]);
+        if (Array.isArray(change) && change[2] === 3) movedFrom.set(i, change[1]);
         else removed.add(i);
       } else {
         const j = Number(key);
-        if (Array.isArray(d) && d.length === 1) inserted.set(j, d[0]);
-        else nested.push([j, d]);
+        if (Array.isArray(change) && change.length === 1) inserted.set(j, change[0]);
+        else nested.push([j, change]);
       }
     }
     const movedTo = new Set(movedFrom.values());
@@ -144,43 +144,43 @@ Structra.jsonDiff = (() => {
     const stayedRight = [];
     for (let j = 0; j < rightList.length; j++) if (!inserted.has(j) && !movedTo.has(j)) stayedRight.push(j);
     const leftOf = new Map();
-    stayedRight.forEach((j, n) => leftOf.set(j, stayedLeft[n]));
+    stayedRight.forEach((j, index) => leftOf.set(j, stayedLeft[index]));
     movedFrom.forEach((j, i) => leftOf.set(j, i));
 
-    removed.forEach((i) => add(out, 'removed', indexPath(lp, i), undefined, leftList[i], undefined));
-    inserted.forEach((value, j) => add(out, 'added', undefined, indexPath(rp, j), undefined, value));
-    movedFrom.forEach((j, i) => add(out, 'moved', indexPath(lp, i), indexPath(rp, j), leftList[i], rightList[j]));
-    for (const [j, d] of nested) {
+    removed.forEach((i) => add(out, 'removed', indexPath(leftPath, i), undefined, leftList[i], undefined));
+    inserted.forEach((value, j) => add(out, 'added', undefined, indexPath(rightPath, j), undefined, value));
+    movedFrom.forEach((j, i) => add(out, 'moved', indexPath(leftPath, i), indexPath(rightPath, j), leftList[i], rightList[j]));
+    for (const [j, change] of nested) {
       const i = leftOf.has(j) ? leftOf.get(j) : j;
-      if (Array.isArray(d)) add(out, 'changed', indexPath(lp, i), indexPath(rp, j), d[0], d[1]);
-      else fromDelta(d, leftList[i], rightList[j], indexPath(lp, i), indexPath(rp, j), out);
+      if (Array.isArray(change)) add(out, 'changed', indexPath(leftPath, i), indexPath(rightPath, j), change[0], change[1]);
+      else fromDelta(change, leftList[i], rightList[j], indexPath(leftPath, i), indexPath(rightPath, j), out);
     }
   }
 
   /* ---------- position mode: any size, lists compared item by item ---------- */
 
-  function byPosition(left, right, lp, rp, out) {
+  function byPosition(left, right, leftPath, rightPath, out) {
     if (left === right) return;
     const bothObjects = left !== null && right !== null && typeof left === 'object' && typeof right === 'object';
     if (!bothObjects || Array.isArray(left) !== Array.isArray(right)) {
-      add(out, 'changed', lp, rp, left, right);
+      add(out, 'changed', leftPath, rightPath, left, right);
       return;
     }
     if (Array.isArray(left)) {
       const max = Math.max(left.length, right.length);
       for (let i = 0; i < max; i++) {
-        if (i >= left.length) add(out, 'added', undefined, indexPath(rp, i), undefined, right[i]);
-        else if (i >= right.length) add(out, 'removed', indexPath(lp, i), undefined, left[i], undefined);
-        else byPosition(left[i], right[i], indexPath(lp, i), indexPath(rp, i), out);
+        if (i >= left.length) add(out, 'added', undefined, indexPath(rightPath, i), undefined, right[i]);
+        else if (i >= right.length) add(out, 'removed', indexPath(leftPath, i), undefined, left[i], undefined);
+        else byPosition(left[i], right[i], indexPath(leftPath, i), indexPath(rightPath, i), out);
       }
       return;
     }
-    for (const k of Object.keys(left)) {
-      if (!(k in right)) add(out, 'removed', keyPath(lp, k), undefined, left[k], undefined);
-      else byPosition(left[k], right[k], keyPath(lp, k), keyPath(rp, k), out);
+    for (const key of Object.keys(left)) {
+      if (!(key in right)) add(out, 'removed', keyPath(leftPath, key), undefined, left[key], undefined);
+      else byPosition(left[key], right[key], keyPath(leftPath, key), keyPath(rightPath, key), out);
     }
-    for (const k of Object.keys(right)) {
-      if (!(k in left)) add(out, 'added', undefined, keyPath(rp, k), undefined, right[k]);
+    for (const key of Object.keys(right)) {
+      if (!(key in left)) add(out, 'added', undefined, keyPath(rightPath, key), undefined, right[key]);
     }
   }
 
@@ -198,7 +198,7 @@ Structra.jsonDiff = (() => {
       };
     }
     await ready();
-    const differ = lib.create({ objectHash, arrays: { detectMove: true, includeValueOnMove: false }, cloneDiffValues: false });
+    const differ = diffLibrary.create({ objectHash, arrays: { detectMove: true, includeValueOnMove: false }, cloneDiffValues: false });
     const delta = differ.diff(left, right);
     fromDelta(delta, left, right, '$', '$', out);
     return { changes: out, mode: 'smart', note: '', delta };
@@ -210,7 +210,7 @@ Structra.jsonDiff = (() => {
       await ready();
       return result.delta === undefined ? [] : patchFormat.format(result.delta);
     }
-    return Structra.jsonTools.patch(left, right);
+    return Structra.jsonRepairAndValidation.patch(left, right);
   }
 
   return { compare, patchOps, use, MAX_ARRAY };

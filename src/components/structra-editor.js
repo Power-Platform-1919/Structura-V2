@@ -20,7 +20,7 @@
      Sets state: jsonData
    ============================================================ */
 
-class StructraEditor extends StructraElement {
+class StructraEditor extends StructraComponent {
   static get observedAttributes() { return ['readonly']; }
 
   /** The biggest file (as it was on disk) that opens in the editor */
@@ -70,20 +70,20 @@ class StructraEditor extends StructraElement {
       </div>`;
 
     // The status names the problem; a click goes to it
-    this.$('#edStatus').addEventListener('click', () => {
+    this.queryOne('#edStatus').addEventListener('click', () => {
       if (this._errorAt == null || !this._box) return;
       this._box.markError(this._errorAt);
       this._box.gotoOffset(this._errorAt, { select: true });
     });
 
-    this.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const a = btn.dataset.action;
-      if (a === 'apply') this._apply();
-      else if (a === 'format') this._format();
-      else if (a === 'minify') this._minify();
-      else if (a === 'repair') this._repair();
+    this.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.dataset.action;
+      if (action === 'apply') this._apply();
+      else if (action === 'format') this._format();
+      else if (action === 'minify') this._minify();
+      else if (action === 'repair') this._repair();
     });
 
     this._loadData();
@@ -92,15 +92,15 @@ class StructraEditor extends StructraElement {
   /** The code box, created the first time it is needed */
   _ensureBox() {
     if (!this._boxPromise) {
-      this._boxPromise = Structra.codeView.create(this.$('#editorHost'), { mode: 'json', label: 'JSON text' })
+      this._boxPromise = Structra.codeView.create(this.queryOne('#editorHost'), { mode: 'json', label: 'JSON text' })
         .then((box) => {
           this._box = box;
           box.onChange(() => this._edited());
           return box;
         })
-        .catch((err) => {
+        .catch((error) => {
           this._boxPromise = null;
-          Structra.log.error('Editor', 'The code box could not load: ' + err.message);
+          Structra.log.error('Editor', 'The code box could not load: ' + error.message);
           return null;
         });
     }
@@ -119,7 +119,7 @@ class StructraEditor extends StructraElement {
     this._box.clearError();
     this._dirty = true;
     const id = Structra.tabs.activeId;
-    const tab = Structra.tabs.list.find((t) => t.id === id);
+    const tab = Structra.tabs.list.find((candidate) => candidate.id === id);
     if (tab && !tab.draft) { tab.draft = true; Structra.events.emit('tabs:changed'); }
     this._dataOf.set(id, Structra.state.jsonData);
     // The text itself is read later (when checking, or when the tab is left): reading it on every key would copy it each time
@@ -133,7 +133,7 @@ class StructraEditor extends StructraElement {
   _dropDraft(id) {
     this._drafts.delete(id);
     this._dataOf.delete(id);
-    const tab = Structra.tabs.list.find((t) => t.id === id);
+    const tab = Structra.tabs.list.find((candidate) => candidate.id === id);
     if (tab && tab.draft) { tab.draft = false; Structra.events.emit('tabs:changed'); }
   }
 
@@ -182,12 +182,12 @@ class StructraEditor extends StructraElement {
       } else {
         this._dropDraft(tabId);
         try {
-          const t0 = performance.now();
+          const startTime = performance.now();
           text = JSON.stringify(data, null, 2);
-          Structra.log.perf('Editor', 'JSON.stringify', performance.now() - t0);
-        } catch (e) {
-          Structra.log.error('Editor', 'JSON.stringify failed: ' + e.message, e);
-          text = '// This document could not be turned into text: ' + e.message;
+          Structra.log.perf('Editor', 'JSON.stringify', performance.now() - startTime);
+        } catch (error) {
+          Structra.log.error('Editor', 'JSON.stringify failed: ' + error.message, error);
+          text = '// This document could not be turned into text: ' + error.message;
         }
       }
       this._setText(text);
@@ -200,7 +200,7 @@ class StructraEditor extends StructraElement {
   }
 
   _status(kind, icon, html, color) {
-    const status = this.$('#edStatus');
+    const status = this.queryOne('#edStatus');
     if (!status) return;
     const tone = { valid: 'success', error: 'danger', warn: 'warning' }[kind];
     status.innerHTML = Structra.icons.svg(icon, { size: 14, color: color || tone }) + ' ' + html;
@@ -210,7 +210,7 @@ class StructraEditor extends StructraElement {
   }
 
   _showChecking() {
-    const status = this.$('#edStatus');
+    const status = this.queryOne('#edStatus');
     if (!status) return;
     status.innerHTML = 'Checking…';
     status.className = 'ed-status checking';
@@ -219,23 +219,23 @@ class StructraEditor extends StructraElement {
 
   /** The parser's wording, said the way a maker would: what is wrong, not which token */
   _plainReason(reason, text, at) {
-    const ch = at != null && text ? text[at] : '';
+    const character = at != null && text ? text[at] : '';
     if (/Unexpected end of JSON|Unterminated string/i.test(reason)) return 'the text ends too early: a closing bracket or quote is missing';
-    if (/Expected property name|Expected double-quoted property name/i.test(reason)) return ch === "'" ? 'keys need double quotes, not single quotes' : 'a key is missing or needs double quotes (a trailing comma?)';
+    if (/Expected property name|Expected double-quoted property name/i.test(reason)) return character === "'" ? 'keys need double quotes, not single quotes' : 'a key is missing or needs double quotes (a trailing comma?)';
     if (/Expected ',' or '[}\]]'|Expected ',' or/i.test(reason)) return 'a comma is missing between two items';
     if (/Unexpected non-whitespace/i.test(reason)) return 'there is extra text after the end of the JSON';
     if (/Unexpected token/i.test(reason) || /is not valid JSON/i.test(reason)) {
-      if (ch === "'") return "text needs double quotes (\"like this\"), not single quotes";
-      if (ch === ',') return 'a comma is not allowed here';
-      if (ch === '}' || ch === ']') return 'a closing bracket is in the wrong place';
-      if (ch === ':') return 'a colon is not allowed here';
-      if (/[A-Za-z]/.test(ch || '')) return 'text needs double quotes (\"like this\"), unless it is true, false or null';
+      if (character === "'") return "text needs double quotes (\"like this\"), not single quotes";
+      if (character === ',') return 'a comma is not allowed here';
+      if (character === '}' || character === ']') return 'a closing bracket is in the wrong place';
+      if (character === ':') return 'a colon is not allowed here';
+      if (/[A-Za-z]/.test(character || '')) return 'text needs double quotes (\"like this\"), unless it is true, false or null';
     }
     return reason;
   }
 
   async _validate() {
-    const status = this.$('#edStatus');
+    const status = this.queryOne('#edStatus');
     const box = this._box;
     if (!status || !box || this._tooLarge) return;
     const token = (this._checkToken = (this._checkToken || 0) + 1);     // a newer check replaces an older one still running
@@ -245,24 +245,24 @@ class StructraEditor extends StructraElement {
       await Structra.parseJsonAsync(text);
       if (token !== this._checkToken) return;
       this._status('valid', 'check', 'Valid JSON');
-    } catch (e) {
+    } catch (error) {
       if (token !== this._checkToken) return;
       // Say what is wrong and where: the browser's own parser knows the position
-      let why = e.message;
+      let why = error.message;
       try { JSON.parse(text); } catch (native) { why = native.message; }
-      const pos = /position\s+(\d+)/i.exec(why);
-      const lc = /line\s+(\d+)\s+column\s+(\d+)/i.exec(why);
+      const position = /position\s+(\d+)/i.exec(why);
+      const lineAndColumn = /line\s+(\d+)\s+column\s+(\d+)/i.exec(why);
       let where = '';
-      if (pos) {
-        this._errorAt = Number(pos[1]);
+      if (position) {
+        this._errorAt = Number(position[1]);
         const at = box.offsetToPosition(this._errorAt);
         where = `Line ${at.line + 1}, column ${at.ch + 1}`;
         box.markError(this._errorAt);
-      } else if (lc) {
-        where = `Line ${lc[1]}, column ${lc[2]}`;
+      } else if (lineAndColumn) {
+        where = `Line ${lineAndColumn[1]}, column ${lineAndColumn[2]}`;
       }
       const reason = why.replace(/\s*in JSON at position.*$/i, '').replace(/\s*\(line.*\)$/i, '').replace(/^JSON\.parse:\s*/i, '').trim();
-      this._status('error', 'x', `${Structra.util.esc(where ? where + ': ' : '')}${Structra.util.esc(this._plainReason(reason, text, this._errorAt).slice(0, 110))}`);
+      this._status('error', 'x', `${Structra.sharedHelpers.escapeHtml(where ? where + ': ' : '')}${Structra.sharedHelpers.escapeHtml(this._plainReason(reason, text, this._errorAt).slice(0, 110))}`);
       status.disabled = this._errorAt == null;
       status.title = this._errorAt == null ? '' : 'Click to go to the problem';
     }
@@ -285,7 +285,7 @@ class StructraEditor extends StructraElement {
       const data = await Structra.parseJsonAsync(this._box.getValue());
       this._replaceText(JSON.stringify(data, null, 2));
       Structra.toast('Formatted');
-    } catch (e) {
+    } catch (error) {
       Structra.toast('This is not valid JSON');
     }
   }
@@ -301,7 +301,7 @@ class StructraEditor extends StructraElement {
       }
       this._replaceText(text);
       Structra.toast('Minified');
-    } catch (e) {
+    } catch (error) {
       Structra.toast('This is not valid JSON');
     }
   }
@@ -316,17 +316,17 @@ class StructraEditor extends StructraElement {
       return;
     } catch { /* invalid: fall through to repair */ }
     try {
-      const fixed = await Structra.jsonTools.repair(before);
+      const fixed = await Structra.jsonRepairAndValidation.repair(before);
       this._replaceText(fixed);
       // Say how much changed, so the repair is not a leap of faith
-      const lines = (t) => t.split(/\r?\n/);
+      const lines = (text) => text.split(/\r?\n/);
       const was = lines(before), now = lines(fixed);
       let changed = Math.abs(was.length - now.length);
       for (let i = 0; i < Math.min(was.length, now.length); i++) if (was[i] !== now[i]) changed++;
       Structra.toast(`Repaired: about ${changed} line${changed === 1 ? '' : 's'} changed. Review it, then Apply. Ctrl+Z in the box undoes the repair.`);
-    } catch (e) {
+    } catch (error) {
       const panel = document.querySelector('structra-input-panel');
-      const detail = panel && panel._explainError ? panel._explainError(e.message, before).detail : e.message;
+      const detail = panel && panel._explainError ? panel._explainError(error.message, before).detail : error.message;
       const plain = /unexpected end|end of json/i.test(detail) ? 'The text stops before the JSON is complete, or it is not JSON at all.' : detail;
       Structra.toast('This could not be repaired automatically. ' + plain);
     }
@@ -341,14 +341,14 @@ class StructraEditor extends StructraElement {
       Structra.undoStack.push(Structra.state.jsonData, 'Before editing', tabId);
       this._dropDraft(tabId);
       this._dirty = false;
-      Structra.set('jsonData', data);
+      Structra.setState('jsonData', data);
       Structra.undoStack.push(data, 'Edited in the Editor', tabId);
-      const tab = Structra.tabs.list.find((t) => t.id === tabId);
+      const tab = Structra.tabs.list.find((candidate) => candidate.id === tabId);
       if (tab) { tab.modified = true; Structra.events.emit('tabs:changed'); }
       Structra.toast('Changes applied. Ctrl+Z (outside this box) undoes them.');
-    } catch (e) {
+    } catch (error) {
       this._validate();
-      Structra.toast('These changes cannot be applied yet: ' + (this.$('#edStatus').textContent || 'the JSON is not valid').trim());
+      Structra.toast('These changes cannot be applied yet: ' + (this.queryOne('#edStatus').textContent || 'the JSON is not valid').trim());
     }
   }
 }

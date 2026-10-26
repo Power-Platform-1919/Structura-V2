@@ -1,6 +1,6 @@
 const { load, test, eq } = require('./harness');
-load(['util', 'schema-gen']);
-const S = Structra.schemaGen;
+load(['shared-helpers', 'parse-json-schema-generator']);
+const S = Structra.parseJsonSchemaGenerator;
 
 console.log('schema-gen');
 

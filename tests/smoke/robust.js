@@ -102,7 +102,7 @@ function serve() {
     const ids = await page.evaluate(() => Structra.tabs.list.slice(-2).map((t) => t.id));
     await page.evaluate((id) => document.querySelector('structra-tabs')._switchTab(id), ids[0]);
     await page.waitForTimeout(500);
-    await page.evaluate(() => Structra.set('activeView', 'editor'));
+    await page.evaluate(() => Structra.setState('activeView', 'editor'));
     await page.waitForTimeout(500);
     await page.evaluate(() => { document.querySelector('structra-editor .cv').codeView.replaceAll('{"keep": "TYPED, not applied"}'); });
     await page.waitForTimeout(300);
@@ -115,7 +115,7 @@ function serve() {
     await page.locator('structra-editor [data-action="apply"]').click();
     await page.waitForTimeout(500);
     if (await page.evaluate(() => Structra.tabs.list.find((t) => t.id === Structra.tabs.activeId).draft)) failures.push('applying the text should clear the dot');
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
 
     // ---- tab names: the lowest free Untitled number ----
     await closeAll();
@@ -132,7 +132,7 @@ function serve() {
     await page.waitForTimeout(250);
     const open2 = await page.evaluate(() => [...document.querySelectorAll('.ov.show')].map((o) => o.parentElement.tagName.toLowerCase()));
     if (open2.join() !== 'structra-settings') failures.push('opening a dialog should close the one before it: ' + open2.join());
-    await page.evaluate(() => { Structra.events.emit('overlay:close'); Structra.set('findBarOpen', true); });
+    await page.evaluate(() => { Structra.events.emit('overlay:close'); Structra.setState('findBarOpen', true); });
     await page.waitForTimeout(250);
     await page.evaluate(() => { Structra.events.emit('settings:open'); });
     await page.waitForTimeout(350);
@@ -146,7 +146,7 @@ function serve() {
     if (st.find) failures.push('the second Escape should close the Find bar');
 
     // ---- the Query panel forgets results when the document changes; the path bar shows its hint ----
-    await page.evaluate(() => Structra.set('queryPanelOpen', true));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', true));
     await page.waitForTimeout(300);
     await page.locator('#queryInput').fill('a[*]');
     await page.locator('#queryInput').press('Enter');
@@ -154,7 +154,7 @@ function serve() {
     if (!(await page.evaluate(() => document.querySelectorAll('#queryResults .qp-result').length))) failures.push('the query should find matches');
     await load('other.json', '{"z":1}');
     if (await page.evaluate(() => document.querySelectorAll('#queryResults .qp-result').length)) failures.push('query results from the closed document are still showing');
-    await page.evaluate(() => Structra.set('queryPanelOpen', false));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', false));
     if ((await page.evaluate(() => document.querySelector('#pathInput').value)) !== '') failures.push('with nothing selected the path bar should be empty to show its hint');
 
     // ---- several files at once ----
@@ -178,15 +178,15 @@ function serve() {
       let bin = ''; const b = new Uint8Array(gz); for (let i = 0; i < b.length; i += 0x8000) bin += String.fromCharCode(...b.subarray(i, i + 0x8000));
       const enc = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
       history.replaceState(null, '', '#share=g.' + enc);
-      try { await Structra.share.readHash(); return 'opened'; } catch (e) { return e.message; } finally { history.replaceState(null, '', location.pathname); }
+      try { await Structra.shareLink.readHash(); return 'opened'; } catch (e) { return e.message; } finally { history.replaceState(null, '', location.pathname); }
     });
     if (!/more than 20 MB/.test(refused)) failures.push('a share link unpacking to 24 MB should be refused: ' + refused);
 
     // ---- Find understands key:name and $.path; editing a value in the Tree can be undone; XML writes empty lists as one tag ----
     await closeAll();
     await load('edit.json', JSON.stringify({ rows: [{ Title: 'a', n: 1 }, { Title: 'b', n: 2 }], n: 5 }));
-    const byKey = await page.evaluate(async () => (await Structra.engine.findInDb('key:Title')).total);
-    const byPath = await page.evaluate(async () => (await Structra.engine.findInDb('$.rows[*].n')).total);
+    const byKey = await page.evaluate(async () => (await Structra.dataEngine.findInDb('key:Title')).total);
+    const byPath = await page.evaluate(async () => (await Structra.dataEngine.findInDb('$.rows[*].n')).total);
     if (byKey !== 2 || byPath !== 2) failures.push('Find key:Title and $.rows[*].n should each find 2: ' + byKey + ', ' + byPath);
     await page.evaluate(() => Structra.events.emit('tree:inline-edit', { path: 'n', value: 9 }));
     await page.waitForTimeout(600);
@@ -194,7 +194,7 @@ function serve() {
     await page.evaluate(() => Structra.events.emit('command:run', 'undo'));
     await page.waitForTimeout(500);
     if (await page.evaluate(() => Structra.state.jsonData.n) !== 5) failures.push('editing a value in the Tree should be undoable');
-    const xmlOut = await page.evaluate(() => Structra.convert.jsonToXml({ a: [], b: {}, c: [{}] }));
+    const xmlOut = await page.evaluate(() => Structra.formatConversion.jsonToXml({ a: [], b: {}, c: [{}] }));
     if (!/<a\/>/.test(xmlOut) || !/<b\/>/.test(xmlOut) || !/<item\/>/.test(xmlOut)) failures.push('XML should write empty lists and records as one tag: ' + xmlOut);
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));

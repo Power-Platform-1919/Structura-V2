@@ -3,19 +3,19 @@
    Unified query API managing named datasets (one per tab).
 
    API:
-     Structra.engine.ingest(tabId, data, meta)  → index + store dataset
-     Structra.engine.remove(tabId)              → cleanup dataset
-     Structra.engine.setActive(tabId)           → switch context
-     Structra.engine.getActive()                → current Dataset
-     Structra.engine.slice(offset, limit)       → paginated rows
-     Structra.engine.sort(key, dir)             → sort active dataset
-     Structra.engine.search(pattern, opts)      → search values/keys/paths
-     Structra.engine.filter(predicate)          → filter active array
-     Structra.engine.aggregate(key, fn)         → aggregation result
-     Structra.engine.getSchema()                → inferred schema
-     Structra.engine.getStats()                 → stats summary
-     Structra.engine.pathQuery(expr)            → JSONPath query
-     Structra.engine.sql(query)                 → DuckDB SQL (when ready)
+     Structra.dataEngine.ingest(tabId, data, meta)  → index + store dataset
+     Structra.dataEngine.remove(tabId)              → cleanup dataset
+     Structra.dataEngine.setActive(tabId)           → switch context
+     Structra.dataEngine.getActive()                → current Dataset
+     Structra.dataEngine.slice(offset, limit)       → paginated rows
+     Structra.dataEngine.sort(key, dir)             → sort active dataset
+     Structra.dataEngine.search(pattern, opts)      → search values/keys/paths
+     Structra.dataEngine.filter(predicate)          → filter active array
+     Structra.dataEngine.aggregate(key, fn)         → aggregation result
+     Structra.dataEngine.getSchema()                → inferred schema
+     Structra.dataEngine.getStats()                 → stats summary
+     Structra.dataEngine.pathQuery(expr)            → JSONPath query
+     Structra.dataEngine.sql(query)                 → DuckDB SQL (when ready)
 
    Events:
      'engine:ingested'    → {tabId, meta}
@@ -26,8 +26,8 @@
      'engine:error'        → {message, context}
 
    Console:
-     Structra.engine.getActive()
-     Structra.engine.runSql('SELECT COUNT(*) FROM data')
+     Structra.dataEngine.getActive()
+     Structra.dataEngine.runSql('SELECT COUNT(*) FROM data')
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: engine:duckdb-failed, engine:data-modified
@@ -38,7 +38,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.engine = (() => {
+Structra.dataEngine = (() => {
   /* --- Internal State --- */
   const _datasets = new Map();  // tabId → Dataset
   let _activeId = null;
@@ -109,24 +109,24 @@ Structra.engine = (() => {
 
     for (const row of sample) {
       if (!row || typeof row !== 'object') continue;
-      for (const [key, val] of Object.entries(row)) {
-        let col = columns.get(key);
-        if (!col) { col = { name: key, types: new Set(), count: 0, nulls: 0 }; columns.set(key, col); }
-        col.count++;
-        if (val === null || val === undefined) {
-          col.nulls++;
+      for (const [key, value] of Object.entries(row)) {
+        let column = columns.get(key);
+        if (!column) { column = { name: key, types: new Set(), count: 0, nulls: 0 }; columns.set(key, column); }
+        column.count++;
+        if (value === null || value === undefined) {
+          column.nulls++;
         } else {
-          col.types.add(Array.isArray(val) ? 'array' : typeof val);
+          column.types.add(Array.isArray(value) ? 'array' : typeof value);
         }
       }
     }
 
     // Convert sets to arrays for serialization
-    return [...columns.values()].map(col => ({
-      name: col.name,
-      types: [...col.types],
-      coverage: col.count / sample.length,
-      nullRate: col.nulls / col.count,
+    return [...columns.values()].map(value => ({
+      name: value.name,
+      types: [...value.types],
+      coverage: value.count / sample.length,
+      nullRate: value.nulls / value.count,
     }));
   }
 
@@ -148,7 +148,7 @@ Structra.engine = (() => {
 
   /* --- Ingest --- */
   async function ingest(tabId, data, meta = {}) {
-    const t0 = performance.now();
+    const startTime = performance.now();
     const dataset = createDataset(tabId, data, meta);
 
     // Build column index for arrays of objects
@@ -169,17 +169,17 @@ Structra.engine = (() => {
       _activeId = tabId;
     }
 
-    const duration = performance.now() - t0;
+    const duration = performance.now() - startTime;
     Structra.log.info('Engine', `Ingested tab ${tabId}: ${dataset.meta.shape}, ${dataset.meta.rowCount || '?'} rows (${duration.toFixed(1)}ms)`);
 
     // Keep the original text for Recents. Not urgent, so wait until the page is idle.
     if (meta.rawSource) {
-      new Promise((resolve) => Structra.util.whenIdle(resolve, 3000))
-        .then(() => Structra.persistence.raw.put(meta.rawSource, { format: meta.format, name: meta.name }))
+      new Promise((resolve) => Structra.sharedHelpers.runWhenIdle(resolve, 3000))
+        .then(() => Structra.browserDatabase.raw.put(meta.rawSource, { format: meta.format, name: meta.name }))
         .then(hash => {
           dataset.meta.hash = hash;
           Structra.events.emit('engine:persisted', { tabId });
-          Structra.persistence.recents.add({
+          Structra.browserDatabase.recents.add({
             name: meta.name,
             format: meta.format,
             size: meta.size,
@@ -187,7 +187,7 @@ Structra.engine = (() => {
             tabId,
           });
         })
-        .catch(err => Structra.log.error('Engine', 'Persistence failed', err));
+        .catch(error => Structra.log.error('Engine', 'Persistence failed', error));
     }
 
     // Emit immediately so views render without waiting for DuckDB
@@ -196,9 +196,9 @@ Structra.engine = (() => {
     // SQL is optional and starts on demand (see enableSql). If it is already running, load this
     // dataset into it in the background so SQL stays in step with the open document.
     if (_duckAvailable()) {
-      dataset._duckPromise = Structra.duckdb.registerDataset(dataset)
+      dataset._duckPromise = Structra.duckdbAdapter.registerDataset(dataset)
         .then(() => Structra.events.emit('engine:duckdb-registered', { tabId }))
-        .catch(err => Structra.log.error('Engine', 'DuckDB register failed', err));
+        .catch(error => Structra.log.error('Engine', 'DuckDB register failed', error));
     }
 
     return dataset;
@@ -215,7 +215,7 @@ Structra.engine = (() => {
     }
     // Drop DuckDB table if ready
     if (_duckAvailable()) {
-      Structra.duckdb.dropTable(dataset.duckTable).catch(() => {});
+      Structra.duckdbAdapter.dropTable(dataset.duckTable).catch(() => {});
     }
     Structra.log.info('Engine', `Removed dataset: tab ${tabId}`);
     Structra.events.emit('engine:removed', { tabId });
@@ -243,69 +243,69 @@ Structra.engine = (() => {
 
   /* --- Slice (pagination) --- */
   function slice(offset = 0, limit = 50) {
-    const ds = getActive();
-    if (!ds) return { rows: [], total: 0 };
-    const arr = ds.indexes.sorted ? ds.indexes.sorted.refs : ds.raw;
-    if (!Array.isArray(arr)) return { rows: [], total: 0 };
-    return { rows: arr.slice(offset, offset + limit), total: arr.length };
+    const dataset = getActive();
+    if (!dataset) return { rows: [], total: 0 };
+    const array = dataset.indexes.sorted ? dataset.indexes.sorted.refs : dataset.raw;
+    if (!Array.isArray(array)) return { rows: [], total: 0 };
+    return { rows: array.slice(offset, offset + limit), total: array.length };
   }
 
   /* --- Sort --- */
-  function sort(key, dir = 'asc') {
-    const ds = getActive();
-    if (!ds || !Array.isArray(ds.raw)) return;
+  function sort(key, direction = 'asc') {
+    const dataset = getActive();
+    if (!dataset || !Array.isArray(dataset.raw)) return;
 
-    const cacheKey = `sort:${key}:${dir}`;
-    const cached = cacheGet(ds, cacheKey);
-    if (cached) { ds.indexes.sorted = cached; return; }
+    const cacheKey = `sort:${key}:${direction}`;
+    const cached = cacheGet(dataset, cacheKey);
+    if (cached) { dataset.indexes.sorted = cached; return; }
 
-    const refs = [...ds.raw].sort((a, b) => {
-      const av = a && a[key];
-      const bv = b && b[key];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      const cmp = Structra.util.compareValues(av, bv);
-      return dir === 'asc' ? cmp : -cmp;
+    const refs = [...dataset.raw].sort((first, second) => {
+      const firstValue = first && first[key];
+      const secondValue = second && second[key];
+      if (firstValue == null && secondValue == null) return 0;
+      if (firstValue == null) return 1;
+      if (secondValue == null) return -1;
+      const compare = Structra.sharedHelpers.compareValues(firstValue, secondValue);
+      return direction === 'asc' ? compare : -compare;
     });
 
-    const sortObj = { key, dir, refs };
-    ds.indexes.sorted = sortObj;
-    cacheSet(ds, cacheKey, sortObj);
+    const sortObject = { key, dir: direction, refs };
+    dataset.indexes.sorted = sortObject;
+    cacheSet(dataset, cacheKey, sortObject);
   }
 
   /* --- Search --- */
-  function search(pattern, opts = {}) {
-    const ds = getActive();
-    if (!ds) return { matchedPaths: [], total: 0 };
-    const { mode = 'values' } = opts; // 'values' | 'keys' | 'paths'
+  function search(pattern, options = {}) {
+    const dataset = getActive();
+    if (!dataset) return { matchedPaths: [], total: 0 };
+    const { mode = 'values' } = options; // 'values' | 'keys' | 'paths'
     const regex = pattern instanceof RegExp ? pattern : new RegExp(pattern, 'i');
     const matched = [];
 
     // Stack-based traversal
-    const stack = [{ val: ds.raw, path: '$', depth: 0 }];
-    const maxDepth = Structra.settings.get('maxDepth');
+    const stack = [{ val: dataset.raw, path: '$', depth: 0 }];
+    const maxDepth = Structra.appSettings.get('maxDepth');
 
     while (stack.length > 0) {
-      const { val, path, depth } = stack.pop();
+      const { val: value, path, depth } = stack.pop();
       if (depth > maxDepth) continue;
 
-      if (val && typeof val === 'object') {
-        const entries = Array.isArray(val)
-          ? val.map((v, i) => [i, v])
-          : Object.entries(val);
-        for (const [k, v] of entries) {
-          const childPath = Array.isArray(val) ? `${path}[${k}]` : `${path}.${k}`;
+      if (value && typeof value === 'object') {
+        const entries = Array.isArray(value)
+          ? value.map((item, i) => [i, item])
+          : Object.entries(value);
+        for (const [key, item] of entries) {
+          const childPath = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
           // Check match based on mode
-          if (mode === 'keys' && regex.test(String(k))) {
+          if (mode === 'keys' && regex.test(String(key))) {
             matched.push(childPath);
-          } else if (mode === 'values' && v !== null && typeof v !== 'object' && regex.test(String(v))) {
+          } else if (mode === 'values' && item !== null && typeof item !== 'object' && regex.test(String(item))) {
             matched.push(childPath);
           } else if (mode === 'paths' && regex.test(childPath)) {
             matched.push(childPath);
           }
-          if (v && typeof v === 'object') {
-            stack.push({ val: v, path: childPath, depth: depth + 1 });
+          if (item && typeof item === 'object') {
+            stack.push({ val: item, path: childPath, depth: depth + 1 });
           }
         }
       }
@@ -316,38 +316,38 @@ Structra.engine = (() => {
 
   /* --- Filter --- */
   function filter(predicate) {
-    const ds = getActive();
-    if (!ds || !Array.isArray(ds.raw)) return [];
-    return ds.raw.filter(predicate);
+    const dataset = getActive();
+    if (!dataset || !Array.isArray(dataset.raw)) return [];
+    return dataset.raw.filter(predicate);
   }
 
   /* --- Aggregate --- */
-  function aggregate(key, fn) {
-    const ds = getActive();
-    if (!ds || !Array.isArray(ds.raw)) return null;
+  function aggregate(key, callback) {
+    const dataset = getActive();
+    if (!dataset || !Array.isArray(dataset.raw)) return null;
 
-    const values = ds.raw
+    const values = dataset.raw
       .map(row => row && row[key])
-      .filter(v => v !== null && v !== undefined);
+      .filter(item => item !== null && item !== undefined);
 
-    switch (fn) {
+    switch (callback) {
       case 'count': return values.length;
-      case 'sum': return values.reduce((a, b) => a + (Number(b) || 0), 0);
+      case 'sum': return values.reduce((total, item) => total + (Number(item) || 0), 0);
       case 'avg': {
-        const nums = values.filter(v => typeof v === 'number');
-        return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
+        const numbers = values.filter(value => typeof value === 'number');
+        return numbers.length ? numbers.reduce((total, item) => total + item, 0) / numbers.length : null;
       }
       case 'min': {
-        const nums = values.filter(v => typeof v === 'number');
-        if (!nums.length) return null;
-        let mn = nums[0]; for (let i = 1; i < nums.length; i++) { if (nums[i] < mn) mn = nums[i]; }
-        return mn;
+        const numbers = values.filter(value => typeof value === 'number');
+        if (!numbers.length) return null;
+        let minimum = numbers[0]; for (let i = 1; i < numbers.length; i++) { if (numbers[i] < minimum) minimum = numbers[i]; }
+        return minimum;
       }
       case 'max': {
-        const nums = values.filter(v => typeof v === 'number');
-        if (!nums.length) return null;
-        let mx = nums[0]; for (let i = 1; i < nums.length; i++) { if (nums[i] > mx) mx = nums[i]; }
-        return mx;
+        const numbers = values.filter(value => typeof value === 'number');
+        if (!numbers.length) return null;
+        let maximum = numbers[0]; for (let i = 1; i < numbers.length; i++) { if (numbers[i] > maximum) maximum = numbers[i]; }
+        return maximum;
       }
       case 'distinct': return [...new Set(values)];
       case 'countDistinct': return new Set(values).size;
@@ -357,69 +357,69 @@ Structra.engine = (() => {
 
   /* --- Schema Inference --- */
   function getSchema() {
-    const ds = getActive();
-    if (!ds) return null;
+    const dataset = getActive();
+    if (!dataset) return null;
 
     const cacheKey = 'schema';
-    const cached = cacheGet(ds, cacheKey);
+    const cached = cacheGet(dataset, cacheKey);
     if (cached) return cached;
 
-    const schema = inferSchema(ds.raw, '$', 0);
-    cacheSet(ds, cacheKey, schema);
+    const schema = inferSchema(dataset.raw, '$', 0);
+    cacheSet(dataset, cacheKey, schema);
     return schema;
   }
 
-  function inferSchema(val, path, depth) {
+  function inferSchema(value, path, depth) {
     if (depth > 5) return { type: 'unknown', path };
-    if (val === null) return { type: 'null', path };
-    if (Array.isArray(val)) {
-      const items = val.length > 0 ? inferSchema(val[0], path + '[0]', depth + 1) : { type: 'unknown' };
-      return { type: 'array', path, length: val.length, items };
+    if (value === null) return { type: 'null', path };
+    if (Array.isArray(value)) {
+      const items = value.length > 0 ? inferSchema(value[0], path + '[0]', depth + 1) : { type: 'unknown' };
+      return { type: 'array', path, length: value.length, items };
     }
-    if (typeof val === 'object') {
+    if (typeof value === 'object') {
       const properties = {};
-      for (const [k, v] of Object.entries(val)) {
-        properties[k] = inferSchema(v, path + '.' + k, depth + 1);
+      for (const [key, item] of Object.entries(value)) {
+        properties[key] = inferSchema(item, path + '.' + key, depth + 1);
       }
       return { type: 'object', path, properties };
     }
-    return { type: typeof val, path };
+    return { type: typeof value, path };
   }
 
   /* --- Stats --- */
   function getStats() {
-    const ds = getActive();
-    if (!ds) return null;
+    const dataset = getActive();
+    if (!dataset) return null;
 
     const cacheKey = 'stats';
-    const cached = cacheGet(ds, cacheKey);
+    const cached = cacheGet(dataset, cacheKey);
     if (cached) return cached;
 
     const stats = {
-      shape: ds.meta.shape,
-      rowCount: ds.meta.rowCount,
-      format: ds.meta.format,
-      size: ds.meta.size,
-      columns: ds.indexes.columns,
-      timestamp: ds.meta.timestamp,
+      shape: dataset.meta.shape,
+      rowCount: dataset.meta.rowCount,
+      format: dataset.meta.format,
+      size: dataset.meta.size,
+      columns: dataset.indexes.columns,
+      timestamp: dataset.meta.timestamp,
     };
 
     // Count nodes for objects
-    if (ds.meta.shape === 'object') {
-      stats.keyCount = Object.keys(ds.raw).length;
+    if (dataset.meta.shape === 'object') {
+      stats.keyCount = Object.keys(dataset.raw).length;
     }
 
-    cacheSet(ds, cacheKey, stats);
+    cacheSet(dataset, cacheKey, stats);
     return stats;
   }
 
   /* --- JSONPath Query (placeholder - needs jsonpath-plus) --- */
-  function pathQuery(expr) {
-    const ds = getActive();
-    if (!ds) return { results: [], matchedPaths: [] };
+  function pathQuery(expression) {
+    const dataset = getActive();
+    if (!dataset) return { results: [], matchedPaths: [] };
     // Will integrate with jsonpath-plus via lib-loader
     Structra.log.warn('Engine', 'JSONPath not yet integrated');
-    return { results: [], matchedPaths: [], expr };
+    return { results: [], matchedPaths: [], expr: expression };
   }
 
   /* --- Diff (structural comparison between two datasets) --- */
@@ -439,7 +439,7 @@ Structra.engine = (() => {
   // Listen for DuckDB failure
   if (Structra.events) {
     Structra.events.on('engine:duckdb-failed', onDuckDBFailed);
-    Structra.events.on('engine:data-modified', () => { const ds = getActive(); if (ds) ds._analysis = null; });
+    Structra.events.on('engine:data-modified', () => { const dataset = getActive(); if (dataset) dataset._analysis = null; });
   }
 
   /* --- Session Persistence (debounced) --- */
@@ -449,12 +449,12 @@ Structra.engine = (() => {
     _saveTimer = setTimeout(() => {
       const state = {
         activeId: _activeId,
-        tabs: [..._datasets.entries()].map(([id, ds]) => ({
+        tabs: [..._datasets.entries()].map(([id, value]) => ({
           id,
-          meta: ds.meta,
+          meta: value.meta,
         })),
       };
-      Structra.persistence.session.save(state).catch(() => {});
+      Structra.browserDatabase.session.save(state).catch(() => {});
     }, 2000);
   }
 
@@ -485,30 +485,30 @@ Structra.engine = (() => {
    * @returns {Promise<Object>} query result
    */
   async function findInDb(text) {
-    const ds = getActive();
-    if (!ds) return null;
+    const dataset = getActive();
+    if (!dataset) return null;
 
     // key:name finds a field by its name, $.a.b finds by path; anything else searches the values
     const byKey = /^\s*key:\s*(.+?)\s*$/i.exec(text);
     if (byKey) {
       const found = search(new RegExp(byKey[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), { mode: 'keys' });
-      return _setFindResult(ds, text, found.matchedPaths);
+      return _setFindResult(dataset, text, found.matchedPaths);
     }
     if (/^\s*\$[.\[]/.test(text)) {
-      let hits;
-      try { hits = Structra.jsonpath.query(ds.raw, text.trim()); } catch (err) { throw new Error('This path could not be read: ' + err.message); }
-      return _setFindResult(ds, text, hits.map((h) => h.path));
+      let matches;
+      try { matches = Structra.jsonpathQuery.query(dataset.raw, text.trim()); } catch (error) { throw new Error('This path could not be read: ' + error.message); }
+      return _setFindResult(dataset, text, matches.map((match) => match.path));
     }
     // Search the values themselves: every match carries its path, so the count is the number of matching
     // values and Next / Previous visit each one. (A row-based SQL search counted rows, and missed nested values.)
-    return _findInMemory(ds, text);
+    return _findInMemory(dataset, text);
   }
 
   /** In-memory find (no DuckDB) */
-  function _findInMemory(ds, text, regex) {
+  function _findInMemory(dataset, text, regex) {
     const literal = new RegExp(String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     const searchResult = search(regex || literal, { mode: 'values' });
-    const rows = _matchedPathsToRows(ds, searchResult.matchedPaths);
+    const rows = _matchedPathsToRows(dataset, searchResult.matchedPaths);
     const result = {
       source: 'find',
       query: text,
@@ -534,35 +534,35 @@ Structra.engine = (() => {
    * changes text values only: a match inside a number or true/false is counted in `skipped`, not changed.
    */
   function replaceInData(findText, replaceText, all = false) {
-    const ds = getActive();
-    if (!ds) return { replaced: 0, skipped: 0 };
-    const re = new RegExp(String(findText).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    const probe = new RegExp(re.source, 'i');
+    const dataset = getActive();
+    if (!dataset) return { replaced: 0, skipped: 0 };
+    const pattern = new RegExp(String(findText).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const probe = new RegExp(pattern.source, 'i');
     let count = 0;
     let skipped = 0;
 
     function visit(holder, key) {
-      const v = holder[key];
-      if (typeof v === 'string') {
-        if (probe.test(v)) { holder[key] = v.replace(re, () => replaceText); count++; return !all; }
-      } else if (typeof v === 'number' || typeof v === 'boolean') {
-        if (probe.test(String(v))) skipped++;
-      } else if (v && typeof v === 'object') {
-        for (const k of Object.keys(v)) if (visit(v, k)) return true;
+      const found = holder[key];
+      if (typeof found === 'string') {
+        if (probe.test(found)) { holder[key] = found.replace(pattern, () => replaceText); count++; return !all; }
+      } else if (typeof found === 'number' || typeof found === 'boolean') {
+        if (probe.test(String(found))) skipped++;
+      } else if (found && typeof found === 'object') {
+        for (const key of Object.keys(found)) if (visit(found, key)) return true;
       }
       return false;
     }
 
-    visit({ root: ds.raw }, 'root');
+    visit({ root: dataset.raw }, 'root');
 
     if (count > 0) {
       // Clear caches, re-register with DuckDB
-      cacheClear(ds);
+      cacheClear(dataset);
       if (_duckAvailable()) {
-        Structra.duckdb.registerDataset(ds).catch(() => {});
+        Structra.duckdbAdapter.registerDataset(dataset).catch(() => {});
       }
       Structra.log.info('Engine', `Replaced ${count} occurrence(s) of "${findText}" → "${replaceText}"`);
-      Structra.events.emit('engine:data-modified', { tabId: ds.id, action: 'replace', count });
+      Structra.events.emit('engine:data-modified', { tabId: dataset.id, action: 'replace', count });
     }
     return { replaced: count, skipped };
   }
@@ -572,27 +572,27 @@ Structra.engine = (() => {
    * records, otherwise its first list of records (value in a SharePoint response, body.value in an HTTP output).
    * @returns {{ path: string, rows: Array } | null}
    */
-  function mainList(ds) {
-    ds = ds || getActive();
-    if (!ds) return null;
-    if (ds._main === undefined) {
+  function mainList(dataset) {
+    dataset = dataset || getActive();
+    if (!dataset) return null;
+    if (dataset._main === undefined) {
       const isRecord = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
-      if (Array.isArray(ds.raw)) ds._main = ds.raw.length && isRecord(ds.raw[0]) ? { path: '$', rows: ds.raw } : null;
-      else ds._main = _firstObjectArray(ds.raw, '$');
+      if (Array.isArray(dataset.raw)) dataset._main = dataset.raw.length && isRecord(dataset.raw[0]) ? { path: '$', rows: dataset.raw } : null;
+      else dataset._main = _firstObjectArray(dataset.raw, '$');
     }
-    return ds._main;
+    return dataset._main;
   }
 
   /** Read a field of a row; Status.Value reads the Value inside Status */
   function fieldValue(row, field) {
     if (row === null || row === undefined) return undefined;
     if (Object.prototype.hasOwnProperty.call(row, field)) return row[field];
-    let v = row;
-    for (const k of String(field).split('.')) {
-      if (v === null || v === undefined || typeof v !== 'object') return undefined;
-      v = v[k];
+    let current = row;
+    for (const key of String(field).split('.')) {
+      if (current === null || current === undefined || typeof current !== 'object') return undefined;
+      current = current[key];
     }
-    return v;
+    return current;
   }
 
   /**
@@ -600,30 +600,30 @@ Structra.engine = (() => {
    * Person and Lookup fields as Parent.Child (Status.Value, Requester.Email). Lists and system keys are left out.
    * @returns {string[]}
    */
-  function mainColumns(ds) {
-    ds = ds || getActive();
-    const main = mainList(ds);
+  function mainColumns(dataset) {
+    dataset = dataset || getActive();
+    const main = mainList(dataset);
     if (!main) return [];
-    if (!ds._mainCols) {
-      const sample = main.rows.slice(0, 100).filter((r) => r && typeof r === 'object' && !Array.isArray(r));
+    if (!dataset._mainCols) {
+      const sample = main.rows.slice(0, 100).filter((row) => row && typeof row === 'object' && !Array.isArray(row));
       const keys = [];
-      sample.forEach((r) => Object.keys(r).forEach((k) => { if (!keys.includes(k)) keys.push(k); }));
-      const cols = [];
-      for (const k of keys) {
-        if (k.startsWith('@')) continue;
-        const vals = sample.map((r) => r[k]).filter((v) => v !== null && v !== undefined);
-        const objs = vals.filter((v) => typeof v === 'object' && !Array.isArray(v));
-        if (vals.length && objs.length === vals.length) {
-          const kids = [];
-          objs.forEach((o) => Object.keys(o).forEach((c) => { if (!kids.includes(c) && !c.startsWith('@') && (o[c] === null || typeof o[c] !== 'object')) kids.push(c); }));
-          kids.slice(0, 8).forEach((c) => cols.push(`${k}.${c}`));
-        } else if (!vals.length || vals.some((v) => typeof v !== 'object')) {
-          cols.push(k);
+      sample.forEach((row) => Object.keys(row).forEach((key) => { if (!keys.includes(key)) keys.push(key); }));
+      const columns = [];
+      for (const key of keys) {
+        if (key.startsWith('@')) continue;
+        const values = sample.map((row) => row[key]).filter((value) => value !== null && value !== undefined);
+        const objects = values.filter((value) => typeof value === 'object' && !Array.isArray(value));
+        if (values.length && objects.length === values.length) {
+          const children = [];
+          objects.forEach((object) => Object.keys(object).forEach((childKey) => { if (!children.includes(childKey) && !childKey.startsWith('@') && (object[childKey] === null || typeof object[childKey] !== 'object')) children.push(childKey); }));
+          children.slice(0, 8).forEach((childKey) => columns.push(`${key}.${childKey}`));
+        } else if (!values.length || values.some((value) => typeof value !== 'object')) {
+          columns.push(key);
         }
       }
-      ds._mainCols = cols;
+      dataset._mainCols = columns;
     }
-    return ds._mainCols;
+    return dataset._mainCols;
   }
 
   /**
@@ -634,8 +634,8 @@ Structra.engine = (() => {
    * @returns {Promise<Object>} query result
    */
   async function filterDb(conditions) {
-    const ds = getActive();
-    if (!ds) return null;
+    const dataset = getActive();
+    if (!dataset) return null;
     if (!conditions || conditions.length === 0) {
       clearQuery();
       return null;
@@ -643,16 +643,16 @@ Structra.engine = (() => {
 
     // The SQL route is for a plain list at the root with plain column names. Anything else (a list inside an object,
     // Status.Value style columns) is filtered in memory, on the rows of the main list.
-    const plain = Array.isArray(ds.raw) && conditions.every((c) => !String(c.field).includes('.'));
-    if (plain && _canUseDuck(ds)) {
-      const tableName = _tableOf(ds);
-      const cols = _getDuckColumnNames(ds);
-      const sqlWhere = _conditionsToSql(conditions, cols);
-      if (!sqlWhere) return _filterInMemory(ds, conditions);
+    const plain = Array.isArray(dataset.raw) && conditions.every((condition) => !String(condition.field).includes('.'));
+    if (plain && _canUseDuck(dataset)) {
+      const tableName = _tableOf(dataset);
+      const columns = _getDuckColumnNames(dataset);
+      const sqlWhere = _conditionsToSql(conditions, columns);
+      if (!sqlWhere) return _filterInMemory(dataset, conditions);
 
       const sqlQuery = `SELECT * FROM "${tableName}" WHERE ${sqlWhere}`;
       try {
-        const rows = await Structra.duckdb.query(sqlQuery);
+        const rows = await Structra.duckdbAdapter.query(sqlQuery);
         const result = {
           source: 'filter',
           query: sqlQuery,
@@ -660,17 +660,17 @@ Structra.engine = (() => {
           rows,
           matchedPaths: null,
           total: rows.length,
-          columns: cols,
+          columns: columns,
         };
         _setActiveQuery(result);
         return result;
-      } catch (err) {
-        Structra.log.warn('Engine', 'DuckDB filter failed, falling back to in-memory', err.message);
-        _forgetMissingTable(ds, err);
+      } catch (error) {
+        Structra.log.warn('Engine', 'DuckDB filter failed, falling back to in-memory', error.message);
+        _forgetMissingTable(dataset, error);
       }
     }
 
-    return _filterInMemory(ds, conditions);
+    return _filterInMemory(dataset, conditions);
   }
 
   /** Words a read-only query may start with (comments and spaces before them are skipped) */
@@ -695,8 +695,8 @@ Structra.engine = (() => {
    * @param {boolean} [opts.readOnly] refuse anything that is not a query that reads data
    * @param {number}  [opts.maxRows]  stop reading after this many rows; the result then has truncated: true
    */
-  async function runSql(sqlText, opts = {}) {
-    if (opts.readOnly) {
+  async function runSql(sqlText, options = {}) {
+    if (options.readOnly) {
       if (!SQL_READ_ONLY.test(sqlText)) {
         return { error: 'Only queries that read data can run here. Start with SELECT, WITH, VALUES, DESCRIBE, SHOW, SUMMARIZE, PIVOT or UNPIVOT.' };
       }
@@ -707,12 +707,12 @@ Structra.engine = (() => {
     if (!(await enableSql())) {
       return { error: 'The SQL engine could not start' };
     }
-    const t0 = performance.now();
-    const ds = getActive();
+    const startTime = performance.now();
+    const dataset = getActive();
     try {
       // In SQL the open document is the table "data" (SELECT * FROM data), whichever tab it is in
-      if (ds && _isDuckRegistered(ds)) {
-        await Structra.duckdb.query(`CREATE OR REPLACE TEMP VIEW data AS SELECT * FROM "${_tableOf(ds)}"`);
+      if (dataset && _isDuckRegistered(dataset)) {
+        await Structra.duckdbAdapter.query(`CREATE OR REPLACE TEMP VIEW data AS SELECT * FROM "${_tableOf(dataset)}"`);
       } else if (/\bdata\b/i.test(sqlText)) {
         return { error: 'This document is not a list or object, so there is no table named data to query' };
       }
@@ -720,16 +720,16 @@ Structra.engine = (() => {
       let capped = false;
       // Cap the rows read, so a query that returns a million rows cannot freeze the page.
       // DESCRIBE, SHOW and SUMMARIZE cannot sit inside another query and are small anyway.
-      if (opts.maxRows && SQL_SELECT_LIKE.test(text)) {
-        text = `SELECT * FROM (\n${text}\n) AS q LIMIT ${opts.maxRows + 1}`;
+      if (options.maxRows && SQL_SELECT_LIKE.test(text)) {
+        text = `SELECT * FROM (\n${text}\n) AS q LIMIT ${options.maxRows + 1}`;
         capped = true;
       }
-      let rows = await Structra.duckdb.query(text);
+      let rows = await Structra.duckdbAdapter.query(text);
       const columnTypes = rows.columnTypes || [];
       let truncated = false;
-      if (capped && rows.length > opts.maxRows) { rows = rows.slice(0, opts.maxRows); truncated = true; }
-      const duration = performance.now() - t0;
-      const cols = rows.length > 0 ? Object.keys(rows[0]) : [];
+      if (capped && rows.length > options.maxRows) { rows = rows.slice(0, options.maxRows); truncated = true; }
+      const duration = performance.now() - startTime;
+      const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
       const result = {
         source: 'sql',
         query: sqlText,
@@ -737,52 +737,52 @@ Structra.engine = (() => {
         rows,
         matchedPaths: null,
         total: rows.length,
-        columns: cols,
+        columns: columns,
         columnTypes,
         truncated,
         duration,
       };
-      if (!opts.quiet) _setActiveQuery(result);
+      if (!options.quiet) _setActiveQuery(result);
       Structra.log.info('Engine', `SQL executed: ${rows.length} rows (${duration.toFixed(0)}ms)`);
       return result;
-    } catch (err) {
-      Structra.log.error('Engine', 'SQL execution failed', err.message);
-      _forgetMissingTable(ds, err);
-      return { error: err.message };
+    } catch (error) {
+      Structra.log.error('Engine', 'SQL execution failed', error.message);
+      _forgetMissingTable(dataset, error);
+      return { error: error.message };
     }
   }
 
   /** Build SQL WHERE clause from structured conditions */
-  function _conditionsToSql(conditions, validCols) {
-    const colSet = new Set(validCols);
+  function _conditionsToSql(conditions, validColumns) {
+    const colSet = new Set(validColumns);
     const parts = [];
 
     for (let i = 0; i < conditions.length; i++) {
-      const c = conditions[i];
-      if (!colSet.has(c.field)) continue;
+      const condition = conditions[i];
+      if (!colSet.has(condition.field)) continue;
 
-      const field = `"${c.field}"`;
-      const val = String(c.value || '').replace(/'/g, "''");
+      const field = `"${condition.field}"`;
+      const value = String(condition.value || '').replace(/'/g, "''");
       let clause = '';
 
-      switch (c.op) {
-        case 'eq':           clause = `${field} = '${val}'`; break;
-        case 'neq':          clause = `${field} != '${val}'`; break;
-        case 'gt':           clause = `${field} > '${val}'`; break;
-        case 'lt':           clause = `${field} < '${val}'`; break;
-        case 'gte':          clause = `${field} >= '${val}'`; break;
-        case 'lte':          clause = `${field} <= '${val}'`; break;
-        case 'contains':     clause = `CAST(${field} AS VARCHAR) ILIKE '%${val}%'`; break;
-        case 'notcontains':  clause = `CAST(${field} AS VARCHAR) NOT ILIKE '%${val}%'`; break;
-        case 'startswith':   clause = `CAST(${field} AS VARCHAR) ILIKE '${val}%'`; break;
-        case 'endswith':     clause = `CAST(${field} AS VARCHAR) ILIKE '%${val}'`; break;
+      switch (condition.op) {
+        case 'eq':           clause = `${field} = '${value}'`; break;
+        case 'neq':          clause = `${field} != '${value}'`; break;
+        case 'gt':           clause = `${field} > '${value}'`; break;
+        case 'lt':           clause = `${field} < '${value}'`; break;
+        case 'gte':          clause = `${field} >= '${value}'`; break;
+        case 'lte':          clause = `${field} <= '${value}'`; break;
+        case 'contains':     clause = `CAST(${field} AS VARCHAR) ILIKE '%${value}%'`; break;
+        case 'notcontains':  clause = `CAST(${field} AS VARCHAR) NOT ILIKE '%${value}%'`; break;
+        case 'startswith':   clause = `CAST(${field} AS VARCHAR) ILIKE '${value}%'`; break;
+        case 'endswith':     clause = `CAST(${field} AS VARCHAR) ILIKE '%${value}'`; break;
         case 'isnull':       clause = `${field} IS NULL`; break;
         case 'notnull':      clause = `${field} IS NOT NULL`; break;
-        default:             clause = `CAST(${field} AS VARCHAR) ILIKE '%${val}%'`; break;
+        default:             clause = `CAST(${field} AS VARCHAR) ILIKE '%${value}%'`; break;
       }
 
       if (parts.length > 0) {
-        parts.push((c.logic || 'AND').toUpperCase());
+        parts.push((condition.logic || 'AND').toUpperCase());
       }
       parts.push(clause);
     }
@@ -791,8 +791,8 @@ Structra.engine = (() => {
   }
 
   /** In-memory structured filter (no DuckDB) */
-  function _filterInMemory(ds, conditions) {
-    const main = mainList(ds);
+  function _filterInMemory(dataset, conditions) {
+    const main = mainList(dataset);
     if (!main) return null;
 
     const rows = main.rows.filter(row => {
@@ -800,66 +800,66 @@ Structra.engine = (() => {
       let pass = true;
 
       for (let i = 0; i < conditions.length; i++) {
-        const c = conditions[i];
-        const val = fieldValue(row, c.field);
-        const target = c.value;
+        const condition = conditions[i];
+        const value = fieldValue(row, condition.field);
+        const target = condition.value;
         let match = false;
 
-        switch (c.op) {
-          case 'eq':          match = String(val) === String(target); break;
-          case 'neq':         match = String(val) !== String(target); break;
-          case 'gt':          match = Number(val) > Number(target); break;
-          case 'lt':          match = Number(val) < Number(target); break;
-          case 'gte':         match = Number(val) >= Number(target); break;
-          case 'lte':         match = Number(val) <= Number(target); break;
-          case 'contains':    match = String(val || '').toLowerCase().includes(String(target).toLowerCase()); break;
-          case 'notcontains': match = !String(val || '').toLowerCase().includes(String(target).toLowerCase()); break;
-          case 'startswith':  match = String(val || '').toLowerCase().startsWith(String(target).toLowerCase()); break;
-          case 'endswith':    match = String(val || '').toLowerCase().endsWith(String(target).toLowerCase()); break;
-          case 'isnull':      match = val === null || val === undefined; break;
-          case 'notnull':     match = val !== null && val !== undefined; break;
-          default:            match = String(val || '').toLowerCase().includes(String(target).toLowerCase()); break;
+        switch (condition.op) {
+          case 'eq':          match = String(value) === String(target); break;
+          case 'neq':         match = String(value) !== String(target); break;
+          case 'gt':          match = Number(value) > Number(target); break;
+          case 'lt':          match = Number(value) < Number(target); break;
+          case 'gte':         match = Number(value) >= Number(target); break;
+          case 'lte':         match = Number(value) <= Number(target); break;
+          case 'contains':    match = String(value || '').toLowerCase().includes(String(target).toLowerCase()); break;
+          case 'notcontains': match = !String(value || '').toLowerCase().includes(String(target).toLowerCase()); break;
+          case 'startswith':  match = String(value || '').toLowerCase().startsWith(String(target).toLowerCase()); break;
+          case 'endswith':    match = String(value || '').toLowerCase().endsWith(String(target).toLowerCase()); break;
+          case 'isnull':      match = value === null || value === undefined; break;
+          case 'notnull':     match = value !== null && value !== undefined; break;
+          default:            match = String(value || '').toLowerCase().includes(String(target).toLowerCase()); break;
         }
 
         if (i === 0) {
           pass = match;
         } else {
-          pass = (c.logic || 'AND') === 'OR' ? (pass || match) : (pass && match);
+          pass = (condition.logic || 'AND') === 'OR' ? (pass || match) : (pass && match);
         }
       }
       return pass;
     });
 
-    const cols = collectKeys(main.rows);
-    const OPS = { eq: '=', neq: '≠', gt: '>', lt: '<', gte: '≥', lte: '≤', contains: 'contains', notcontains: 'does not contain', startswith: 'starts with', endswith: 'ends with', isnull: 'is empty', notnull: 'has a value' };
+    const columns = collectKeys(main.rows);
+    const OPERATOR_SYMBOLS = { eq: '=', neq: '≠', gt: '>', lt: '<', gte: '≥', lte: '≤', contains: 'contains', notcontains: 'does not contain', startswith: 'starts with', endswith: 'ends with', isnull: 'is empty', notnull: 'has a value' };
     const result = {
       source: 'filter',
-      query: conditions.map((c, i) => `${i ? (c.logic || 'AND').toLowerCase() + ' ' : ''}${c.field} ${OPS[c.op] || c.op}${c.op === 'isnull' || c.op === 'notnull' ? '' : ' ' + (c.value || '')}`).join(' '),
+      query: conditions.map((condition, i) => `${i ? (condition.logic || 'AND').toLowerCase() + ' ' : ''}${condition.field} ${OPERATOR_SYMBOLS[condition.op] || condition.op}${condition.op === 'isnull' || condition.op === 'notnull' ? '' : ' ' + (condition.value || '')}`).join(' '),
       conditions,
       rows,
       matchedPaths: null,
       total: rows.length,
-      columns: cols,
+      columns: columns,
     };
     _setActiveQuery(result);
     return result;
   }
 
   /** Filter by a JSONPath: every value the path finds, as rows (records as they are, other values as { value }) */
-  async function filterByPath(expr) {
-    const ds = getActive();
-    if (!ds) return null;
+  async function filterByPath(expression) {
+    const dataset = getActive();
+    if (!dataset) return null;
     let found;
-    try { found = Structra.jsonpath.query(ds.raw, expr); }
-    catch (err) { throw new Error('This path could not be read: ' + err.message); }
+    try { found = Structra.jsonpathQuery.query(dataset.raw, expression); }
+    catch (error) { throw new Error('This path could not be read: ' + error.message); }
     const isRecord = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
-    const rows = found.map((m) => (isRecord(m.value) ? m.value : { path: m.path, value: m.value }));
+    const rows = found.map((match) => (isRecord(match.value) ? match.value : { path: match.path, value: match.value }));
     const result = {
       source: 'filter',
-      query: expr,
+      query: expression,
       conditions: null,
       rows,
-      matchedPaths: found.map((m) => m.path),
+      matchedPaths: found.map((match) => match.path),
       total: rows.length,
       columns: rows.length ? Object.keys(rows[0]) : [],
     };
@@ -868,14 +868,14 @@ Structra.engine = (() => {
   }
 
   /** Filter the rows of the main list with a JavaScript test on `row`, for example row.Cost > 100 && row.Approved */
-  async function filterByExpression(expr) {
-    const ds = getActive();
-    if (!ds) return null;
-    const main = mainList(ds);
+  async function filterByExpression(expression) {
+    const dataset = getActive();
+    if (!dataset) return null;
+    const main = mainList(dataset);
     if (!main) return null;
     let test;
-    try { test = new Function('row', 'return (' + expr + ');'); }
-    catch (err) { throw new Error('This expression could not be read: ' + err.message + '. Example: row.Cost > 100 && row.Approved === true'); }
+    try { test = new Function('row', 'return (' + expression + ');'); }
+    catch (error) { throw new Error('This expression could not be read: ' + error.message + '. Example: row.Cost > 100 && row.Approved === true'); }
     const started = Date.now();
     const rows = [];
     for (let i = 0; i < main.rows.length; i++) {
@@ -884,7 +884,7 @@ Structra.engine = (() => {
     }
     const result = {
       source: 'filter',
-      query: expr,
+      query: expression,
       conditions: null,
       rows,
       matchedPaths: null,
@@ -896,16 +896,16 @@ Structra.engine = (() => {
   }
 
   /** Convert DuckDB result rows back to matchedPaths for tree highlighting */
-  function _rowsToMatchedPaths(ds, resultRows, findText) {
-    if (!Array.isArray(ds.raw)) return [];
+  function _rowsToMatchedPaths(dataset, resultRows, findText) {
+    if (!Array.isArray(dataset.raw)) return [];
     const regex = new RegExp(findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     const paths = [];
-    for (let i = 0; i < ds.raw.length; i++) {
-      const row = ds.raw[i];
+    for (let i = 0; i < dataset.raw.length; i++) {
+      const row = dataset.raw[i];
       if (!row || typeof row !== 'object') continue;
-      for (const [k, v] of Object.entries(row)) {
-        if (v !== null && typeof v !== 'object' && regex.test(String(v))) {
-          paths.push(`$[${i}].${k}`);
+      for (const [key, value] of Object.entries(row)) {
+        if (value !== null && typeof value !== 'object' && regex.test(String(value))) {
+          paths.push(`$[${i}].${key}`);
         }
       }
     }
@@ -913,14 +913,14 @@ Structra.engine = (() => {
   }
 
   /** Convert matchedPaths to row objects for tabular views */
-  function _matchedPathsToRows(ds, matchedPaths) {
-    if (!Array.isArray(ds.raw) || !matchedPaths) return [];
+  function _matchedPathsToRows(dataset, matchedPaths) {
+    if (!Array.isArray(dataset.raw) || !matchedPaths) return [];
     const rowIdxs = new Set();
-    for (const p of matchedPaths) {
-      const m = p.match(/^\$\[(\d+)\]/);
-      if (m) rowIdxs.add(parseInt(m[1], 10));
+    for (const matchedPath of matchedPaths) {
+      const indexMatch = matchedPath.match(/^\$\[(\d+)\]/);
+      if (indexMatch) rowIdxs.add(parseInt(indexMatch[1], 10));
     }
-    return [...rowIdxs].sort((a, b) => a - b).map(i => ds.raw[i]).filter(Boolean);
+    return [...rowIdxs].sort((first, second) => first - second).map(i => dataset.raw[i]).filter(Boolean);
   }
 
   /** Store query result and notify views */
@@ -949,9 +949,9 @@ Structra.engine = (() => {
    */
   function getQueryRows() {
     if (_activeFilter && _activeFilter.rows) return _activeFilter.rows;
-    const ds = getActive();
-    if (!ds) return null;
-    return Array.isArray(ds.raw) ? ds.raw : null;
+    const dataset = getActive();
+    if (!dataset) return null;
+    return Array.isArray(dataset.raw) ? dataset.raw : null;
   }
 
   /**
@@ -961,8 +961,8 @@ Structra.engine = (() => {
    */
   function getQueryData() {
     if (_activeFilter && _activeFilter.rows) return _activeFilter.rows;
-    const ds = getActive();
-    return ds ? ds.raw : null;
+    const dataset = getActive();
+    return dataset ? dataset.raw : null;
   }
 
   /* ============================
@@ -972,8 +972,8 @@ Structra.engine = (() => {
      ============================ */
 
   /** Check if a dataset has been registered with DuckDB */
-  function _isDuckRegistered(ds) {
-    return ds && ds._duckColumns && ds._duckColumns.length > 0;
+  function _isDuckRegistered(dataset) {
+    return dataset && dataset._duckColumns && dataset._duckColumns.length > 0;
   }
 
   /* ================================================================
@@ -986,23 +986,23 @@ Structra.engine = (() => {
 
   /** Can we run SQL on this dataset? (DuckDB ready + not failed + dataset registered) */
   /** The DuckDB table a dataset was registered under, safe to put inside a quoted SQL name */
-  function _tableOf(ds) {
-    return ds.duckTable.replace(/[^a-z0-9_]/gi, '_');
+  function _tableOf(dataset) {
+    return dataset.duckTable.replace(/[^a-z0-9_]/gi, '_');
   }
 
-  function _canUseDuck(ds) {
-    return _duckReady && !_duckFailed && !!Structra.duckdb && _isDuckRegistered(ds);
+  function _canUseDuck(dataset) {
+    return _duckReady && !_duckFailed && !!Structra.duckdbAdapter && _isDuckRegistered(dataset);
   }
 
   /** Is DuckDB engine available at all? (ignores dataset registration) */
   function _duckAvailable() {
-    return _duckReady && !_duckFailed && !!Structra.duckdb;
+    return _duckReady && !_duckFailed && !!Structra.duckdbAdapter;
   }
 
   /** Get column names from DuckDB-registered dataset */
-  function _getDuckColumnNames(ds) {
-    if (ds._duckColumns) return ds._duckColumns.map(c => c.name);
-    if (ds.indexes.columns) return ds.indexes.columns.map(c => c.name);
+  function _getDuckColumnNames(dataset) {
+    if (dataset._duckColumns) return dataset._duckColumns.map(column => column.name);
+    if (dataset.indexes.columns) return dataset.indexes.columns.map(column => column.name);
     return [];
   }
 
@@ -1012,13 +1012,13 @@ Structra.engine = (() => {
    * @returns {Promise<Array<{name, type, nested}>>}
    */
   async function describeTable() {
-    const ds = getActive();
-    if (!ds || !_duckAvailable()) return [];
-    if (ds._duckColumns) return ds._duckColumns;
-    const tableName = _tableOf(ds);
-    const cols = await Structra.duckdb.getTableColumns(tableName);
-    ds._duckColumns = cols;
-    return cols;
+    const dataset = getActive();
+    if (!dataset || !_duckAvailable()) return [];
+    if (dataset._duckColumns) return dataset._duckColumns;
+    const tableName = _tableOf(dataset);
+    const columns = await Structra.duckdbAdapter.getTableColumns(tableName);
+    dataset._duckColumns = columns;
+    return columns;
   }
 
   /**
@@ -1028,9 +1028,9 @@ Structra.engine = (() => {
    * @returns {Promise<Array<Object>>}
    */
   async function jsonExtract(path) {
-    const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return [];
-    const tableName = _tableOf(ds);
+    const dataset = getActive();
+    if (!dataset || !_canUseDuck(dataset)) return [];
+    const tableName = _tableOf(dataset);
 
     // Convert dot path to DuckDB json_extract path: address.city → $.address.city
     const jsonPath = path.startsWith('$') ? path : '$.' + path;
@@ -1038,15 +1038,15 @@ Structra.engine = (() => {
     try {
       // First try struct access (DuckDB auto-creates STRUCT columns from nested JSON)
       // If the path is a direct column or nested struct, struct access is faster
-      const cols = _getDuckColumnNames(ds);
+      const columns = _getDuckColumnNames(dataset);
       const topKey = path.split('.')[0].split('[')[0];
 
-      if (cols.includes(topKey)) {
+      if (columns.includes(topKey)) {
         // Column exists - use struct access for nested or direct select
         const sqlPath = path.replace(/\[(\d+)\]/g, '[$1+1]'); // DuckDB uses 1-based list indexing
         const sql = `SELECT "${sqlPath}" AS value FROM "${tableName}" WHERE "${sqlPath}" IS NOT NULL`;
         try {
-          return await Structra.duckdb.query(sql);
+          return await Structra.duckdbAdapter.query(sql);
         } catch {
           // Struct access failed - fall through to json_extract
         }
@@ -1054,9 +1054,9 @@ Structra.engine = (() => {
 
       // Fallback: json_extract on each column
       const sql = `SELECT json_extract_string(CAST(ROW(*) AS JSON), '${jsonPath}') AS value FROM "${tableName}"`;
-      return await Structra.duckdb.query(sql);
-    } catch (err) {
-      Structra.log.warn('Engine', `jsonExtract("${path}") failed: ${err.message}`);
+      return await Structra.duckdbAdapter.query(sql);
+    } catch (error) {
+      Structra.log.warn('Engine', `jsonExtract("${path}") failed: ${error.message}`);
       return [];
     }
   }
@@ -1067,13 +1067,13 @@ Structra.engine = (() => {
    * @returns {Promise<Array<Object>>}
    */
   async function unnest(column) {
-    const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return [];
-    const tableName = _tableOf(ds);
+    const dataset = getActive();
+    if (!dataset || !_canUseDuck(dataset)) return [];
+    const tableName = _tableOf(dataset);
     try {
-      return await Structra.duckdb.query(`SELECT UNNEST("${column}") AS item FROM "${tableName}"`);
-    } catch (err) {
-      Structra.log.warn('Engine', `unnest("${column}") failed: ${err.message}`);
+      return await Structra.duckdbAdapter.query(`SELECT UNNEST("${column}") AS item FROM "${tableName}"`);
+    } catch (error) {
+      Structra.log.warn('Engine', `unnest("${column}") failed: ${error.message}`);
       return [];
     }
   }
@@ -1090,24 +1090,24 @@ Structra.engine = (() => {
    * @param {function} visitor - (value, path, depth) → return false to skip children
    * @param {object} opts - { maxDepth: 20 }
    */
-  function walk(obj, visitor, opts = {}) {
-    const { maxDepth = 20 } = opts;
-    const stack = [{ val: obj, path: '$', depth: 0 }];
+  function walk(object, visitor, options = {}) {
+    const { maxDepth = 20 } = options;
+    const stack = [{ val: object, path: '$', depth: 0 }];
     while (stack.length > 0) {
-      const { val, path, depth } = stack.pop();
+      const { val: value, path, depth } = stack.pop();
       if (depth > maxDepth) continue;
-      const action = visitor(val, path, depth);
+      const action = visitor(value, path, depth);
       if (action === false) continue;
-      if (val && typeof val === 'object') {
-        if (Array.isArray(val)) {
-          for (let i = val.length - 1; i >= 0; i--) {
-            stack.push({ val: val[i], path: `${path}[${i}]`, depth: depth + 1 });
+      if (value && typeof value === 'object') {
+        if (Array.isArray(value)) {
+          for (let i = value.length - 1; i >= 0; i--) {
+            stack.push({ val: value[i], path: `${path}[${i}]`, depth: depth + 1 });
           }
         } else {
-          const entries = Object.entries(val);
+          const entries = Object.entries(value);
           for (let i = entries.length - 1; i >= 0; i--) {
-            const [k, v] = entries[i];
-            stack.push({ val: v, path: `${path}.${k}`, depth: depth + 1 });
+            const [key, value] = entries[i];
+            stack.push({ val: value, path: `${path}.${key}`, depth: depth + 1 });
           }
         }
       }
@@ -1125,7 +1125,7 @@ Structra.engine = (() => {
   }
 
   /** Yield to the browser so the UI stays responsive during long loops */
-  const _tick = () => Structra.util.yieldToBrowser();
+  const _tick = () => Structra.sharedHelpers.yieldToBrowser();
   const _SLICE_MS = 12;
 
   /**
@@ -1134,20 +1134,20 @@ Structra.engine = (() => {
    */
   async function _analyze(data) {
     if (data === undefined || data === null) {
-      const ds = getActive();
-      data = ds ? ds.raw : null;
+      const dataset = getActive();
+      data = dataset ? dataset.raw : null;
     }
     if (!data) return null;
 
-    const s = { keys: 0, depth: 0, arrays: 0, objects: 0, strings: 0, numbers: 0, booleans: 0, nulls: 0, totalNodes: 0, longestArray: 0, arraysDetail: [] };
+    const statistics = { keys: 0, depth: 0, arrays: 0, objects: 0, strings: 0, numbers: 0, booleans: 0, nulls: 0, totalNodes: 0, longestArray: 0, arraysDetail: [] };
 
     const pathOf = (frame) => {
       const parts = [];
-      for (let f = frame; f && f.parent; f = f.parent) parts.push(f.key);
+      for (let ancestor = frame; ancestor && ancestor.parent; ancestor = ancestor.parent) parts.push(ancestor.key);
       let out = '';
       for (let i = parts.length - 1; i >= 0; i--) {
-        const k = parts[i];
-        out += typeof k === 'number' ? `[${k}]` : (out ? '.' + k : k);
+        const part = parts[i];
+        out += typeof part === 'number' ? `[${part}]` : (out ? '.' + part : part);
       }
       return out || '(root)';
     };
@@ -1157,52 +1157,52 @@ Structra.engine = (() => {
     let frames = 0;
 
     while (stack.length) {
-      const f = stack.pop();
-      const val = f.val;
-      const d = f.depth;
-      s.totalNodes++;
-      if (d > s.depth) s.depth = d;
+      const frame = stack.pop();
+      const value = frame.val;
+      const depth = frame.depth;
+      statistics.totalNodes++;
+      if (depth > statistics.depth) statistics.depth = depth;
 
       // A document that is just one value (true, 42, "text", null) is that value, not an object
-      if (val === null || typeof val !== 'object') {
-        const t = typeof val;
-        if (t === 'string') s.strings++; else if (t === 'number') s.numbers++; else if (t === 'boolean') s.booleans++; else if (val === null) s.nulls++;
+      if (value === null || typeof value !== 'object') {
+        const valueType = typeof value;
+        if (valueType === 'string') statistics.strings++; else if (valueType === 'number') statistics.numbers++; else if (valueType === 'boolean') statistics.booleans++; else if (value === null) statistics.nulls++;
         continue;
       }
 
-      if (Array.isArray(val)) {
-        s.arrays++;
-        const n = val.length;
-        if (n > s.longestArray) s.longestArray = n;
-        s.arraysDetail.push({
-          path: pathOf(f),
-          count: n,
-          sample: n > 0 ? (typeof val[0] === 'object' && val[0] !== null ? 'object' : typeof val[0]) : 'empty',
+      if (Array.isArray(value)) {
+        statistics.arrays++;
+        const length = value.length;
+        if (length > statistics.longestArray) statistics.longestArray = length;
+        statistics.arraysDetail.push({
+          path: pathOf(frame),
+          count: length,
+          sample: length > 0 ? (typeof value[0] === 'object' && value[0] !== null ? 'object' : typeof value[0]) : 'empty',
         });
-        for (let i = n - 1; i >= 0; i--) {
-          const c = val[i];
-          if (c !== null && typeof c === 'object') {
-            stack.push({ val: c, parent: f, key: i, depth: d + 1 });
+        for (let i = length - 1; i >= 0; i--) {
+          const child = value[i];
+          if (child !== null && typeof child === 'object') {
+            stack.push({ val: child, parent: frame, key: i, depth: depth + 1 });
           } else {
-            s.totalNodes++;
-            if (d + 1 > s.depth) s.depth = d + 1;
-            const t = typeof c;
-            if (t === 'string') s.strings++; else if (t === 'number') s.numbers++; else if (t === 'boolean') s.booleans++; else if (c === null) s.nulls++;
+            statistics.totalNodes++;
+            if (depth + 1 > statistics.depth) statistics.depth = depth + 1;
+            const childType = typeof child;
+            if (childType === 'string') statistics.strings++; else if (childType === 'number') statistics.numbers++; else if (childType === 'boolean') statistics.booleans++; else if (child === null) statistics.nulls++;
           }
         }
       } else {
-        s.objects++;
-        const keys = Object.keys(val);
-        s.keys += keys.length;
+        statistics.objects++;
+        const keys = Object.keys(value);
+        statistics.keys += keys.length;
         for (let i = keys.length - 1; i >= 0; i--) {
-          const c = val[keys[i]];
-          if (c !== null && typeof c === 'object') {
-            stack.push({ val: c, parent: f, key: keys[i], depth: d + 1 });
+          const child = value[keys[i]];
+          if (child !== null && typeof child === 'object') {
+            stack.push({ val: child, parent: frame, key: keys[i], depth: depth + 1 });
           } else {
-            s.totalNodes++;
-            if (d + 1 > s.depth) s.depth = d + 1;
-            const t = typeof c;
-            if (t === 'string') s.strings++; else if (t === 'number') s.numbers++; else if (t === 'boolean') s.booleans++; else if (c === null) s.nulls++;
+            statistics.totalNodes++;
+            if (depth + 1 > statistics.depth) statistics.depth = depth + 1;
+            const childType = typeof child;
+            if (childType === 'string') statistics.strings++; else if (childType === 'number') statistics.numbers++; else if (childType === 'boolean') statistics.booleans++; else if (child === null) statistics.nulls++;
           }
         }
       }
@@ -1212,7 +1212,7 @@ Structra.engine = (() => {
         lastYield = performance.now();
       }
     }
-    return s;
+    return statistics;
   }
 
   /**
@@ -1224,8 +1224,8 @@ Structra.engine = (() => {
    */
   function findFirstObjectArray(data, path) {
     if (data === undefined || data === null) {
-      const ds = getActive();
-      data = ds ? ds.raw : null;
+      const dataset = getActive();
+      data = dataset ? dataset.raw : null;
     }
     return _firstObjectArray(data, path || '$');
   }
@@ -1239,8 +1239,8 @@ Structra.engine = (() => {
         ? { rows: data, path }
         : null;
     }
-    for (const k of Object.keys(data)) {
-      const result = _firstObjectArray(data[k], `${path}.${k}`);
+    for (const key of Object.keys(data)) {
+      const result = _firstObjectArray(data[key], `${path}.${key}`);
       if (result) return result;
     }
     return null;
@@ -1253,44 +1253,44 @@ Structra.engine = (() => {
    * @param {string} path
    * @returns {Array<{path, count, data}>}
    */
-  function findAllArrays(obj, path, _seen) {
-    if (obj === undefined || obj === null) {
-      const ds = getActive();
-      obj = ds ? ds.raw : null;
+  function findAllArrays(object, path, _seen) {
+    if (object === undefined || object === null) {
+      const dataset = getActive();
+      object = dataset ? dataset.raw : null;
     }
-    return _allArrays(obj, path || '$', _seen || new Set());
+    return _allArrays(object, path || '$', _seen || new Set());
   }
 
   // Recursive part. A null child is just a null value, never "the whole document".
-  function _allArrays(obj, path, seen) {
-    if (!obj || typeof obj !== 'object') return [];
-    if (obj && typeof obj === 'object') {
-      if (seen.has(obj)) return [];
-      seen.add(obj);
+  function _allArrays(object, path, seen) {
+    if (!object || typeof object !== 'object') return [];
+    if (object && typeof object === 'object') {
+      if (seen.has(object)) return [];
+      seen.add(object);
     }
     const result = [];
-    if (Array.isArray(obj)) {
-      result.push({ path, count: obj.length, data: obj });
-      for (let i = 0; i < obj.length; i++) {
-        const item = obj[i];
+    if (Array.isArray(object)) {
+      result.push({ path, count: object.length, data: object });
+      for (let i = 0; i < object.length; i++) {
+        const item = object[i];
         if (item && typeof item === 'object' && !Array.isArray(item)) {
-          for (const [k, v] of Object.entries(item)) {
-            if (v && typeof v === 'object') {
-              const cp = `${path}[*].${k}`;
-              if (!result.some(r => r.path === cp)) {
-                const sub = _allArrays(v, cp, seen);
-                for (const s of sub) {
-                  if (!result.some(r => r.path === s.path)) result.push(s);
+          for (const [key, value] of Object.entries(item)) {
+            if (value && typeof value === 'object') {
+              const childPath = `${path}[*].${key}`;
+              if (!result.some(known => known.path === childPath)) {
+                const subPaths = _allArrays(value, childPath, seen);
+                for (const subPath of subPaths) {
+                  if (!result.some(known => known.path === subPath.path)) result.push(subPath);
                 }
               }
             }
           }
         }
       }
-    } else if (obj && typeof obj === 'object') {
-      for (const [k, v] of Object.entries(obj)) {
-        const sub = _allArrays(v, path === '$' ? k : `${path}.${k}`, seen);
-        for (const s of sub) result.push(s);
+    } else if (object && typeof object === 'object') {
+      for (const [key, value] of Object.entries(object)) {
+        const subPaths = _allArrays(value, path === '$' ? key : `${path}.${key}`, seen);
+        for (const subPath of subPaths) result.push(subPath);
       }
     }
     return result;
@@ -1305,8 +1305,8 @@ Structra.engine = (() => {
    */
   function collectKeys(rows, sampleLimit) {
     if (!rows) {
-      const ds = getActive();
-      rows = ds && Array.isArray(ds.raw) ? ds.raw : [];
+      const dataset = getActive();
+      rows = dataset && Array.isArray(dataset.raw) ? dataset.raw : [];
     }
     const limit = Math.min(rows.length, sampleLimit || 1000);
     const keys = [];
@@ -1314,8 +1314,8 @@ Structra.engine = (() => {
     for (let i = 0; i < limit; i++) {
       const row = rows[i];
       if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
-      for (const k of Object.keys(row)) {
-        if (!keySet.has(k)) { keySet.add(k); keys.push(k); }
+      for (const key of Object.keys(row)) {
+        if (!keySet.has(key)) { keySet.add(key); keys.push(key); }
       }
     }
     return keys;
@@ -1326,28 +1326,28 @@ Structra.engine = (() => {
    * @param {Array} arr - array of objects
    * @returns {Array<{key, present, missing, empty, pct, types: Set}>}
    */
-  function analyzeKeys(arr) {
-    if (!arr || arr.length === 0) return [];
+  function analyzeKeys(array) {
+    if (!array || array.length === 0) return [];
     const keyMap = Object.create(null);
-    const total = arr.length;
+    const total = array.length;
     for (let i = 0; i < total; i++) {
-      const row = arr[i];
+      const row = array[i];
       if (!row || typeof row !== 'object') continue;
       for (const key of Object.keys(row)) {
         if (!keyMap[key]) keyMap[key] = { key, present: 0, missing: 0, empty: 0, pct: 0, types: new Set() };
         const entry = keyMap[key];
         entry.present++;
-        const val = row[key];
-        if (val === null || val === undefined || val === '') entry.empty++;
-        if (val !== null && val !== undefined) {
-          entry.types.add(Array.isArray(val) ? 'array' : typeof val);
+        const value = row[key];
+        if (value === null || value === undefined || value === '') entry.empty++;
+        if (value !== null && value !== undefined) {
+          entry.types.add(Array.isArray(value) ? 'array' : typeof value);
         }
       }
     }
     const entries = Object.values(keyMap);
-    for (const e of entries) {
-      e.missing = total - e.present;
-      e.pct = Math.round((e.present / total) * 100);
+    for (const entry of entries) {
+      entry.missing = total - entry.present;
+      entry.pct = Math.round((entry.present / total) * 100);
     }
     return entries;
   }
@@ -1358,12 +1358,12 @@ Structra.engine = (() => {
    * @param {string} parentKey - key whose value is an object
    * @returns {Array<{key, present, missing, empty, pct}>}
    */
-  function analyzeNestedKeys(arr, parentKey) {
-    if (!arr || arr.length === 0) return [];
+  function analyzeNestedKeys(array, parentKey) {
+    if (!array || array.length === 0) return [];
     const keyMap = Object.create(null);
     let count = 0;
-    for (let i = 0; i < arr.length; i++) {
-      const row = arr[i];
+    for (let i = 0; i < array.length; i++) {
+      const row = array[i];
       if (!row || typeof row !== 'object') continue;
       const nested = row[parentKey];
       if (!nested || typeof nested !== 'object' || Array.isArray(nested)) continue;
@@ -1371,17 +1371,17 @@ Structra.engine = (() => {
       for (const key of Object.keys(nested)) {
         if (!keyMap[key]) keyMap[key] = { key, present: 0, missing: 0, empty: 0, pct: 0 };
         keyMap[key].present++;
-        const v = nested[key];
-        if (v === null || v === undefined || v === '') keyMap[key].empty++;
+        const nestedValue = nested[key];
+        if (nestedValue === null || nestedValue === undefined || nestedValue === '') keyMap[key].empty++;
       }
     }
     if (count === 0) return [];
     const entries = Object.values(keyMap);
-    for (const e of entries) {
-      e.missing = count - e.present;
-      e.pct = count > 0 ? Math.round((e.present / count) * 100) : 0;
+    for (const entry of entries) {
+      entry.missing = count - entry.present;
+      entry.pct = count > 0 ? Math.round((entry.present / count) * 100) : 0;
     }
-    return entries.sort((a, b) => b.missing - a.missing);
+    return entries.sort((first, second) => second.missing - first.missing);
   }
 
   /**
@@ -1394,9 +1394,9 @@ Structra.engine = (() => {
   function collectArrayItems(data, key) {
     const merged = [];
     for (let i = 0; i < data.length; i++) {
-      const val = data[i] && data[i][key];
-      if (Array.isArray(val)) {
-        for (let j = 0; j < val.length; j++) merged.push(val[j]);
+      const value = data[i] && data[i][key];
+      if (Array.isArray(value)) {
+        for (let j = 0; j < value.length; j++) merged.push(value[j]);
       }
     }
     return merged;
@@ -1416,32 +1416,32 @@ Structra.engine = (() => {
   const OBJECT_UNIQUE_SAMPLE = 2000;
   const DIST_BINS = 8;
 
-  function profileFields(arr) {
-    if (!arr) {
-      const ds = getActive();
-      arr = ds ? (Array.isArray(ds.raw) ? ds.raw : null) : null;
-      if (!arr) {
-        const fa = findFirstObjectArray();
-        arr = fa ? fa.rows : null;
+  function profileFields(array) {
+    if (!array) {
+      const dataset = getActive();
+      array = dataset ? (Array.isArray(dataset.raw) ? dataset.raw : null) : null;
+      if (!array) {
+        const firstObjectArray = findFirstObjectArray();
+        array = firstObjectArray ? firstObjectArray.rows : null;
       }
     }
-    if (!Array.isArray(arr) || arr.length === 0 || typeof arr[0] !== 'object') return Promise.resolve(null);
-    return _profileRows(arr);
+    if (!Array.isArray(array) || array.length === 0 || typeof array[0] !== 'object') return Promise.resolve(null);
+    return _profileRows(array);
   }
 
-  function _histogram(nums) {
-    let min = nums[0], max = nums[0];
-    for (let i = 1; i < nums.length; i++) { const n = nums[i]; if (n < min) min = n; if (n > max) max = n; }
-    const bins = Math.min(DIST_BINS, Math.max(3, Math.ceil(Math.sqrt(nums.length))));
+  function _histogram(numbers) {
+    let min = numbers[0], max = numbers[0];
+    for (let i = 1; i < numbers.length; i++) { const number = numbers[i]; if (number < min) min = number; if (number > max) max = number; }
+    const bins = Math.min(DIST_BINS, Math.max(3, Math.ceil(Math.sqrt(numbers.length))));
     const width = (max - min) / bins || 1;
     const counts = new Array(bins).fill(0);
-    for (let i = 0; i < nums.length; i++) counts[Math.min(bins - 1, Math.floor((nums[i] - min) / width))]++;
+    for (let i = 0; i < numbers.length; i++) counts[Math.min(bins - 1, Math.floor((numbers[i] - min) / width))]++;
     return counts.map((count, i) => ({ label: (min + i * width).toFixed(1), count }));
   }
 
   async function _profileRows(rows) {
     const total = rows.length;
-    const cols = new Map();
+    const columns = new Map();
     let lastYield = performance.now();
 
     // Rows of one array nearly always list their keys in the same order, so remember which
@@ -1453,62 +1453,62 @@ Structra.engine = (() => {
       const row = rows[i];
       if (!row || typeof row !== 'object') continue;
 
-      let pos = 0;
+      let position = 0;
       for (const key in row) {
-        let c;
-        if (posKeys[pos] === key) {
-          c = posAcc[pos];
+        let columnStats;
+        if (posKeys[position] === key) {
+          columnStats = posAcc[position];
         } else {
-          c = cols.get(key);
-          if (!c) {
-            c = { key, present: 0, empty: 0, nonNull: 0, nStr: 0, nNum: 0, nBool: 0, nNull: 0, nObj: 0, nArr: 0,
+          columnStats = columns.get(key);
+          if (!columnStats) {
+            columnStats = { key, present: 0, empty: 0, nonNull: 0, nStr: 0, nNum: 0, nBool: 0, nNull: 0, nObj: 0, nArr: 0,
                   min: 0, max: 0, sum: 0, freq: new Map(), uniq: new Set(), objSeen: 0, capped: false, numericLike: true, nums: [] };
-            cols.set(key, c);
+            columns.set(key, columnStats);
           }
-          posKeys[pos] = key;
-          posAcc[pos] = c;
+          posKeys[position] = key;
+          posAcc[position] = columnStats;
         }
-        pos++;
+        position++;
 
-        const v = row[key];
-        c.present++;
-        if (v === null) { c.nNull++; c.empty++; continue; }
+        const value = row[key];
+        columnStats.present++;
+        if (value === null) { columnStats.nNull++; columnStats.empty++; continue; }
 
-        const t = typeof v;
-        if (t === 'string') {
-          c.nStr++;
-          if (v === '') { c.empty++; c.numericLike = false; c.nums = null; continue; }
-          c.nonNull++;
-          if (!c.capped) {
-            const n = c.freq.get(v);
-            if (n !== undefined) c.freq.set(v, n + 1);
-            else if (c.freq.size < PROFILE_CAP) c.freq.set(v, 1);
-            else c.capped = true;      // too many distinct values: stop counting them, the figures become "at least"
+        const valueType = typeof value;
+        if (valueType === 'string') {
+          columnStats.nStr++;
+          if (value === '') { columnStats.empty++; columnStats.numericLike = false; columnStats.nums = null; continue; }
+          columnStats.nonNull++;
+          if (!columnStats.capped) {
+            const count = columnStats.freq.get(value);
+            if (count !== undefined) columnStats.freq.set(value, count + 1);
+            else if (columnStats.freq.size < PROFILE_CAP) columnStats.freq.set(value, 1);
+            else columnStats.capped = true;      // too many distinct values: stop counting them, the figures become "at least"
           }
-          if (c.numericLike) {
-            const num = +v;
-            if (num !== num || v.trim() === '') { c.numericLike = false; c.nums = null; } else c.nums.push(num);
+          if (columnStats.numericLike) {
+            const number = +value;
+            if (number !== number || value.trim() === '') { columnStats.numericLike = false; columnStats.nums = null; } else columnStats.nums.push(number);
           }
-        } else if (t === 'number') {
-          if (c.nNum === 0) { c.min = v; c.max = v; } else { if (v < c.min) c.min = v; if (v > c.max) c.max = v; }
-          c.nNum++;
-          c.nonNull++;
-          c.sum += v;
-          if (!c.capped) {
-            if (c.uniq.size < PROFILE_CAP) c.uniq.add(v); else if (!c.uniq.has(v)) c.capped = true;
+        } else if (valueType === 'number') {
+          if (columnStats.nNum === 0) { columnStats.min = value; columnStats.max = value; } else { if (value < columnStats.min) columnStats.min = value; if (value > columnStats.max) columnStats.max = value; }
+          columnStats.nNum++;
+          columnStats.nonNull++;
+          columnStats.sum += value;
+          if (!columnStats.capped) {
+            if (columnStats.uniq.size < PROFILE_CAP) columnStats.uniq.add(value); else if (!columnStats.uniq.has(value)) columnStats.capped = true;
           }
-          if (c.numericLike) c.nums.push(v);
-        } else if (t === 'boolean') {
-          c.nBool++;
-          c.nonNull++;
-          const k = v ? 'true' : 'false';
-          c.freq.set(k, (c.freq.get(k) || 0) + 1);
-          c.numericLike = false; c.nums = null;
+          if (columnStats.numericLike) columnStats.nums.push(value);
+        } else if (valueType === 'boolean') {
+          columnStats.nBool++;
+          columnStats.nonNull++;
+          const bucket = value ? 'true' : 'false';
+          columnStats.freq.set(bucket, (columnStats.freq.get(bucket) || 0) + 1);
+          columnStats.numericLike = false; columnStats.nums = null;
         } else {
-          if (Array.isArray(v)) c.nArr++; else c.nObj++;
-          c.nonNull++;
-          c.numericLike = false; c.nums = null;
-          if (c.objSeen < OBJECT_UNIQUE_SAMPLE) { c.uniq.add(JSON.stringify(v)); c.objSeen++; }
+          if (Array.isArray(value)) columnStats.nArr++; else columnStats.nObj++;
+          columnStats.nonNull++;
+          columnStats.numericLike = false; columnStats.nums = null;
+          if (columnStats.objSeen < OBJECT_UNIQUE_SAMPLE) { columnStats.uniq.add(JSON.stringify(value)); columnStats.objSeen++; }
         }
       }
 
@@ -1521,53 +1521,53 @@ Structra.engine = (() => {
     const fields = [];
     const coverage = [];
     let gaps = 0;
-    for (const c of cols.values()) {
+    for (const column of columns.values()) {
       const types = {};
-      if (c.nStr) types.string = c.nStr;
-      if (c.nNum) types.number = c.nNum;
-      if (c.nBool) types.boolean = c.nBool;
-      if (c.nNull) types.null = c.nNull;
-      if (c.nObj) types.object = c.nObj;
-      if (c.nArr) types.array = c.nArr;
-      const primaryType = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown';
-      const unique = c.freq.size + c.uniq.size;
+      if (column.nStr) types.string = column.nStr;
+      if (column.nNum) types.number = column.nNum;
+      if (column.nBool) types.boolean = column.nBool;
+      if (column.nNull) types.null = column.nNull;
+      if (column.nObj) types.object = column.nObj;
+      if (column.nArr) types.array = column.nArr;
+      const primaryType = Object.entries(types).sort((first, second) => second[1] - first[1])[0]?.[0] || 'unknown';
+      const unique = column.freq.size + column.uniq.size;
       const field = {
-        key: c.key,
-        count: c.present,
+        key: column.key,
+        count: column.present,
         total,
-        coverage: ((c.present / total) * 100).toFixed(0),
-        nullPct: (((c.present - c.nonNull) / total) * 100).toFixed(0),
+        coverage: ((column.present / total) * 100).toFixed(0),
+        nullPct: (((column.present - column.nonNull) / total) * 100).toFixed(0),
         types,
         primaryType,
         unique,
-        uniqueCapped: c.capped,
-        uniquePct: ((unique / Math.max(c.nonNull, 1)) * 100).toFixed(0),
+        uniqueCapped: column.capped,
+        uniquePct: ((unique / Math.max(column.nonNull, 1)) * 100).toFixed(0),
       };
-      if (c.nNum > 0) { field.min = c.min; field.max = c.max; field.avg = (c.sum / c.nNum).toFixed(2); }
-      if ((primaryType === 'string' || primaryType === 'boolean') && c.freq.size) {
-        field.topValues = [...c.freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([val, cnt]) => ({ val, cnt }));
+      if (column.nNum > 0) { field.min = column.min; field.max = column.max; field.avg = (column.sum / column.nNum).toFixed(2); }
+      if ((primaryType === 'string' || primaryType === 'boolean') && column.freq.size) {
+        field.topValues = [...column.freq.entries()].sort((first, second) => second[1] - first[1]).slice(0, 5).map(([key, value]) => ({ val: key, cnt: value }));
       }
       // Value distribution for the stats view
-      if (c.numericLike && c.nums && c.nums.length) {
-        field.histogram = _histogram(c.nums);
-      } else if (c.freq.size && c.nonNull) {
-        field.distTop = [...c.freq.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([value, count]) => ({ value, count }));
-        field.distUnique = c.freq.size;
+      if (column.numericLike && column.nums && column.nums.length) {
+        field.histogram = _histogram(column.nums);
+      } else if (column.freq.size && column.nonNull) {
+        field.distTop = [...column.freq.entries()].sort((first, second) => second[1] - first[1]).slice(0, 8).map(([value, count]) => ({ value, count }));
+        field.distUnique = column.freq.size;
       }
       fields.push(field);
 
       coverage.push({
-        key: c.key,
-        present: c.present,
-        missing: total - c.present,
-        empty: c.empty,
-        pct: Math.round((c.present / total) * 100),
-        types: new Set(Object.keys(types).filter((t) => t !== 'null')),
+        key: column.key,
+        present: column.present,
+        missing: total - column.present,
+        empty: column.empty,
+        pct: Math.round((column.present / total) * 100),
+        types: new Set(Object.keys(types).filter((typeName) => typeName !== 'null')),
       });
-      gaps += total - c.present;
+      gaps += total - column.present;
     }
 
-    return { fields, rowCount: total, fieldCount: cols.size, quality: computeQuality(fields), coverage, gaps };
+    return { fields, rowCount: total, fieldCount: columns.size, quality: computeQuality(fields), coverage, gaps };
   }
 
   /**
@@ -1579,35 +1579,35 @@ Structra.engine = (() => {
   function computeQuality(fields) {
     if (!fields || fields.length === 0) return { overall: 100, completeness: 100, consistency: 100, uniqueness: 100, issues: [] };
 
-    const avgNull = fields.reduce((s, f) => s + parseFloat(f.nullPct), 0) / fields.length;
+    const avgNull = fields.reduce((total, field) => total + parseFloat(field.nullPct), 0) / fields.length;
     const completeness = Math.max(0, 100 - avgNull);
 
-    const consistentCount = fields.filter(f => {
-      const typeKeys = Object.keys(f.types).filter(t => t !== 'null');
+    const consistentCount = fields.filter(field => {
+      const typeKeys = Object.keys(field.types).filter(typeName => typeName !== 'null');
       return typeKeys.length <= 1;
     }).length;
     const consistency = (consistentCount / fields.length) * 100;
 
     // Only a column that is meant to differ in every record (an id, a key, an email) is judged on being unique: a Status has three values by design
-    const idLike = (k) => /(^|[^a-z])(id|guid|uuid|key|code|ref|reference|number|email|sku)$|id$/i.test(String(k).split('.').pop());
-    const uniqFields = fields.filter(f => (f.primaryType === 'string' || f.primaryType === 'number') && idLike(f.key));
+    const idLike = (fieldName) => /(^|[^a-z])(id|guid|uuid|key|code|ref|reference|number|email|sku)$|id$/i.test(String(fieldName).split('.').pop());
+    const uniqFields = fields.filter(field => (field.primaryType === 'string' || field.primaryType === 'number') && idLike(field.key));
     const uniqueness = uniqFields.length > 0
-      ? uniqFields.reduce((s, f) => s + parseFloat(f.uniquePct), 0) / uniqFields.length
+      ? uniqFields.reduce((total, field) => total + parseFloat(field.uniquePct), 0) / uniqFields.length
       : 100;
 
     const overall = Math.round(completeness * 0.4 + consistency * 0.35 + uniqueness * 0.25);
 
     const issues = [];
-    for (const f of fields) {
-      const np = parseFloat(f.nullPct);
-      if (np >= 30) issues.push({ field: f.key, msg: `${np}% null`, severity: np >= 60 ? 'high' : 'med' });
-      const typeKeys = Object.keys(f.types).filter(t => t !== 'null');
-      if (typeKeys.length > 1) issues.push({ field: f.key, msg: `mixed types (${typeKeys.join(', ')})`, severity: 'high' });
-      if (idLike(f.key) && (f.primaryType === 'string' || f.primaryType === 'number') && parseFloat(f.uniquePct) < 90 && parseFloat(f.coverage) > 50) {
-        issues.push({ field: f.key, msg: `repeats: only ${f.uniquePct}% of its values are different, but it looks like an identifier`, severity: 'med' });
+    for (const field of fields) {
+      const nullPercent = parseFloat(field.nullPct);
+      if (nullPercent >= 30) issues.push({ field: field.key, msg: `${nullPercent}% null`, severity: nullPercent >= 60 ? 'high' : 'med' });
+      const typeKeys = Object.keys(field.types).filter(typeName => typeName !== 'null');
+      if (typeKeys.length > 1) issues.push({ field: field.key, msg: `mixed types (${typeKeys.join(', ')})`, severity: 'high' });
+      if (idLike(field.key) && (field.primaryType === 'string' || field.primaryType === 'number') && parseFloat(field.uniquePct) < 90 && parseFloat(field.coverage) > 50) {
+        issues.push({ field: field.key, msg: `repeats: only ${field.uniquePct}% of its values are different, but it looks like an identifier`, severity: 'med' });
       }
     }
-    issues.sort((a, b) => (a.severity === 'high' ? 0 : 1) - (b.severity === 'high' ? 0 : 1));
+    issues.sort((first, second) => (first.severity === 'high' ? 0 : 1) - (second.severity === 'high' ? 0 : 1));
 
     return { overall, completeness: Math.round(completeness), consistency: Math.round(consistency), uniqueness: Math.round(uniqueness), issues: issues.slice(0, 5) };
   }
@@ -1618,19 +1618,19 @@ Structra.engine = (() => {
    * @param {number} k
    * @returns {Promise<Array>}
    */
-  async function topKValues(column, k = 10) {
-    const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return [];
-    const tableName = _tableOf(ds);
+  async function topKValues(column, limit = 10) {
+    const dataset = getActive();
+    if (!dataset || !_canUseDuck(dataset)) return [];
+    const tableName = _tableOf(dataset);
     try {
-      return await Structra.duckdb.query(
-        `SELECT UNNEST(approx_top_k("${column}", ${k})) AS val FROM "${tableName}"`
+      return await Structra.duckdbAdapter.query(
+        `SELECT UNNEST(approx_top_k("${column}", ${limit})) AS val FROM "${tableName}"`
       );
     } catch {
       // Fallback: regular GROUP BY
       try {
-        return await Structra.duckdb.query(
-          `SELECT "${column}" AS val, COUNT(*) AS cnt FROM "${tableName}" WHERE "${column}" IS NOT NULL GROUP BY "${column}" ORDER BY cnt DESC LIMIT ${k}`
+        return await Structra.duckdbAdapter.query(
+          `SELECT "${column}" AS val, COUNT(*) AS cnt FROM "${tableName}" WHERE "${column}" IS NOT NULL GROUP BY "${column}" ORDER BY cnt DESC LIMIT ${limit}`
         );
       } catch { return []; }
     }
@@ -1642,20 +1642,20 @@ Structra.engine = (() => {
    * @returns {Promise<{ stats, firstArr, profile, gaps } | null>}
    */
   function getAnalysis() {
-    const ds = getActive();
-    if (!ds) return Promise.resolve(null);
-    if (!ds._analysis) {
-      ds._analysis = (async () => {
-        const t0 = performance.now();
+    const dataset = getActive();
+    if (!dataset) return Promise.resolve(null);
+    if (!dataset._analysis) {
+      dataset._analysis = (async () => {
+        const startTime = performance.now();
         await _tick();                          // let the page paint first
-        const stats = await _analyze(ds.raw);
-        const firstArr = findFirstObjectArray(ds.raw);
-        const profile = firstArr ? await _profileRows(firstArr.rows) : null;
-        Structra.log.perf('Engine', 'analysis', performance.now() - t0);
-        return { stats, firstArr, profile, gaps: profile ? profile.gaps : 0 };
+        const stats = await _analyze(dataset.raw);
+        const firstArray = findFirstObjectArray(dataset.raw);
+        const profile = firstArray ? await _profileRows(firstArray.rows) : null;
+        Structra.log.perf('Engine', 'analysis', performance.now() - startTime);
+        return { stats, firstArr: firstArray, profile, gaps: profile ? profile.gaps : 0 };
       })();
     }
-    return ds._analysis;
+    return dataset._analysis;
   }
 
   /* ============================ */
@@ -1671,46 +1671,46 @@ Structra.engine = (() => {
    * @returns {Promise<boolean>} true when SQL can be used on the active dataset
    */
   async function enableSql() {
-    if (_duckFailed || !Structra.duckdb) return false;
+    if (_duckFailed || !Structra.duckdbAdapter) return false;
     if (!_duckReady) {
       Structra.events.emit('engine:duckdb-starting');
-      if (!_duckStarting) _duckStarting = Structra.duckdb.init();
+      if (!_duckStarting) _duckStarting = Structra.duckdbAdapter.init();
       // Say what the wait is: the SQL engine is downloaded and started once, then stays ready
       Structra.events.emit('loading:show', 'Preparing the SQL engine (first use only)…');
       try { await _duckStarting; } finally { Structra.events.emit('loading:hide'); }
       if (!_duckReady) return false;
     }
-    const ds = getActive();
-    if (!ds) return false;
-    if (!_isDuckRegistered(ds)) {
+    const dataset = getActive();
+    if (!dataset) return false;
+    if (!_isDuckRegistered(dataset)) {
       Structra.events.emit('loading:show', 'Loading data into the SQL engine…');
       try {
-        await _ensureRegistered(ds);
-        if (_isDuckRegistered(ds)) Structra.events.emit('engine:duckdb-registered', { tabId: ds.id });
+        await _ensureRegistered(dataset);
+        if (_isDuckRegistered(dataset)) Structra.events.emit('engine:duckdb-registered', { tabId: dataset.id });
       } finally {
         Structra.events.emit('loading:hide');
       }
     }
-    return _canUseDuck(ds);
+    return _canUseDuck(dataset);
   }
 
   /**
    * Make sure the dataset has its table in DuckDB. A registration that did not produce a table
    * (it failed, or the table was dropped) is tried again instead of being remembered as done.
    */
-  async function _ensureRegistered(ds) {
-    if (_isDuckRegistered(ds)) return true;
-    if (!ds._duckPromise) ds._duckPromise = Structra.duckdb.registerDataset(ds);
-    await ds._duckPromise;
-    ds._duckPromise = null;
-    return _isDuckRegistered(ds);
+  async function _ensureRegistered(dataset) {
+    if (_isDuckRegistered(dataset)) return true;
+    if (!dataset._duckPromise) dataset._duckPromise = Structra.duckdbAdapter.registerDataset(dataset);
+    await dataset._duckPromise;
+    dataset._duckPromise = null;
+    return _isDuckRegistered(dataset);
   }
 
   /** The table a query used is gone: forget that this dataset was registered so the next SQL call loads it again */
-  function _forgetMissingTable(ds, err) {
-    if (ds && err && /does not exist/i.test(err.message || '')) {
-      ds._duckColumns = null;
-      ds._duckPromise = null;
+  function _forgetMissingTable(dataset, error) {
+    if (dataset && error && /does not exist/i.test(error.message || '')) {
+      dataset._duckColumns = null;
+      dataset._duckPromise = null;
     }
   }
 
@@ -1726,11 +1726,11 @@ Structra.engine = (() => {
    * @returns {Promise<Object|null>}
    */
   async function analyzeDistribution(column) {
-    const ds = getActive();
-    if (!ds || !(await enableSql())) return null;
-    const tableName = _tableOf(ds);
+    const dataset = getActive();
+    if (!dataset || !(await enableSql())) return null;
+    const tableName = _tableOf(dataset);
     try {
-      const result = await Structra.duckdb.query(`
+      const result = await Structra.duckdbAdapter.query(`
         SELECT
           median("${column}") AS median,
           mode("${column}") AS mode,
@@ -1747,26 +1747,26 @@ Structra.engine = (() => {
           count(*) AS total_count
         FROM "${tableName}"
       `);
-      const r = result[0] || {};
+      const firstRow = result[0] || {};
       return {
         column,
-        median: r.median,
-        mode: r.mode,
-        stddev: r.stddev,
-        variance: r.variance,
-        skewness: r.skewness,
-        kurtosis: r.kurtosis,
-        entropy: r.entropy,
-        percentiles: r.percentiles,
-        min: r.min_val,
-        max: r.max_val,
-        avg: r.avg_val,
-        nonNullCount: Number(r.non_null_count || 0),
-        totalCount: Number(r.total_count || 0),
+        median: firstRow.median,
+        mode: firstRow.mode,
+        stddev: firstRow.stddev,
+        variance: firstRow.variance,
+        skewness: firstRow.skewness,
+        kurtosis: firstRow.kurtosis,
+        entropy: firstRow.entropy,
+        percentiles: firstRow.percentiles,
+        min: firstRow.min_val,
+        max: firstRow.max_val,
+        avg: firstRow.avg_val,
+        nonNullCount: Number(firstRow.non_null_count || 0),
+        totalCount: Number(firstRow.total_count || 0),
         source: 'duckdb',
       };
-    } catch (err) {
-      Structra.log.warn('Engine', `analyzeDistribution("${column}") failed`, err.message);
+    } catch (error) {
+      Structra.log.warn('Engine', `analyzeDistribution("${column}") failed`, error.message);
       return null;
     }
   }
@@ -1778,11 +1778,11 @@ Structra.engine = (() => {
    * @returns {Promise<number|null>}
    */
   async function correlation(col1, col2) {
-    const ds = getActive();
-    if (!ds || !(await enableSql())) return null;
-    const tableName = _tableOf(ds);
+    const dataset = getActive();
+    if (!dataset || !(await enableSql())) return null;
+    const tableName = _tableOf(dataset);
     try {
-      const result = await Structra.duckdb.query(`SELECT corr("${col1}", "${col2}") AS r FROM "${tableName}"`);
+      const result = await Structra.duckdbAdapter.query(`SELECT corr("${col1}", "${col2}") AS r FROM "${tableName}"`);
       return result[0]?.r ?? null;
     } catch { return null; }
   }
@@ -1799,59 +1799,59 @@ Structra.engine = (() => {
    * @returns {Promise<Array>}
    */
   async function fuzzySearch(text, threshold = 0.8) {
-    const ds = getActive();
-    if (!ds) return { total: 0, matchedPaths: [] };
+    const dataset = getActive();
+    if (!dataset) return { total: 0, matchedPaths: [] };
     const want = String(text).toLowerCase();
     const near = new Set();
     // Every text value is compared; one that contains the search text, or is spelled close to it, matches
     const seen = new Map();
-    const matches = (v) => {
-      const str = String(v).toLowerCase();
-      if (seen.has(str)) return seen.get(str);
-      let hit = str.includes(want);
-      if (!hit && str.length <= 200 && Math.abs(str.length - want.length) <= Math.max(3, want.length)) hit = _jaroWinkler(str, want) >= threshold;
-      if (!hit && str.length > want.length && str.length <= 200) {
+    const matches = (candidate) => {
+      const text = String(candidate).toLowerCase();
+      if (seen.has(text)) return seen.get(text);
+      let match = text.includes(want);
+      if (!match && text.length <= 200 && Math.abs(text.length - want.length) <= Math.max(3, want.length)) match = _jaroWinkler(text, want) >= threshold;
+      if (!match && text.length > want.length && text.length <= 200) {
         // a short search against a longer value: compare with each word
-        hit = str.split(/[\s,;:@./_-]+/).some((w) => w.length > 1 && Math.abs(w.length - want.length) <= 3 && _jaroWinkler(w, want) >= threshold);
+        match = text.split(/[\s,;:@./_-]+/).some((part) => part.length > 1 && Math.abs(part.length - want.length) <= 3 && _jaroWinkler(part, want) >= threshold);
       }
-      seen.set(str, hit);
-      return hit;
+      seen.set(text, match);
+      return match;
     };
-    const stack = [{ val: ds.raw, path: '$' }];
+    const stack = [{ val: dataset.raw, path: '$' }];
     const matched = [];
     while (stack.length) {
-      const { val, path } = stack.pop();
-      if (!val || typeof val !== 'object') continue;
-      const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
-      for (const [k, v] of entries) {
-        const child = Array.isArray(val) ? `${path}[${k}]` : `${path}.${k}`;
-        if (v !== null && typeof v === 'object') stack.push({ val: v, path: child });
-        else if (v !== null && v !== undefined && typeof v !== 'boolean' && matches(v)) matched.push(child);
+      const { val: value, path } = stack.pop();
+      if (!value || typeof value !== 'object') continue;
+      const entries = Array.isArray(value) ? value.map((item, i) => [i, item]) : Object.entries(value);
+      for (const [key, item] of entries) {
+        const child = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
+        if (item !== null && typeof item === 'object') stack.push({ val: item, path: child });
+        else if (item !== null && item !== undefined && typeof item !== 'boolean' && matches(item)) matched.push(child);
       }
     }
     near.clear();
-    return _setFindResult(ds, text, matched);
+    return _setFindResult(dataset, text, matched);
   }
 
   /** Jaro-Winkler similarity, 0 to 1: how alike two spellings are */
-  function _jaroWinkler(a, b) {
-    if (a === b) return 1;
-    const la = a.length, lb = b.length;
-    if (!la || !lb) return 0;
-    const range = Math.max(0, Math.floor(Math.max(la, lb) / 2) - 1);
-    const ma = new Array(la).fill(false), mb = new Array(lb).fill(false);
-    let m = 0;
-    for (let i = 0; i < la; i++) {
-      for (let j = Math.max(0, i - range); j < Math.min(lb, i + range + 1); j++) {
-        if (!mb[j] && a[i] === b[j]) { ma[i] = mb[j] = true; m++; break; }
+  function _jaroWinkler(first, second) {
+    if (first === second) return 1;
+    const firstLength = first.length, secondLength = second.length;
+    if (!firstLength || !secondLength) return 0;
+    const range = Math.max(0, Math.floor(Math.max(firstLength, secondLength) / 2) - 1);
+    const firstMatched = new Array(firstLength).fill(false), secondMatched = new Array(secondLength).fill(false);
+    let matches = 0;
+    for (let i = 0; i < firstLength; i++) {
+      for (let j = Math.max(0, i - range); j < Math.min(secondLength, i + range + 1); j++) {
+        if (!secondMatched[j] && first[i] === second[j]) { firstMatched[i] = secondMatched[j] = true; matches++; break; }
       }
     }
-    if (!m) return 0;
-    let t = 0, k = 0;
-    for (let i = 0; i < la; i++) if (ma[i]) { while (!mb[k]) k++; if (a[i] !== b[k]) t++; k++; }
-    const jaro = (m / la + m / lb + (m - t / 2) / m) / 3;
+    if (!matches) return 0;
+    let transpositions = 0, pointer = 0;
+    for (let i = 0; i < firstLength; i++) if (firstMatched[i]) { while (!secondMatched[pointer]) pointer++; if (first[i] !== second[pointer]) transpositions++; pointer++; }
+    const jaro = (matches / firstLength + matches / secondLength + (matches - transpositions / 2) / matches) / 3;
     let prefix = 0;
-    while (prefix < Math.min(4, la, lb) && a[prefix] === b[prefix]) prefix++;
+    while (prefix < Math.min(4, firstLength, secondLength) && first[prefix] === second[prefix]) prefix++;
     return jaro + prefix * 0.1 * (1 - jaro);
   }
 
@@ -1860,16 +1860,16 @@ Structra.engine = (() => {
    * @param {string} pattern - regex pattern, case-insensitive
    */
   async function regexSearch(pattern) {
-    const ds = getActive();
-    if (!ds) return { total: 0, matchedPaths: [] };
-    if (Structra.util.riskyRegex(pattern)) throw new Error(Structra.util.RISKY_MESSAGE);
-    const re = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
-    return _findInMemory(ds, pattern, re);
+    const dataset = getActive();
+    if (!dataset) return { total: 0, matchedPaths: [] };
+    if (Structra.sharedHelpers.isRiskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
+    const expression = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
+    return _findInMemory(dataset, pattern, expression);
   }
 
   /** Store matched paths as the active find result */
-  function _setFindResult(ds, text, matchedPaths) {
-    const rows = _matchedPathsToRows(ds, matchedPaths);
+  function _setFindResult(dataset, text, matchedPaths) {
+    const rows = _matchedPathsToRows(dataset, matchedPaths);
     const result = { source: 'find', query: text, conditions: null, rows, matchedPaths, total: matchedPaths.length, columns: rows.length > 0 ? Object.keys(rows[0]) : [] };
     _setActiveQuery(result);
     return result;
@@ -1887,31 +1887,31 @@ Structra.engine = (() => {
    * @returns {Promise<string|null>}
    */
   async function exportData(format = 'csv') {
-    const ds = getActive();
-    if (!ds) return null;
-    if (format !== 'csv') return JSON.stringify(ds.raw, null, 2);
+    const dataset = getActive();
+    if (!dataset) return null;
+    if (format !== 'csv') return JSON.stringify(dataset.raw, null, 2);
 
     // CSV is the main list as rows (the filtered rows when a filter is on), whatever shape the document has.
     // Choice, Person and other one-level objects become Parent.Child columns; lists stay as JSON text.
-    const q = getQuery();
-    const main = mainList(ds);
-    let rows = q && q.source === 'filter' && Array.isArray(q.rows) ? q.rows : main ? main.rows : null;
-    if (!rows) rows = Array.isArray(ds.raw) ? ds.raw : [ds.raw];
+    const query = getQuery();
+    const main = mainList(dataset);
+    let rows = query && query.source === 'filter' && Array.isArray(query.rows) ? query.rows : main ? main.rows : null;
+    if (!rows) rows = Array.isArray(dataset.raw) ? dataset.raw : [dataset.raw];
     const isPlain = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
     const flat = rows.map((row) => {
       if (!isPlain(row)) return { value: row };
       const out = {};
-      for (const [k, v] of Object.entries(row)) {
-        if (isPlain(v)) { for (const [c, cv] of Object.entries(v)) out[k + '.' + c] = cv; }
-        else out[k] = v;
+      for (const [key, value] of Object.entries(row)) {
+        if (isPlain(value)) { for (const [nestedKey, nestedValue] of Object.entries(value)) out[key + '.' + nestedKey] = nestedValue; }
+        else out[key] = value;
       }
       return out;
     });
-    const cols = [];
+    const columns = [];
     const seen = new Set();
-    for (const r of flat) for (const k of Object.keys(r)) if (!seen.has(k)) { seen.add(k); cols.push(k); }
-    if (!cols.length) return '';
-    return Structra.convert.generateCsv(flat, cols);
+    for (const row of flat) for (const key of Object.keys(row)) if (!seen.has(key)) { seen.add(key); columns.push(key); }
+    if (!columns.length) return '';
+    return Structra.formatConversion.generateCsv(flat, columns);
   }
 
   /**
@@ -1919,25 +1919,25 @@ Structra.engine = (() => {
    * @param {number} n - number of rows
    * @returns {Promise<Array>}
    */
-  async function sampleData(n = 100) {
-    const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) {
+  async function sampleData(count = 100) {
+    const dataset = getActive();
+    if (!dataset || !_canUseDuck(dataset)) {
       // JS fallback: random pick from raw array
-      if (ds && Array.isArray(ds.raw)) {
-        const copy = ds.raw.slice();
+      if (dataset && Array.isArray(dataset.raw)) {
+        const copy = dataset.raw.slice();
         for (let i = copy.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [copy[i], copy[j]] = [copy[j], copy[i]];
         }
-        return copy.slice(0, n);
+        return copy.slice(0, count);
       }
       return [];
     }
-    const tableName = _tableOf(ds);
+    const tableName = _tableOf(dataset);
     try {
-      return await Structra.duckdb.query(`SELECT * FROM "${tableName}" USING SAMPLE ${n} ROWS`);
-    } catch (err) {
-      Structra.log.warn('Engine', `sampleData failed`, err.message);
+      return await Structra.duckdbAdapter.query(`SELECT * FROM "${tableName}" USING SAMPLE ${count} ROWS`);
+    } catch (error) {
+      Structra.log.warn('Engine', `sampleData failed`, error.message);
       return [];
     }
   }
@@ -1949,16 +1949,16 @@ Structra.engine = (() => {
    * @param {string} aggFn - aggregate function (count, sum, avg, etc.)
    * @returns {Promise<Array>}
    */
-  async function pivotData(onCol, valueCol, aggFn = 'count') {
-    const ds = getActive();
-    if (!ds || !(await enableSql())) return [];
-    const tableName = _tableOf(ds);
+  async function pivotData(onCol, valueCol, aggFunction = 'count') {
+    const dataset = getActive();
+    if (!dataset || !(await enableSql())) return [];
+    const tableName = _tableOf(dataset);
     try {
-      return await Structra.duckdb.query(
-        `PIVOT "${tableName}" ON "${onCol}" USING ${aggFn}("${valueCol}")`
+      return await Structra.duckdbAdapter.query(
+        `PIVOT "${tableName}" ON "${onCol}" USING ${aggFunction}("${valueCol}")`
       );
-    } catch (err) {
-      Structra.log.warn('Engine', `pivotData failed`, err.message);
+    } catch (error) {
+      Structra.log.warn('Engine', `pivotData failed`, error.message);
       return [];
     }
   }
@@ -1971,7 +1971,7 @@ Structra.engine = (() => {
    */
   async function sql(query) {
     if (!_duckAvailable()) return [];
-    return Structra.duckdb.query(query);
+    return Structra.duckdbAdapter.query(query);
   }
 
   /**
@@ -1979,13 +1979,13 @@ Structra.engine = (() => {
    * @returns {Promise<Array<Object>>}
    */
   async function summarizeTable() {
-    const ds = getActive();
-    if (!ds || !_canUseDuck(ds)) return [];
-    const tableName = _tableOf(ds);
+    const dataset = getActive();
+    if (!dataset || !_canUseDuck(dataset)) return [];
+    const tableName = _tableOf(dataset);
     try {
-      return await Structra.duckdb.query(`SUMMARIZE "${tableName}"`);
-    } catch (err) {
-      Structra.log.warn('Engine', 'summarizeTable failed', err.message);
+      return await Structra.duckdbAdapter.query(`SUMMARIZE "${tableName}"`);
+    } catch (error) {
+      Structra.log.warn('Engine', 'summarizeTable failed', error.message);
       return [];
     }
   }

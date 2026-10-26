@@ -1,6 +1,6 @@
 const { load, test, eq, truthy } = require('./harness');
-load(['util', 'insights']);
-const I = Structra.insights;
+load(['shared-helpers', 'overview-insights']);
+const I = Structra.overviewInsights;
 
 console.log('insights');
 

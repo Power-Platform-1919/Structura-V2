@@ -67,10 +67,10 @@ function serve() {
 
     // ---- risky patterns and endless scripts are stopped ----
     await load('items.json', JSON.stringify([{ name: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!' }, { name: 'b' }]));
-    const risky = await page.evaluate(async () => { try { await Structra.engine.regexSearch('(a+)+$'); return 'ran'; } catch (e) { return e.message; } });
+    const risky = await page.evaluate(async () => { try { await Structra.dataEngine.regexSearch('(a+)+$'); return 'ran'; } catch (e) { return e.message; } });
     if (risky === 'ran') failures.push('a pattern like (a+)+$ should be refused');
     const t0 = Date.now();
-    await page.evaluate(() => Structra.set('queryPanelOpen', true));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', true));
     await page.waitForTimeout(300);
     await page.locator('structra-query [data-mode="js"]').click();
     await page.locator('#queryInput').fill('(() => { while (true) {} })()');
@@ -83,7 +83,7 @@ function serve() {
     // ---- a very wide table draws a limited number of columns and offers more ----
     const wide = {}; for (let i = 0; i < 1500; i++) wide['c' + i] = i;
     await load('wide.json', JSON.stringify([wide, wide]));
-    await page.evaluate(() => Structra.set('activeView', 'table'));
+    await page.evaluate(() => Structra.setState('activeView', 'table'));
     await page.waitForTimeout(800);
     const cols = await page.evaluate(() => ({ th: document.querySelectorAll('structra-table th').length, more: !!document.querySelector('structra-table [data-page-action="more-cols"]'), num: document.querySelectorAll('structra-table td.num').length }));
     if (cols.th > 120 || !cols.more) failures.push('1,500 columns should draw a limited number and offer more: ' + JSON.stringify(cols));
@@ -94,7 +94,7 @@ function serve() {
     const rows = Array.from({ length: 200 }, (_, i) => ({ id: 'x' + i }));
     await load('rows.json', JSON.stringify(rows));
     const grouped = await page.evaluate(() => {
-      const r = Structra.jsonTools.validate(Structra.state.jsonData, { type: 'array', items: { type: 'object', properties: { id: { type: 'number' } } } });
+      const r = Structra.jsonRepairAndValidation.validate(Structra.state.jsonData, { type: 'array', items: { type: 'object', properties: { id: { type: 'number' } } } });
       return r;
     });
     if (!grouped.errors || grouped.errors.length !== 200) failures.push('validation should find 200 problems: ' + JSON.stringify(grouped).slice(0, 120));

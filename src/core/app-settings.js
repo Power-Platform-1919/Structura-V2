@@ -6,20 +6,20 @@
    All keys prefixed with 'structra.' in localStorage.
 
    API:
-     Structra.settings.get('pageSize')       → 50
-     Structra.settings.set('pageSize', 100)  → persists + emits event
-     Structra.settings.getAll()              → {logMode:'normal', pageSize:50, ...}
-     Structra.settings.reset()               → restore all defaults
-     Structra.settings.export()              → JSON string
-     Structra.settings.import(json)          → bulk restore
+     Structra.appSettings.get('pageSize')       → 50
+     Structra.appSettings.set('pageSize', 100)  → persists + emits event
+     Structra.appSettings.getAll()              → {logMode:'normal', pageSize:50, ...}
+     Structra.appSettings.reset()               → restore all defaults
+     Structra.appSettings.export()              → JSON string
+     Structra.appSettings.import(json)          → bulk restore
 
    Events (via Structra.events if available):
      'settings:changed' → {key, value, old}
 
    Console:
-     Structra.settings.getAll()
-     Structra.settings.set('pageSize', 100)
-     Structra.settings.reset()
+     Structra.appSettings.getAll()
+     Structra.appSettings.set('pageSize', 100)
+     Structra.appSettings.reset()
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Emits: settings:changed, settings:reset
@@ -27,8 +27,8 @@
 
 window.Structra = window.Structra || {};
 
-Structra.settings = (() => {
-  const PREFIX = 'structra.';
+Structra.appSettings = (() => {
+  const STORAGE_PREFIX = 'structra.';
 
   /* --- Defaults --- */
   const DEFAULTS = {
@@ -48,12 +48,12 @@ Structra.settings = (() => {
 
   /* --- Read --- */
   function get(key) {
-    const raw = localStorage.getItem(PREFIX + key);
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
     if (raw === null) return DEFAULTS[key];
     // Parse typed values
-    const def = DEFAULTS[key];
-    if (typeof def === 'number') return Number(raw) || def;
-    if (typeof def === 'boolean') return raw === 'true';
+    const definition = DEFAULTS[key];
+    if (typeof definition === 'number') return Number(raw) || definition;
+    if (typeof definition === 'boolean') return raw === 'true';
     return raw;
   }
 
@@ -65,7 +65,7 @@ Structra.settings = (() => {
     }
     const old = get(key);
     if (old === value) return;
-    localStorage.setItem(PREFIX + key, String(value));
+    localStorage.setItem(STORAGE_PREFIX + key, String(value));
     // Emit change event if event bus exists (may not during early boot)
     if (Structra.events) {
       Structra.events.emit('settings:changed', { key, value, old });
@@ -83,7 +83,7 @@ Structra.settings = (() => {
 
   function reset() {
     for (const key of Object.keys(DEFAULTS)) {
-      localStorage.removeItem(PREFIX + key);
+      localStorage.removeItem(STORAGE_PREFIX + key);
     }
     if (Structra.events) {
       Structra.events.emit('settings:reset');
@@ -96,10 +96,10 @@ Structra.settings = (() => {
   }
 
   function importSettings(json) {
-    let obj;
-    try { obj = JSON.parse(json); }
+    let object;
+    try { object = JSON.parse(json); }
     catch { console.error('[Settings] Invalid JSON'); return false; }
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(object)) {
       if (key in DEFAULTS) set(key, value);
     }
     return true;

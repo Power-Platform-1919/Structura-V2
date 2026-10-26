@@ -51,8 +51,8 @@ function serve() {
     await page.waitForTimeout(1500);
 
     // ---- Filter ----
-    await page.evaluate(() => Structra.set('activeView', 'table'));
-    await page.evaluate(() => Structra.set('filterBarOpen', true));
+    await page.evaluate(() => Structra.setState('activeView', 'table'));
+    await page.evaluate(() => Structra.setState('filterBarOpen', true));
     await page.waitForTimeout(400);
     const cols = await page.evaluate(() => [...document.querySelectorAll('#filterConditions .fc-row:first-child .fc-field option')].map((o) => o.value));
     for (const c of ['Title', 'Status.Value', 'Requester.Email', 'Approved']) if (!cols.includes(c)) failures.push(`the Filter does not offer the column ${c}: ${cols.join(', ')}`);
@@ -84,7 +84,7 @@ function serve() {
     f = await page.evaluate(() => ({ conditions: document.querySelectorAll('#filterConditions .fc-row').length, rows: document.querySelectorAll('structra-table tbody tr').length }));
     if (f.conditions !== 1) failures.push('after Clear there should be one empty condition to type into, there are ' + f.conditions);
     if (f.rows !== 3) failures.push('after Clear the Table should show all 3 rows again, it shows ' + f.rows);
-    await page.evaluate(() => Structra.set('filterBarOpen', false));
+    await page.evaluate(() => Structra.setState('filterBarOpen', false));
 
     // ---- Pivot ----
     await page.evaluate(() => Structra.events.emit('pivot:open'));

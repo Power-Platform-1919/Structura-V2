@@ -52,7 +52,7 @@ function serve() {
     await page.waitForTimeout(1500);
     await page.evaluate(() => { window.__toasts = []; const t = Structra.toast; Structra.toast = (m, ...r) => { window.__toasts.push(String(m)); return t.call(Structra, m, ...r); }; });
     const original = await page.evaluate(() => JSON.stringify(Structra.state.jsonData));
-    await page.evaluate(() => Structra.set('activeView', 'editor'));
+    await page.evaluate(() => Structra.setState('activeView', 'editor'));
     await page.waitForTimeout(500);
 
     // ---- Line numbers ----
@@ -96,7 +96,7 @@ function serve() {
     // A warning before leaving with changes
     const askLeave = () => page.evaluate(() => { const e = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(e); return e.defaultPrevented; });
     if (!(await askLeave())) failures.push('leaving the page with a changed tab should ask first');
-    await page.evaluate(() => document.querySelector('structra-command')._exec('undo'));
+    await page.evaluate(() => document.querySelector('structra-command')._runCommand('undo'));
     await page.waitForTimeout(800);
     const undone = await page.evaluate(() => JSON.stringify(Structra.state.jsonData));
     if (undone !== original) failures.push('Undo after Apply did not restore the document');
