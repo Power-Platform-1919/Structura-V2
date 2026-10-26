@@ -23,7 +23,7 @@ class StructraViewSwitcher extends StructraComponent {
 
   _switch(view) {
     Structra.log.info('ViewSwitcher', 'Switching to: ' + view);
-    this.$$('.view-panel').forEach(el => {
+    this.queryAll('.view-panel').forEach(el => {
       el.classList.toggle('active', el.dataset.view === view);
     });
     Structra.events.emit('view:switched', view);
@@ -31,7 +31,7 @@ class StructraViewSwitcher extends StructraComponent {
 
   /** Get the active view panel element */
   getPanel(view) {
-    return this.$(`[data-view="${view}"]`);
+    return this.queryOne(`[data-view="${view}"]`);
   }
 }
 

@@ -45,7 +45,7 @@ class StructraSnippets extends StructraDialog {
       else if (a === 'copy-snippet') this._copySnippet(action.dataset.idx);
     });
 
-    this.$('#snipSearch').addEventListener('input', (e) => this._filterList(e.target.value));
+    this.queryOne('#snipSearch').addEventListener('input', (e) => this._filterList(e.target.value));
   }
 
   onOpen() { this._renderList(); }
@@ -63,36 +63,36 @@ class StructraSnippets extends StructraDialog {
   }
 
   _showSaveForm() {
-    const form = this.$('#snipSaveForm');
+    const form = this.queryOne('#snipSaveForm');
     form.style.display = '';
     const path = Structra.state.currentPath || '$';
     const data = Structra.state.jsonData;
     // Pre-fill with current selection
     if (data && path !== '$') {
       const val = Structra.dataPaths.resolve(data, path);
-      this.$('#snipContent').value = JSON.stringify(val, null, 2);
+      this.queryOne('#snipContent').value = JSON.stringify(val, null, 2);
     } else if (data) {
-      this.$('#snipContent').value = JSON.stringify(data, null, 2).slice(0, 2000);
+      this.queryOne('#snipContent').value = JSON.stringify(data, null, 2).slice(0, 2000);
     }
-    this.$('#snipName').focus();
+    this.queryOne('#snipName').focus();
   }
 
-  _hideSaveForm() { this.$('#snipSaveForm').style.display = 'none'; }
+  _hideSaveForm() { this.queryOne('#snipSaveForm').style.display = 'none'; }
 
   _confirmSave() {
-    const name = this.$('#snipName').value.trim();
-    const content = this.$('#snipContent').value.trim();
+    const name = this.queryOne('#snipName').value.trim();
+    const content = this.queryOne('#snipContent').value.trim();
     const problem = (field, msg) => {
-      const el = this.$(field);
+      const el = this.queryOne(field);
       el.setAttribute('aria-invalid', 'true');
       el.classList.add('snip-invalid');
       el.focus();
-      let note = this.$('#snipError');
-      if (!note) { note = document.createElement('div'); note.id = 'snipError'; note.className = 'snip-error'; note.setAttribute('role', 'alert'); this.$('.snip-form-actions').before(note); }
+      let note = this.queryOne('#snipError');
+      if (!note) { note = document.createElement('div'); note.id = 'snipError'; note.className = 'snip-error'; note.setAttribute('role', 'alert'); this.queryOne('.snip-form-actions').before(note); }
       note.textContent = msg;
     };
-    this.$$('#snipSaveForm [aria-invalid]').forEach((el) => { el.removeAttribute('aria-invalid'); el.classList.remove('snip-invalid'); });
-    const old = this.$('#snipError');
+    this.queryAll('#snipSaveForm [aria-invalid]').forEach((el) => { el.removeAttribute('aria-invalid'); el.classList.remove('snip-invalid'); });
+    const old = this.queryOne('#snipError');
     if (old) old.remove();
     if (!name) { problem('#snipName', 'Give the snippet a name so you can find it again.'); return; }
     if (!content) { problem('#snipContent', 'Add the JSON to save.'); return; }
@@ -135,11 +135,11 @@ class StructraSnippets extends StructraDialog {
 
   _copySnippet(idx) {
     const snip = this._snippets[idx];
-    if (snip) Structra.sharedHelpers.copy(snip.content, 'Copied');
+    if (snip) Structra.sharedHelpers.copyToClipboard(snip.content, 'Copied');
   }
 
   _renderList() {
-    const container = this.$('#snipList');
+    const container = this.queryOne('#snipList');
     if (!container) return;
     if (this._snippets.length === 0) {
       container.innerHTML = '<div class="snip-empty">No snippets saved yet</div>';
@@ -148,10 +148,10 @@ class StructraSnippets extends StructraDialog {
     container.innerHTML = this._snippets.map((s, i) => `
       <div class="snip-item" data-snip-idx="${i}">
         <div class="snip-item-top">
-          <span class="snip-item-name">${Structra.sharedHelpers.esc(s.name)}</span>
+          <span class="snip-item-name">${Structra.sharedHelpers.escapeHtml(s.name)}</span>
           <span class="snip-item-size">${Structra.sharedHelpers.formatBytes(s.size)}</span>
         </div>
-        <div class="snip-item-preview">${Structra.sharedHelpers.esc(s.content.slice(0, 80))}</div>
+        <div class="snip-item-preview">${Structra.sharedHelpers.escapeHtml(s.content.slice(0, 80))}</div>
         <div class="snip-item-actions">
           <button class="snip-act" data-action="use-snippet" data-idx="${i}">Load</button>
           <button class="snip-act" data-action="copy-snippet" data-idx="${i}">Copy</button>

@@ -21,7 +21,7 @@ class StructraDrawer extends StructraComponent {
       this._applyState();
     });
     // The Overview already shows what the Analyze tab shows, so the drawer stays folded there and opens in the other views
-    const analyzeOpen = () => (this.$('.drawer-tabs .tab.active') || {}).dataset?.tab === 'analyze';
+    const analyzeOpen = () => (this.queryOne('.drawer-tabs .tab.active') || {}).dataset?.tab === 'analyze';
     this.on('state:activeView', (d) => {
       if (!Structra.state.jsonData) return;
       if (d.value === 'overview' && analyzeOpen() && this._stateIdx !== 0) {
@@ -37,7 +37,7 @@ class StructraDrawer extends StructraComponent {
       }
     });
     // A newly opened document starts on the Analyze tab: the tab you were on belonged to the previous document
-    this.on('engine:ingested', () => { if ((this.$('.drawer-tabs .tab.active') || {}).dataset?.tab !== 'analyze') this._switchTab('analyze'); });
+    this.on('engine:ingested', () => { if ((this.queryOne('.drawer-tabs .tab.active') || {}).dataset?.tab !== 'analyze') this._switchTab('analyze'); });
     this.on('state:jsonData', (d) => {
       this.hidden = !d.value;
       if (d.value && this._stateIdx === 0 && Structra.state.activeView === 'overview' && analyzeOpen()) {
@@ -103,7 +103,7 @@ class StructraDrawer extends StructraComponent {
   }
 
   _initResize() {
-    const bar = this.$('#drawerResizeBar');
+    const bar = this.queryOne('#drawerResizeBar');
     if (!bar) return;
 
     let startY, startH;
@@ -162,7 +162,7 @@ class StructraDrawer extends StructraComponent {
     try { kept = parseInt(localStorage.getItem('structra.drawerH') || '0', 10); } catch { /* storage blocked */ }
     if (kept >= 120 && state !== 'collapsed') { this.classList.add('resizing'); this.style.height = Math.min(kept, window.innerHeight * 0.6) + 'px'; }
     else { this.classList.remove('resizing'); this.style.height = ''; }
-    const toggle = this.$('.drawer-toggle');
+    const toggle = this.queryOne('.drawer-toggle');
     if (toggle) {
       const label = state === 'collapsed' ? 'Show the panel' : 'Hide the panel';
       toggle.setAttribute('aria-label', label);
@@ -172,20 +172,20 @@ class StructraDrawer extends StructraComponent {
   }
 
   _switchTab(id) {
-    this.$$('.drawer-tabs .tab').forEach(b => { b.classList.toggle('active', b.dataset.tab === id); b.setAttribute('aria-selected', String(b.dataset.tab === id)); });
+    this.queryAll('.drawer-tabs .tab').forEach(b => { b.classList.toggle('active', b.dataset.tab === id); b.setAttribute('aria-selected', String(b.dataset.tab === id)); });
     // Choosing a tab while the drawer is folded away opens it
     if (this.classList.contains('collapsed')) {
       this._stateIdx = 1;
       Structra.setState('drawerState', Structra.constants.DRAWER_STATES[1]);
       this._applyState();
     }
-    this.$$('.drawer-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === id));
+    this.queryAll('.drawer-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === id));
     Structra.events.emit('drawer:tab-switched', id);
   }
 
   /** Get a panel element by tab id */
   getPanel(id) {
-    return this.$(`[data-panel="${id}"]`);
+    return this.queryOne(`[data-panel="${id}"]`);
   }
 }
 

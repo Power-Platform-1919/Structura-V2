@@ -81,7 +81,7 @@ class StructraWelcome extends StructraDialog {
       const mode = e.target.closest('[data-mode]');
       if (mode) {
         Structra.themeEngine.setMode(mode.dataset.mode);
-        this.$$('#wlMode .seg-btn').forEach((b) => b.classList.toggle('active', b === mode));
+        this.queryAll('#wlMode .seg-btn').forEach((b) => b.classList.toggle('active', b === mode));
         return;
       }
       const act = e.target.closest('[data-act]');

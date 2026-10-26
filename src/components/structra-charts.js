@@ -47,14 +47,14 @@ class StructraCharts extends StructraDialog {
       .map((a) => ({ path: a.path, label: `${a.path === '(root)' || a.path === '$' ? 'The whole list' : a.path} (${a.data.length.toLocaleString()} ${a.data.length === 1 ? 'item' : 'items'})`, rows: a.data }));
     if (!this._sources.length) { Structra.toast('No arrays to chart in this document'); return; }
 
-    const esc = Structra.sharedHelpers.esc;
-    this.$('#chSource').innerHTML = this._sources
+    const esc = Structra.sharedHelpers.escapeHtml;
+    this.queryOne('#chSource').innerHTML = this._sources
       .map((s, i) => `<option value="${i}">${esc(s.label)}</option>`).join('');
 
     // Prefer the requested array, then the first array of objects
     let idx = this._sources.findIndex((s) => s.path === (path || '(root)') || s.path === path);
     if (idx < 0) idx = this._sources.findIndex((s) => this._isObjectRows(s.rows));
-    this.$('#chSource').value = String(Math.max(0, idx));
+    this.queryOne('#chSource').value = String(Math.max(0, idx));
 
     this._fillColumns(column);
     this.open();
@@ -67,9 +67,9 @@ class StructraCharts extends StructraDialog {
   }
 
   _fillColumns(preferred) {
-    const src = this._sources[parseInt(this.$('#chSource').value, 10)];
-    const sel = this.$('#chColumn');
-    const esc = Structra.sharedHelpers.esc;
+    const src = this._sources[parseInt(this.queryOne('#chSource').value, 10)];
+    const sel = this.queryOne('#chColumn');
+    const esc = Structra.sharedHelpers.escapeHtml;
     let cols;
     if (this._isObjectRows(src.rows)) {
       const seen = new Map();
@@ -101,9 +101,9 @@ class StructraCharts extends StructraDialog {
   }
 
   _draw() {
-    const body = this.$('#chBody');
-    const src = this._sources[parseInt(this.$('#chSource').value, 10)];
-    const col = this.$('#chColumn').value;
+    const body = this.queryOne('#chBody');
+    const src = this._sources[parseInt(this.queryOne('#chSource').value, 10)];
+    const col = this.queryOne('#chColumn').value;
     if (!src || !col) { body.innerHTML = '<p class="ch-note">Pick a list and a column.</p>'; return; }
 
     const all = this._values(src, col);
@@ -115,11 +115,11 @@ class StructraCharts extends StructraDialog {
     body.innerHTML = numeric ? this._numeric(present, nulls) : this._categorical(present, nulls);
   }
 
-  _stat(label, value) {
-    return `<div class="ch-stat"><span class="ch-stat-v">${Structra.sharedHelpers.esc(value)}</span><span class="ch-stat-l">${Structra.sharedHelpers.esc(label)}</span></div>`;
+  _statLine(label, value) {
+    return `<div class="ch-stat"><span class="ch-stat-v">${Structra.sharedHelpers.escapeHtml(value)}</span><span class="ch-stat-l">${Structra.sharedHelpers.escapeHtml(label)}</span></div>`;
   }
 
-  _fmt(n) {
+  _formatNumber(n) {
     if (!Number.isFinite(n)) return String(n);
     return Math.abs(n) >= 1000 || Number.isInteger(n) ? n.toLocaleString() : n.toPrecision(4).replace(/\.?0+$/, '');
   }
@@ -132,9 +132,9 @@ class StructraCharts extends StructraDialog {
     const median = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
 
     const stats = [
-      this._stat('values', n.toLocaleString()), this._stat('empty', nulls.toLocaleString()),
-      this._stat('min', this._fmt(min)), this._stat('median', this._fmt(median)),
-      this._stat('mean', this._fmt(sum / n)), this._stat('max', this._fmt(max)),
+      this._statLine('values', n.toLocaleString()), this._statLine('empty', nulls.toLocaleString()),
+      this._statLine('min', this._formatNumber(min)), this._statLine('median', this._formatNumber(median)),
+      this._statLine('mean', this._formatNumber(sum / n)), this._statLine('max', this._formatNumber(max)),
     ].join('');
 
     return `<div class="ch-stats">${stats}</div>
@@ -153,15 +153,15 @@ class StructraCharts extends StructraDialog {
     const bars = counts.map((c, i) => {
       const h = peak ? (c / peak) * (H - padB - padT) : 0;
       const lo = min + (span * i) / bins, hi = min + (span * (i + 1)) / bins;
-      return `<rect class="ch-bar" x="${(padL + i * bw + 1).toFixed(1)}" y="${(H - padB - h).toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${h.toFixed(1)}"><title>${this._fmt(lo)} to ${this._fmt(hi)}: ${c.toLocaleString()}</title></rect>`;
+      return `<rect class="ch-bar" x="${(padL + i * bw + 1).toFixed(1)}" y="${(H - padB - h).toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${h.toFixed(1)}"><title>${this._formatNumber(lo)} to ${this._formatNumber(hi)}: ${c.toLocaleString()}</title></rect>`;
     }).join('');
-    return `<svg class="ch-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Histogram from ${this._fmt(min)} to ${this._fmt(max)}, tallest bar ${peak.toLocaleString()} values">
+    return `<svg class="ch-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Histogram from ${this._formatNumber(min)} to ${this._formatNumber(max)}, tallest bar ${peak.toLocaleString()} values">
       ${bars}
       <line class="ch-axisline" x1="${padL}" y1="${H - padB}" x2="${W - padL}" y2="${H - padB}"/>
-      <text class="ch-axis" x="${padL}" y="${H - 6}">${this._fmt(min)}</text>
-      <text class="ch-axis" x="${W - padL}" y="${H - 6}" text-anchor="end">${this._fmt(max)}</text>
+      <text class="ch-axis" x="${padL}" y="${H - 6}">${this._formatNumber(min)}</text>
+      <text class="ch-axis" x="${W - padL}" y="${H - 6}" text-anchor="end">${this._formatNumber(max)}</text>
     </svg>
-    <p class="ch-note">Each bar counts the values in one range, from ${this._fmt(min)} to ${this._fmt(max)}. The tallest bar holds ${peak.toLocaleString()} ${peak === 1 ? 'value' : 'values'}.</p>`;
+    <p class="ch-note">Each bar counts the values in one range, from ${this._formatNumber(min)} to ${this._formatNumber(max)}. The tallest bar holds ${peak.toLocaleString()} ${peak === 1 ? 'value' : 'values'}.</p>`;
   }
 
   _trend(values, min, max) {
@@ -180,8 +180,8 @@ class StructraCharts extends StructraDialog {
       <line class="ch-axisline" x1="${padL}" y1="${padT}" x2="${padL}" y2="${H - padB}"/>
       <line class="ch-axisline" x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}"/>
       <path class="ch-line" d="${d}"/>
-      <text class="ch-axis" x="${padL - 6}" y="${padT + 8}" text-anchor="end">${this._fmt(max)}</text>
-      <text class="ch-axis" x="${padL - 6}" y="${H - padB}" text-anchor="end">${this._fmt(min)}</text>
+      <text class="ch-axis" x="${padL - 6}" y="${padT + 8}" text-anchor="end">${this._formatNumber(max)}</text>
+      <text class="ch-axis" x="${padL - 6}" y="${H - padB}" text-anchor="end">${this._formatNumber(min)}</text>
       <text class="ch-axis" x="${padL}" y="${H - 5}">first row</text>
       <text class="ch-axis" x="${W - padR}" y="${H - 5}" text-anchor="end">row ${values.length.toLocaleString()}</text>
     </svg>${stride > 1 ? `<p class="ch-note">Showing every ${stride}th value.</p>` : ''}`;
@@ -196,11 +196,11 @@ class StructraCharts extends StructraDialog {
     const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1]);
     const top = ranked.slice(0, StructraCharts.MAX_BARS);
     const peak = top[0][1];
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
 
     const stats = [
-      this._stat('values', values.length.toLocaleString()), this._stat('empty', nulls.toLocaleString()),
-      this._stat('distinct', ranked.length.toLocaleString()),
+      this._statLine('values', values.length.toLocaleString()), this._statLine('empty', nulls.toLocaleString()),
+      this._statLine('distinct', ranked.length.toLocaleString()),
     ].join('');
 
     const rows = top.map(([k, c]) => `

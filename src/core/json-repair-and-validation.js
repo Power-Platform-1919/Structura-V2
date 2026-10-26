@@ -15,7 +15,7 @@ Structra.jsonRepairAndValidation = (() => {
   /* ---------- repair ---------- */
 
   async function repair(text) {
-    await Structra.libraryLoader.require('jsonrepair');
+    await Structra.libraryLoader.loadLibrary('jsonrepair');
     const lib = window.JSONRepair || window.jsonrepair;
     const fn = lib && (lib.jsonrepair || lib);
     if (typeof fn !== 'function') throw new Error('jsonrepair did not load');
@@ -124,7 +124,7 @@ Structra.jsonRepairAndValidation = (() => {
   }
 
   async function validate(data, schema) {
-    await Structra.libraryLoader.require('ajv');
+    await Structra.libraryLoader.loadLibrary('ajv');
     const ajv = new window.Ajv({ allErrors: true, jsonPointers: true });
     const check = ajv.compile(schema);          // throws on an invalid schema
     const valid = check(data);

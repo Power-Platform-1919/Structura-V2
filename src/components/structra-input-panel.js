@@ -24,7 +24,7 @@ class StructraInputPanel extends StructraComponent {
       this._loadText(text, 'Pasted ' + this._detectFormat(text, '').toUpperCase());
     });
     Structra._pasteBound = true;
-    this.on('input:show-tab', (tab) => { const btn = this.$(`.io-tab[data-tab="${tab}"]`); if (btn) btn.click(); });
+    this.on('input:show-tab', (tab) => { const btn = this.queryOne(`.io-tab[data-tab="${tab}"]`); if (btn) btn.click(); });
   }
 
   render() {
@@ -175,19 +175,19 @@ class StructraInputPanel extends StructraComponent {
   /* ======== EVENT WIRING ======== */
   _wireEvents() {
     // Tab switching
-    this.$$('.io-tab').forEach(btn => {
+    this.queryAll('.io-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         this._activeTab = btn.dataset.tab;
-        this.$$('.io-tab').forEach(b => b.classList.toggle('active', b === btn));
-        this.$$('.io-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === this._activeTab));
+        this.queryAll('.io-tab').forEach(b => b.classList.toggle('active', b === btn));
+        this.queryAll('.io-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === this._activeTab));
         this._clearError();
         if (this._activeTab === 'recent') this._renderRecent();
       });
     });
 
     // File upload
-    const dropArea = this.$('[data-role="drop-area"]');
-    const fileInput = this.$('[data-role="file-input"]');
+    const dropArea = this.queryOne('[data-role="drop-area"]');
+    const fileInput = this.queryOne('[data-role="file-input"]');
     dropArea.addEventListener('click', () => fileInput.click());
     dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.classList.add('dragover'); });
     dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
@@ -200,46 +200,46 @@ class StructraInputPanel extends StructraComponent {
     });
 
     // Paste & parse (unified)
-    this.$('[data-action="parse-text"]').addEventListener('click', () => this._parseText());
-    this.$('[data-role="paste-input"]').addEventListener('keydown', (e) => {
+    this.queryOne('[data-action="parse-text"]').addEventListener('click', () => this._parseText());
+    this.queryOne('[data-role="paste-input"]').addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this._parseText(); }
     });
-    const helpSample = this.$('[data-role="help-sample"]');
+    const helpSample = this.queryOne('[data-role="help-sample"]');
     if (helpSample) helpSample.addEventListener('click', () => this._loadSample());
 
     // Sample
-    const sampleBtn = this.$('[data-action="sample"]');
+    const sampleBtn = this.queryOne('[data-action="sample"]');
     if (sampleBtn) sampleBtn.addEventListener('click', () => this._loadSample());
-    const sampleLink = this.$('[data-role="sample-link"]');
+    const sampleLink = this.queryOne('[data-role="sample-link"]');
     if (sampleLink) sampleLink.addEventListener('click', (e) => { e.stopPropagation(); this._loadSample(); });
 
     // URL / API
-    this.$('[data-role="api-url"]').addEventListener('keydown', (e) => { if (e.key === 'Enter') this._apiSend(); });
-    this.$('[data-role="api-send"]').addEventListener('click', () => this._apiSend());
+    this.queryOne('[data-role="api-url"]').addEventListener('keydown', (e) => { if (e.key === 'Enter') this._apiSend(); });
+    this.queryOne('[data-role="api-send"]').addEventListener('click', () => this._apiSend());
 
     // API sub-tabs
-    this.$$('.io-api-tab').forEach(tab => {
+    this.queryAll('.io-api-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        this.$$('.io-api-tab').forEach(t => t.classList.toggle('active', t === tab));
-        this.$$('.io-api-panel').forEach(p => p.classList.toggle('active', p.dataset.appanel === tab.dataset.aptab));
+        this.queryAll('.io-api-tab').forEach(t => t.classList.toggle('active', t === tab));
+        this.queryAll('.io-api-panel').forEach(p => p.classList.toggle('active', p.dataset.appanel === tab.dataset.aptab));
       });
     });
 
     // Auth type
-    this.$('[data-role="auth-type"]').addEventListener('change', () => this._renderAuthFields());
+    this.queryOne('[data-role="auth-type"]').addEventListener('change', () => this._renderAuthFields());
 
     // Add header
-    this.$('[data-action="add-header"]').addEventListener('click', () => this._addHeaderRow());
+    this.queryOne('[data-action="add-header"]').addEventListener('click', () => this._addHeaderRow());
 
     // Remove header (delegation)
-    this.$('[data-role="headers-list"]').addEventListener('click', (e) => {
+    this.queryOne('[data-role="headers-list"]').addEventListener('click', (e) => {
       if (e.target.closest('.io-kv-remove')) e.target.closest('.io-kv-row').remove();
     });
 
     // Body type
-    this.$('[data-role="body-type"]').addEventListener('change', () => {
-      const type = this.$('[data-role="body-type"]').value;
-      const editor = this.$('[data-role="body-editor"]');
+    this.queryOne('[data-role="body-type"]').addEventListener('change', () => {
+      const type = this.queryOne('[data-role="body-type"]').value;
+      const editor = this.queryOne('[data-role="body-editor"]');
       editor.style.display = type === 'none' ? 'none' : 'block';
       if (type === 'json') editor.placeholder = '{"key": "value"}';
       else if (type === 'form') editor.placeholder = 'key1=value1&key2=value2';
@@ -256,7 +256,7 @@ class StructraInputPanel extends StructraComponent {
   /* ======== LOAD SUCCESS ======== */
   async _loadSuccess(data, text, name) {
     // Data nested very deeply freezes every view: keep the first 200 levels and say so
-    const depth = Structra.sharedHelpers.capDepth(data, 200);
+    const depth = Structra.sharedHelpers.limitDepth(data, 200);
     Structra.parseNotes = Object.assign(Structra.parseNotes || {}, { deepest: depth.capped ? depth.deepest : 0 });
     const unopenable = Structra.describeUnopenable(data);
     if (unopenable) {
@@ -266,9 +266,9 @@ class StructraInputPanel extends StructraComponent {
       return;
     }
     // The next document starts with an empty paste box and automatic format
-    const pasteBox = this.$('[data-role="paste-input"]');
+    const pasteBox = this.queryOne('[data-role="paste-input"]');
     if (pasteBox) pasteBox.value = '';
-    const pasteFormat = this.$('[data-role="paste-format"]');
+    const pasteFormat = this.queryOne('[data-role="paste-format"]');
     if (pasteFormat) pasteFormat.value = 'auto';
     Structra.log.info('InputPanel', '_loadSuccess: ' + name + ' (' + (text.length / 1024).toFixed(1) + ' KB text)');
     const t0 = performance.now();
@@ -528,9 +528,9 @@ class StructraInputPanel extends StructraComponent {
   /* ======== PASTE & PARSE (unified) ======== */
   async _parseText() {
     this._clearError();
-    const text = this.$('[data-role="paste-input"]').value.trim();
+    const text = this.queryOne('[data-role="paste-input"]').value.trim();
     if (!text) { Structra.toast('Paste some data first'); return; }
-    const formatSel = this.$('[data-role="paste-format"]').value;
+    const formatSel = this.queryOne('[data-role="paste-format"]').value;
     const format = formatSel === 'auto' ? this._detectFormat(text, '') : formatSel;
     Structra.log.info('InputPanel', '_parseText: format=' + format + ' (selected=' + formatSel + ')');
     try {
@@ -559,16 +559,16 @@ class StructraInputPanel extends StructraComponent {
 
   /* ======== URL / API ======== */
   async _apiSend() {
-    const url = this.$('[data-role="api-url"]').value.trim();
+    const url = this.queryOne('[data-role="api-url"]').value.trim();
     if (!url) return;
     if (!/^https?:\/\//i.test(url)) {
-      this.$('[data-role="url-error"]').textContent = 'A web address starts with http:// or https://. Check it and try again.';
+      this.queryOne('[data-role="url-error"]').textContent = 'A web address starts with http:// or https://. Check it and try again.';
       return;
     }
 
-    const sendBtn = this.$('[data-role="api-send"]');
-    const statusEl = this.$('[data-role="api-status"]');
-    const errorEl = this.$('[data-role="url-error"]');
+    const sendBtn = this.queryOne('[data-role="api-send"]');
+    const statusEl = this.queryOne('[data-role="api-status"]');
+    const errorEl = this.queryOne('[data-role="url-error"]');
     errorEl.textContent = '';
     statusEl.innerHTML = '';
     sendBtn.textContent = 'Sending...';
@@ -616,17 +616,17 @@ class StructraInputPanel extends StructraComponent {
   }
 
   _buildFetchOpts() {
-    const method = this.$('[data-role="api-method"]').value;
+    const method = this.queryOne('[data-role="api-method"]').value;
     const headers = {};
 
-    this.$$('[data-role="headers-list"] .io-kv-row').forEach(row => {
+    this.queryAll('[data-role="headers-list"] .io-kv-row').forEach(row => {
       const k = row.querySelector('.io-kv-key').value.trim();
       const v = row.querySelector('.io-kv-val').value.trim();
       if (k) headers[k] = v;
     });
 
-    const authType = this.$('[data-role="auth-type"]').value;
-    const fields = this.$('[data-role="auth-fields"]');
+    const authType = this.queryOne('[data-role="auth-type"]').value;
+    const fields = this.queryOne('[data-role="auth-fields"]');
     if (authType === 'bearer') {
       let token = (fields.querySelector('[data-role="token"]')?.value || '').trim().replace(/^bearer\s+/i, '');
       if (token) headers['Authorization'] = 'Bearer ' + token;
@@ -642,9 +642,9 @@ class StructraInputPanel extends StructraComponent {
 
     const opts = { method, headers };
 
-    const bodyType = this.$('[data-role="body-type"]').value;
+    const bodyType = this.queryOne('[data-role="body-type"]').value;
     if (method !== 'GET' && method !== 'DELETE' && bodyType !== 'none') {
-      const raw = this.$('[data-role="body-editor"]').value;
+      const raw = this.queryOne('[data-role="body-editor"]').value;
       if (bodyType === 'json') { headers['Content-Type'] = 'application/json'; opts.body = raw; }
       else if (bodyType === 'form') { headers['Content-Type'] = 'application/x-www-form-urlencoded'; opts.body = raw; }
       else { headers['Content-Type'] = 'text/plain'; opts.body = raw; }
@@ -654,8 +654,8 @@ class StructraInputPanel extends StructraComponent {
   }
 
   _renderAuthFields() {
-    const type = this.$('[data-role="auth-type"]').value;
-    const fields = this.$('[data-role="auth-fields"]');
+    const type = this.queryOne('[data-role="auth-type"]').value;
+    const fields = this.queryOne('[data-role="auth-fields"]');
     if (type === 'none') {
       fields.innerHTML = '';
     } else if (type === 'bearer') {
@@ -676,8 +676,8 @@ class StructraInputPanel extends StructraComponent {
   }
 
   async _decodeJwt() {
-    const raw = (this.$('[data-role="token"]')?.value || '').trim().replace(/^bearer\s+/i, '');
-    const claimsEl = this.$('[data-role="claims"]');
+    const raw = (this.queryOne('[data-role="token"]')?.value || '').trim().replace(/^bearer\s+/i, '');
+    const claimsEl = this.queryOne('[data-role="claims"]');
     if (!raw) { claimsEl.innerHTML = '<div class="io-jwt-error">No token entered</div>'; return; }
     try {
       const parts = raw.split('.');
@@ -709,7 +709,7 @@ class StructraInputPanel extends StructraComponent {
           if (btn.dataset.copy === 'header') text = JSON.stringify(header, null, 2);
           else if (btn.dataset.copy === 'payload') text = JSON.stringify(payload, null, 2);
           else text = JSON.stringify({ header, payload }, null, 2);
-          Structra.sharedHelpers.copy(text, null).then(() => {
+          Structra.sharedHelpers.copyToClipboard(text, null).then(() => {
             const orig = btn.textContent;
             btn.textContent = 'Copied!';
             setTimeout(() => btn.textContent = orig, 1500);
@@ -717,27 +717,27 @@ class StructraInputPanel extends StructraComponent {
         });
       });
     } catch (e) {
-      claimsEl.innerHTML = `<div class="io-jwt-error">${Structra.sharedHelpers.esc(e.message)}</div>`;
+      claimsEl.innerHTML = `<div class="io-jwt-error">${Structra.sharedHelpers.escapeHtml(e.message)}</div>`;
     }
   }
 
   _jwtSection(label, obj, copyKey) {
     return `<div class="io-jwt-section">
       <div class="io-jwt-section-header"><span class="io-jwt-label">${label}</span><button class="io-jwt-copy" data-copy="${copyKey}" type="button">Copy</button></div>
-      <pre class="io-jwt-json" data-colorize="json">${Structra.sharedHelpers.esc(JSON.stringify(obj, null, 2))}</pre>
+      <pre class="io-jwt-json" data-colorize="json">${Structra.sharedHelpers.escapeHtml(JSON.stringify(obj, null, 2))}</pre>
     </div>`;
   }
 
   /** Fill the Load URL tab with a remembered request, ready to send again (credentials are never remembered) */
   _fillRequest(req) {
-    const tab = this.$('.io-tab[data-tab="url"]');
+    const tab = this.queryOne('.io-tab[data-tab="url"]');
     if (tab) tab.click();
-    this.$('[data-role="api-url"]').value = req.url;
-    this.$('[data-role="api-method"]').value = req.method || 'GET';
-    this.$('[data-role="headers-list"]').innerHTML = '';
+    this.queryOne('[data-role="api-url"]').value = req.url;
+    this.queryOne('[data-role="api-method"]').value = req.method || 'GET';
+    this.queryOne('[data-role="headers-list"]').innerHTML = '';
     Object.entries(req.headers || {}).forEach(([k, v]) => {
       this._addHeaderRow();
-      const rows = this.$$('[data-role="headers-list"] .io-kv-row');
+      const rows = this.queryAll('[data-role="headers-list"] .io-kv-row');
       const row = rows[rows.length - 1];
       row.querySelector('.io-kv-key').value = k;
       row.querySelector('.io-kv-val').value = v;
@@ -746,7 +746,7 @@ class StructraInputPanel extends StructraComponent {
   }
 
   _addHeaderRow() {
-    const list = this.$('[data-role="headers-list"]');
+    const list = this.queryOne('[data-role="headers-list"]');
     const row = document.createElement('div');
     row.className = 'io-kv-row';
     row.innerHTML = `
@@ -758,18 +758,18 @@ class StructraInputPanel extends StructraComponent {
 
   /* ======== RECENT ======== */
   async _renderRecent() {
-    const list = this.$('[data-role="recent-list"]');
+    const list = this.queryOne('[data-role="recent-list"]');
     const recent = await this._getRecent();
     if (recent.length === 0) {
       list.innerHTML = '<div class="io-recent-empty">No recent files</div>';
       return;
     }
     list.innerHTML = recent.map((r, i) => `
-      <div class="io-recent-item" data-idx="${i}" role="button" tabindex="0" aria-label="Open ${Structra.sharedHelpers.esc(r.name)}">
-        <button class="io-recent-remove" type="button" data-remove="${i}" aria-label="Remove ${Structra.sharedHelpers.esc(r.name)} from Recent" title="Remove from Recent">${Structra.icons.svg('x', { size: 12 })}</button>
-        <div class="io-recent-name">${Structra.sharedHelpers.esc(r.name)}</div>
-        <div class="io-recent-meta">${Structra.sharedHelpers.formatBytes(r.size)} &middot; ${Structra.sharedHelpers.timeAgo(r.ts)}${r.request ? ' &middot; from ' + Structra.sharedHelpers.esc(r.request.url.replace(/^https?:\/\//, '').slice(0, 40)) : ''}</div>
-        <div class="io-recent-preview">${Structra.sharedHelpers.esc(r.preview)}</div>
+      <div class="io-recent-item" data-idx="${i}" role="button" tabindex="0" aria-label="Open ${Structra.sharedHelpers.escapeHtml(r.name)}">
+        <button class="io-recent-remove" type="button" data-remove="${i}" aria-label="Remove ${Structra.sharedHelpers.escapeHtml(r.name)} from Recent" title="Remove from Recent">${Structra.icons.svg('x', { size: 12 })}</button>
+        <div class="io-recent-name">${Structra.sharedHelpers.escapeHtml(r.name)}</div>
+        <div class="io-recent-meta">${Structra.sharedHelpers.formatBytes(r.size)} &middot; ${Structra.sharedHelpers.timeAgo(r.ts)}${r.request ? ' &middot; from ' + Structra.sharedHelpers.escapeHtml(r.request.url.replace(/^https?:\/\//, '').slice(0, 40)) : ''}</div>
+        <div class="io-recent-preview">${Structra.sharedHelpers.escapeHtml(r.preview)}</div>
       </div>`).join('') +
       '<div class="io-recent-clear"><p class="io-recent-note">Recent files are kept in this browser only, with their content, so you can reopen them. Remove one with the x, or clear them all.</p><button class="io-btn-clear" data-action="clear-recent">Clear History</button></div>';
 
@@ -864,7 +864,7 @@ class StructraInputPanel extends StructraComponent {
     }
     const preview = text.substring(0, 60).replace(/\s+/g, ' ');
     banner.innerHTML = `
-      <span>\ud83d\udccb JSON on clipboard: <em>${Structra.sharedHelpers.esc(preview)}...</em></span>
+      <span>\ud83d\udccb JSON on clipboard: <em>${Structra.sharedHelpers.escapeHtml(preview)}...</em></span>
       <button class="io-clip-load">Load</button>
       <button class="io-clip-dismiss">\u2715</button>`;
     banner.style.display = 'flex';
@@ -897,8 +897,8 @@ class StructraInputPanel extends StructraComponent {
   }
 
   _showError(msg, rawText, title) {
-    const el = this.$('[data-role="error"]');
-    const esc = Structra.sharedHelpers.esc;
+    const el = this.queryOne('[data-role="error"]');
+    const esc = Structra.sharedHelpers.escapeHtml;
     const kind = (/^(\w+) parse error/i.exec(msg) || [])[1] || 'JSON';
     const { detail, where } = this._explainError(msg, rawText);
     const canRepair = !!rawText && /^json$/i.test(kind);
@@ -927,7 +927,7 @@ class StructraInputPanel extends StructraComponent {
   }
 
   _clearError() {
-    const el = this.$('[data-role="error"]');
+    const el = this.queryOne('[data-role="error"]');
     el.classList.remove('show');
     el.textContent = '';
   }

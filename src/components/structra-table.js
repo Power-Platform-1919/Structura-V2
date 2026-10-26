@@ -127,7 +127,7 @@ class StructraTable extends StructraComponent {
       // Row selection
       const tr = e.target.closest('tbody tr[data-path]');
       if (tr) {
-        this.$$('tbody tr.row-sel').forEach(r => r.classList.remove('row-sel'));
+        this.queryAll('tbody tr.row-sel').forEach(r => r.classList.remove('row-sel'));
         tr.classList.add('row-sel');
         Structra.setState('currentPath', tr.dataset.path);
         Structra.events.emit('tree:node-selected', tr.dataset.path);
@@ -286,11 +286,11 @@ class StructraTable extends StructraComponent {
 
     // Destroy previous virtual list if any, and the row groups it added to the table
     if (this._vlist) { this._vlist.destroy(); this._vlist = null; }
-    this.$$('table.data-table > tbody.vl-chunk, table.data-table > tbody.vl-sentinel').forEach((el) => el.remove());
+    this.queryAll('table.data-table > tbody.vl-chunk, table.data-table > tbody.vl-sentinel').forEach((el) => el.remove());
 
-    const head = this.$('#tableHead');
-    const body = this.$('#tableBody');
-    const pager = this.$('#tablePager');
+    const head = this.queryOne('#tableHead');
+    const body = this.queryOne('#tableBody');
+    const pager = this.queryOne('#tablePager');
     if (!head || !body) return;
 
     const resolved = this._applyColumnFiltersToResult(this._resolveData());
@@ -300,7 +300,7 @@ class StructraTable extends StructraComponent {
         // One record, no list: show it as a Field and Value table
         const shown = (v) => v !== null && typeof v === 'object' ? JSON.stringify(v) : v;
         head.innerHTML = '<tr><th>Field</th><th>Value</th></tr>';
-        body.innerHTML = Object.entries(doc).map(([k, v]) => `<tr><td>${Structra.sharedHelpers.esc(k)}</td><td>${this._formatCell(shown(v))}</td></tr>`).join('');
+        body.innerHTML = Object.entries(doc).map(([k, v]) => `<tr><td>${Structra.sharedHelpers.escapeHtml(k)}</td><td>${this._formatCell(shown(v))}</td></tr>`).join('');
         if (pager) pager.innerHTML = `<span class="table-page-info">${Object.keys(doc).length.toLocaleString()} fields</span>`;
         return;
       }
@@ -345,7 +345,7 @@ class StructraTable extends StructraComponent {
    * measured once per document and column set, so widths stay put when the sort changes or a page is turned.
    */
   _applyColumnWidths(keys, allRows) {
-    const table = this.$('table.data-table');
+    const table = this.queryOne('table.data-table');
     if (!table) return;
     const base = this._baseRows && this._baseRows.length ? this._baseRows : allRows;
     const stamp = keys.join('\u0001') + '#' + (Array.isArray(base) ? base.length : 0);
@@ -386,10 +386,10 @@ class StructraTable extends StructraComponent {
     };
     const filterIcon = (col) => {
       const isFiltered = this._colFilters && this._colFilters[col];
-      return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${Structra.sharedHelpers.esc(col)}" title="Filter this column">${Structra.icons.svg('list-filter', { size: 12 })}</span>`;
+      return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${Structra.sharedHelpers.escapeHtml(col)}" title="Filter this column">${Structra.icons.svg('list-filter', { size: 12 })}</span>`;
     };
     head.innerHTML = '<tr>' + visibleKeys.map(k =>
-      `<th data-col="${Structra.sharedHelpers.esc(k)}"${this._numericCols.has(k) ? ' class="num"' : ''}><span class="th-label">${Structra.sharedHelpers.esc(k)}${sortIcon(k)}</span>${filterIcon(k)}</th>`
+      `<th data-col="${Structra.sharedHelpers.escapeHtml(k)}"${this._numericCols.has(k) ? ' class="num"' : ''}><span class="th-label">${Structra.sharedHelpers.escapeHtml(k)}${sortIcon(k)}</span>${filterIcon(k)}</th>`
     ).join('') + '</tr>';
     this._visibleKeys = visibleKeys;
   }
@@ -452,8 +452,8 @@ class StructraTable extends StructraComponent {
 
     // Chunks are <tbody> row groups inside the <table>; the scroll box is #tableScroll
     this._vlist = Structra.virtualList.create({
-      container: this.$('table.data-table'),
-      root: this.$('#tableScroll'),
+      container: this.queryOne('table.data-table'),
+      root: this.queryOne('#tableScroll'),
       chunkTag: 'tbody',
       totalItems: totalRows,
       chunkSize,
@@ -491,7 +491,7 @@ class StructraTable extends StructraComponent {
         const v = r ? r[visibleKeys[k]] : undefined;
         cells += `<td${this._numericCols && this._numericCols.has(visibleKeys[k]) ? ' class="num"' : ''}>${this._formatCell(v, visibleKeys[k])}</td>`;
       }
-      html += path ? `<tr data-path="${Structra.sharedHelpers.esc(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
+      html += path ? `<tr data-path="${Structra.sharedHelpers.escapeHtml(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
     }
     return html;
   }
@@ -540,8 +540,8 @@ class StructraTable extends StructraComponent {
     if (typeof val === 'boolean') return `<span class="bool-badge ${val ? 'bool-true' : 'bool-false'}">${val}</span>`;
     if (typeof val === 'object') return this._formatNested(val);
     const s = String(val);
-    if (s.length > 120) return Structra.sharedHelpers.esc(s.slice(0, 117)) + '…';
-    return Structra.sharedHelpers.esc(s);
+    if (s.length > 120) return Structra.sharedHelpers.escapeHtml(s.slice(0, 117)) + '…';
+    return Structra.sharedHelpers.escapeHtml(s);
   }
 
   /**
@@ -549,7 +549,7 @@ class StructraTable extends StructraComponent {
    * useful part is one field (Value, DisplayName, Title...), so show that instead of "{…}".
    */
   _formatNested(val) {
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     const FRIENDLY = ['Value', 'DisplayName', 'Title', 'Name', 'Email', 'value', 'displayName', 'title', 'name', 'label', 'text'];
     const brief = (o) => {
       if (o === null || o === undefined) return 'null';
@@ -598,7 +598,7 @@ class StructraTable extends StructraComponent {
       ${hasFilter ? `<div class="col-ctx-item" data-col-action="clear-filter">${ic('x')} Clear the filter</div>` : ''}
       <div class="col-ctx-sep"></div>
       ${hasObjects ? `<div class="col-ctx-item" data-col-action="expand">${ic('unfold-horizontal')} Split into columns…</div>` : ''}
-      ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">${ic('fold-horizontal')} Join back into "${Structra.sharedHelpers.esc(this._expandParent.get(col))}"</div>` : ''}
+      ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">${ic('fold-horizontal')} Join back into "${Structra.sharedHelpers.escapeHtml(this._expandParent.get(col))}"</div>` : ''}
       <div class="col-ctx-item" data-col-action="move-left">${ic('arrow-left')} Move left</div>
       <div class="col-ctx-item" data-col-action="move-right">${ic('arrow-right')} Move right</div>
       <div class="col-ctx-item" data-col-action="hide">${ic('eye-off')} Hide this column</div>
@@ -696,7 +696,7 @@ class StructraTable extends StructraComponent {
         break;
       case 'copy-col': {
         const vals = (this._rows || []).map(r => r ? String(r[col] ?? '') : '').join('\n');
-        Structra.sharedHelpers.copy(vals, `${col} values copied`);
+        Structra.sharedHelpers.copyToClipboard(vals, `${col} values copied`);
         break;
       }
     }
@@ -707,7 +707,7 @@ class StructraTable extends StructraComponent {
   _showColumnReport(col, kind) {
     this._dismissColumnMenu();
     const rows = this._rows || [];
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     const text = (v) => (v === null || v === undefined ? '(empty)' : v === '' ? '(empty text)' : typeof v === 'object' ? JSON.stringify(v).slice(0, 80) : String(v));
     const values = rows.map((r) => (r ? r[col] : undefined));
     const filled = values.filter((v) => v !== null && v !== undefined && v !== '');
@@ -764,7 +764,7 @@ class StructraTable extends StructraComponent {
     box.addEventListener('click', (e) => {
       const b = e.target.closest('[data-rep]');
       if (!b) return;
-      if (b.dataset.rep === 'copy') Structra.sharedHelpers.copy(ranked.map(([v, n]) => `${v}\t${n}`).join('\n'), 'List copied');
+      if (b.dataset.rep === 'copy') Structra.sharedHelpers.copyToClipboard(ranked.map(([v, n]) => `${v}\t${n}`).join('\n'), 'List copied');
       else done();
     });
     box.querySelector('[data-rep="close"]').focus();
@@ -790,9 +790,9 @@ class StructraTable extends StructraComponent {
     const box = document.createElement('div');
     box.className = 'col-pick';
     box.innerHTML = `
-      <div class="col-pick-title">Expand "${Structra.sharedHelpers.esc(col)}" into columns</div>
+      <div class="col-pick-title">Expand "${Structra.sharedHelpers.escapeHtml(col)}" into columns</div>
       <div class="col-pick-list">${keys.slice(0, 60).map((k, i) =>
-        `<label class="col-pick-item"><input type="checkbox" value="${Structra.sharedHelpers.esc(k)}" ${ticked.has(k) ? 'checked' : ''}> ${Structra.sharedHelpers.esc(k)}${isSystem(k) ? ' <span class="col-pick-sys">system</span>' : ''}</label>`).join('')}</div>
+        `<label class="col-pick-item"><input type="checkbox" value="${Structra.sharedHelpers.escapeHtml(k)}" ${ticked.has(k) ? 'checked' : ''}> ${Structra.sharedHelpers.escapeHtml(k)}${isSystem(k) ? ' <span class="col-pick-sys">system</span>' : ''}</label>`).join('')}</div>
       ${keys.length > 60 ? `<div class="col-pick-note">Showing the 60 most common of ${keys.length} keys</div>` : ''}
       <div class="col-pick-actions">
         <button class="btn btn-primary" data-pick="ok">Expand</button>
@@ -839,7 +839,7 @@ class StructraTable extends StructraComponent {
     panel.className = 'col-filter-panel';
     panel.innerHTML = `
       <div class="cfp-header">
-        <span class="cfp-title">Filter: ${Structra.sharedHelpers.esc(col)}</span>
+        <span class="cfp-title">Filter: ${Structra.sharedHelpers.escapeHtml(col)}</span>
         <button class="cfp-close" data-cfp="close">${Structra.icons.svg('x', { size: 14 })}</button>
       </div>
       <div class="cfp-tabs">
@@ -855,8 +855,8 @@ class StructraTable extends StructraComponent {
         <div class="cfp-list" id="cfpList">
           ${uniqueValues.slice(0, 200).map(([val, cnt]) => `
             <label class="cfp-row">
-              <input type="checkbox" class="cfp-cb" value="${Structra.sharedHelpers.esc(val)}" checked>
-              <span class="cfp-val">${Structra.sharedHelpers.esc(val.length > 40 ? val.slice(0, 37) + '…' : val)}</span>
+              <input type="checkbox" class="cfp-cb" value="${Structra.sharedHelpers.escapeHtml(val)}" checked>
+              <span class="cfp-val">${Structra.sharedHelpers.escapeHtml(val.length > 40 ? val.slice(0, 37) + '…' : val)}</span>
               <span class="cfp-cnt">${cnt}</span>
             </label>`).join('')}
         </div>
@@ -982,7 +982,7 @@ class StructraTable extends StructraComponent {
 
   _showColFilterDropdown(anchor, col) {
     // Remove any existing dropdown
-    const existing = this.$('.col-filter-dropdown');
+    const existing = this.queryOne('.col-filter-dropdown');
     if (existing) existing.remove();
 
     const rect = anchor.getBoundingClientRect();
@@ -995,8 +995,8 @@ class StructraTable extends StructraComponent {
     dropdown.className = 'col-filter-dropdown';
     dropdown.style.cssText = `position:absolute;top:${top}px;left:${left}px;z-index:900`;
     dropdown.innerHTML = `
-      <div class="cfd-header">${Structra.sharedHelpers.esc(col)}</div>
-      <input type="text" class="cfd-input" placeholder="Filter value…" value="${Structra.sharedHelpers.esc(currentVal)}" autofocus>
+      <div class="cfd-header">${Structra.sharedHelpers.escapeHtml(col)}</div>
+      <input type="text" class="cfd-input" placeholder="Filter value…" value="${Structra.sharedHelpers.escapeHtml(currentVal)}" autofocus>
       <div class="cfd-actions">
         <button class="cfd-btn cfd-apply">Apply</button>
         <button class="cfd-btn cfd-clear">Clear</button>

@@ -6,11 +6,11 @@
    (ESM) return their namespace. Each library loads once.
 
    API:
-     await Structra.libraryLoader.require('jsonrepair')   → window.JSONRepair
-     await Structra.libraryLoader.require('ajv')          → window.Ajv
-     await Structra.libraryLoader.require('html2canvas')  → window.html2canvas
-     await Structra.libraryLoader.require('jsonpath')     → window.JSONPath
-     const duckdb = await Structra.libraryLoader.require('duckdb')
+     await Structra.libraryLoader.loadLibrary('jsonrepair')   → window.JSONRepair
+     await Structra.libraryLoader.loadLibrary('ajv')          → window.Ajv
+     await Structra.libraryLoader.loadLibrary('html2canvas')  → window.html2canvas
+     await Structra.libraryLoader.loadLibrary('jsonpath')     → window.JSONPath
+     const duckdb = await Structra.libraryLoader.loadLibrary('duckdb')
    ============================================================ */
 
 window.Structra = window.Structra || {};
@@ -56,7 +56,7 @@ Structra.libraryLoader = (() => {
     throw new Error(`Could not load "${name}": ${lastErr ? lastErr.message : 'no source'}`);
   }
 
-  function require(name) {
+  function loadLibrary(name) {
     const entry = REGISTRY[name];
     if (!entry) return Promise.reject(new Error('Unknown library: ' + name));
     if (!loaded.has(name)) {
@@ -71,5 +71,5 @@ Structra.libraryLoader = (() => {
     return loaded.get(name);
   }
 
-  return { require };
+  return { loadLibrary };
 })();

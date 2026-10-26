@@ -70,7 +70,7 @@ function serve() {
     // ---- Image export in every view, light and dark ----
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(FIXTURES, 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => { window.__saved = []; const d = Structra.sharedHelpers.download; Structra.sharedHelpers.download = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); }; });
+    await page.evaluate(() => { window.__saved = []; const d = Structra.sharedHelpers.downloadFile; Structra.sharedHelpers.downloadFile = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); }; });
     // SHARD=0/2 or 1/2 (set by the parallel runner) takes only some of the modes, so the slow part is split across processes
     const [shard, shards] = (process.env.SHARD || '0/1').split('/').map(Number);
     for (const mode of ['light', 'dark'].filter((_, i) => i % shards === shard)) {

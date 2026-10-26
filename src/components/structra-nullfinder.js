@@ -37,7 +37,7 @@ class StructraNullfinder extends StructraDialog {
 
     this.addEventListener('click', (e) => {
       const item = e.target.closest('[data-nf-path]');
-      if (item) { this._go(item.dataset.nfPath); return; }
+      if (item) { this._goToPath(item.dataset.nfPath); return; }
       const action = e.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
@@ -51,7 +51,7 @@ class StructraNullfinder extends StructraDialog {
 
 
   /** Show a result in the Tree (the other views have no place to show a path) */
-  _go(path) {
+  _goToPath(path) {
     const p = Structra.dataPaths.canonical(path);
     if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.setState('activeView', 'tree');
     Structra.setState('currentPath', p);
@@ -62,9 +62,9 @@ class StructraNullfinder extends StructraDialog {
     const data = Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first', 'warning'); return; }
     const opts = {
-      nulls: this.$('#nfNull').checked,
-      empty: this.$('#nfEmpty').checked,
-      undef: this.$('#nfUndef').checked,
+      nulls: this.queryOne('#nfNull').checked,
+      empty: this.queryOne('#nfEmpty').checked,
+      undef: this.queryOne('#nfUndef').checked,
       zero: false,
       falsy: false,
     };
@@ -106,8 +106,8 @@ class StructraNullfinder extends StructraDialog {
   }
 
   _renderResults() {
-    const container = this.$('#nfResults');
-    const nav = this.$('#nfNav');
+    const container = this.queryOne('#nfResults');
+    const nav = this.queryOne('#nfNav');
     if (this._results.length === 0) {
       container.innerHTML = '<div class="nf-placeholder">None found. Nothing is null, empty or missing with these options.</div>';
       nav.style.display = 'none';
@@ -115,7 +115,7 @@ class StructraNullfinder extends StructraDialog {
     }
 
     nav.style.display = '';
-    this.$('#nfNavCount').textContent = `${this._results.length.toLocaleString()} found`;
+    this.queryOne('#nfNavCount').textContent = `${this._results.length.toLocaleString()} found`;
 
     // One line per field (value[*].Notes), with how many of each kind, so a column that is mostly empty stands out
     const groups = new Map();
@@ -127,7 +127,7 @@ class StructraNullfinder extends StructraDialog {
       g.total++;
     });
     const rows = [...groups.values()].sort((a, b) => b.total - a.total);
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     container.innerHTML = rows.slice(0, 200).map((g) => `
       <div class="nf-item" data-nf-path="${esc(g.first)}" data-nf-idx="${g.firstIdx}" title="Show the first one">
         <span class="nf-path">${esc(g.pattern)}</span>
@@ -138,9 +138,9 @@ class StructraNullfinder extends StructraDialog {
   _navigate(dir) {
     if (this._results.length === 0) return;
     this._idx = (this._idx + dir + this._results.length) % this._results.length;
-    this.$('#nfNavCount').textContent = `${this._idx + 1} of ${this._results.length.toLocaleString()}`;
+    this.queryOne('#nfNavCount').textContent = `${this._idx + 1} of ${this._results.length.toLocaleString()}`;
     const r = this._results[this._idx];
-    this._go(r.path);
+    this._goToPath(r.path);
     const pattern = r.path.replace(/\[\d+\]/g, '[*]');
     this.querySelectorAll('.nf-item').forEach((el) => el.classList.toggle('nf-active', el.querySelector('.nf-path').textContent === pattern));
   }

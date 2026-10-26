@@ -26,10 +26,10 @@ class StructraMinimap extends StructraComponent {
       <div class="minimap-viewport" id="minimapViewport"></div>
     </div>`;
 
-    this._canvas = this.$('#minimapCanvas');
+    this._canvas = this.queryOne('#minimapCanvas');
     this._ctx = this._canvas.getContext('2d');
 
-    this.$('.minimap-close').addEventListener('click', () => this._toggle());
+    this.queryOne('.minimap-close').addEventListener('click', () => this._toggle());
     this._canvas.addEventListener('click', (e) => this._onCanvasClick(e));
     this._canvas.addEventListener('mousedown', (e) => this._startDrag(e));
   }
@@ -44,7 +44,7 @@ class StructraMinimap extends StructraComponent {
   _sync() {
     const view = Structra.state.activeView;
     const useful = view === 'tree' || view === 'table';
-    this.$('#minimapContainer').style.display = this._visible && useful ? '' : 'none';
+    this.queryOne('#minimapContainer').style.display = this._visible && useful ? '' : 'none';
   }
 
   _paint() {
@@ -115,7 +115,7 @@ class StructraMinimap extends StructraComponent {
   _updateViewport() {
     const main = document.querySelector('.json-view') || document.querySelector('.table-scroll');
     if (!main) return;
-    const vp = this.$('#minimapViewport');
+    const vp = this.queryOne('#minimapViewport');
     const ratio = this._canvas.height / Math.max(main.scrollHeight, 1);
     const top = main.scrollTop * ratio;
     const height = Math.max(20, main.clientHeight * ratio);

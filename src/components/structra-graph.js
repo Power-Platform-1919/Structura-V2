@@ -59,7 +59,7 @@ class StructraGraph extends StructraComponent {
           </button>
         </div>
       </div>`;
-    this._containerEl = this.$('#graphContainer');
+    this._containerEl = this.queryOne('#graphContainer');
     this._setupToolbar();
     this._setupInteraction();
     // The view changes size after it opens (the drawer, a window resize): until the person moves the graph, keep it fitted

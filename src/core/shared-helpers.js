@@ -24,12 +24,12 @@ Structra.sharedHelpers = (() => {
   const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   const ESC_RE = /[&<>"']/g;
 
-  function esc(value) {
+  function escapeHtml(value) {
     if (value === null || value === undefined) return '';
     return String(value).replace(ESC_RE, (c) => ESC_MAP[c]);
   }
 
-  function typeOf(v) {
+  function jsonTypeOf(v) {
     if (v === null) return 'null';
     if (Array.isArray(v)) return 'array';
     return typeof v;
@@ -71,19 +71,19 @@ Structra.sharedHelpers = (() => {
     return wrapped;
   }
 
-  const nextTick = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const waitForNextTick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
   function yieldToBrowser() {
     if (globalThis.scheduler && typeof globalThis.scheduler.yield === 'function') return globalThis.scheduler.yield();
-    return nextTick();
+    return waitForNextTick();
   }
 
-  function whenIdle(fn, timeout = 2000) {
+  function runWhenIdle(fn, timeout = 2000) {
     if (typeof requestIdleCallback === 'function') return requestIdleCallback(fn, { timeout });
     return setTimeout(fn, 50);
   }
 
-  async function copy(text, message = 'Copied') {
+  async function copyToClipboard(text, message = 'Copied') {
     const str = String(text);
     try {
       await navigator.clipboard.writeText(str);
@@ -103,7 +103,7 @@ Structra.sharedHelpers = (() => {
     return true;
   }
 
-  function download(content, name, mime = 'text/plain') {
+  function downloadFile(content, name, mime = 'text/plain') {
     const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -134,17 +134,17 @@ Structra.sharedHelpers = (() => {
    * A pattern with a repeat inside a repeat, such as (a+)+ or (.*)*, can take minutes on a longer text and
    * freezes the page while it does. Such patterns are refused with a message instead.
    */
-  function riskyRegex(source) {
+  function isRiskyRegex(source) {
     const src = String(source);
     return /\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d+,\d*\})/.test(src);
   }
-  const RISKY_MESSAGE = 'This pattern can take extremely long on some text (a repeat inside a repeat, like (a+)+). Simplify it, for example a+ instead of (a+)+.';
+  const RISKY_REGEX_MESSAGE = 'This pattern can take extremely long on some text (a repeat inside a repeat, like (a+)+). Simplify it, for example a+ instead of (a+)+.';
 
   /**
    * Try some JavaScript on a copy of the data in a separate thread, and stop it after a few seconds.
    * Resolves { ok: true } when it finished, { ok: false, error } when it failed or ran too long.
    */
-  function tryInWorker(code, data, ms = 5000) {
+  function tryCodeInWorker(code, data, ms = 5000) {
     return new Promise((resolve) => {
       let worker, url, timer;
       const done = (r) => { clearTimeout(timer); if (worker) worker.terminate(); if (url) URL.revokeObjectURL(url); resolve(r); };
@@ -165,7 +165,7 @@ Structra.sharedHelpers = (() => {
    * Data nested more than `cap` levels deep freezes every view, so what lies deeper is replaced by a short text.
    * Works without recursion, so a very deep document cannot overflow the stack. Returns how deep it was.
    */
-  function capDepth(data, cap = 200) {
+  function limitDepth(data, cap = 200) {
     let deepest = 1;
     const stack = [[data, 1, null, null]];
     while (stack.length) {
@@ -180,7 +180,7 @@ Structra.sharedHelpers = (() => {
   }
 
   let _uid = 0;
-  const uid = (prefix = 'id') => prefix + '-' + (++_uid).toString(36) + Math.random().toString(36).slice(2, 6);
+  const uniqueId = (prefix = 'id') => prefix + '-' + (++_uid).toString(36) + Math.random().toString(36).slice(2, 6);
 
-  return { esc, typeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, nextTick, yieldToBrowser, whenIdle, copy, download, compareValues, riskyRegex, RISKY_MESSAGE, tryInWorker, capDepth, uid };
+  return { escapeHtml, jsonTypeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, waitForNextTick, yieldToBrowser, runWhenIdle, copyToClipboard, downloadFile, compareValues, isRiskyRegex, RISKY_REGEX_MESSAGE, tryCodeInWorker, limitDepth, uniqueId };
 })();

@@ -23,9 +23,9 @@ class StructraTabs extends StructraComponent {
     const tabsHtml = tabs.map(t => `
       <div class="doc-tab ${t.id === activeId ? 'active' : ''} ${t.modified || t.draft ? 'modified' : ''}"
            data-id="${t.id}" role="tab" aria-selected="${t.id === activeId}" tabindex="${t.id === activeId ? 0 : -1}" draggable="true"
-           aria-label="${Structra.sharedHelpers.esc(t.label)}${t.modified ? ' (changed)' : t.draft ? ' (typed changes not applied)' : ''}">
+           aria-label="${Structra.sharedHelpers.escapeHtml(t.label)}${t.modified ? ' (changed)' : t.draft ? ' (typed changes not applied)' : ''}">
         ${Structra.icons.svg('file', { cls: 'tab-icon' })}
-        <span class="tab-label">${Structra.sharedHelpers.esc(t.label)}</span>
+        <span class="tab-label">${Structra.sharedHelpers.escapeHtml(t.label)}</span>
         <span class="tab-modified"></span>
         <span class="tab-close" data-close="${t.id}">
           ${Structra.icons.svg('x')}
@@ -43,7 +43,7 @@ class StructraTabs extends StructraComponent {
     this.addEventListener('dragstart', this._dragStart);
     this.addEventListener('dragover', this._dragOver);
     this.addEventListener('drop', this._drop);
-    this.addEventListener('dragend', () => this.$$('.doc-tab').forEach((t) => t.classList.remove('drop-before', 'drop-after', 'dragging')));
+    this.addEventListener('dragend', () => this.queryAll('.doc-tab').forEach((t) => t.classList.remove('drop-before', 'drop-after', 'dragging')));
     this.addEventListener('keydown', this._keys);
   }
 
@@ -63,7 +63,7 @@ class StructraTabs extends StructraComponent {
     e.preventDefault();
     const r = tab.getBoundingClientRect();
     const before = e.clientX < r.left + r.width / 2;
-    this.$$('.doc-tab').forEach((t) => t.classList.remove('drop-before', 'drop-after'));
+    this.queryAll('.doc-tab').forEach((t) => t.classList.remove('drop-before', 'drop-after'));
     if (Number(tab.dataset.id) !== this._dragId) tab.classList.add(before ? 'drop-before' : 'drop-after');
   }
 
@@ -95,7 +95,7 @@ class StructraTabs extends StructraComponent {
     const next = list[(i + (e.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
     e.preventDefault();
     this._switchTab(next.id);
-    requestAnimationFrame(() => this.$(`.doc-tab[data-id="${next.id}"]`)?.focus());
+    requestAnimationFrame(() => this.queryOne(`.doc-tab[data-id="${next.id}"]`)?.focus());
   }
 
   /* ---- right-click menu ---- */
@@ -112,14 +112,14 @@ class StructraTabs extends StructraComponent {
       { label: 'Close tabs to the right', disabled: idx === list.length - 1, run: () => list.slice(idx + 1).forEach((t) => this._closeTab(t.id)) },
       '-',
       { label: 'Duplicate', run: () => { const t = list[idx]; this._addTab(t.label + ' (copy)', t.data); } },
-      { label: 'Rename', run: () => { const el = this.$(`.doc-tab[data-id="${id}"]`); if (el) this._startRename(el); } },
+      { label: 'Rename', run: () => { const el = this.queryOne(`.doc-tab[data-id="${id}"]`); if (el) this._startRename(el); } },
     ];
     this._closeMenu();
     const menu = document.createElement('div');
     menu.className = 'menu';
     menu.setAttribute('role', 'menu');
     menu.innerHTML = items.map((it, i) => it === '-' ? '<div class="menu-sep"></div>'
-      : `<button class="menu-item" type="button" role="menuitem" data-i="${i}"${it.disabled ? ' disabled' : ''}>${Structra.sharedHelpers.esc(it.label)}</button>`).join('');
+      : `<button class="menu-item" type="button" role="menuitem" data-i="${i}"${it.disabled ? ' disabled' : ''}>${Structra.sharedHelpers.escapeHtml(it.label)}</button>`).join('');
     document.body.appendChild(menu);
     const r = menu.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(e.clientX, innerWidth - r.width - 8)) + 'px';

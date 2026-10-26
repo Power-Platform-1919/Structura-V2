@@ -63,7 +63,7 @@ class StructraTypedef extends StructraDialog {
       }
     });
 
-    this.$('#typedefName').addEventListener('input', (e) => {
+    this.queryOne('#typedefName').addEventListener('input', (e) => {
       this._rootName = e.target.value.trim() || 'Root';
       this._generate();
     });
@@ -73,7 +73,7 @@ class StructraTypedef extends StructraDialog {
     const raw = Structra.typeCodeGenerator ? Structra.typeCodeGenerator.getLanguages() : [];
     // getLanguages() returns [{id, label}] or string[]
     const languages = raw.map(item => typeof item === 'string' ? { id: item, label: item } : item);
-    const container = this.$('#typedefTabs');
+    const container = this.queryOne('#typedefTabs');
     if (!container) return;
     container.innerHTML = languages.map(lang =>
       `<button class="typedef-tab${lang.id === this._lang ? ' active' : ''}" data-lang="${lang.id}">${lang.label}</button>`
@@ -84,7 +84,7 @@ class StructraTypedef extends StructraDialog {
     if (opts && opts.lang) this._lang = opts.lang;
     if (opts && opts.name) {
       this._rootName = opts.name;
-      const nameInput = this.$('#typedefName');
+      const nameInput = this.queryOne('#typedefName');
       if (nameInput) nameInput.value = opts.name;
     }
     this.querySelectorAll('.typedef-tab').forEach(t => t.classList.toggle('active', t.dataset.lang === this._lang));
@@ -112,17 +112,17 @@ class StructraTypedef extends StructraDialog {
 
   /** Show the code in colour for its language */
   _show() {
-    Structra.codeView.colorize(this.$('#typedefCode'), this._code, this._lang);
+    Structra.codeView.colorize(this.queryOne('#typedefCode'), this._code, this._lang);
   }
 
   _copy() {
-    Structra.sharedHelpers.copy(this._code, 'Copied to clipboard');
+    Structra.sharedHelpers.copyToClipboard(this._code, 'Copied to clipboard');
   }
 
   _download() {
     const exts = { typescript: '.ts', python: '.py', csharp: '.cs', go: '.go', rust: '.rs', java: '.java', powerfx: '.fx', sql: '.sql' };
     const ext = exts[this._lang] || '.txt';
-    Structra.sharedHelpers.download(this._code, `${this._rootName}${ext}`, 'text/plain');
+    Structra.sharedHelpers.downloadFile(this._code, `${this._rootName}${ext}`, 'text/plain');
     Structra.toast(`Downloaded ${this._rootName}${ext}`);
   }
 }

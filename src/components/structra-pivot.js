@@ -74,7 +74,7 @@ class StructraPivot extends StructraDialog {
       }
     });
 
-    this.$('#pivotAgg').addEventListener('change', (e) => { this._aggFn = e.target.value; });
+    this.queryOne('#pivotAgg').addEventListener('change', (e) => { this._aggFn = e.target.value; });
   }
 
   _open() {
@@ -87,8 +87,8 @@ class StructraPivot extends StructraDialog {
   _reset() {
     this._rows = []; this._cols = []; this._values = [];
     this._refreshFields();
-    if (this.$('#pivotRows')) this._renderZones();
-    const el = this.$('#pivotResult');
+    if (this.queryOne('#pivotRows')) this._renderZones();
+    const el = this.queryOne('#pivotResult');
     if (el) el.innerHTML = '';
   }
 
@@ -96,7 +96,7 @@ class StructraPivot extends StructraDialog {
   _refreshFields() {
     this._fields = Structra.dataEngine.mainColumns();
     const main = Structra.dataEngine.mainList();
-    const help = this.$('#pivotHelp');
+    const help = this.queryOne('#pivotHelp');
     if (help) {
       help.textContent = main
         ? `Pivoting the ${main.rows.length.toLocaleString()} ${main.rows.length === 1 ? 'row' : 'rows'} of ${main.path === '$' ? 'the document' : main.path.replace(/^\$\./, '')}. Click a field to add it: fields with numbers are totalled, other fields group the rows. Click the x on a chip to remove it.`
@@ -106,10 +106,10 @@ class StructraPivot extends StructraDialog {
   }
 
   _renderFields() {
-    const container = this.$('#pivotFields');
+    const container = this.queryOne('#pivotFields');
     if (!container) return;
     container.innerHTML = this._fields.map(f =>
-      `<span class="pivot-chip" data-field="${Structra.sharedHelpers.esc(f)}">${Structra.sharedHelpers.esc(f)}</span>`
+      `<span class="pivot-chip" data-field="${Structra.sharedHelpers.escapeHtml(f)}">${Structra.sharedHelpers.escapeHtml(f)}</span>`
     ).join('');
   }
 
@@ -132,7 +132,7 @@ class StructraPivot extends StructraDialog {
     if (this._isNumeric(field)) {
       this._values.push(field);
       // The first number chosen is totalled rather than counted
-      if (this._values.length === 1 && this._aggFn === 'count') { this._aggFn = 'sum'; const sel = this.$('#pivotAgg'); if (sel) sel.value = 'sum'; }
+      if (this._values.length === 1 && this._aggFn === 'count') { this._aggFn = 'sum'; const sel = this.queryOne('#pivotAgg'); if (sel) sel.value = 'sum'; }
     } else if (this._rows.length < 2) {
       this._rows.push(field);
     } else if (this._cols.length < 2) {
@@ -152,10 +152,10 @@ class StructraPivot extends StructraDialog {
 
   _renderZones() {
     const chip = (field, zone) =>
-      `<span class="pivot-zone-chip">${Structra.sharedHelpers.esc(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.sharedHelpers.esc(field)}">${Structra.icons.svg('x', { size: 14 })}</span></span>`;
-    this.$('#pivotRows').innerHTML = this._rows.map(f => chip(f, 'rows')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
-    this.$('#pivotCols').innerHTML = this._cols.map(f => chip(f, 'cols')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
-    this.$('#pivotValues').innerHTML = this._values.map(f => chip(f, 'values')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
+      `<span class="pivot-zone-chip">${Structra.sharedHelpers.escapeHtml(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.sharedHelpers.escapeHtml(field)}">${Structra.icons.svg('x', { size: 14 })}</span></span>`;
+    this.queryOne('#pivotRows').innerHTML = this._rows.map(f => chip(f, 'rows')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
+    this.queryOne('#pivotCols').innerHTML = this._cols.map(f => chip(f, 'cols')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
+    this.queryOne('#pivotValues').innerHTML = this._values.map(f => chip(f, 'values')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
   }
 
   _runPivot() {
@@ -205,7 +205,7 @@ class StructraPivot extends StructraDialog {
   }
 
   _renderPivotTable(data) {
-    const el = this.$('#pivotResult');
+    const el = this.queryOne('#pivotResult');
     this._last = data && data.rows && data.rows.length ? data : null;
     if (!this._last) {
       el.innerHTML = '<div class="pivot-empty">Nothing to show. This document has no list of records, or the chosen fields have no values.</div>';
@@ -220,10 +220,10 @@ class StructraPivot extends StructraDialog {
         <button class="btn btn-sm" type="button" data-pivot-act="tab" title="Open every row as a table in a new tab">Open in a new tab</button>
       </div>`;
     html += '<table class="pivot-table"><thead><tr>';
-    html += cols.map(c => `<th${numeric.has(c) ? ' class="num"' : ''}>${Structra.sharedHelpers.esc(c)}</th>`).join('');
+    html += cols.map(c => `<th${numeric.has(c) ? ' class="num"' : ''}>${Structra.sharedHelpers.escapeHtml(c)}</th>`).join('');
     html += '</tr></thead><tbody>';
     for (const row of data.rows.slice(0, 500)) {
-      html += '<tr>' + cols.map(c => `<td${numeric.has(c) ? ' class="num"' : ''}>${row[c] != null ? Structra.sharedHelpers.esc(String(row[c])) : ''}</td>`).join('') + '</tr>';
+      html += '<tr>' + cols.map(c => `<td${numeric.has(c) ? ' class="num"' : ''}>${row[c] != null ? Structra.sharedHelpers.escapeHtml(String(row[c])) : ''}</td>`).join('') + '</tr>';
     }
     html += '</tbody></table>';
     if (data.rows.length > 500) html += `<div class="pivot-more">Showing the first 500 of ${data.rows.length.toLocaleString()} rows. Copy all rows or open them in a new tab to get every row.</div>`;
@@ -235,7 +235,7 @@ class StructraPivot extends StructraDialog {
     const { rows, columns } = this._last;
     const cell = (v) => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ');
     const text = [columns.join('\t'), ...rows.map((r) => columns.map((c) => cell(r[c])).join('\t'))].join('\n');
-    Structra.sharedHelpers.copy(text, `${rows.length.toLocaleString()} rows copied: paste them into Excel`);
+    Structra.sharedHelpers.copyToClipboard(text, `${rows.length.toLocaleString()} rows copied: paste them into Excel`);
   }
 
   _openAll() {

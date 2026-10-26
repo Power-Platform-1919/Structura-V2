@@ -27,15 +27,15 @@ class StructraLoading extends StructraComponent {
 
   show(msg) {
     Structra.log.info('Loading', 'show: ' + (msg || 'Loading…'));
-    const overlay = this.$('#loadingOverlay');
-    const msgEl = this.$('#loadingMsg');
+    const overlay = this.queryOne('#loadingOverlay');
+    const msgEl = this.queryOne('#loadingMsg');
     if (msgEl) msgEl.textContent = msg || 'Loading…';
     if (overlay) overlay.classList.add('show');
   }
 
   hide() {
     Structra.log.info('Loading', 'hide');
-    const overlay = this.$('#loadingOverlay');
+    const overlay = this.queryOne('#loadingOverlay');
     if (overlay) overlay.classList.remove('show');
   }
 
@@ -45,7 +45,7 @@ class StructraLoading extends StructraComponent {
       isActive ? this.show(this.props.message) : this.hide();
     }
     if (name === 'message') {
-      const msgEl = this.$('#loadingMsg');
+      const msgEl = this.queryOne('#loadingMsg');
       if (msgEl) msgEl.textContent = this.props.message || 'Loading…';
     }
   }

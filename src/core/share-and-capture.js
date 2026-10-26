@@ -122,7 +122,7 @@ Structra.imageCapture = (() => {
 
   async function png(element, fileName) {
     if (!element) throw new Error('Nothing to capture');
-    await Structra.libraryLoader.require('html2canvas');
+    await Structra.libraryLoader.loadLibrary('html2canvas');
     const bg = getComputedStyle(document.body).backgroundColor;
     const canvas = await window.html2canvas(element, {
       backgroundColor: MODERN.test(bg) ? colorResolver()(bg) : bg,
@@ -132,7 +132,7 @@ Structra.imageCapture = (() => {
     MODERN.lastIndex = 0;
     await new Promise((resolve, reject) => canvas.toBlob((blob) => {
       if (!blob) { reject(new Error('Could not create the image')); return; }
-      Structra.sharedHelpers.download(blob, fileName || 'structra.png');
+      Structra.sharedHelpers.downloadFile(blob, fileName || 'structra.png');
       resolve();
     }, 'image/png'));
   }

@@ -20,7 +20,7 @@ class StructraShortcuts extends StructraDialog {
   onOpen() { this._renderShortcuts(); }
 
   _renderShortcuts() {
-    const body = this.$('#shortcutsBody');
+    const body = this.queryOne('#shortcutsBody');
     if (!body) return;
 
     const shortcuts = Structra.constants.SHORTCUTS || {};

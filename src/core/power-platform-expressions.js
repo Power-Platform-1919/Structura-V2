@@ -25,7 +25,7 @@ window.Structra = window.Structra || {};
 Structra.powerPlatformExpressions = (() => {
   const row = (label, code) => ({ label, code });
 
-  const kindOf = Structra.sharedHelpers.typeOf;
+  const kindOf = Structra.sharedHelpers.jsonTypeOf;
 
   const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
   const looksLikeDate = (s) => /\d{4}-\d{2}-\d{2}/.test(s) || /\d{2}\/\d{2}\/\d{4}/.test(s);

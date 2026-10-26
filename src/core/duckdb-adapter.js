@@ -45,7 +45,7 @@ Structra.duckdbAdapter = (() => {
     const t0 = performance.now();
     try {
       Structra.log.info('DuckDB', 'Loading DuckDB WASM via Structra.libraryLoader...');
-      const duckdb = await Structra.libraryLoader.require('duckdb');
+      const duckdb = await Structra.libraryLoader.loadLibrary('duckdb');
 
       // The engine files are in this app's own folder (nothing is downloaded from another site)
       const abs = (u) => new URL(u, document.baseURI).href;

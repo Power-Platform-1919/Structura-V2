@@ -34,7 +34,7 @@ class StructraSchema extends StructraComponent {
     this.renderSchema();
     // A field is a place in the document: click it to see its expressions, like a node in the Tree
     this.addEventListener('click', (e) => {
-      if (e.target.closest('[data-schema-copy]')) { if (this._schema) Structra.sharedHelpers.copy(JSON.stringify(this._schema, null, 2), 'Schema copied'); return; }
+      if (e.target.closest('[data-schema-copy]')) { if (this._schema) Structra.sharedHelpers.copyToClipboard(JSON.stringify(this._schema, null, 2), 'Schema copied'); return; }
       const line = e.target.closest('.s-line');
       if (!line || !line.dataset.path || line.dataset.path === '$') return;
       this.querySelectorAll('.s-line.selected').forEach((l) => l.classList.remove('selected'));
@@ -46,7 +46,7 @@ class StructraSchema extends StructraComponent {
   renderSchema() {
     this._stale = false;
     const t0 = performance.now();
-    const container = this.$('#schemaContainer');
+    const container = this.queryOne('#schemaContainer');
 
     const dataset = Structra.dataEngine.getActive();
     const data = dataset ? dataset.raw : Structra.state.jsonData;
@@ -66,9 +66,9 @@ class StructraSchema extends StructraComponent {
     const shown = lines.slice(0, MAX);
     container.innerHTML = shown.map((l) => {
       const nullable = l.types.includes('null');
-      const types = l.types.map((t) => `<span class="s-type${t === 'null' ? ' s-null' : ''}">${Structra.sharedHelpers.esc(t)}</span>`).join('<span class="s-or"> | </span>');
-      return `<div class="s-line" data-path="${Structra.sharedHelpers.esc(l.path)}" style="padding-left:${l.depth * 16}px">` +
-        `<span class="s-key">${Structra.sharedHelpers.esc(l.key)}</span>: ${types}` +
+      const types = l.types.map((t) => `<span class="s-type${t === 'null' ? ' s-null' : ''}">${Structra.sharedHelpers.escapeHtml(t)}</span>`).join('<span class="s-or"> | </span>');
+      return `<div class="s-line" data-path="${Structra.sharedHelpers.escapeHtml(l.path)}" style="padding-left:${l.depth * 16}px">` +
+        `<span class="s-key">${Structra.sharedHelpers.escapeHtml(l.key)}</span>: ${types}` +
         (l.required ? ' <span class="s-req" title="This field is in every record">required</span>' : '') +
         (nullable ? '' : '') +
         `</div>`;

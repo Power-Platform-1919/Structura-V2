@@ -22,7 +22,7 @@
 window.Structra = window.Structra || {};
 
 Structra.parseJsonSchemaGenerator = (() => {
-  const kindOf = Structra.sharedHelpers.typeOf;
+  const kindOf = Structra.sharedHelpers.jsonTypeOf;
   const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
   const DEFAULTS = { integers: false, required: true };

@@ -70,13 +70,13 @@ class StructraTheme extends StructraDialog {
 
   _renderMode() {
     const mode = Structra.themeEngine.mode();
-    this.$$('#thMode .seg-btn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
-    const hint = this.$('#thModeHint');
+    this.queryAll('#thMode .seg-btn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    const hint = this.queryOne('#thModeHint');
     if (hint) hint.textContent = { light: 'Always light, whatever your operating system uses.', dark: 'Always dark, whatever your operating system uses.', system: 'Follows your operating system: light by day, dark by night if it is set that way.' }[mode] || '';
   }
 
   _card(t, selected) {
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     const c = t.colors;
     return `
       <div class="th-card${selected ? ' selected' : ''}" role="button" tabindex="0" data-use="${esc(t.id)}" aria-pressed="${selected}">
@@ -106,9 +106,9 @@ class StructraTheme extends StructraDialog {
     const active = Structra.themeEngine.current().theme;
     const all = Structra.themeEngine.list();
     const group = (title, items) => items.length
-      ? `<div class="th-group">${Structra.sharedHelpers.esc(title)}</div>${items.map((t) => this._card(t, t.id === active.id)).join('')}`
+      ? `<div class="th-group">${Structra.sharedHelpers.escapeHtml(title)}</div>${items.map((t) => this._card(t, t.id === active.id)).join('')}`
       : '';
-    this.$('#thGrid').innerHTML =
+    this.queryOne('#thGrid').innerHTML =
       group('Light', all.filter((t) => t.mode === 'light')) +
       group('Dark', all.filter((t) => t.mode === 'dark'));
     void chosen;
@@ -127,10 +127,10 @@ class StructraTheme extends StructraDialog {
     };
     this._renderEditor();
     this._applyDraft();
-    this.$('#thEditor').hidden = false;
+    this.queryOne('#thEditor').hidden = false;
     // While editing, Save theme and Cancel are the only buttons: no second Done to confuse them
-    const foot = this.$('.ov-foot'); if (foot) foot.hidden = true;
-    this.$('#thEditor').scrollIntoView({ block: 'start' });
+    const foot = this.queryOne('.ov-foot'); if (foot) foot.hidden = true;
+    this.queryOne('#thEditor').scrollIntoView({ block: 'start' });
   }
 
   _applyDraft() {
@@ -142,21 +142,21 @@ class StructraTheme extends StructraDialog {
     this._draft = null;
     { const foot = this.querySelector('.ov-foot'); if (foot) foot.hidden = false; }
     Structra.themeEngine.endPreview();
-    const ed = this.$('#thEditor');
+    const ed = this.queryOne('#thEditor');
     if (ed) { ed.hidden = true; ed.innerHTML = ''; }
   }
 
   _renderEditor() {
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     const d = this._draft;
     const rows = Structra.themeEngine.BASE_KEYS.map((k) => `
       <div class="th-color">
         <label for="thc-${k}">${esc(Structra.themeEngine.LABELS[k])}</label>
-        <input type="color" id="thc-${k}" data-color="${k}" value="${this._hex6(d.colors[k])}">
+        <input type="color" id="thc-${k}" data-color="${k}" value="${this._toSixDigitHex(d.colors[k])}">
         <input type="text" class="th-hex" data-hex="${k}" value="${esc(d.colors[k])}" maxlength="7" spellcheck="false" aria-label="${esc(Structra.themeEngine.LABELS[k])} hex value">
       </div>`).join('');
 
-    this.$('#thEditor').innerHTML = `
+    this.queryOne('#thEditor').innerHTML = `
       <div class="th-row">
         <div class="th-label">${d.id ? 'Edit custom theme' : 'New custom theme'}</div>
         <div class="hint">Changes preview live. Save to keep them.</div>
@@ -191,14 +191,14 @@ class StructraTheme extends StructraDialog {
       </div>`;
   }
 
-  _hex6(hex) {
+  _toSixDigitHex(hex) {
     let h = String(hex).replace('#', '');
     if (h.length === 3) h = h.split('').map((c) => c + c).join('');
     return '#' + h.padEnd(6, '0').slice(0, 6);
   }
 
   _renderContrast() {
-    const el = this.$('#thContrast');
+    const el = this.queryOne('#thContrast');
     if (!el || !this._draft) return;
     const c = this._draft.colors;
     const pairs = [['Text on panels', c.text, c.surface], ['Secondary text', c.textSec, c.surface], ['Muted text', c.textMuted, c.surface],
@@ -206,7 +206,7 @@ class StructraTheme extends StructraDialog {
     el.innerHTML = '<div class="th-label">Contrast</div><div class="th-contrast-list">' + pairs.map(([label, a, b]) => {
       const ratio = Structra.themeEngine.contrast(a, b);
       const ok = ratio >= 4.5;
-      return `<span class="th-cr ${ok ? 'ok' : 'low'}" title="Easy-to-read text needs a contrast of at least 4.5 to 1">${Structra.sharedHelpers.esc(label)} <b>${ratio.toFixed(1)}</b> ${ok ? 'AA' : 'low'}</span>`;
+      return `<span class="th-cr ${ok ? 'ok' : 'low'}" title="Easy-to-read text needs a contrast of at least 4.5 to 1">${Structra.sharedHelpers.escapeHtml(label)} <b>${ratio.toFixed(1)}</b> ${ok ? 'AA' : 'low'}</span>`;
     }).join('') + '</div>';
   }
 
@@ -220,7 +220,7 @@ class StructraTheme extends StructraDialog {
     const edMode = t.closest('[data-edmode]');
     if (edMode && this._draft) {
       this._draft.mode = edMode.dataset.edmode;
-      this.$$('#thEdMode .seg-btn').forEach((b) => b.setAttribute('aria-pressed', String(b === edMode)));
+      this.queryAll('#thEdMode .seg-btn').forEach((b) => b.setAttribute('aria-pressed', String(b === edMode)));
       this._applyDraft();
       return;
     }
@@ -237,7 +237,7 @@ class StructraTheme extends StructraDialog {
     if (!act) return;
     switch (act.dataset.act) {
       case 'new': this._startEdit(null, null); break;
-      case 'import': this.$('#thFile').click(); break;
+      case 'import': this.queryOne('#thFile').click(); break;
       case 'save': this._save(); break;
       case 'export': this._export(false); break;
       case 'copy': this._export(true); break;
@@ -250,14 +250,14 @@ class StructraTheme extends StructraDialog {
     if (!this._draft) return;
     if (t.matches('[data-color]')) {
       this._draft.colors[t.dataset.color] = t.value;
-      const hex = this.$(`[data-hex="${t.dataset.color}"]`);
+      const hex = this.queryOne(`[data-hex="${t.dataset.color}"]`);
       if (hex) hex.value = t.value;
       this._applyDraft();
     } else if (t.matches('[data-hex]')) {
       if (/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(t.value)) {
         this._draft.colors[t.dataset.hex] = t.value.toLowerCase();
-        const picker = this.$(`[data-color="${t.dataset.hex}"]`);
-        if (picker) picker.value = this._hex6(t.value);
+        const picker = this.queryOne(`[data-color="${t.dataset.hex}"]`);
+        if (picker) picker.value = this._toSixDigitHex(t.value);
         this._applyDraft();
       }
     } else if (t.id === 'thName') {
@@ -299,8 +299,8 @@ class StructraTheme extends StructraDialog {
       const id = Structra.themeEngine.saveCustom(this._cleanDraft());
       this._draft = null;
       { const foot = this.querySelector('.ov-foot'); if (foot) foot.hidden = false; }
-      this.$('#thEditor').hidden = true;
-      this.$('#thEditor').innerHTML = '';
+      this.queryOne('#thEditor').hidden = true;
+      this.queryOne('#thEditor').innerHTML = '';
       Structra.themeEngine.use(id);
       this._renderMode();
       this._renderThemes();
@@ -315,8 +315,8 @@ class StructraTheme extends StructraDialog {
       // Export what is on screen, saved or not
       const draft = this._cleanDraft();
       const json = JSON.stringify({ format: 'structra-theme', version: 1, name: draft.name || 'My theme', mode: draft.mode, colors: draft.colors, ...(draft.fonts ? { fonts: draft.fonts } : {}) }, null, 2);
-      if (copyOnly) Structra.sharedHelpers.copy(json, 'Theme JSON copied');
-      else Structra.sharedHelpers.download(json, (draft.name || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.structra-theme.json', 'application/json');
+      if (copyOnly) Structra.sharedHelpers.copyToClipboard(json, 'Theme JSON copied');
+      else Structra.sharedHelpers.downloadFile(json, (draft.name || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.structra-theme.json', 'application/json');
     } catch (err) {
       Structra.toast(err.message);
     }

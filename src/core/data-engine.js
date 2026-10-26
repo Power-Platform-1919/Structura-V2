@@ -174,7 +174,7 @@ Structra.dataEngine = (() => {
 
     // Keep the original text for Recents. Not urgent, so wait until the page is idle.
     if (meta.rawSource) {
-      new Promise((resolve) => Structra.sharedHelpers.whenIdle(resolve, 3000))
+      new Promise((resolve) => Structra.sharedHelpers.runWhenIdle(resolve, 3000))
         .then(() => Structra.browserDatabase.raw.put(meta.rawSource, { format: meta.format, name: meta.name }))
         .then(hash => {
           dataset.meta.hash = hash;
@@ -1862,7 +1862,7 @@ Structra.dataEngine = (() => {
   async function regexSearch(pattern) {
     const ds = getActive();
     if (!ds) return { total: 0, matchedPaths: [] };
-    if (Structra.sharedHelpers.riskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_MESSAGE);
+    if (Structra.sharedHelpers.isRiskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
     const re = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
     return _findInMemory(ds, pattern, re);
   }

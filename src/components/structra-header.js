@@ -14,7 +14,7 @@ class StructraHeader extends StructraComponent {
 
   init() {
     this.on('state:currentPath', (d) => {
-      const input = this.$('#pathInput');
+      const input = this.queryOne('#pathInput');
       if (input) input.value = d.value === '$' ? '' : d.value;     // nothing selected: show the hint text
       this._syncButtons();
     });
@@ -26,13 +26,13 @@ class StructraHeader extends StructraComponent {
   /** Back and forward enabled state, and whether the current path is bookmarked */
   _syncButtons() {
     if (!this._mounted) return;
-    const back = this.$('[data-action="back"]');
-    const fwd = this.$('[data-action="forward"]');
-    const mark = this.$('[data-action="bookmark"]');
+    const back = this.queryOne('[data-action="back"]');
+    const fwd = this.queryOne('[data-action="forward"]');
+    const mark = this.queryOne('[data-action="bookmark"]');
     if (back) back.disabled = !Structra.pathHistory.canBack();
     if (fwd) fwd.disabled = !Structra.pathHistory.canForward();
     if (mark) mark.classList.toggle('active', Structra.bookmarks.has(Structra.state.currentPath));
-    const count = this.$('#bmCount');
+    const count = this.queryOne('#bmCount');
     if (count) { const n = Structra.bookmarks.list().length; count.textContent = n ? String(n) : ''; }
   }
 
@@ -92,18 +92,18 @@ class StructraHeader extends StructraComponent {
       else if (action === 'command-palette') Structra.events.emit('command-palette:toggle');
     });
 
-    this.$('#pathInput').addEventListener('keydown', (e) => {
+    this.queryOne('#pathInput').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this._goToPath(e.target.value);
       else if (e.key === 'Escape') { e.target.blur(); }
     });
-    this.$('#pathInput').addEventListener('input', (e) => e.target.classList.remove('invalid'));
+    this.queryOne('#pathInput').addEventListener('input', (e) => e.target.classList.remove('invalid'));
 
     this._syncButtons();
   }
 
   /** Enter in the path bar: check the path exists, show it in a view that can show it, and move there */
   _goToPath(raw) {
-    const input = this.$('#pathInput');
+    const input = this.queryOne('#pathInput');
     const text = String(raw || '').trim();
     Structra.events.emit('autocomplete:hide');
     if (!text) return;
@@ -139,7 +139,7 @@ class StructraHeader extends StructraComponent {
     const old = document.querySelector('.bm-menu');
     if (old) { old.remove(); return; }
     const items = Structra.bookmarks.list();
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     const menu = document.createElement('div');
     menu.className = 'bm-menu';
     menu.setAttribute('role', 'menu');
@@ -161,16 +161,16 @@ class StructraHeader extends StructraComponent {
       const item = e.target.closest('.bm-item');
       if (!item) return;
       close();
-      this.$('#pathInput').value = item.dataset.path;
+      this.queryOne('#pathInput').value = item.dataset.path;
       this._goToPath(item.dataset.path);
     });
     menu.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('bm-item')) e.target.click(); });
   }
 
   _copyPath() {
-    const path = this.$('#pathInput').value;
+    const path = this.queryOne('#pathInput').value;
     if (path) {
-      Structra.sharedHelpers.copy(path, 'Path copied');
+      Structra.sharedHelpers.copyToClipboard(path, 'Path copied');
     }
   }
 }

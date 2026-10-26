@@ -96,7 +96,7 @@ class StructraRail extends StructraComponent {
         power: drawerOpen && drawerTab === 'expressions' && !!Structra.state.jsonData,
         overview: Structra.state.activeView === 'overview' && !!Structra.state.jsonData,
       };
-      this.$$('.rail-btn').forEach((b) => b.classList.toggle('active', !!lit[b.dataset.rail]));
+      this.queryAll('.rail-btn').forEach((b) => b.classList.toggle('active', !!lit[b.dataset.rail]));
     };
     this.on('state:activeView', sync);
     this.on('state:queryPanelOpen', sync);

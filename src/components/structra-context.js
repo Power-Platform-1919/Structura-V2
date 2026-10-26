@@ -80,7 +80,7 @@ class StructraContext extends StructraComponent {
       else if (a === 'del-bookmark') Structra.bookmarks.remove(btn.dataset.path);
       else if (a === 'find-value') this._findValue();
       else if (a === 'mock') this._mockFromContext();
-      else if (a === 'copy-pp') Structra.sharedHelpers.copy(btn.dataset.code, 'Copied');
+      else if (a === 'copy-pp') Structra.sharedHelpers.copyToClipboard(btn.dataset.code, 'Copied');
       else if (a === 'pp-source') Structra.events.emit('drawer:show', 'expressions');
     });
   }
@@ -92,9 +92,9 @@ class StructraContext extends StructraComponent {
   }
 
   _renderBookmarks() {
-    const el = this.$('#ctxBookmarks');
+    const el = this.queryOne('#ctxBookmarks');
     if (!el) return;
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     const items = Structra.bookmarks.list();
     el.innerHTML = items.length
       ? items.map((b) => `<div class="ctx-bm">
@@ -112,11 +112,11 @@ class StructraContext extends StructraComponent {
     const val = this._resolve(data, path);
     this._currentValue = val;
 
-    this.$('#ctxPath').textContent = path;
+    this.queryOne('#ctxPath').textContent = path;
     this._renderPowerPlatform(path, val);
 
     // Value preview
-    const valEl = this.$('#ctxValue');
+    const valEl = this.queryOne('#ctxValue');
     if (val === null) valEl.textContent = 'null';
     else if (typeof val === 'object') Structra.codeView.colorize(valEl, this._previewJson(val), 'json');
     else valEl.textContent = String(val);
@@ -125,7 +125,7 @@ class StructraContext extends StructraComponent {
     this._renderContentPreview(val);
 
     // Meta
-    const meta = this.$('#ctxMeta');
+    const meta = this.queryOne('#ctxMeta');
     const type = val === null ? 'null' : Array.isArray(val) ? 'array' : typeof val;
     let metaHtml = `<dt>Type</dt><dd>${type}</dd>`;
     if (Array.isArray(val)) metaHtml += `<dt>Length</dt><dd>${val.length}</dd>`;
@@ -161,8 +161,8 @@ class StructraContext extends StructraComponent {
   /* ======== CONTENT PREVIEW - pattern detection ======== */
 
   _renderContentPreview(val) {
-    const section = this.$('#ctxPreviewSection');
-    const preview = this.$('#ctxPreview');
+    const section = this.queryOne('#ctxPreviewSection');
+    const preview = this.queryOne('#ctxPreview');
     if (!section || !preview) return;
 
     if (typeof val !== 'string' || val.length === 0) {
@@ -179,7 +179,7 @@ class StructraContext extends StructraComponent {
     section.hidden = false;
     preview.innerHTML = detections.map(d => `<div class="ctx-detection">
       <span class="ctx-det-badge ctx-det-${d.type}">${d.type}</span>
-      <span class="ctx-det-value">${d.html || Structra.sharedHelpers.esc(d.display || val.slice(0, 80))}</span>
+      <span class="ctx-det-value">${d.html || Structra.sharedHelpers.escapeHtml(d.display || val.slice(0, 80))}</span>
     </div>`).join('');
   }
 
@@ -189,7 +189,7 @@ class StructraContext extends StructraComponent {
 
     // URL
     if (/^https?:\/\/.+/i.test(s)) {
-      detections.push({ type: 'url', html: `<a href="${Structra.sharedHelpers.esc(s)}" target="_blank" rel="noopener" class="ctx-link">${Structra.sharedHelpers.esc(s.slice(0, 60))}</a>` });
+      detections.push({ type: 'url', html: `<a href="${Structra.sharedHelpers.escapeHtml(s)}" target="_blank" rel="noopener" class="ctx-link">${Structra.sharedHelpers.escapeHtml(s.slice(0, 60))}</a>` });
     }
 
     // Email
@@ -243,11 +243,11 @@ class StructraContext extends StructraComponent {
 
   /** The expressions a maker wants for this value, one click to copy. The full set lives in the Expressions tab. */
   _renderPowerPlatform(path, val) {
-    const section = this.$('#ctxPpSection');
-    const box = this.$('#ctxPp');
+    const section = this.queryOne('#ctxPpSection');
+    const box = this.queryOne('#ctxPp');
     if (!section || !box) return;
     if (!path || path === '$') { section.hidden = true; return; }
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     const rows = Structra.powerPlatformExpressions.quick(path, val);
     const src = Structra.powerPlatformExpressions.getSource();
     const srcText = src.kind === 'trigger' ? 'the trigger body' : src.kind === 'item' ? 'the current loop item' : src.kind === 'custom' ? 'your own expression' : `the action ${src.name}`;
@@ -273,7 +273,7 @@ class StructraContext extends StructraComponent {
     const val = this._currentValue;
     if (val == null) { Structra.toast('No value to mock', 'warning'); return; }
     const mocked = Structra.mockDataGenerator.generate(val, 3);
-    Structra.sharedHelpers.copy(JSON.stringify(mocked, null, 2), 'Mock data copied to clipboard');
+    Structra.sharedHelpers.copyToClipboard(JSON.stringify(mocked, null, 2), 'Mock data copied to clipboard');
   }
 
   _resolve(data, path) {
@@ -285,12 +285,12 @@ class StructraContext extends StructraComponent {
     // The whole value, not the shortened text shown on screen
     const v = this._currentValue;
     const text = v === undefined ? '' : (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
-    Structra.sharedHelpers.copy(text, 'Value copied');
+    Structra.sharedHelpers.copyToClipboard(text, 'Value copied');
   }
 
   _copyPath() {
-    const text = this.$('#ctxPath').textContent;
-    Structra.sharedHelpers.copy(text, 'Path copied');
+    const text = this.queryOne('#ctxPath').textContent;
+    Structra.sharedHelpers.copyToClipboard(text, 'Path copied');
   }
 
 }

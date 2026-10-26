@@ -42,9 +42,9 @@ class StructraStatus extends StructraComponent {
 
     this._updateAll();
 
-    this.$('#logToggle')?.addEventListener('click', () => this._cycleLogMode());
-    this.$('#statusDuck').addEventListener('click', () => {
-      if (this.$('#statusDuck').dataset.state === 'idle') Structra.dataEngine.enableSql();
+    this.queryOne('#logToggle')?.addEventListener('click', () => this._cycleLogMode());
+    this.queryOne('#statusDuck').addEventListener('click', () => {
+      if (this.queryOne('#statusDuck').dataset.state === 'idle') Structra.dataEngine.enableSql();
     });
     this._updateDuckStatus(duckState);
   }
@@ -62,8 +62,8 @@ class StructraStatus extends StructraComponent {
   }
 
   _updateLogLabel() {
-    const label = this.$('#logLabel');
-    const btn = this.$('#logToggle');
+    const label = this.queryOne('#logLabel');
+    const btn = this.queryOne('#logToggle');
     if (!label || !btn) return;
     const mode = Structra.log.getMode();
     label.textContent = mode.toUpperCase();
@@ -71,9 +71,9 @@ class StructraStatus extends StructraComponent {
   }
 
   _updateDuckStatus(state) {
-    const el = this.$('#statusDuck');
-    const icon = this.$('#duckIcon');
-    const label = this.$('#duckLabel');
+    const el = this.queryOne('#statusDuck');
+    const icon = this.queryOne('#duckIcon');
+    const label = this.queryOne('#duckLabel');
     if (!el) return;
     el.dataset.state = state;
     el.title = {
@@ -104,7 +104,7 @@ class StructraStatus extends StructraComponent {
   }
 
   _updateDupes() {
-    const el = this.$('#statusDupes');
+    const el = this.queryOne('#statusDupes');
     if (!el) return;
     const d = Structra.state.duplicateKeys || [];
     el.hidden = d.length === 0;
@@ -113,12 +113,12 @@ class StructraStatus extends StructraComponent {
   }
 
   _updatePath() {
-    const el = this.$('#statusPath');
+    const el = this.queryOne('#statusPath');
     if (el) el.textContent = '';        // the path is in the path bar and the Node panel: not a third time here
   }
 
   _updateFile() {
-    const el = this.$('#statusFile');
+    const el = this.queryOne('#statusFile');
     if (el) el.textContent = Structra.state.fileName || '';
   }
 }

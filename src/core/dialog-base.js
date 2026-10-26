@@ -14,7 +14,7 @@
        init() { super.init(); this.on('thing:open', () => this.open()); }
        render() {
          this.mount({ title: 'Thing', size: 'md', body: '<p>...</p>', foot: '<button ...>' });
-         // attach your own listeners to this.body / this.$(...)
+         // attach your own listeners to this.body / this.queryOne(...)
        }
        onOpen() { ... }          // optional
        onClose() { ... }         // optional
@@ -57,7 +57,7 @@ class StructraDialog extends StructraComponent {
    * @param {{ title: string, body?: string, foot?: string, head?: string, size?: string }} spec
    */
   mount({ title, body = '', foot = '', head = '', size = 'md' }) {
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     this.innerHTML = `
       <div class="ov" role="presentation">
         <section class="ov-box ov-${size}" role="dialog" aria-modal="true" aria-label="${esc(title)}">

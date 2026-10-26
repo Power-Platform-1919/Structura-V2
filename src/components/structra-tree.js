@@ -85,7 +85,7 @@ class StructraTree extends StructraComponent {
   }
 
   _getView() {
-    return this.$('#jsonView');
+    return this.queryOne('#jsonView');
   }
 
   renderTree() {
@@ -239,11 +239,11 @@ class StructraTree extends StructraComponent {
   async _execCtxAction(action, path, val, lang) {
     switch (action) {
       case 'copy-path':
-        Structra.sharedHelpers.copy(path, 'Path copied');
+        Structra.sharedHelpers.copyToClipboard(path, 'Path copied');
         break;
       case 'copy-value': {
         const text = val === null ? 'null' : typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
-        Structra.sharedHelpers.copy(text, 'Value copied');
+        Structra.sharedHelpers.copyToClipboard(text, 'Value copied');
         break;
       }
       case 'open-json-text': {
@@ -258,14 +258,14 @@ class StructraTree extends StructraComponent {
       }
       case 'copy-subtree': {
         const json = JSON.stringify(val, null, 2);
-        Structra.sharedHelpers.copy(json, 'Subtree copied');
+        Structra.sharedHelpers.copyToClipboard(json, 'Subtree copied');
         break;
       }
       case 'gen': {
         if (!lang) break;
         try {
           const code = Structra.typeCodeGenerator.generate(lang, val, 'Data');
-          Structra.sharedHelpers.copy(code, `Copied as ${lang}`);
+          Structra.sharedHelpers.copyToClipboard(code, `Copied as ${lang}`);
         } catch (e) {
           Structra.toast('Could not generate the code: ' + e.message, 'error');
         }
@@ -285,7 +285,7 @@ class StructraTree extends StructraComponent {
       case 'mock': {
         try {
           const mocked = Structra.mockDataGenerator.generate(val, 3);
-          Structra.sharedHelpers.copy(JSON.stringify(mocked, null, 2), 'Mock data copied');
+          Structra.sharedHelpers.copyToClipboard(JSON.stringify(mocked, null, 2), 'Mock data copied');
         } catch { Structra.toast('Could not make sample data', 'error'); }
         break;
       }
@@ -296,7 +296,7 @@ class StructraTree extends StructraComponent {
       case 'copy-fx': {
         const want = action === 'copy-pa' ? 'Power Automate' : 'Power Fx';
         const row = Structra.powerPlatformExpressions.quick(path, val).filter((r) => r.app === want)[0];
-        if (row) Structra.sharedHelpers.copy(row.code, row.label + ' copied');
+        if (row) Structra.sharedHelpers.copyToClipboard(row.code, row.label + ' copied');
         break;
       }
       case 'find-value':

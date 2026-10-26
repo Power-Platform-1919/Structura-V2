@@ -52,9 +52,9 @@ class StructraSchemaGen extends StructraComponent {
 
     this.addEventListener('click', (e) => {
       if (!e.target.closest('[data-action="copy"]')) return;
-      const text = this.$('#sgOutput').dataset.schema;
+      const text = this.queryOne('#sgOutput').dataset.schema;
       if (!text) { Structra.toast('No schema to copy'); return; }
-      Structra.sharedHelpers.copy(text, 'Schema copied');
+      Structra.sharedHelpers.copyToClipboard(text, 'Schema copied');
     });
     this.addEventListener('change', (e) => {
       const a = e.target.dataset && e.target.dataset.action;
@@ -72,12 +72,12 @@ class StructraSchemaGen extends StructraComponent {
 
   /** Names the selected value on the option, and turns it off when nothing is selected */
   _syncScope() {
-    const label = this.$('#sgScope');
+    const label = this.queryOne('#sgScope');
     if (!label) return;
     const p = Structra.state.currentPath;
     const usable = !!p && p !== '$';
     label.textContent = usable ? 'Only the selected value (' + p.replace(/^\$\.?/, '') + ')' : 'Only the selected value (select one in the Tree)';
-    const box = this.$('[data-action="selected"]');
+    const box = this.queryOne('[data-action="selected"]');
     box.disabled = !usable;
     if (!usable && this._selected) { this._selected = false; box.checked = false; this._stale = true; this._refresh(); }
   }
@@ -85,7 +85,7 @@ class StructraSchemaGen extends StructraComponent {
   _refresh() {
     if (!this._mounted || !this._visible() || !this._stale) return;
     this._stale = false;
-    const out = this.$('#sgOutput');
+    const out = this.queryOne('#sgOutput');
     let data = Structra.state.jsonData;
     if (data && this._selected && Structra.state.currentPath) {
       const part = Structra.dataPaths.resolve(data, Structra.state.currentPath);

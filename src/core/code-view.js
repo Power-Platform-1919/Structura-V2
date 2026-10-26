@@ -88,7 +88,7 @@ Structra.codeView = (() => {
   /** The editor library, loaded the first time any code box is made */
   function library() {
     if (!libPromise) {
-      libPromise = Structra.libraryLoader.require('codemirror6').then((lib) => { defineStyle(lib); return lib; });
+      libPromise = Structra.libraryLoader.loadLibrary('codemirror6').then((lib) => { defineStyle(lib); return lib; });
       libPromise.catch(() => { libPromise = null; });          // a failed load can be tried again
     }
     return libPromise;

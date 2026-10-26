@@ -32,7 +32,7 @@ class StructraBreadcrumb extends StructraComponent {
       return;
     }
 
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     let running = '';
     const parts = [`<button class="bc-seg" data-path="$">root</button>`];
     tokens.forEach((t, i) => {

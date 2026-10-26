@@ -81,12 +81,12 @@ class StructraComponent extends HTMLElement {
   }
 
   /** Shorthand: query inside this element */
-  $(selector) {
+  queryOne(selector) {
     return this.querySelector(selector);
   }
 
   /** Shorthand: queryAll inside this element */
-  $$(selector) {
+  queryAll(selector) {
     return this.querySelectorAll(selector);
   }
 }

@@ -46,12 +46,12 @@ class StructraExpressions extends StructraComponent {
       const tab = e.target.closest('.expr-subtab');
       if (tab) { this._switch(tab.dataset.sub); return; }
       const copyAll = e.target.closest('[data-copy-block]');
-      if (copyAll) { Structra.sharedHelpers.copy(copyAll.closest('.expr-block').querySelector('pre').textContent, 'Action copied'); return; }
+      if (copyAll) { Structra.sharedHelpers.copyToClipboard(copyAll.closest('.expr-block').querySelector('pre').textContent, 'Action copied'); return; }
       const copy = e.target.closest('.expr-copy');
-      if (copy) { Structra.sharedHelpers.copy(copy.parentElement.querySelector('.ecode').textContent, 'Copied'); return; }
+      if (copy) { Structra.sharedHelpers.copyToClipboard(copy.parentElement.querySelector('.ecode').textContent, 'Copied'); return; }
       const code = e.target.closest('.ecode');
       if (code) {
-        Structra.sharedHelpers.copy(code.textContent, 'Copied');
+        Structra.sharedHelpers.copyToClipboard(code.textContent, 'Copied');
       }
       const all = e.target.closest('[data-cols-all]');
       if (all) this._setAllColumns(all.dataset.colsAll === 'on');
@@ -79,12 +79,12 @@ class StructraExpressions extends StructraComponent {
 
   /** Where does this JSON come from? The expressions start there. */
   _renderSource() {
-    const el = this.$('#exprSource');
+    const el = this.queryOne('#exprSource');
     if (!el) return;
     if (this._tab === 'helpers') { el.hidden = true; return; }
     el.hidden = false;
     const src = Structra.powerPlatformExpressions.getSource();
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     if (this._tab === 'canvas') {
       el.innerHTML = `<label class="expr-src-field">Text variable that holds the JSON
         <input type="text" data-src="fxvar" value="${esc(src.fxVar)}" spellcheck="false"></label>`;
@@ -118,8 +118,8 @@ class StructraExpressions extends StructraComponent {
 
   _switch(id) {
     this._tab = id;
-    this.$$('.expr-subtab').forEach((b) => b.classList.toggle('active', b.dataset.sub === id));
-    this.$$('.expr-pane').forEach((p) => p.classList.toggle('active', p.dataset.pane === id));
+    this.queryAll('.expr-subtab').forEach((b) => b.classList.toggle('active', b.dataset.sub === id));
+    this.queryAll('.expr-pane').forEach((p) => p.classList.toggle('active', p.dataset.pane === id));
     this._refresh();
   }
 
@@ -128,7 +128,7 @@ class StructraExpressions extends StructraComponent {
     if (!this._mounted) return;
     const data = Structra.state.jsonData;
     this._renderSource();
-    const label = this.$('#exprPath');
+    const label = this.queryOne('#exprPath');
     if (label) label.textContent = this._tab === 'helpers' ? '' : this._path;
 
     if (this._tab === 'helpers') {
@@ -142,7 +142,7 @@ class StructraExpressions extends StructraComponent {
     const kind = this._tab === 'automate' ? 'Power Automate' : this._tab === 'flow' ? 'flow action' : 'Power Fx';
     if (!data || !this._path) {
       const view = Structra.state.activeView;
-      this._fill(this._tab, `<div class="expr-empty">Select a value in the Tree to see ${Structra.sharedHelpers.esc(kind)} expressions.${view === 'tree' ? '' : ' <button class="btn btn-sm" type="button" data-goto-tree>Go to the Tree</button>'}</div>`);
+      this._fill(this._tab, `<div class="expr-empty">Select a value in the Tree to see ${Structra.sharedHelpers.escapeHtml(kind)} expressions.${view === 'tree' ? '' : ' <button class="btn btn-sm" type="button" data-goto-tree>Go to the Tree</button>'}</div>`);
       return;
     }
     const value = Structra.dataPaths.resolve(data, this._path);
@@ -165,7 +165,7 @@ class StructraExpressions extends StructraComponent {
     if (!Array.isArray(value) || !value.length || !value[0] || typeof value[0] !== 'object' || Array.isArray(value[0])) return '';
     const cols = Structra.powerPlatformExpressions.pickedColumns(this._path, value);
     if (!cols.length) return '';
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     const on = cols.filter((c) => c.on).length;
     return `<div class="expr-cols">
       <div class="expr-cols-head"><strong>Columns</strong>
@@ -190,7 +190,7 @@ class StructraExpressions extends StructraComponent {
       Structra.log.error('Expressions', 'Could not build flow actions', err);
       return this._empty('Could not build flow actions for this data');
     }
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     return '<p class="expr-note">Paste into a cloud flow with Peek code or the code view, under "actions".</p>' + items.map((it) => `
       <section class="expr-block">
         <header class="expr-block-head"><strong>${esc(it.label)}</strong>
@@ -201,12 +201,12 @@ class StructraExpressions extends StructraComponent {
   }
 
   _fill(pane, html) {
-    const el = this.$(`[data-pane="${pane}"]`);
+    const el = this.queryOne(`[data-pane="${pane}"]`);
     if (el) el.innerHTML = html;
   }
 
   _empty(msg) {
-    return `<div class="expr-empty">${Structra.sharedHelpers.esc(msg)}</div>`;
+    return `<div class="expr-empty">${Structra.sharedHelpers.escapeHtml(msg)}</div>`;
   }
 
   _sections(build) {
@@ -217,7 +217,7 @@ class StructraExpressions extends StructraComponent {
       Structra.log.error('Expressions', 'Could not build expressions', err);
       return this._empty('Could not build expressions for this data');
     }
-    const esc = Structra.sharedHelpers.esc;
+    const esc = Structra.sharedHelpers.escapeHtml;
     return sections.map((s) => `
       <section class="expr-section">
         ${s.title ? `<h4 class="expr-title">${esc(s.title)}</h4>` : ''}

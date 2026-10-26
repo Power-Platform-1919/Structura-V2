@@ -45,8 +45,8 @@ Structra.jsonDiff = (() => {
 
   async function ready() {
     if (lib && patchFormat) return;
-    lib = await Structra.libraryLoader.require('jsondiffpatch');
-    patchFormat = await Structra.libraryLoader.require('jsondiffpatch-jsonpatch');
+    lib = await Structra.libraryLoader.loadLibrary('jsondiffpatch');
+    patchFormat = await Structra.libraryLoader.loadLibrary('jsondiffpatch-jsonpatch');
   }
 
   /** The longest list in a value, or Infinity when the value is too big to look through */

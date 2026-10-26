@@ -89,7 +89,7 @@ Structra.formatConversion = (() => {
 
   function downloadCsv(rows, columns, filename) {
     const csv = generateCsv(rows, columns);
-    Structra.sharedHelpers.download(csv, filename || 'export.csv', 'text/csv');
+    Structra.sharedHelpers.downloadFile(csv, filename || 'export.csv', 'text/csv');
     toast('CSV exported');
   }
 

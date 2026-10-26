@@ -18,7 +18,7 @@ class StructraZoom extends StructraComponent {
     this.on('zoom:in', () => this._zoom(1));
     this.on('zoom:out', () => this._zoom(-1));
     this.on('zoom:reset', () => this._reset());
-    this.on('zoom:fit', () => this._fit());
+    this.on('zoom:fit', () => this._fitToScreen());
 
     // Listen globally for Ctrl+/- keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -42,7 +42,7 @@ class StructraZoom extends StructraComponent {
   }
 
   /** Pick the text size at which the widest line of the open view just fits the window */
-  _fit() {
+  _fitToScreen() {
     const view = document.querySelector('.json-view, .j-scroll, structra-tree [class*="scroll"]') || document.querySelector('.app-view');
     if (!view || !view.scrollWidth || !view.clientWidth) { Structra.toast('Nothing to fit yet'); return; }
     const fitted = Math.floor(this._size * (view.clientWidth / view.scrollWidth));
@@ -65,8 +65,8 @@ class StructraZoom extends StructraComponent {
 
   _showIndicator() {
     const pct = Math.round((this._size / 14) * 100);
-    const ind = this.$('#zoomIndicator');
-    const label = this.$('#zoomLabel');
+    const ind = this.queryOne('#zoomIndicator');
+    const label = this.queryOne('#zoomLabel');
     label.textContent = `${pct}%`;
     ind.style.display = '';
     Structra.toast(`Zoom: ${pct}% (${this._size}px)`, 'info');

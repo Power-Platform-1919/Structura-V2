@@ -101,10 +101,10 @@ class StructraFilter extends StructraComponent {
   _setFilterMode(mode) {
     this._filterMode = mode;
     this.querySelectorAll('.filter-mode-tab').forEach(t => t.classList.toggle('active', t.dataset.fmode === mode));
-    const structuredBody = this.$('#filterBody');
-    const exprBody = this.$('#filterExprBody');
-    const exprInput = this.$('#filterExprInput');
-    const hint = this.$('#filterExprHint');
+    const structuredBody = this.queryOne('#filterBody');
+    const exprBody = this.queryOne('#filterExprBody');
+    const exprInput = this.queryOne('#filterExprInput');
+    const hint = this.queryOne('#filterExprHint');
 
     if (mode === 'structured') {
       structuredBody.style.display = '';
@@ -131,7 +131,7 @@ class StructraFilter extends StructraComponent {
   }
 
   _toggle(show) {
-    const panel = this.$('#filterPanel');
+    const panel = this.queryOne('#filterPanel');
     if (!panel) return;
     panel.classList.toggle('show', show);
     if (show) {
@@ -150,7 +150,7 @@ class StructraFilter extends StructraComponent {
   _refreshColumns() {
     this._columns = Structra.dataEngine.mainColumns();
     const main = Structra.dataEngine.mainList();
-    const scope = this.$('#filterScope');
+    const scope = this.queryOne('#filterScope');
     if (scope) {
       scope.textContent = main
         ? `Filtering the ${main.rows.length.toLocaleString()} ${main.rows.length === 1 ? 'row' : 'rows'} of ${main.path === '$' ? 'the document' : main.path.replace(/^\$\./, '')}`
@@ -160,15 +160,15 @@ class StructraFilter extends StructraComponent {
 
   /** Start again from one empty condition (the data changed, or Clear was pressed) */
   _rebuildRows() {
-    const container = this.$('#filterConditions');
+    const container = this.queryOne('#filterConditions');
     if (!container) return;
     container.innerHTML = '';
     this._conditions = [];
-    const summary = this.$('#filterSummary');
+    const summary = this.queryOne('#filterSummary');
     if (summary) summary.hidden = true;
-    const count = this.$('#filterCount');
+    const count = this.queryOne('#filterCount');
     if (count) count.textContent = '';
-    if (this.$('#filterPanel')?.classList.contains('show') && this._filterMode === 'structured') this._addCondition();
+    if (this.queryOne('#filterPanel')?.classList.contains('show') && this._filterMode === 'structured') this._addCondition();
   }
 
   /* ======== CONDITION ROWS ======== */
@@ -186,7 +186,7 @@ class StructraFilter extends StructraComponent {
   }
 
   _addCondition() {
-    const container = this.$('#filterConditions');
+    const container = this.queryOne('#filterConditions');
     if (!container) return;
 
     const idx = this._conditions.length;
@@ -203,7 +203,7 @@ class StructraFilter extends StructraComponent {
 
     // Field selector
     const fieldOpts = this._columns.map(c =>
-      `<option value="${Structra.sharedHelpers.esc(c)}"${c === this._conditions[idx].field ? ' selected' : ''}>${Structra.sharedHelpers.esc(c)}</option>`
+      `<option value="${Structra.sharedHelpers.escapeHtml(c)}"${c === this._conditions[idx].field ? ' selected' : ''}>${Structra.sharedHelpers.escapeHtml(c)}</option>`
     ).join('');
 
     // Operator selector
@@ -254,7 +254,7 @@ class StructraFilter extends StructraComponent {
     row.remove();
     this._conditions.splice(idx, 1);
     // Re-index remaining rows
-    this.$('#filterConditions').querySelectorAll('.fc-row').forEach((r, i) => {
+    this.queryOne('#filterConditions').querySelectorAll('.fc-row').forEach((r, i) => {
       r.dataset.idx = i;
     });
   }
@@ -262,7 +262,7 @@ class StructraFilter extends StructraComponent {
   /* ======== READ CONDITIONS FROM DOM ======== */
 
   _readConditions() {
-    const rows = this.$$('#filterConditions .fc-row');
+    const rows = this.queryAll('#filterConditions .fc-row');
     const conditions = [];
     rows.forEach((row, i) => {
       const field = row.querySelector('.fc-field')?.value || '';
@@ -278,7 +278,7 @@ class StructraFilter extends StructraComponent {
   /* ======== APPLY / CLEAR ======== */
 
   async _apply() {
-    const countEl = this.$('#filterCount');
+    const countEl = this.queryOne('#filterCount');
     if (countEl) countEl.textContent = 'Querying…';
 
     try {
@@ -288,7 +288,7 @@ class StructraFilter extends StructraComponent {
         if (conditions.length === 0) { this._clear(); return; }
         result = await Structra.dataEngine.filterDb(conditions);
       } else {
-        const expr = (this.$('#filterExprInput') || {}).value || '';
+        const expr = (this.queryOne('#filterExprInput') || {}).value || '';
         if (!expr.trim()) { this._clear(); return; }
 
         if (this._filterMode === 'jsonpath') {
@@ -303,7 +303,7 @@ class StructraFilter extends StructraComponent {
       const total = result ? (result.total ?? (Array.isArray(result) ? result.length : 0)) : 0;
       if (countEl) countEl.textContent = total === 0 ? 'No rows match' : `${total.toLocaleString()} ${total === 1 ? 'row' : 'rows'} match`;
       // Say which condition produced these rows
-      const summary = this.$('#filterSummary');
+      const summary = this.queryOne('#filterSummary');
       if (summary && result && result.query) { summary.hidden = false; summary.textContent = result.query; summary.title = result.query; }
       // The result is a table: show it
       if (total > 0 && ['tree', 'editor', 'overview', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.setState('activeView', 'table');

@@ -70,7 +70,7 @@ class StructraEditor extends StructraComponent {
       </div>`;
 
     // The status names the problem; a click goes to it
-    this.$('#edStatus').addEventListener('click', () => {
+    this.queryOne('#edStatus').addEventListener('click', () => {
       if (this._errorAt == null || !this._box) return;
       this._box.markError(this._errorAt);
       this._box.gotoOffset(this._errorAt, { select: true });
@@ -92,7 +92,7 @@ class StructraEditor extends StructraComponent {
   /** The code box, created the first time it is needed */
   _ensureBox() {
     if (!this._boxPromise) {
-      this._boxPromise = Structra.codeView.create(this.$('#editorHost'), { mode: 'json', label: 'JSON text' })
+      this._boxPromise = Structra.codeView.create(this.queryOne('#editorHost'), { mode: 'json', label: 'JSON text' })
         .then((box) => {
           this._box = box;
           box.onChange(() => this._edited());
@@ -200,7 +200,7 @@ class StructraEditor extends StructraComponent {
   }
 
   _status(kind, icon, html, color) {
-    const status = this.$('#edStatus');
+    const status = this.queryOne('#edStatus');
     if (!status) return;
     const tone = { valid: 'success', error: 'danger', warn: 'warning' }[kind];
     status.innerHTML = Structra.icons.svg(icon, { size: 14, color: color || tone }) + ' ' + html;
@@ -210,7 +210,7 @@ class StructraEditor extends StructraComponent {
   }
 
   _showChecking() {
-    const status = this.$('#edStatus');
+    const status = this.queryOne('#edStatus');
     if (!status) return;
     status.innerHTML = 'Checking…';
     status.className = 'ed-status checking';
@@ -235,7 +235,7 @@ class StructraEditor extends StructraComponent {
   }
 
   async _validate() {
-    const status = this.$('#edStatus');
+    const status = this.queryOne('#edStatus');
     const box = this._box;
     if (!status || !box || this._tooLarge) return;
     const token = (this._checkToken = (this._checkToken || 0) + 1);     // a newer check replaces an older one still running
@@ -262,7 +262,7 @@ class StructraEditor extends StructraComponent {
         where = `Line ${lc[1]}, column ${lc[2]}`;
       }
       const reason = why.replace(/\s*in JSON at position.*$/i, '').replace(/\s*\(line.*\)$/i, '').replace(/^JSON\.parse:\s*/i, '').trim();
-      this._status('error', 'x', `${Structra.sharedHelpers.esc(where ? where + ': ' : '')}${Structra.sharedHelpers.esc(this._plainReason(reason, text, this._errorAt).slice(0, 110))}`);
+      this._status('error', 'x', `${Structra.sharedHelpers.escapeHtml(where ? where + ': ' : '')}${Structra.sharedHelpers.escapeHtml(this._plainReason(reason, text, this._errorAt).slice(0, 110))}`);
       status.disabled = this._errorAt == null;
       status.title = this._errorAt == null ? '' : 'Click to go to the problem';
     }
@@ -348,7 +348,7 @@ class StructraEditor extends StructraComponent {
       Structra.toast('Changes applied. Ctrl+Z (outside this box) undoes them.');
     } catch (e) {
       this._validate();
-      Structra.toast('These changes cannot be applied yet: ' + (this.$('#edStatus').textContent || 'the JSON is not valid').trim());
+      Structra.toast('These changes cannot be applied yet: ' + (this.queryOne('#edStatus').textContent || 'the JSON is not valid').trim());
     }
   }
 }

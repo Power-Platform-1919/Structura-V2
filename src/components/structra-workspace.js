@@ -71,13 +71,13 @@ class StructraWorkspace extends StructraDialog {
   _export() {
     const ws = { version: 3, exportedAt: new Date().toISOString(), type: 'structra-workspace' };
 
-    if (this.$('#wsExpData')?.checked !== false) {
+    if (this.queryOne('#wsExpData')?.checked !== false) {
       ws.tabs = this._tabsSnapshot();
     }
-    if (this.$('#wsExpBookmarks')?.checked !== false) {
+    if (this.queryOne('#wsExpBookmarks')?.checked !== false) {
       ws.bookmarks = JSON.parse(localStorage.getItem('structra_bookmarks') || '[]');
     }
-    if (this.$('#wsExpSettings')?.checked !== false) {
+    if (this.queryOne('#wsExpSettings')?.checked !== false) {
       ws.settings = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -86,18 +86,18 @@ class StructraWorkspace extends StructraDialog {
       ws.theme = Structra.themeEngine.snapshot();
       ws.fontSize = Structra.state.fontSize;
     }
-    if (this.$('#wsExpHistory')?.checked !== false) {
+    if (this.queryOne('#wsExpHistory')?.checked !== false) {
       ws.queryHistory = JSON.parse(localStorage.getItem('structra_query_history') || '[]');
     }
-    if (this.$('#wsExpSnippets')?.checked !== false) {
+    if (this.queryOne('#wsExpSnippets')?.checked !== false) {
       ws.snippets = JSON.parse(localStorage.getItem('structra_snippets') || '[]');
     }
-    if (this.$('#wsExpUndo')?.checked) {
+    if (this.queryOne('#wsExpUndo')?.checked) {
       ws.undoHistory = Structra.undoStack.getHistory();
     }
 
     const json = JSON.stringify(ws, null, 2);
-    Structra.sharedHelpers.download(json, `structra-workspace-${new Date().toISOString().slice(0, 10)}.structra`, 'application/json');
+    Structra.sharedHelpers.downloadFile(json, `structra-workspace-${new Date().toISOString().slice(0, 10)}.structra`, 'application/json');
     const parts = [];
     if (ws.tabs) parts.push(`${ws.tabs.length} tab${ws.tabs.length === 1 ? '' : 's'}`);
     if (ws.bookmarks) parts.push(`${ws.bookmarks.length} bookmark${ws.bookmarks.length === 1 ? '' : 's'}`);
@@ -108,7 +108,7 @@ class StructraWorkspace extends StructraDialog {
   _showImport() { this.open(); }
 
   async _import() {
-    const fileInput = this.$('#wsImportFile');
+    const fileInput = this.queryOne('#wsImportFile');
     const file = fileInput?.files?.[0];
     if (!file) { Structra.toast('Choose a workspace file first', 'warning'); return; }
 

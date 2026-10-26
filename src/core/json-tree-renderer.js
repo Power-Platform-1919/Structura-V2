@@ -36,7 +36,7 @@ Structra.jsonTreeRenderer = (() => {
 
   const CHUNK_SIZE = 100;
   const OFFSCREEN_MARGIN = 3000;
-  const esc = Structra.sharedHelpers.esc;
+  const esc = Structra.sharedHelpers.escapeHtml;
 
   /* ============================
      RENDER STATE (per container)
@@ -905,7 +905,7 @@ Structra.jsonTreeRenderer = (() => {
   }
 
   /* --- Utility --- */
-  const tick = Structra.sharedHelpers.nextTick;
+  const tick = Structra.sharedHelpers.waitForNextTick;
 
   /* ============================
      PUBLIC API

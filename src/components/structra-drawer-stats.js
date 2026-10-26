@@ -43,7 +43,7 @@ class StructraDrawerStats extends StructraComponent {
 
   async _renderContent() {
     this._stale = false;
-    const root = this.$('#dsRoot');
+    const root = this.queryOne('#dsRoot');
     if (!root) return;
 
     const dataset = Structra.dataEngine.getActive();

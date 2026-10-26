@@ -42,9 +42,9 @@ class StructraAutocomplete extends StructraComponent {
 
   /* ---------- suggestions ---------- */
 
-  _typeOf(v) { return Structra.sharedHelpers.typeOf(v); }
+  _typeOf(v) { return Structra.sharedHelpers.jsonTypeOf(v); }
 
-  _join(parent, key) {
+  _joinPath(parent, key) {
     if (/^[A-Za-z_$][\w$]*$/.test(key)) return parent ? parent + '.' + key : key;
     return `${parent}["${key}"]`;
   }
@@ -83,12 +83,12 @@ class StructraAutocomplete extends StructraComponent {
     // Object: keys that start with the text first, then keys that only contain it
     const keys = Object.keys(node);
     for (const k of keys) {
-      if (k.toLowerCase().startsWith(q)) out.push({ path: this._join(parent, k), type: this._typeOf(node[k]) });
+      if (k.toLowerCase().startsWith(q)) out.push({ path: this._joinPath(parent, k), type: this._typeOf(node[k]) });
     }
     if (q) {
       for (const k of keys) {
         const lower = k.toLowerCase();
-        if (!lower.startsWith(q) && lower.includes(q)) out.push({ path: this._join(parent, k), type: this._typeOf(node[k]) });
+        if (!lower.startsWith(q) && lower.includes(q)) out.push({ path: this._joinPath(parent, k), type: this._typeOf(node[k]) });
       }
     }
     return out;
@@ -107,10 +107,10 @@ class StructraAutocomplete extends StructraComponent {
   /* ---------- interaction ---------- */
 
   _onKeydown(e) {
-    const open = this.$('#acDropdown').style.display !== 'none';
+    const open = this.queryOne('#acDropdown').style.display !== 'none';
     if (!open) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); this._move(1); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); this._move(-1); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); this._moveSelection(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); this._moveSelection(-1); }
     else if (e.key === 'Escape') { this._hide(); }
     else if (e.key === 'Tab' || (e.key === 'Enter' && this._selected >= 0)) {
       e.preventDefault();
@@ -119,7 +119,7 @@ class StructraAutocomplete extends StructraComponent {
     }
   }
 
-  _move(step) {
+  _moveSelection(step) {
     this._selected = (this._selected + step + this._items.length) % this._items.length;
     this._paint();
   }
@@ -135,7 +135,7 @@ class StructraAutocomplete extends StructraComponent {
   }
 
   _show() {
-    const dd = this.$('#acDropdown');
+    const dd = this.queryOne('#acDropdown');
     dd.style.display = '';
     const rect = this._input.getBoundingClientRect();
     dd.style.top = rect.bottom + 2 + 'px';
@@ -145,13 +145,13 @@ class StructraAutocomplete extends StructraComponent {
   }
 
   _hide() {
-    const dd = this.$('#acDropdown');
+    const dd = this.queryOne('#acDropdown');
     if (dd) dd.style.display = 'none';
   }
 
   _paint() {
-    const esc = Structra.sharedHelpers.esc;
-    const dd = this.$('#acDropdown');
+    const esc = Structra.sharedHelpers.escapeHtml;
+    const dd = this.queryOne('#acDropdown');
     dd.innerHTML = this._items.map((it, i) =>
       `<div class="ac-item${i === this._selected ? ' ac-selected' : ''}" role="option" data-ac-idx="${i}">
         <span class="ac-path">${esc(it.path)}</span><span class="ac-type">${esc(it.type)}</span>

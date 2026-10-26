@@ -40,7 +40,7 @@ class StructraValidate extends StructraDialog {
       const a = btn.dataset.action;
       if (a === 'infer') this._infer();
       else if (a === 'validate') this._run();
-      else if (a === 'goto') this._goto(btn.dataset.path);
+      else if (a === 'goto') this._goToPath(btn.dataset.path);
     });
   }
 
@@ -52,22 +52,22 @@ class StructraValidate extends StructraDialog {
   _infer() {
     const data = Structra.state.jsonData;
     if (!data) return;
-    this.$('#valSchema').value = JSON.stringify(Structra.parseJsonSchemaGenerator.smart(data), null, 2);
+    this.queryOne('#valSchema').value = JSON.stringify(Structra.parseJsonSchemaGenerator.smart(data), null, 2);
     this._summary('Inferred from the loaded data. Edit it, then validate.', '');
   }
 
   _summary(text, kind) {
-    const el = this.$('#valSummary');
+    const el = this.queryOne('#valSummary');
     el.textContent = text;
     el.className = 'val-summary' + (kind ? ' ' + kind : '');
   }
 
   async _run() {
-    const results = this.$('#valResults');
+    const results = this.queryOne('#valResults');
     results.innerHTML = '';
     let schema;
     try {
-      schema = JSON.parse(this.$('#valSchema').value);
+      schema = JSON.parse(this.queryOne('#valSchema').value);
     } catch (err) {
       this._summary('The schema is not valid JSON: ' + err.message, 'bad');
       return;
@@ -79,7 +79,7 @@ class StructraValidate extends StructraDialog {
       if (valid) { this._summary('Valid. The data matches the schema.', 'ok'); return; }
 
       // The same problem in thousands of rows is one line with a count and the first place it happens
-      const esc = Structra.sharedHelpers.esc;
+      const esc = Structra.sharedHelpers.escapeHtml;
       const groups = new Map();
       for (const e of errors) {
         const general = (e.path || 'root').replace(/\[\d+\]/g, '[*]');
@@ -103,7 +103,7 @@ class StructraValidate extends StructraDialog {
     }
   }
 
-  _goto(path) {
+  _goToPath(path) {
     this.close();
     Structra.setState('activeView', 'tree');
     Structra.setState('currentPath', path || '$');

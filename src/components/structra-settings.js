@@ -48,19 +48,19 @@ class StructraSettings extends StructraDialog {
       foot: '<button class="btn btn-primary" type="button" data-ov-close>Done</button>',
     });
     this.root.addEventListener('click', (e) => this._onClick(e));
-    this.$('#setKeep').addEventListener('change', (e) => {
+    this.queryOne('#setKeep').addEventListener('change', (e) => {
       Structra.appSettings.set('keepRecentContent', e.target.checked);
       Structra.toast(e.target.checked ? 'Recent keeps file contents' : 'Recent keeps only names and sizes from now on. Clear the list to remove contents already kept.');
     });
   }
 
-  onOpen() { this.$('#setKeep').checked = Structra.appSettings.get('keepRecentContent') !== false; this._confirming = null; this._renderSql(); this._renderSaved(); }
+  onOpen() { this.queryOne('#setKeep').checked = Structra.appSettings.get('keepRecentContent') !== false; this._confirming = null; this._renderSql(); this._renderSaved(); }
 
   _read(key) { try { const v = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } }
 
   _renderSql() {
-    const hint = this.$('#setSqlHint');
-    const btn = this.$('#setSqlBtn');
+    const hint = this.queryOne('#setSqlHint');
+    const btn = this.queryOne('#setSqlBtn');
     const ready = Structra.dataEngine.duckReady;
     hint.textContent = ready
       ? 'Running. SQL works on this computer only.'
@@ -77,7 +77,7 @@ class StructraSettings extends StructraDialog {
       ['bookmarks', 'Bookmarks', this._read('structra_bookmarks').length, 'structra_bookmarks'],
       ['history', 'Query history', this._read('structra_query_history').length, 'structra_query_history'],
     ];
-    this.$('#setSaved').innerHTML = rows.map(([id, label, n, key]) => `
+    this.queryOne('#setSaved').innerHTML = rows.map(([id, label, n, key]) => `
       <div class="th-row set-row">
         <div>${label} <span class="hint">${n} saved</span></div>
         <button class="btn btn-sm" type="button" data-clear="${key}" ${n ? '' : 'disabled'}>${this._confirming === key ? 'Click again to clear' : 'Clear'}</button>
@@ -96,7 +96,7 @@ class StructraSettings extends StructraDialog {
       else if (a === 'shortcuts') { this.close(); Structra.events.emit('shortcuts:open'); }
       else if (a === 'sql') {
         act.disabled = true;
-        this.$('#setSqlHint').textContent = 'Starting. This takes a few seconds the first time.';
+        this.queryOne('#setSqlHint').textContent = 'Starting. This takes a few seconds the first time.';
         Promise.resolve(Structra.dataEngine.enableSql()).finally(() => this._renderSql());
       }
       return;

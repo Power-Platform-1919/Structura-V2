@@ -56,7 +56,7 @@ function serve() {
 
   /** Run a command like the palette does, then wait for the document to settle */
   const run = async (cmd) => {
-    await page.evaluate((c) => document.querySelector('structra-command')._exec(c), cmd);
+    await page.evaluate((c) => document.querySelector('structra-command')._runCommand(c), cmd);
     await page.waitForTimeout(700);
   };
   const shown = () => page.evaluate(() => ({

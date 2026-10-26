@@ -28,12 +28,12 @@ class StructraHeatmap extends StructraComponent {
       </div>
       <button class="heatmap-off" type="button" aria-label="Turn the heatmap off" title="Turn the heatmap off">${Structra.icons.svg('x', { size: 12 })}</button>
     </div>`;
-    this.$('.heatmap-off').addEventListener('click', () => this._toggle());
+    this.queryOne('.heatmap-off').addEventListener('click', () => this._toggle());
   }
 
   _toggle() {
     this._active = !this._active;
-    this.$('#heatmapIndicator').style.display = this._active ? '' : 'none';
+    this.queryOne('#heatmapIndicator').style.display = this._active ? '' : 'none';
     document.body.classList.toggle('structra-heatmap-active', this._active);
 
     if (this._active) {

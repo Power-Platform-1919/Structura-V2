@@ -102,7 +102,7 @@ class StructraCommand extends StructraComponent {
 
     this.on('command-palette:toggle', () => this._toggle());
     this.on('overlay:close', () => this._close());
-    this.on('command:run', (cmdId) => this._exec(cmdId));
+    this.on('command:run', (cmdId) => this._runCommand(cmdId));
     this.on('tree:inline-edit', ({ path, value }) => {
       const before = Structra.state.jsonData;
       if (!before) return;
@@ -133,29 +133,29 @@ class StructraCommand extends StructraComponent {
     this._renderList('');
 
     // Filter on input
-    this.$('#cmdInput').addEventListener('input', (e) => {
+    this.queryOne('#cmdInput').addEventListener('input', (e) => {
       this._selectedIdx = 0;
       this._renderList(e.target.value);
     });
 
     // Keyboard nav
-    this.$('#cmdInput').addEventListener('keydown', (e) => {
-      const items = this.$$('.cmd-item:not([hidden])');
+    this.queryOne('#cmdInput').addEventListener('keydown', (e) => {
+      const items = this.queryAll('.cmd-item:not([hidden])');
       if (e.key === 'ArrowDown') { e.preventDefault(); this._selectedIdx = Math.min(this._selectedIdx + 1, items.length - 1); this._highlightItem(items); }
       else if (e.key === 'ArrowUp') { e.preventDefault(); this._selectedIdx = Math.max(this._selectedIdx - 1, 0); this._highlightItem(items); }
-      else if (e.key === 'Enter') { e.preventDefault(); if (items[this._selectedIdx]) this._exec(items[this._selectedIdx].dataset.cmd); }
+      else if (e.key === 'Enter') { e.preventDefault(); if (items[this._selectedIdx]) this._runCommand(items[this._selectedIdx].dataset.cmd); }
       else if (e.key === 'Escape') { this._close(); }
     });
 
     // Click on overlay to close
-    this.$('#cmdOverlay').addEventListener('click', (e) => {
+    this.queryOne('#cmdOverlay').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) this._close();
     });
 
     // Click on item to run
-    this.$('#cmdList').addEventListener('click', (e) => {
+    this.queryOne('#cmdList').addEventListener('click', (e) => {
       const item = e.target.closest('.cmd-item');
-      if (item) this._exec(item.dataset.cmd);
+      if (item) this._runCommand(item.dataset.cmd);
     });
   }
 
@@ -175,18 +175,18 @@ class StructraCommand extends StructraComponent {
 
   _renderList(query) {
     const q = query.toLowerCase().trim();
-    const list = this.$('#cmdList');
+    const list = this.queryOne('#cmdList');
     const filtered = this._commands.filter(c => this._available(c)
       && (!q || c.label.toLowerCase().includes(q) || c.id.includes(q) || (c.cat && c.cat.toLowerCase().includes(q)) || (c.keys && c.keys.includes(q))));
     if (!filtered.length) {
-      list.innerHTML = `<div class="cmd-empty">No command matches <strong>${Structra.sharedHelpers.esc(query)}</strong>. Try a word like sort, mask, export, table or power.</div>`;
+      list.innerHTML = `<div class="cmd-empty">No command matches <strong>${Structra.sharedHelpers.escapeHtml(query)}</strong>. Try a word like sort, mask, export, table or power.</div>`;
       return;
     }
     list.innerHTML = filtered
       .map((c, i) =>
         `<div class="cmd-item ${i === this._selectedIdx ? 'selected' : ''}" data-cmd="${c.id}">
           ${Structra.icons.svg(c.icon)}
-          <span class="cmd-text">${Structra.sharedHelpers.esc(c.label)}</span>
+          <span class="cmd-text">${Structra.sharedHelpers.escapeHtml(c.label)}</span>
           <span class="cmd-cat">${c.cat || ''}</span>
           ${c.kbd ? `<kbd>${c.kbd}</kbd>` : ''}
         </div>`
@@ -199,12 +199,12 @@ class StructraCommand extends StructraComponent {
   }
 
   _toggle() {
-    const overlay = this.$('#cmdOverlay');
+    const overlay = this.queryOne('#cmdOverlay');
     const isOpen = overlay.classList.contains('show');
     if (isOpen) { this._close(); }
     else {
       overlay.classList.add('show');
-      const input = this.$('#cmdInput');
+      const input = this.queryOne('#cmdInput');
       input.value = '';
       this._selectedIdx = 0;
       this._renderList('');
@@ -213,10 +213,10 @@ class StructraCommand extends StructraComponent {
   }
 
   _close() {
-    this.$('#cmdOverlay').classList.remove('show');
+    this.queryOne('#cmdOverlay').classList.remove('show');
   }
 
-  _exec(cmdId) {
+  _runCommand(cmdId) {
     Structra.log.info('Command', 'Execute: ' + cmdId);
     this._close();
     const views = Structra.constants.VIEWS;
@@ -293,14 +293,14 @@ class StructraCommand extends StructraComponent {
       case 'export-csv': {
         if (!data) { Structra.toast('Open a file first'); return; }
         Structra.dataEngine.exportData('csv').then(csv => {
-          Structra.sharedHelpers.download(csv, this._baseName() + '.csv', 'text/csv');
+          Structra.sharedHelpers.downloadFile(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         }).catch(() => {
           // JS fallback for non-array data
           const rows = Array.isArray(data) ? data : [data];
           const keys = [...new Set(rows.flatMap(r => Object.keys(r)))];
           const csv = [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
-          Structra.sharedHelpers.download(csv, this._baseName() + '.csv', 'text/csv');
+          Structra.sharedHelpers.downloadFile(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         });
         break;
@@ -308,7 +308,7 @@ class StructraCommand extends StructraComponent {
       case 'export-yaml': {
         if (!data) { Structra.toast('Open a file first'); return; }
         Structra.formatConversion.jsonToYaml(data).then(yaml => {
-          Structra.sharedHelpers.download(yaml, this._baseName() + '.yaml', 'text/yaml');
+          Structra.sharedHelpers.downloadFile(yaml, this._baseName() + '.yaml', 'text/yaml');
           Structra.toast('YAML downloaded');
         }).catch(e => Structra.toast('Could not convert to YAML: ' + e.message));
         break;
@@ -317,7 +317,7 @@ class StructraCommand extends StructraComponent {
         if (!data) { Structra.toast('Open a file first'); return; }
         try {
           const xml = Structra.formatConversion.jsonToXml(data);
-          Structra.sharedHelpers.download(xml, this._baseName() + '.xml', 'text/xml');
+          Structra.sharedHelpers.downloadFile(xml, this._baseName() + '.xml', 'text/xml');
           Structra.toast('XML downloaded');
         } catch (e) { Structra.toast('Could not convert to XML: ' + e.message); }
         break;
@@ -356,12 +356,12 @@ class StructraCommand extends StructraComponent {
           return;
         }
         const rows = Structra.powerPlatformExpressions.quick(path, value).filter((r) => r.app === (cmdId === 'pp-copy-pa' ? 'Power Automate' : 'Power Fx'));
-        if (rows[0]) Structra.sharedHelpers.copy(rows[0].code, rows[0].label + ' copied');
+        if (rows[0]) Structra.sharedHelpers.copyToClipboard(rows[0].code, rows[0].label + ' copied');
         break;
       }
       case 'pp-schema': {
         if (!data) { Structra.toast('Open a file first'); return; }
-        Structra.sharedHelpers.copy(JSON.stringify(Structra.parseJsonSchemaGenerator.smart(data, { integers: true, required: true }), null, 2), 'Parse JSON schema copied');
+        Structra.sharedHelpers.copyToClipboard(JSON.stringify(Structra.parseJsonSchemaGenerator.smart(data, { integers: true, required: true }), null, 2), 'Parse JSON schema copied');
         break;
       }
 
@@ -388,7 +388,7 @@ class StructraCommand extends StructraComponent {
       case 'share-url': {
         if (!data) { Structra.toast('Open a file first'); return; }
         Structra.shareLink.createUrl(data, Structra.state.fileName)
-          .then(({ url, bytes }) => Structra.sharedHelpers.copy(url, `Share link copied (${bytes < 1000 ? bytes + ' characters' : Math.round(bytes / 1000) + ' KB'}). The data is inside the link, nothing is uploaded, and anyone with the link can read it.`))
+          .then(({ url, bytes }) => Structra.sharedHelpers.copyToClipboard(url, `Share link copied (${bytes < 1000 ? bytes + ' characters' : Math.round(bytes / 1000) + ' KB'}). The data is inside the link, nothing is uploaded, and anyone with the link can read it.`))
           .catch((e) => Structra.toast(e.message));
         break;
       }
@@ -458,7 +458,7 @@ class StructraCommand extends StructraComponent {
       case 'collapse-all': Structra.events.emit('tree:collapse-all'); break;
       case 'depth-3':      Structra.events.emit('tree:collapse-depth', 3); break;
       case 'wrap':         Structra.events.emit('tree:toggle-wrap'); break;
-      case 'copy-path':    Structra.sharedHelpers.copy(Structra.state.currentPath || '$', 'Path copied'); break;
+      case 'copy-path':    Structra.sharedHelpers.copyToClipboard(Structra.state.currentPath || '$', 'Path copied'); break;
       case 'bookmark': {
         const path = Structra.state.currentPath;
         if (!path || path === '$') { Structra.toast('Select a path to bookmark'); break; }
@@ -518,7 +518,7 @@ class StructraCommand extends StructraComponent {
     const kept = Structra.undoStack.push(before, 'Before ' + label, tabId);
     await this._reingest(after);
     if (kept) Structra.undoStack.push(after, label, tabId);
-    if (kept) Structra.toast(message + '.', { action: { label: 'Undo', run: () => this._exec('undo') } });
+    if (kept) Structra.toast(message + '.', { action: { label: 'Undo', run: () => this._runCommand('undo') } });
     else Structra.toast(message + ' (too large to undo)');
   }
 
