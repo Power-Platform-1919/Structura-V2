@@ -2,13 +2,13 @@
    STRUCTRA V2 - Type Definition Modal
    <structra-typedef> - Code generation overlay with language tabs,
    syntax highlighting preview, and copy/download actions.
-   Uses Structra.codeGen for all language generation.
+   Uses Structra.typeCodeGenerator for all language generation.
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: typedef:open
    ============================================================ */
 
-class StructraTypedef extends StructraOverlay {
+class StructraTypedef extends StructraDialog {
   init() {
     super.init();
     this._lang = 'typescript';
@@ -70,7 +70,7 @@ class StructraTypedef extends StructraOverlay {
   }
 
   _renderTabs() {
-    const raw = Structra.codeGen ? Structra.codeGen.getLanguages() : [];
+    const raw = Structra.typeCodeGenerator ? Structra.typeCodeGenerator.getLanguages() : [];
     // getLanguages() returns [{id, label}] or string[]
     const languages = raw.map(item => typeof item === 'string' ? { id: item, label: item } : item);
     const container = this.$('#typedefTabs');
@@ -102,7 +102,7 @@ class StructraTypedef extends StructraOverlay {
     }
 
     try {
-      this._code = Structra.codeGen.generate(this._lang, data, this._rootName);
+      this._code = Structra.typeCodeGenerator.generate(this._lang, data, this._rootName);
       this._show();
     } catch (err) {
       this._code = `// Error generating ${this._lang}: ${err.message}`;
@@ -116,13 +116,13 @@ class StructraTypedef extends StructraOverlay {
   }
 
   _copy() {
-    Structra.util.copy(this._code, 'Copied to clipboard');
+    Structra.sharedHelpers.copy(this._code, 'Copied to clipboard');
   }
 
   _download() {
     const exts = { typescript: '.ts', python: '.py', csharp: '.cs', go: '.go', rust: '.rs', java: '.java', powerfx: '.fx', sql: '.sql' };
     const ext = exts[this._lang] || '.txt';
-    Structra.util.download(this._code, `${this._rootName}${ext}`, 'text/plain');
+    Structra.sharedHelpers.download(this._code, `${this._rootName}${ext}`, 'text/plain');
     Structra.toast(`Downloaded ${this._rootName}${ext}`);
   }
 }

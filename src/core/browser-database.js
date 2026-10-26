@@ -9,21 +9,21 @@
      'api_history' - URL load history
 
    API:
-     Structra.persistence.ready        → Promise (resolves when DB open)
-     Structra.persistence.recents.*    → add, getAll, clear
-     Structra.persistence.raw.*        → put, get, delete
-     Structra.persistence.session.*    → save, load
-     Structra.persistence.api.*        → add, getAll, clear
-     Structra.persistence.clearAll()   → wipe everything
+     Structra.browserDatabase.ready        → Promise (resolves when DB open)
+     Structra.browserDatabase.recents.*    → add, getAll, clear
+     Structra.browserDatabase.raw.*        → put, get, delete
+     Structra.browserDatabase.session.*    → save, load
+     Structra.browserDatabase.api.*        → add, getAll, clear
+     Structra.browserDatabase.clearAll()   → wipe everything
 
    Console:
-     Structra.persistence.recents.getAll().then(console.log)
-     Structra.persistence.session.load().then(console.log)
+     Structra.browserDatabase.recents.getAll().then(console.log)
+     Structra.browserDatabase.session.load().then(console.log)
    ============================================================ */
 
 window.Structra = window.Structra || {};
 
-Structra.persistence = (() => {
+Structra.browserDatabase = (() => {
   const DB_NAME = 'structra-store';
   const DB_VERSION = 1;
   let _db = null;

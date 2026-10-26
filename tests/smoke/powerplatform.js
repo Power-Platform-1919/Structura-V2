@@ -47,7 +47,7 @@ function serve() {
   page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
   const clip = () => page.evaluate(() => navigator.clipboard.readText());
   const select = async (p) => {
-    await page.evaluate((x) => { Structra.set('currentPath', x); Structra.events.emit('tree:node-selected', x); }, p);
+    await page.evaluate((x) => { Structra.setState('currentPath', x); Structra.events.emit('tree:node-selected', x); }, p);
     await page.waitForTimeout(300);
   };
 
@@ -57,7 +57,7 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
 
     // ---- Node panel: expressions for the selected value ----
     await select('$.value[1].Requester.Email');
@@ -84,7 +84,7 @@ function serve() {
     await page.waitForTimeout(900);
     const found = await page.evaluate(() => ({ open: document.querySelector('.find-bar').classList.contains('show'), text: document.querySelector('#findInput').value, count: document.querySelector('#findCount').textContent }));
     if (!found.open || found.text !== 'Laptop refresh' || /^0/.test(found.count)) failures.push('"Find this value" did not search for the value: ' + JSON.stringify(found));
-    await page.evaluate(() => Structra.set('findBarOpen', false));
+    await page.evaluate(() => Structra.setState('findBarOpen', false));
 
     // ---- Expressions drawer: copy buttons and the column picker ----
     await select('$.value');

@@ -10,7 +10,7 @@
       "subtasks": [
         {
           "id": "1.1",
-          "title": "Fix engine.js export list: define or remove sql, summarizeTable, getSchemaDb",
+          "title": "Fix data-engine.js export list: define or remove sql, summarizeTable, getSchemaDb",
           "status": "done"
         },
         {
@@ -38,7 +38,7 @@
       "subtasks": [
         {
           "id": "2.1",
-          "title": "Rewrite Power Automate and Power Fx generators as data-driven src/core/expressions.js (rows, not HTML)",
+          "title": "Rewrite Power Automate and Power Fx generators as data-driven src/core/power-platform-expressions.js (rows, not HTML)",
           "status": "done"
         },
         {
@@ -53,12 +53,12 @@
         },
         {
           "id": "2.4",
-          "title": "Port schema-gen.js and fill the Schema Gen tab with Copy Schema",
+          "title": "Port parse-json-schema-generator.js and fill the Schema Gen tab with Copy Schema",
           "status": "done"
         },
         {
           "id": "2.5",
-          "title": "Rewrite path helpers as src/core/paths.js (Structra.paths)",
+          "title": "Rewrite path helpers as src/core/data-paths.js (Structra.dataPaths)",
           "status": "done"
         }
       ]
@@ -253,7 +253,7 @@
         },
         {
           "id": "9.4",
-          "title": "Shared code: Structra.util, StructraOverlay base, ui.css primitives, base.css",
+          "title": "Shared code: Structra.sharedHelpers, StructraDialog base, ui.css primitives, base.css",
           "status": "done"
         },
         {
@@ -293,7 +293,7 @@
         },
         {
           "id": "9.12",
-          "title": "Dialogs on the shared overlay base: shortcuts, typedef, diff, null finder, pivot, snippets and workspace now use StructraOverlay (open, close, Escape, backdrop, focus trap come from one place); about 35 old overlay, panel and header CSS rules removed. The smoke test opens and closes ten dialogs",
+          "title": "Dialogs on the shared overlay base: shortcuts, typedef, diff, null finder, pivot, snippets and workspace now use StructraDialog (open, close, Escape, backdrop, focus trap come from one place); about 35 old overlay, panel and header CSS rules removed. The smoke test opens and closes ten dialogs",
           "status": "done"
         },
         {
@@ -317,7 +317,7 @@
           "status": "done"
         }
       ],
-      "note": "Foundation, shell, stats, side panels, command palette, find/filter bars, graph, input panel, minimap/heatmap and token colours are done and checked in the browser (dark and light, custom theme export/import round trip). Remaining: moving the older dialogs onto StructraOverlay (they already look consistent), folding the last tab/segment variants into .tabs/.seg, and the post-redesign smoke run + memory-bank refresh."
+      "note": "Foundation, shell, stats, side panels, command palette, find/filter bars, graph, input panel, minimap/heatmap and token colours are done and checked in the browser (dark and light, custom theme export/import round trip). Remaining: moving the older dialogs onto StructraDialog (they already look consistent), folding the last tab/segment variants into .tabs/.seg, and the post-redesign smoke run + memory-bank refresh."
     },
     {
       "id": "10",
@@ -327,7 +327,7 @@
       "subtasks": [
         {
           "id": "10.1",
-          "title": "Overview replaces Stats and opens first after load (files up to 25 MB; bigger files open on the tree): plain-language headline, key figures, 'worth a look' findings with one-click jumps, biggest lists grouped by pattern, then the existing detail tables. Logic in core/insights.js",
+          "title": "Overview replaces Stats and opens first after load (files up to 25 MB; bigger files open on the tree): plain-language headline, key figures, 'worth a look' findings with one-click jumps, biggest lists grouped by pattern, then the existing detail tables. Logic in core/overview-insights.js",
           "status": "done"
         },
         {
@@ -382,12 +382,12 @@
         },
         {
           "id": "10.11",
-          "title": "Engine duplicates removed: one _tableOf(ds) instead of 14 copies, CSV export reuses Structra.convert.generateCsv (it also handles nested values correctly). Fixed a bug found on the way: SQL find results broke the tree filter because it expected a Set but got a list. The JavaScript and DuckDB paths themselves stay: DuckDB is optional and loads on demand, so the JavaScript path is the fallback by design",
+          "title": "Engine duplicates removed: one _tableOf(ds) instead of 14 copies, CSV export reuses Structra.formatConversion.generateCsv (it also handles nested values correctly). Fixed a bug found on the way: SQL find results broke the tree filter because it expected a Set but got a list. The JavaScript and DuckDB paths themselves stay: DuckDB is optional and loads on demand, so the JavaScript path is the fallback by design",
           "status": "done"
         },
         {
           "id": "10.12",
-          "title": "Dialogs on the shared overlay base: shortcuts, typedef, diff, null finder, pivot, snippets and workspace now use StructraOverlay (open, close, Escape, backdrop, focus trap come from one place); about 35 old overlay, panel and header CSS rules removed. The smoke test opens and closes ten dialogs",
+          "title": "Dialogs on the shared overlay base: shortcuts, typedef, diff, null finder, pivot, snippets and workspace now use StructraDialog (open, close, Escape, backdrop, focus trap come from one place); about 35 old overlay, panel and header CSS rules removed. The smoke test opens and closes ten dialogs",
           "status": "done"
         }
       ]
@@ -448,7 +448,7 @@
       "subtasks": [
         {
           "id": "12.1",
-          "title": "Removed Structra.dom (dom-shim.js); callers use Structra.util.esc",
+          "title": "Removed Structra.dom (dom-shim.js); callers use Structra.sharedHelpers.esc",
           "status": "done"
         },
         {
@@ -458,12 +458,12 @@
         },
         {
           "id": "12.3",
-          "title": "src/utils moved into src/core. primitives.js was unused and is deleted (its naming helpers now live in Structra.util). The other six files keep their V1 logic under the Structra namespace",
+          "title": "src/utils moved into src/core. primitives.js was unused and is deleted (its naming helpers now live in Structra.sharedHelpers). The other six files keep their V1 logic under the Structra namespace",
           "status": "done"
         },
         {
           "id": "12.4",
-          "title": "format-convert is used (Structra.convert drives Convert to YAML and XML); the first audit looked for the wrong name",
+          "title": "format-convert is used (Structra.formatConversion drives Convert to YAML and XML); the first audit looked for the wrong name",
           "status": "done"
         },
         {
@@ -506,7 +506,7 @@
       "subtasks": [
         {
           "id": "13.1",
-          "title": "Expressions: clicking a value inside a list item gives a first-row path (body('X')?['value']?[0]?['Requester']?['Email']); a maker inside Apply to each needs items('Apply_to_each')?['Requester']?['Email'], item()?[...] for Select/Filter and ThisRecord.x for ForAll. Add these as the top rows (core path functions already written in paths.js) [done: paths.js loop functions, expressions.js rows, 6 unit tests]",
+          "title": "Expressions: clicking a value inside a list item gives a first-row path (body('X')?['value']?[0]?['Requester']?['Email']); a maker inside Apply to each needs items('Apply_to_each')?['Requester']?['Email'], item()?[...] for Select/Filter and ThisRecord.x for ForAll. Add these as the top rows (core path functions already written in data-paths.js) [done: data-paths.js loop functions, power-platform-expressions.js rows, 6 unit tests]",
           "status": "done"
         },
         {
@@ -866,7 +866,7 @@
         },
         {
           "id": "13.73",
-          "title": "CRITICAL: Transform is broken. Rail Transform or the Transform tab, any preset or expression, then Run transform shows 'Error: Structra.transformOps.evaluate is not a function' (the query panel calls evaluate, the module exports executeStep, operations, validateExpression, buildFn1, buildFn2). Implement evaluate or call the right function, and add a test",
+          "title": "CRITICAL: Transform is broken. Rail Transform or the Transform tab, any preset or expression, then Run transform shows 'Error: Structra.transformStepOperations.evaluate is not a function' (the query panel calls evaluate, the module exports executeStep, operations, validateExpression, buildFn1, buildFn2). Implement evaluate or call the right function, and add a test",
           "status": "done"
         },
         {
@@ -1844,7 +1844,7 @@
         },
         {
           "id": "14.98",
-          "title": "BROKEN FEATURE: the Filter panel's JSONPath and Expression tabs do nothing but fail. Applying either shows 'Error' and the toast 'Structra.engine.filterByPath is not a function' / 'filterByExpression is not a function' (neither function exists in the engine); only Structured and Regex work. Implement both, show a plain-language error, and add smoke tests for every filter tab",
+          "title": "BROKEN FEATURE: the Filter panel's JSONPath and Expression tabs do nothing but fail. Applying either shows 'Error' and the toast 'Structra.dataEngine.filterByPath is not a function' / 'filterByExpression is not a function' (neither function exists in the engine); only Structured and Regex work. Implement both, show a plain-language error, and add smoke tests for every filter tab",
           "status": "done"
         },
         {
@@ -1859,7 +1859,7 @@
         },
         {
           "id": "14.101",
-          "title": "A toast action label sticks to later messages: after closing a tab, unrelated toasts such as 'This is not a Structra workspace file' and 'Structra.engine.filterByPath is not a function' still show a 'Reopen' button; clear the action when a new toast replaces the old one. Raw technical text ('Structra.engine.filterByPath is not a function') also reaches the toast",
+          "title": "A toast action label sticks to later messages: after closing a tab, unrelated toasts such as 'This is not a Structra workspace file' and 'Structra.dataEngine.filterByPath is not a function' still show a 'Reopen' button; clear the action when a new toast replaces the old one. Raw technical text ('Structra.dataEngine.filterByPath is not a function') also reaches the toast",
           "status": "done"
         },
         {

@@ -2,13 +2,13 @@
    STRUCTRA V2 - Appearance
    <structra-theme> - choose light, dark or system; pick a built-in theme;
    build your own with a live preview; export it as JSON and import it back.
-   Built on StructraOverlay; the theme logic itself is Structra.theme.
+   Built on StructraDialog; the theme logic itself is Structra.themeEngine.
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: theme:open, theme:changed
    ============================================================ */
 
-class StructraTheme extends StructraOverlay {
+class StructraTheme extends StructraDialog {
   init() {
     super.init();
     this._draft = null;          // the custom theme being edited (not saved yet), or null
@@ -69,14 +69,14 @@ class StructraTheme extends StructraOverlay {
   /* ---------- mode and theme cards ---------- */
 
   _renderMode() {
-    const mode = Structra.theme.mode();
+    const mode = Structra.themeEngine.mode();
     this.$$('#thMode .seg-btn').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
     const hint = this.$('#thModeHint');
     if (hint) hint.textContent = { light: 'Always light, whatever your operating system uses.', dark: 'Always dark, whatever your operating system uses.', system: 'Follows your operating system: light by day, dark by night if it is set that way.' }[mode] || '';
   }
 
   _card(t, selected) {
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const c = t.colors;
     return `
       <div class="th-card${selected ? ' selected' : ''}" role="button" tabindex="0" data-use="${esc(t.id)}" aria-pressed="${selected}">
@@ -102,11 +102,11 @@ class StructraTheme extends StructraOverlay {
   }
 
   _renderThemes() {
-    const chosen = Structra.theme.chosen();
-    const active = Structra.theme.current().theme;
-    const all = Structra.theme.list();
+    const chosen = Structra.themeEngine.chosen();
+    const active = Structra.themeEngine.current().theme;
+    const all = Structra.themeEngine.list();
     const group = (title, items) => items.length
-      ? `<div class="th-group">${Structra.util.esc(title)}</div>${items.map((t) => this._card(t, t.id === active.id)).join('')}`
+      ? `<div class="th-group">${Structra.sharedHelpers.esc(title)}</div>${items.map((t) => this._card(t, t.id === active.id)).join('')}`
       : '';
     this.$('#thGrid').innerHTML =
       group('Light', all.filter((t) => t.mode === 'light')) +
@@ -117,7 +117,7 @@ class StructraTheme extends StructraOverlay {
   /* ---------- editor ---------- */
 
   _startEdit(base, editingId) {
-    const src = base || Structra.theme.current().theme;
+    const src = base || Structra.themeEngine.current().theme;
     this._draft = {
       id: editingId || null,
       name: editingId ? src.name : (src.name + ' copy').slice(0, 60),
@@ -134,26 +134,26 @@ class StructraTheme extends StructraOverlay {
   }
 
   _applyDraft() {
-    if (this._draft) Structra.theme.preview(this._draft);
+    if (this._draft) Structra.themeEngine.preview(this._draft);
     this._renderContrast();
   }
 
   _cancelEdit() {
     this._draft = null;
     { const foot = this.querySelector('.ov-foot'); if (foot) foot.hidden = false; }
-    Structra.theme.endPreview();
+    Structra.themeEngine.endPreview();
     const ed = this.$('#thEditor');
     if (ed) { ed.hidden = true; ed.innerHTML = ''; }
   }
 
   _renderEditor() {
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const d = this._draft;
-    const rows = Structra.theme.BASE_KEYS.map((k) => `
+    const rows = Structra.themeEngine.BASE_KEYS.map((k) => `
       <div class="th-color">
-        <label for="thc-${k}">${esc(Structra.theme.LABELS[k])}</label>
+        <label for="thc-${k}">${esc(Structra.themeEngine.LABELS[k])}</label>
         <input type="color" id="thc-${k}" data-color="${k}" value="${this._hex6(d.colors[k])}">
-        <input type="text" class="th-hex" data-hex="${k}" value="${esc(d.colors[k])}" maxlength="7" spellcheck="false" aria-label="${esc(Structra.theme.LABELS[k])} hex value">
+        <input type="text" class="th-hex" data-hex="${k}" value="${esc(d.colors[k])}" maxlength="7" spellcheck="false" aria-label="${esc(Structra.themeEngine.LABELS[k])} hex value">
       </div>`).join('');
 
     this.$('#thEditor').innerHTML = `
@@ -172,7 +172,7 @@ class StructraTheme extends StructraOverlay {
         <div class="field"><label for="thBase">Start from</label>
           <select id="thBase">
             <option value="">Keep current colours</option>
-            ${Structra.theme.list().map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}
+            ${Structra.themeEngine.list().map((t) => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -204,9 +204,9 @@ class StructraTheme extends StructraOverlay {
     const pairs = [['Text on panels', c.text, c.surface], ['Secondary text', c.textSec, c.surface], ['Muted text', c.textMuted, c.surface],
       ['Accent on panels', c.accent, c.surface], ['Text on app background', c.text, c.bg]];
     el.innerHTML = '<div class="th-label">Contrast</div><div class="th-contrast-list">' + pairs.map(([label, a, b]) => {
-      const ratio = Structra.theme.contrast(a, b);
+      const ratio = Structra.themeEngine.contrast(a, b);
       const ok = ratio >= 4.5;
-      return `<span class="th-cr ${ok ? 'ok' : 'low'}" title="Easy-to-read text needs a contrast of at least 4.5 to 1">${Structra.util.esc(label)} <b>${ratio.toFixed(1)}</b> ${ok ? 'AA' : 'low'}</span>`;
+      return `<span class="th-cr ${ok ? 'ok' : 'low'}" title="Easy-to-read text needs a contrast of at least 4.5 to 1">${Structra.sharedHelpers.esc(label)} <b>${ratio.toFixed(1)}</b> ${ok ? 'AA' : 'low'}</span>`;
     }).join('') + '</div>';
   }
 
@@ -215,7 +215,7 @@ class StructraTheme extends StructraOverlay {
   _onClick(e) {
     const t = e.target;
     const modeBtn = t.closest('[data-mode]');
-    if (modeBtn) { Structra.theme.setMode(modeBtn.dataset.mode); this._renderMode(); this._renderThemes(); return; }
+    if (modeBtn) { Structra.themeEngine.setMode(modeBtn.dataset.mode); this._renderMode(); this._renderThemes(); return; }
 
     const edMode = t.closest('[data-edmode]');
     if (edMode && this._draft) {
@@ -228,10 +228,10 @@ class StructraTheme extends StructraOverlay {
     const del = t.closest('[data-del]');
     if (del) { e.stopPropagation(); this._delete(del.dataset.del); return; }
     const edit = t.closest('[data-edit]');
-    if (edit) { e.stopPropagation(); this._startEdit(Structra.theme.get(edit.dataset.edit), edit.dataset.edit); return; }
+    if (edit) { e.stopPropagation(); this._startEdit(Structra.themeEngine.get(edit.dataset.edit), edit.dataset.edit); return; }
 
     const card = t.closest('[data-use]');
-    if (card && !this._draft) { Structra.theme.use(card.dataset.use); this._renderMode(); this._renderThemes(); return; }
+    if (card && !this._draft) { Structra.themeEngine.use(card.dataset.use); this._renderMode(); this._renderThemes(); return; }
 
     const act = t.closest('[data-act]');
     if (!act) return;
@@ -275,7 +275,7 @@ class StructraTheme extends StructraOverlay {
     const t = e.target;
     if (t.id === 'thFile') { this._import(t); return; }
     if (t.id === 'thBase' && this._draft && t.value) {
-      const base = Structra.theme.get(t.value);
+      const base = Structra.themeEngine.get(t.value);
       if (!base) return;
       this._draft.mode = base.mode;
       this._draft.colors = { ...base.colors };
@@ -296,12 +296,12 @@ class StructraTheme extends StructraOverlay {
 
   _save() {
     try {
-      const id = Structra.theme.saveCustom(this._cleanDraft());
+      const id = Structra.themeEngine.saveCustom(this._cleanDraft());
       this._draft = null;
       { const foot = this.querySelector('.ov-foot'); if (foot) foot.hidden = false; }
       this.$('#thEditor').hidden = true;
       this.$('#thEditor').innerHTML = '';
-      Structra.theme.use(id);
+      Structra.themeEngine.use(id);
       this._renderMode();
       this._renderThemes();
       Structra.toast('Theme saved');
@@ -315,8 +315,8 @@ class StructraTheme extends StructraOverlay {
       // Export what is on screen, saved or not
       const draft = this._cleanDraft();
       const json = JSON.stringify({ format: 'structra-theme', version: 1, name: draft.name || 'My theme', mode: draft.mode, colors: draft.colors, ...(draft.fonts ? { fonts: draft.fonts } : {}) }, null, 2);
-      if (copyOnly) Structra.util.copy(json, 'Theme JSON copied');
-      else Structra.util.download(json, (draft.name || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.structra-theme.json', 'application/json');
+      if (copyOnly) Structra.sharedHelpers.copy(json, 'Theme JSON copied');
+      else Structra.sharedHelpers.download(json, (draft.name || 'theme').toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.structra-theme.json', 'application/json');
     } catch (err) {
       Structra.toast(err.message);
     }
@@ -327,8 +327,8 @@ class StructraTheme extends StructraOverlay {
     input.value = '';
     if (!file) return;
     try {
-      const theme = Structra.theme.importJson(await file.text());
-      Structra.theme.use(theme.id);
+      const theme = Structra.themeEngine.importJson(await file.text());
+      Structra.themeEngine.use(theme.id);
       this._renderMode();
       this._renderThemes();
       Structra.toast('Imported "' + theme.name + '"');
@@ -338,9 +338,9 @@ class StructraTheme extends StructraOverlay {
   }
 
   _delete(id) {
-    const t = Structra.theme.get(id);
+    const t = Structra.themeEngine.get(id);
     if (!t || t.builtIn) return;
-    Structra.theme.deleteCustom(id);
+    Structra.themeEngine.deleteCustom(id);
     this._renderThemes();
     Structra.toast('Deleted "' + t.name + '"');
   }

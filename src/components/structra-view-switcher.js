@@ -7,7 +7,7 @@
      Emits: view:switched
    ============================================================ */
 
-class StructraViewSwitcher extends StructraElement {
+class StructraViewSwitcher extends StructraComponent {
   static get observedAttributes() { return ['active']; }
 
   init() {

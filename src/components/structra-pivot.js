@@ -7,7 +7,7 @@
      Listens to: pivot:open, engine:ingested, tabs:switched
    ============================================================ */
 
-class StructraPivot extends StructraOverlay {
+class StructraPivot extends StructraDialog {
   init() {
     super.init();
     this._rows = [];
@@ -94,8 +94,8 @@ class StructraPivot extends StructraOverlay {
 
   /** The columns of the main list (Status.Value for a Choice field), not the top-level keys of the document */
   _refreshFields() {
-    this._fields = Structra.engine.mainColumns();
-    const main = Structra.engine.mainList();
+    this._fields = Structra.dataEngine.mainColumns();
+    const main = Structra.dataEngine.mainList();
     const help = this.$('#pivotHelp');
     if (help) {
       help.textContent = main
@@ -109,17 +109,17 @@ class StructraPivot extends StructraOverlay {
     const container = this.$('#pivotFields');
     if (!container) return;
     container.innerHTML = this._fields.map(f =>
-      `<span class="pivot-chip" data-field="${Structra.util.esc(f)}">${Structra.util.esc(f)}</span>`
+      `<span class="pivot-chip" data-field="${Structra.sharedHelpers.esc(f)}">${Structra.sharedHelpers.esc(f)}</span>`
     ).join('');
   }
 
   /** A field whose values are numbers is something to total; any other field is something to group by */
   _isNumeric(field) {
-    const main = Structra.engine.mainList();
+    const main = Structra.dataEngine.mainList();
     if (!main) return false;
     let seen = 0;
     for (const row of main.rows.slice(0, 200)) {
-      const v = Structra.engine.fieldValue(row, field);
+      const v = Structra.dataEngine.fieldValue(row, field);
       if (v === null || v === undefined || v === '') continue;
       if (typeof v !== 'number') return false;
       seen++;
@@ -152,7 +152,7 @@ class StructraPivot extends StructraOverlay {
 
   _renderZones() {
     const chip = (field, zone) =>
-      `<span class="pivot-zone-chip">${Structra.util.esc(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.util.esc(field)}">${Structra.icons.svg('x', { size: 14 })}</span></span>`;
+      `<span class="pivot-zone-chip">${Structra.sharedHelpers.esc(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.sharedHelpers.esc(field)}">${Structra.icons.svg('x', { size: 14 })}</span></span>`;
     this.$('#pivotRows').innerHTML = this._rows.map(f => chip(f, 'rows')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
     this.$('#pivotCols').innerHTML = this._cols.map(f => chip(f, 'cols')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
     this.$('#pivotValues').innerHTML = this._values.map(f => chip(f, 'values')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
@@ -163,14 +163,14 @@ class StructraPivot extends StructraOverlay {
       Structra.toast('Choose at least one field to group by', 'warning');
       return;
     }
-    const main = Structra.engine.mainList();
+    const main = Structra.dataEngine.mainList();
     if (!main) { this._renderPivotTable(null); return; }
     this._renderPivotTable(this._pivot(main.rows));
   }
 
   /** Group the rows by the chosen fields and count or total the chosen value fields (in the browser, on the main list) */
   _pivot(rows) {
-    const read = (r, f) => Structra.engine.fieldValue(r, f);
+    const read = (r, f) => Structra.dataEngine.fieldValue(r, f);
     const groupBy = [...this._rows, ...this._cols];
     const valueFields = this._values.length ? this._values : ['*'];
     const groups = new Map();
@@ -220,10 +220,10 @@ class StructraPivot extends StructraOverlay {
         <button class="btn btn-sm" type="button" data-pivot-act="tab" title="Open every row as a table in a new tab">Open in a new tab</button>
       </div>`;
     html += '<table class="pivot-table"><thead><tr>';
-    html += cols.map(c => `<th${numeric.has(c) ? ' class="num"' : ''}>${Structra.util.esc(c)}</th>`).join('');
+    html += cols.map(c => `<th${numeric.has(c) ? ' class="num"' : ''}>${Structra.sharedHelpers.esc(c)}</th>`).join('');
     html += '</tr></thead><tbody>';
     for (const row of data.rows.slice(0, 500)) {
-      html += '<tr>' + cols.map(c => `<td${numeric.has(c) ? ' class="num"' : ''}>${row[c] != null ? Structra.util.esc(String(row[c])) : ''}</td>`).join('') + '</tr>';
+      html += '<tr>' + cols.map(c => `<td${numeric.has(c) ? ' class="num"' : ''}>${row[c] != null ? Structra.sharedHelpers.esc(String(row[c])) : ''}</td>`).join('') + '</tr>';
     }
     html += '</tbody></table>';
     if (data.rows.length > 500) html += `<div class="pivot-more">Showing the first 500 of ${data.rows.length.toLocaleString()} rows. Copy all rows or open them in a new tab to get every row.</div>`;
@@ -235,7 +235,7 @@ class StructraPivot extends StructraOverlay {
     const { rows, columns } = this._last;
     const cell = (v) => String(v == null ? '' : v).replace(/[\t\r\n]+/g, ' ');
     const text = [columns.join('\t'), ...rows.map((r) => columns.map((c) => cell(r[c])).join('\t'))].join('\n');
-    Structra.util.copy(text, `${rows.length.toLocaleString()} rows copied: paste them into Excel`);
+    Structra.sharedHelpers.copy(text, `${rows.length.toLocaleString()} rows copied: paste them into Excel`);
   }
 
   _openAll() {

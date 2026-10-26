@@ -1,13 +1,13 @@
 /* ============================================================
    STRUCTRA V2 - Path Navigation History
-   Structra.nav - back / forward through the paths you visited.
+   Structra.pathHistory - back / forward through the paths you visited.
    One history per tab.
 
    API:
-     Structra.nav.back()       → go to the previous path
-     Structra.nav.forward()    → go to the next path
-     Structra.nav.canBack()    → boolean
-     Structra.nav.canForward() → boolean
+     Structra.pathHistory.back()       → go to the previous path
+     Structra.pathHistory.forward()    → go to the next path
+     Structra.pathHistory.canBack()    → boolean
+     Structra.pathHistory.canForward() → boolean
 
    Events:
      'nav:changed' → emitted whenever history or the active tab changes
@@ -20,7 +20,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.nav = (() => {
+Structra.pathHistory = (() => {
   const MAX_ENTRIES = 100;
   const stacks = new Map();     // tabId → { items: string[], index: number }
   let replaying = false;        // true while back/forward sets the path itself
@@ -49,7 +49,7 @@ Structra.nav = (() => {
     s.index = next;
     replaying = true;
     try {
-      Structra.set('currentPath', s.items[next]);
+      Structra.setState('currentPath', s.items[next]);
     } finally {
       replaying = false;
     }

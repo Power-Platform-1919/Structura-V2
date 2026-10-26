@@ -8,7 +8,7 @@
      Emits: theme:open, shortcuts:open, bookmarks:changed
    ============================================================ */
 
-class StructraSettings extends StructraOverlay {
+class StructraSettings extends StructraDialog {
   init() {
     super.init();
     this._confirming = null;
@@ -49,25 +49,25 @@ class StructraSettings extends StructraOverlay {
     });
     this.root.addEventListener('click', (e) => this._onClick(e));
     this.$('#setKeep').addEventListener('change', (e) => {
-      Structra.settings.set('keepRecentContent', e.target.checked);
+      Structra.appSettings.set('keepRecentContent', e.target.checked);
       Structra.toast(e.target.checked ? 'Recent keeps file contents' : 'Recent keeps only names and sizes from now on. Clear the list to remove contents already kept.');
     });
   }
 
-  onOpen() { this.$('#setKeep').checked = Structra.settings.get('keepRecentContent') !== false; this._confirming = null; this._renderSql(); this._renderSaved(); }
+  onOpen() { this.$('#setKeep').checked = Structra.appSettings.get('keepRecentContent') !== false; this._confirming = null; this._renderSql(); this._renderSaved(); }
 
   _read(key) { try { const v = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } }
 
   _renderSql() {
     const hint = this.$('#setSqlHint');
     const btn = this.$('#setSqlBtn');
-    const ready = Structra.engine.duckReady;
+    const ready = Structra.dataEngine.duckReady;
     hint.textContent = ready
       ? 'Running. SQL works on this computer only.'
-      : Structra.engine.duckFailed
+      : Structra.dataEngine.duckFailed
         ? 'It could not start in this browser. Everything else still works.'
         : 'Off until you need it (Find with SELECT, Query with SQL). It takes a few seconds to start.';
-    btn.hidden = !!ready || !!Structra.engine.duckFailed;
+    btn.hidden = !!ready || !!Structra.dataEngine.duckFailed;
   }
 
   _renderSaved() {
@@ -97,7 +97,7 @@ class StructraSettings extends StructraOverlay {
       else if (a === 'sql') {
         act.disabled = true;
         this.$('#setSqlHint').textContent = 'Starting. This takes a few seconds the first time.';
-        Promise.resolve(Structra.engine.enableSql()).finally(() => this._renderSql());
+        Promise.resolve(Structra.dataEngine.enableSql()).finally(() => this._renderSql());
       }
       return;
     }

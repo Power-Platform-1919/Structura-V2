@@ -80,7 +80,7 @@ Structra.describeUnopenable = (data) => {
   return null;
 };
 
-Structra.set = (key, value) => {
+Structra.setState = (key, value) => {
   const old = Structra.state[key];
   if (old === value) return;
   Structra.state[key] = value;
@@ -92,10 +92,10 @@ Structra.set = (key, value) => {
   Structra.events.emit('state:' + key, { key, value, old });
 };
 
-Structra.get = (key) => Structra.state[key];
+Structra.getState = (key) => Structra.state[key];
 
 /* ===== THEME ===== */
-Structra.events.on('theme:toggle', () => Structra.theme.toggle());
+Structra.events.on('theme:toggle', () => Structra.themeEngine.toggle());
 
 /* ===== TOAST (quick access) ===== */
 /**

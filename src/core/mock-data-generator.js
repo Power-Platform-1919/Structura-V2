@@ -1,7 +1,7 @@
 /**
  * Mock Data Generator - generates random data preserving JSON structure and types.
  */
-Structra.mockGen = (() => {
+Structra.mockDataGenerator = (() => {
 
   const WORDS = ['lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing', 'elit', 'sed', 'eiusmod', 'tempor', 'incididunt', 'labore', 'dolore', 'magna', 'aliqua'];
   const NAMES = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry', 'Ivy', 'Jack'];

@@ -91,7 +91,7 @@ function serve() {
     await page.waitForTimeout(900);
     names = await order();
     if (!names.some((n) => /\(copy\)/.test(n))) failures.push('Reopen did not bring the tab back: ' + names.join());
-    const back = await page.evaluate(() => JSON.stringify(Structra.state.jsonData) === JSON.stringify(Structra.tabs.list.find((t) => t.id === Structra.tabs.activeId).data) && !!Structra.engine.getActive() && Structra.engine.getActive().id === Structra.tabs.activeId);
+    const back = await page.evaluate(() => JSON.stringify(Structra.state.jsonData) === JSON.stringify(Structra.tabs.list.find((t) => t.id === Structra.tabs.activeId).data) && !!Structra.dataEngine.getActive() && Structra.dataEngine.getActive().id === Structra.tabs.activeId);
     if (!back) failures.push('the reopened tab is not showing its data');
 
     // ---- Close other tabs ----

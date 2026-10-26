@@ -54,7 +54,7 @@ function serve() {
       await page.waitForTimeout(1200);
       const original = await page.evaluate(() => JSON.stringify(Structra.state.jsonData));
 
-      await page.evaluate(() => Structra.set('queryPanelOpen', true));
+      await page.evaluate(() => Structra.setState('queryPanelOpen', true));
       await page.waitForTimeout(300);
       await page.locator('[data-qtab="transform"]').click();
 

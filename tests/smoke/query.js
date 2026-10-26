@@ -49,7 +49,7 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => Structra.set('queryPanelOpen', true));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', true));
     await page.waitForTimeout(300);
 
     const ask = async (mode, text) => {
@@ -102,7 +102,7 @@ function serve() {
 
     const lit = await page.evaluate(() => document.querySelectorAll('.j-line.find-match').length);
     if (lit !== 3) failures.push('all 3 matches should be marked in the Tree, ' + lit + ' are');
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     await page.locator('structra-query [data-copy-expr="pa"]').first().click();
     await page.waitForTimeout(300);
     const toastText = await page.evaluate(() => document.querySelector('structra-toast').textContent);

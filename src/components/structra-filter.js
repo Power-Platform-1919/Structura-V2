@@ -14,7 +14,7 @@
      Sets state: findBarOpen, filterBarOpen, activeView
    ============================================================ */
 
-class StructraFilter extends StructraElement {
+class StructraFilter extends StructraComponent {
   static get observedAttributes() { return ['open']; }
 
   init() {
@@ -24,7 +24,7 @@ class StructraFilter extends StructraElement {
 
     this.on('state:filterBarOpen', (d) => {
       this.props.open = d.value ? 'true' : '';
-      if (d.value && Structra.state.findBarOpen) Structra.set('findBarOpen', false);
+      if (d.value && Structra.state.findBarOpen) Structra.setState('findBarOpen', false);
       this._toggle(d.value);
     });
     this.on('overlay:close', () => this._close());
@@ -141,15 +141,15 @@ class StructraFilter extends StructraElement {
   }
 
   _close() {
-    Structra.set('filterBarOpen', false);
+    Structra.setState('filterBarOpen', false);
   }
 
   /* ======== COLUMNS ======== */
 
   /** The columns of the list being filtered: the rows of the main list, not the top-level keys of the document */
   _refreshColumns() {
-    this._columns = Structra.engine.mainColumns();
-    const main = Structra.engine.mainList();
+    this._columns = Structra.dataEngine.mainColumns();
+    const main = Structra.dataEngine.mainList();
     const scope = this.$('#filterScope');
     if (scope) {
       scope.textContent = main
@@ -177,9 +177,9 @@ class StructraFilter extends StructraElement {
   _firstTextColumn() {
     const cols = this._columns || [];
     try {
-      const main = Structra.engine.mainList();
+      const main = Structra.dataEngine.mainList();
       const sample = main ? main.rows.slice(0, 50) : [];
-      const hit = cols.find((c) => sample.some((r) => typeof Structra.engine.fieldValue(r, c) === 'string'));
+      const hit = cols.find((c) => sample.some((r) => typeof Structra.dataEngine.fieldValue(r, c) === 'string'));
       if (hit) return hit;
     } catch { /* no list: use the first column */ }
     return cols[0] || '';
@@ -203,7 +203,7 @@ class StructraFilter extends StructraElement {
 
     // Field selector
     const fieldOpts = this._columns.map(c =>
-      `<option value="${Structra.util.esc(c)}"${c === this._conditions[idx].field ? ' selected' : ''}>${Structra.util.esc(c)}</option>`
+      `<option value="${Structra.sharedHelpers.esc(c)}"${c === this._conditions[idx].field ? ' selected' : ''}>${Structra.sharedHelpers.esc(c)}</option>`
     ).join('');
 
     // Operator selector
@@ -286,17 +286,17 @@ class StructraFilter extends StructraElement {
       if (this._filterMode === 'structured') {
         const conditions = this._readConditions();
         if (conditions.length === 0) { this._clear(); return; }
-        result = await Structra.engine.filterDb(conditions);
+        result = await Structra.dataEngine.filterDb(conditions);
       } else {
         const expr = (this.$('#filterExprInput') || {}).value || '';
         if (!expr.trim()) { this._clear(); return; }
 
         if (this._filterMode === 'jsonpath') {
-          result = await Structra.engine.filterByPath(expr.trim());
+          result = await Structra.dataEngine.filterByPath(expr.trim());
         } else if (this._filterMode === 'regex') {
-          result = await Structra.engine.regexSearch(expr.trim());
+          result = await Structra.dataEngine.regexSearch(expr.trim());
         } else if (this._filterMode === 'expression') {
-          result = await Structra.engine.filterByExpression(expr.trim());
+          result = await Structra.dataEngine.filterByExpression(expr.trim());
         }
       }
 
@@ -306,7 +306,7 @@ class StructraFilter extends StructraElement {
       const summary = this.$('#filterSummary');
       if (summary && result && result.query) { summary.hidden = false; summary.textContent = result.query; summary.title = result.query; }
       // The result is a table: show it
-      if (total > 0 && ['tree', 'editor', 'overview', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.set('activeView', 'table');
+      if (total > 0 && ['tree', 'editor', 'overview', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.setState('activeView', 'table');
       Structra.log.info('Filter', `Applied ${this._filterMode} filter → ${total} rows`);
     } catch (err) {
       Structra.log.error('Filter', 'Filter failed', err.message);
@@ -316,7 +316,7 @@ class StructraFilter extends StructraElement {
   }
 
   _clear() {
-    Structra.engine.clearQuery();
+    Structra.dataEngine.clearQuery();
     this._rebuildRows();          // leaves one empty condition to type into
   }
 

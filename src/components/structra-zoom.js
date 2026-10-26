@@ -8,7 +8,7 @@
      Sets state: fontSize
    ============================================================ */
 
-class StructraZoom extends StructraElement {
+class StructraZoom extends StructraComponent {
   init() {
     this._size = parseInt(localStorage.getItem('structra_setting_fontSize') || '14');
     this._min = 10;
@@ -60,7 +60,7 @@ class StructraZoom extends StructraElement {
   _applySize() {
     document.documentElement.style.setProperty('--structra-font-size', this._size + 'px');
     localStorage.setItem('structra_setting_fontSize', String(this._size));
-    Structra.set('fontSize', this._size);
+    Structra.setState('fontSize', this._size);
   }
 
   _showIndicator() {

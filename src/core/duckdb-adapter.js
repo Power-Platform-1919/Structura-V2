@@ -11,16 +11,16 @@
      available for querying into nested structures.
 
    API:
-     Structra.duckdb.init()                    → start loading (called by app.js)
-     Structra.duckdb.ready                     → Promise<boolean>
-     Structra.duckdb.query(sql)                → Promise<Array<Object>>
-     Structra.duckdb.registerDataset(dataset)  → CREATE TABLE from dataset
-     Structra.duckdb.getTableColumns(table)    → column names + types
-     Structra.duckdb.dropTable(name)           → DROP TABLE
-     Structra.duckdb.close()                   → shutdown
+     Structra.duckdbAdapter.init()                    → start loading (called by app.js)
+     Structra.duckdbAdapter.ready                     → Promise<boolean>
+     Structra.duckdbAdapter.query(sql)                → Promise<Array<Object>>
+     Structra.duckdbAdapter.registerDataset(dataset)  → CREATE TABLE from dataset
+     Structra.duckdbAdapter.getTableColumns(table)    → column names + types
+     Structra.duckdbAdapter.dropTable(name)           → DROP TABLE
+     Structra.duckdbAdapter.close()                   → shutdown
 
    Console:
-     Structra.duckdb.query('SELECT 1 as test').then(console.log)
+     Structra.duckdbAdapter.query('SELECT 1 as test').then(console.log)
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Emits: engine:duckdb-failed
@@ -28,7 +28,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.duckdb = (() => {
+Structra.duckdbAdapter = (() => {
   let _db = null;
   let _conn = null;
   let _initPromise = null;
@@ -44,8 +44,8 @@ Structra.duckdb = (() => {
   async function _doInit() {
     const t0 = performance.now();
     try {
-      Structra.log.info('DuckDB', 'Loading DuckDB WASM via Structra.libs...');
-      const duckdb = await Structra.libs.require('duckdb');
+      Structra.log.info('DuckDB', 'Loading DuckDB WASM via Structra.libraryLoader...');
+      const duckdb = await Structra.libraryLoader.require('duckdb');
 
       // The engine files are in this app's own folder (nothing is downloaded from another site)
       const abs = (u) => new URL(u, document.baseURI).href;
@@ -80,7 +80,7 @@ Structra.duckdb = (() => {
       Structra.log.info('DuckDB', `Ready in ${duration.toFixed(0)}ms`);
 
       // Notify engine
-      Structra.engine.onDuckDBReady();
+      Structra.dataEngine.onDuckDBReady();
       return true;
     } catch (err) {
       Structra.log.error('DuckDB', 'Init failed - SQL queries unavailable', err);

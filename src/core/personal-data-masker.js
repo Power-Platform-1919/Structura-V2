@@ -1,7 +1,7 @@
 /**
  * Data Masking - detect and anonymize PII
  */
-Structra.dataMask = (() => {
+Structra.personalDataMasker = (() => {
 
   // The same shape every time (a***@***.com), so the masked value does not hint at how long the original was
   const maskEmail = (v) => v[0] + '***@***.' + v.split('.').pop();

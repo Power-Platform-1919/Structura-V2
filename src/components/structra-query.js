@@ -1,7 +1,7 @@
 /* ============================================================
    STRUCTRA V2 - Query Panel Component
    <structra-query> - query and transform panel. Query modes: path, jsonpath, regex (pattern), js, sql.
-   The SQL mode runs read-only queries on the open file (the table "data") through Structra.engine.runSql
+   The SQL mode runs read-only queries on the open file (the table "data") through Structra.dataEngine.runSql
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: query:show-tab, tabs:switched, tabs:closed, engine:ingested,
@@ -10,7 +10,7 @@
      Sets state: queryPanelOpen, activeView, currentPath
    ============================================================ */
 
-class StructraQuery extends StructraElement {
+class StructraQuery extends StructraComponent {
   static get observedAttributes() { return ['mode']; }
 
   /** What each mode is for, with an example that works on most documents */
@@ -116,8 +116,8 @@ class StructraQuery extends StructraElement {
       if (copy) {
         e.stopPropagation();
         const path = copy.closest('.qp-result').dataset.path;
-        const expr = copy.dataset.copyExpr === 'pa' ? Structra.paths.powerAutomate(path) : Structra.paths.powerFx(path);
-        Structra.util.copy(expr, copy.dataset.copyExpr === 'pa' ? 'Power Automate expression copied' : 'Power Fx expression copied');
+        const expr = copy.dataset.copyExpr === 'pa' ? Structra.dataPaths.powerAutomate(path) : Structra.dataPaths.powerFx(path);
+        Structra.sharedHelpers.copy(expr, copy.dataset.copyExpr === 'pa' ? 'Power Automate expression copied' : 'Power Fx expression copied');
         return;
       }
       const hit = e.target.closest('.qp-result[data-path]');
@@ -148,7 +148,7 @@ class StructraQuery extends StructraElement {
       }
       const action = e.target.closest('[data-action]');
       if (!action) return;
-      if (action.dataset.action === 'close') Structra.set('queryPanelOpen', false);
+      if (action.dataset.action === 'close') Structra.setState('queryPanelOpen', false);
       else if (action.dataset.action === 'run') this._runQuery();
       else if (action.dataset.action === 'sqlCopy') this._sqlExport('copy');
       else if (action.dataset.action === 'sqlCsv') this._sqlExport('csv');
@@ -157,7 +157,7 @@ class StructraQuery extends StructraElement {
       else if (action.dataset.action === 'openMatches') this._openMatches();
       else if (action.dataset.action === 'runTransform') this._runTransform();
       else if (action.dataset.action === 'openTransform') this._openTransform();
-      else if (action.dataset.action === 'copyTransform') Structra.util.copy(JSON.stringify(this._lastTransform, null, 2), 'Result copied');
+      else if (action.dataset.action === 'copyTransform') Structra.sharedHelpers.copy(JSON.stringify(this._lastTransform, null, 2), 'Result copied');
     });
 
     // The other modes use this plain box: Enter runs, Shift+Enter starts a new line (SQL has its own editor)
@@ -200,13 +200,13 @@ class StructraQuery extends StructraElement {
    * Returns { presets: [{ label, expr }], example }
    */
   _transformPresets() {
-    const ds = Structra.engine.getActive();
+    const ds = Structra.dataEngine.getActive();
     const data = ds ? ds.raw : Structra.state.jsonData;
     let rows = null;
     let nav = '';
     if (Array.isArray(data)) rows = data;
     else if (data && typeof data === 'object') {
-      const first = Structra.engine.findFirstObjectArray ? Structra.engine.findFirstObjectArray(data) : null;
+      const first = Structra.dataEngine.findFirstObjectArray ? Structra.dataEngine.findFirstObjectArray(data) : null;
       // Only a list reached through plain keys can be written as .a.b
       if (first && first.path && /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(first.path.replace(/^\$\.?/, ''))) {
         rows = first.rows;
@@ -248,7 +248,7 @@ class StructraQuery extends StructraElement {
     if (!container) return;
     const { presets, example } = this._transformPresets();
     container.innerHTML = presets.map(p =>
-      `<button class="qp-preset-btn" type="button" data-preset="${Structra.util.esc(p.expr)}" title="${Structra.util.esc(p.expr)}">${Structra.util.esc(p.label)}</button>`
+      `<button class="qp-preset-btn" type="button" data-preset="${Structra.sharedHelpers.esc(p.expr)}" title="${Structra.sharedHelpers.esc(p.expr)}">${Structra.sharedHelpers.esc(p.label)}</button>`
     ).join('');
     const input = this.$('#transformInput');
     if (input) input.placeholder = `Steps joined with |\nExample: ${example}`;
@@ -271,7 +271,7 @@ class StructraQuery extends StructraElement {
     if (!data) { results.innerHTML = '<div class="qp-summary">No JSON loaded</div>'; return; }
 
     try {
-      const output = Structra.transformOps.evaluate(input, data);
+      const output = Structra.transformStepOperations.evaluate(input, data);
       this._lastTransform = output;
       if (output === undefined) {
         results.innerHTML = '<div class="qp-summary">The steps found nothing. A field named in the steps is not in this data.</div>';
@@ -289,7 +289,7 @@ class StructraQuery extends StructraElement {
         </div>`;
       Structra.codeView.colorize(results.querySelector('.qp-transform-output'), truncated, 'json');
     } catch (err) {
-      results.innerHTML = `<div class="qp-summary is-error">${Structra.util.esc(err.message)}</div>`;
+      results.innerHTML = `<div class="qp-summary is-error">${Structra.sharedHelpers.esc(err.message)}</div>`;
     }
   }
 
@@ -337,7 +337,7 @@ class StructraQuery extends StructraElement {
     select.hidden = this._mode !== 'sql' || !list.length;
     select.innerHTML = '<option value="">Earlier queries</option>' + list.map((q, i) => {
       const line = q.replace(/\s+/g, ' ').trim();
-      return `<option value="${i}">${Structra.util.esc(line.length > 60 ? line.slice(0, 60) + '…' : line)}</option>`;
+      return `<option value="${i}">${Structra.sharedHelpers.esc(line.length > 60 ? line.slice(0, 60) + '…' : line)}</option>`;
     }).join('');
   }
 
@@ -396,7 +396,7 @@ class StructraQuery extends StructraElement {
     box.innerHTML = '<div class="qp-summary">Starting the SQL engine…</div>';
     let cols = [];
     try {
-      if (await Structra.engine.enableSql()) cols = await Structra.engine.describeTable();
+      if (await Structra.dataEngine.enableSql()) cols = await Structra.dataEngine.describeTable();
     } catch { cols = []; }
     if (token !== this._schemaToken) return;           // the file changed while this was loading
     this._sqlCols = cols;                              // the editor suggests these names
@@ -408,10 +408,10 @@ class StructraQuery extends StructraElement {
     }
     this.$('#sqlSchemaTitle').innerHTML = `Table <code>data</code> (${cols.length} ${cols.length === 1 ? 'column' : 'columns'}, click to show)`;
     box.innerHTML = cols.map((c) =>
-      `<button class="qp-sql-col" type="button" data-sql-col="${Structra.util.esc(this._sqlName(c.name))}" title="Add ${Structra.util.esc(c.name)} to the query">
-        <span>${Structra.util.esc(c.name)}</span><em>${Structra.util.esc(c.type)}</em></button>`).join('');
+      `<button class="qp-sql-col" type="button" data-sql-col="${Structra.sharedHelpers.esc(this._sqlName(c.name))}" title="Add ${Structra.sharedHelpers.esc(c.name)} to the query">
+        <span>${Structra.sharedHelpers.esc(c.name)}</span><em>${Structra.sharedHelpers.esc(c.type)}</em></button>`).join('');
     examples.innerHTML = this._sqlExamples(cols).map((e) =>
-      `<button class="qp-preset-btn" type="button" data-sql-example="${Structra.util.esc(e.sql)}" title="${Structra.util.esc(e.sql)}">${Structra.util.esc(e.label)}</button>`).join('');
+      `<button class="qp-preset-btn" type="button" data-sql-example="${Structra.sharedHelpers.esc(e.sql)}" title="${Structra.sharedHelpers.esc(e.sql)}">${Structra.sharedHelpers.esc(e.label)}</button>`).join('');
   }
 
   /** Ready-made queries that use the file's real column names, so they run as they are */
@@ -457,10 +457,10 @@ class StructraQuery extends StructraElement {
     if (!text) { results.innerHTML = '<div class="qp-summary">Type a query first. Example: <code>SELECT * FROM data LIMIT 100</code></div>'; return; }
     if (!Structra.state.jsonData) { results.innerHTML = '<div class="qp-summary">Open a file first</div>'; return; }
     results.innerHTML = '<div class="qp-summary">Running…</div>';
-    const result = await Structra.engine.runSql(text, { quiet: true, readOnly: true, maxRows: StructraQuery.SQL_MAX_ROWS });
+    const result = await Structra.dataEngine.runSql(text, { quiet: true, readOnly: true, maxRows: StructraQuery.SQL_MAX_ROWS });
     if (result.error) {
       this._lastSql = null;
-      results.innerHTML = `<div class="qp-summary is-error">${Structra.util.esc(this._sqlError(result.error))}</div>`;
+      results.innerHTML = `<div class="qp-summary is-error">${Structra.sharedHelpers.esc(this._sqlError(result.error))}</div>`;
       return;
     }
     this._rememberSql(this._sqlGet().trim());
@@ -538,7 +538,7 @@ class StructraQuery extends StructraElement {
 
   _renderSqlResult(result) {
     const results = this.$('#queryResults');
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const { cols, kinds, plain: rows } = result.table;
     const shown = rows.slice(0, StructraQuery.SQL_SHOW_ROWS);
     const ms = result.duration < 1000 ? Math.round(result.duration) + ' ms' : (result.duration / 1000).toFixed(1) + ' s';
@@ -568,14 +568,14 @@ class StructraQuery extends StructraElement {
     const rows = result.table.plain.map((r) => Object.fromEntries(cols.map((c, i) => [c, r[i]])));
     const base = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '');
     if (how === 'copy') {
-      Structra.util.copy(JSON.stringify(rows, null, 2), `${rows.length} ${rows.length === 1 ? 'row' : 'rows'} copied`);
+      Structra.sharedHelpers.copy(JSON.stringify(rows, null, 2), `${rows.length} ${rows.length === 1 ? 'row' : 'rows'} copied`);
     } else if (how === 'csv') {
       const q = (v) => {
         const t = v === null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
         return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
       };
       const csv = [cols.map(q).join(','), ...result.table.plain.map((r, n) => r.map((v, i) => q(kinds[i].name === 'decimal' && typeof v === 'number' ? v.toFixed(kinds[i].scale) : v)).join(','))].join('\r\n');
-      Structra.util.download('﻿' + csv, base + ' (query).csv', 'text/csv;charset=utf-8');
+      Structra.sharedHelpers.download('﻿' + csv, base + ' (query).csv', 'text/csv;charset=utf-8');
       Structra.toast('CSV downloaded');
     } else {
       const cmd = document.querySelector('structra-command');
@@ -589,29 +589,29 @@ class StructraQuery extends StructraElement {
     const results = this.$('#queryResults');
     const help = StructraQuery.MODE_HELP[this._mode];
     if (!input) {
-      results.innerHTML = `<div class="qp-summary">Type a query first. Example: <code>${Structra.util.esc(help.example)}</code></div>`;
+      results.innerHTML = `<div class="qp-summary">Type a query first. Example: <code>${Structra.sharedHelpers.esc(help.example)}</code></div>`;
       this.$('#queryInput').focus();
       return;
     }
 
-    const ds = Structra.engine.getActive();
+    const ds = Structra.dataEngine.getActive();
     const data = ds ? ds.raw : Structra.state.jsonData;
     if (!data) { results.innerHTML = '<div class="qp-summary">Open a file first</div>'; return; }
 
     try {
       let matches = [];
-      if (this._mode === 'path' || this._mode === 'jsonpath') matches = Structra.jsonpath.query(data, input);
+      if (this._mode === 'path' || this._mode === 'jsonpath') matches = Structra.jsonpathQuery.query(data, input);
       else if (this._mode === 'regex') matches = this._queryRegex(data, input);
       else if (this._mode === 'js') {
         // The code is tried first in a separate thread, so one that never ends cannot freeze the page
-        const probe = await Structra.util.tryInWorker(input.replace(/^=/, ''), data);
+        const probe = await Structra.sharedHelpers.tryInWorker(input.replace(/^=/, ''), data);
         if (!probe.ok) throw new Error('The JavaScript did not run: ' + probe.error);
         matches = this._queryJs(data, input);
       }
       this._lastMatches = matches;
 
       if (matches.length === 0) {
-        results.innerHTML = `<div class="qp-summary">No matches. Nothing in this file fits <code>${Structra.util.esc(input)}</code>.</div>`;
+        results.innerHTML = `<div class="qp-summary">No matches. Nothing in this file fits <code>${Structra.sharedHelpers.esc(input)}</code>.</div>`;
         return;
       }
       const shown = matches.slice(0, 100);
@@ -621,9 +621,9 @@ class StructraQuery extends StructraElement {
           <button class="btn btn-sm" type="button" data-action="openMatches">Open in a new tab</button>
         </div>` +
         shown.map((m, i) =>
-          `<div class="qp-result" data-i="${i}" data-path="${Structra.util.esc(m.path)}" title="Show in the Tree">
-            <span class="qp-result-path">${Structra.util.esc(m.path)}</span>
-            <span class="qp-result-value">${Structra.util.esc(this._preview(m.value))}</span>
+          `<div class="qp-result" data-i="${i}" data-path="${Structra.sharedHelpers.esc(m.path)}" title="Show in the Tree">
+            <span class="qp-result-path">${Structra.sharedHelpers.esc(m.path)}</span>
+            <span class="qp-result-value">${Structra.sharedHelpers.esc(this._preview(m.value))}</span>
             <span class="qp-result-copy">
               <button class="btn btn-sm btn-ghost" type="button" data-copy-expr="pa" title="Copy the Power Automate expression for this value">Power Automate</button>
               <button class="btn btn-sm btn-ghost" type="button" data-copy-expr="fx" title="Copy the Power Fx expression for this value">Power Fx</button>
@@ -631,27 +631,27 @@ class StructraQuery extends StructraElement {
           </div>`
         ).join('');
     } catch (err) {
-      results.innerHTML = `<div class="qp-summary is-error">${Structra.util.esc(err.message)}</div>`;
+      results.innerHTML = `<div class="qp-summary is-error">${Structra.sharedHelpers.esc(err.message)}</div>`;
     }
   }
 
   /** A result was clicked: show it in the Tree, where it can be read in context and its expressions are one click away */
   _showMatch(path) {
     if (!path || !path.startsWith('$')) return;
-    Structra.set('activeView', 'tree');
-    Structra.set('currentPath', path);
+    Structra.setState('activeView', 'tree');
+    Structra.setState('currentPath', path);
     // Every match is marked in the Tree, and the clicked one is brought into view
     setTimeout(() => {
       const view = document.getElementById('jsonView');
       const all = (this._lastMatches || []).map((m) => m.path).filter((p) => typeof p === 'string' && p.startsWith('$'));
-      if (view && all.length) Structra.jsonTree.highlightPaths(view, all);
+      if (view && all.length) Structra.jsonTreeRenderer.highlightPaths(view, all);
       Structra.events.emit('tree:navigate-path', path);
     }, 60);
   }
 
   _copyMatches() {
     const values = (this._lastMatches || []).map((m) => m.value);
-    Structra.util.copy(JSON.stringify(values, null, 2), `${values.length} ${values.length === 1 ? 'value' : 'values'} copied`);
+    Structra.sharedHelpers.copy(JSON.stringify(values, null, 2), `${values.length} ${values.length === 1 ? 'value' : 'values'} copied`);
   }
 
   _openMatches() {
@@ -666,7 +666,7 @@ class StructraQuery extends StructraElement {
     const matches = [];
     let re;
     const source = pattern.replace(/^\/|\/[a-z]*$/g, '');
-    if (Structra.util.riskyRegex(source)) throw new Error(Structra.util.RISKY_MESSAGE);
+    if (Structra.sharedHelpers.riskyRegex(source)) throw new Error(Structra.sharedHelpers.RISKY_MESSAGE);
     try { re = new RegExp(source, 'i'); }
     catch (err) { throw new Error('That is not a valid pattern: ' + err.message.replace(/^Invalid regular expression: /, '')); }
     const walk = (val, path) => {

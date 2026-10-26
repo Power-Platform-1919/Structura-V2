@@ -1,17 +1,17 @@
 /* ============================================================
    STRUCTRA V2 - Power Platform Expressions
-   Structra.expressions - ready-to-paste expressions for a data path.
+   Structra.powerPlatformExpressions - ready-to-paste expressions for a data path.
 
    Every function returns plain data, never HTML:
      rows      → [{ label, code }]
      sections  → [{ title, rows }]
 
    API:
-     Structra.expressions.powerAutomate(path, value) → rows
-     Structra.expressions.powerFx(path, value)       → rows
-     Structra.expressions.helpers(data)              → sections
-     Structra.expressions.flowActions(path, value)   → [{ label, note, code }]  action JSON for a cloud flow
-     Structra.expressions.getSource() / setSource({...})
+     Structra.powerPlatformExpressions.powerAutomate(path, value) → rows
+     Structra.powerPlatformExpressions.powerFx(path, value)       → rows
+     Structra.powerPlatformExpressions.helpers(data)              → sections
+     Structra.powerPlatformExpressions.flowActions(path, value)   → [{ label, note, code }]  action JSON for a cloud flow
+     Structra.powerPlatformExpressions.getSource() / setSource({...})
         where the JSON comes from, so expressions start at the right place:
         { kind: 'action' | 'trigger' | 'item' | 'custom', name, fxVar, fullOutput: 'auto' | true | false }
         Changing it emits 'expressions:source-changed'.
@@ -22,10 +22,10 @@
 
 window.Structra = window.Structra || {};
 
-Structra.expressions = (() => {
+Structra.powerPlatformExpressions = (() => {
   const row = (label, code) => ({ label, code });
 
-  const kindOf = Structra.util.typeOf;
+  const kindOf = Structra.sharedHelpers.typeOf;
 
   const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
   const looksLikeDate = (s) => /\d{4}-\d{2}-\d{2}/.test(s) || /\d{2}\/\d{2}\/\d{4}/.test(s);
@@ -73,8 +73,8 @@ Structra.expressions = (() => {
       && !!data.body && typeof data.body === 'object' && ('statusCode' in data || 'headers' in data);
   }
 
-  const pa = (path) => Structra.paths.powerAutomate(path, { root: rootExpression(), dropBody: dropsBody(Structra.state && Structra.state.jsonData) });
-  const fx = (path) => Structra.paths.powerFx(path, { variable: source.fxVar || 'jsonText' });
+  const pa = (path) => Structra.dataPaths.powerAutomate(path, { root: rootExpression(), dropBody: dropsBody(Structra.state && Structra.state.jsonData) });
+  const fx = (path) => Structra.dataPaths.powerFx(path, { variable: source.fxVar || 'jsonText' });
 
   /* ========================================================
      POWER AUTOMATE
@@ -85,10 +85,10 @@ Structra.expressions = (() => {
     const rows = [row('Access value', p)];
     const add = (label, code) => rows.push(row(label, code));
     // Inside a list item the position does not matter: it is "the current item" of the loop
-    const inLoop = Structra.paths.powerAutomateInLoop(path, source.loopName);
+    const inLoop = Structra.dataPaths.powerAutomateInLoop(path, source.loopName);
     if (inLoop) {
       rows.unshift(row(`Inside Apply to each over ${listName(inLoop.listPath)}`, inLoop.expr));
-      rows.splice(1, 0, row('Inside Select, Filter array or Condition', Structra.paths.powerAutomateInItem(path).expr));
+      rows.splice(1, 0, row('Inside Select, Filter array or Condition', Structra.dataPaths.powerAutomateInItem(path).expr));
     }
 
     switch (kindOf(value)) {
@@ -376,10 +376,10 @@ Structra.expressions = (() => {
     const rows = [row('Access (ParseJSON)', p)];
     const add = (label, code) => rows.push(row(label, code));
     // Inside a list item, the item is "the current record": no position in the list is needed
-    const rec = Structra.paths.powerFxInRecord(path, 'ThisRecord');
+    const rec = Structra.dataPaths.powerFxInRecord(path, 'ThisRecord');
     if (rec) {
       rows.push(row(`Inside ForAll, Filter or Sum over ${listName(rec.listPath)}`, rec.expr));
-      rows.push(row(`In a gallery or data table over ${listName(rec.listPath)}`, Structra.paths.powerFxInRecord(path, 'ThisItem').expr));
+      rows.push(row(`In a gallery or data table over ${listName(rec.listPath)}`, Structra.dataPaths.powerFxInRecord(path, 'ThisItem').expr));
     }
 
     switch (kindOf(value)) {
@@ -399,7 +399,7 @@ Structra.expressions = (() => {
         const keys = firstObjectKeys(value);
         if (keys) {
           // Chosen columns, each converted by what it holds: numbers with Value, flags with Boolean, ISO dates with DateValue
-          const cols = pickedColumns(Structra.paths.strip(path), value).filter((c) => c.on);
+          const cols = pickedColumns(Structra.dataPaths.strip(path), value).filter((c) => c.on);
           const colExpr = (c) => `${fxName(c.name)}: ${c.value}`;
           const typedAll = cols.length ? `ForAll(${p}, {${cols.slice(0, 40).map(colExpr).join(', ')}})` : null;
           if (typedAll) {
@@ -448,7 +448,7 @@ Structra.expressions = (() => {
 
       case 'object': {
         const keys = Object.keys(value);
-        const name = cap(Structra.paths.lastKey(path));
+        const name = cap(Structra.dataPaths.lastKey(path));
         add('Store in variable', `Set(var${name}, ${p})`);
         add('UpdateContext', `UpdateContext({loc${name}: ${p}})`);
         add('To JSON string', `JSON(${p})`);
@@ -718,7 +718,7 @@ Structra.expressions = (() => {
           { type: 'Compose', inputs: at(`length(${p})`) }));
         if (keys && k) {
           const map = {};
-          pickedColumns(Structra.paths.strip(path), value).filter((c) => c.on).slice(0, 40).forEach((c) => {
+          pickedColumns(Structra.dataPaths.strip(path), value).filter((c) => c.on).slice(0, 40).forEach((c) => {
             map[c.name] = at(`item()${c.parts.map((x) => `?['${x.replace(/'/g, "''")}']`).join('')}`);
           });
           out.push(fa('Select: keep the chosen columns', 'Builds a smaller list with only the columns you chose.', 'Select',
@@ -751,8 +751,8 @@ Structra.expressions = (() => {
         out.push(fa('Condition: value is not empty', 'Add actions under "actions" for the yes path.', 'Condition',
           { type: 'If', expression: { and: [{ equals: [at(hasValue(p, value)), true] }] }, actions: {}, else: { actions: {} } }));
         // A field of a list item is used per item: through Apply to each, or by testing every item at once
-        const inLoop = Structra.paths.powerAutomateInLoop(path, source.loopName);
-        const inItem = Structra.paths.powerAutomateInItem(path);
+        const inLoop = Structra.dataPaths.powerAutomateInLoop(path, source.loopName);
+        const inItem = Structra.dataPaths.powerAutomateInItem(path);
         if (inLoop && inItem) {
           const list = pa(inLoop.listPath);
           out.push(fa(`Apply to each: read this field of every item`, `Goes through every item of ${inLoop.listPath}.`, 'Apply_to_each',
@@ -762,7 +762,7 @@ Structra.expressions = (() => {
         }
         const varType = { string: 'string', number: Number.isInteger(value) ? 'integer' : 'float', boolean: 'boolean' }[kindOf(value)];
         if (varType) {
-          const name = (Structra.paths.lastKey(path) || 'value').replace(/[^A-Za-z0-9_]/g, '_');
+          const name = (Structra.dataPaths.lastKey(path) || 'value').replace(/[^A-Za-z0-9_]/g, '_');
           out.push(fa('Initialize variable: keep this value in a variable', 'Create it at the top level of the flow, not inside a loop.', 'Initialize_variable',
             { type: 'InitializeVariable', inputs: { variables: [{ name, type: varType, value: at(p) }] } }));
         }
@@ -777,10 +777,10 @@ Structra.expressions = (() => {
    */
   function quick(path, value) {
     const out = [];
-    const loop = Structra.paths.powerAutomateInLoop(path, source.loopName);
+    const loop = Structra.dataPaths.powerAutomateInLoop(path, source.loopName);
     if (loop) {
       out.push({ app: 'Power Automate', label: `In Apply to each over ${listName(loop.listPath)}`, code: loop.expr });
-      out.push({ app: 'Power Automate', label: 'In Select, Filter array or Condition', code: Structra.paths.powerAutomateInItem(path).expr });
+      out.push({ app: 'Power Automate', label: 'In Select, Filter array or Condition', code: Structra.dataPaths.powerAutomateInItem(path).expr });
     }
     out.push({ app: 'Power Automate', label: loop ? 'With the position in the list' : 'Expression', code: pa(path) });
 
@@ -792,7 +792,7 @@ Structra.expressions = (() => {
         default: return expr;
       }
     };
-    const fxLoop = Structra.paths.powerFxInRecord(path);
+    const fxLoop = Structra.dataPaths.powerFxInRecord(path);
     if (fxLoop) out.push({ app: 'Power Fx', label: `Inside ForAll over ${fxLoop.listPath}`, code: convert(fxLoop.expr) });
     out.push({ app: 'Power Fx', label: fxLoop ? 'With the position in the list' : 'Formula', code: convert(fx(path)) });
     return out;
@@ -814,7 +814,7 @@ Structra.expressions = (() => {
 
   function helpers(data) {
     const sections = [];
-    const arrays = Structra.engine.findAllArrays(data, '');
+    const arrays = Structra.dataEngine.findAllArrays(data, '');
     const patterns = patternSections(data);
     const base = source.loopName || 'Apply_to_each';
     // Power Automate names the second loop Apply_to_each_2, the third Apply_to_each_3, and so on
@@ -826,19 +826,19 @@ Structra.expressions = (() => {
       for (const a of arrays) {
         const raw = a.path === '(root)' ? '' : a.path;
         const depth = (raw.match(/\[(?:\*|\d+)\]/g) || []).length;          // how many lists this list sits inside
-        const sample = Structra.paths.resolve(data, raw.replace(/\[\*\]/g, '[0]'));
+        const sample = Structra.dataPaths.resolve(data, raw.replace(/\[\*\]/g, '[0]'));
         const keys = Array.isArray(sample) ? firstObjectKeys(sample) : null;
 
         if (depth === 0) {
           each.push(row(a.path, pa(raw ? `$.${raw}` : '$')));
         } else {
-          const inner = Structra.paths.powerAutomateInLoop(raw, loopAt(depth));
+          const inner = Structra.dataPaths.powerAutomateInLoop(raw, loopAt(depth));
           each.push(row(`${a.path}  (inside the loop over ${inner.listPath})`, inner.expr));
         }
         if (keys) {
           for (const k of keys.slice(0, 3)) each.push(row(`  .${k}`, `items('${loopAt(depth + 1)}')?['${k}']`));
         }
-        const fxPath = Structra.paths.powerFx(raw.replace(/\[\*\]/g, '[0]'), { variable: source.fxVar || 'jsonText' });
+        const fxPath = Structra.dataPaths.powerFx(raw.replace(/\[\*\]/g, '[0]'), { variable: source.fxVar || 'jsonText' });
         gallery.push(row(a.path, `ForAll(${fxPath}, ThisRecord)`));
         if (keys && keys.length) {
           const cols = keys.slice(0, 4).map((k) => `${k}: Text(ThisRecord.${k})`).join(', ');

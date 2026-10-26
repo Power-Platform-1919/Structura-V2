@@ -9,7 +9,7 @@
      Listens to: charts:open
    ============================================================ */
 
-class StructraCharts extends StructraOverlay {
+class StructraCharts extends StructraDialog {
   static get MAX_BARS() { return 12; }
   static get BINS() { return 20; }
   static get TREND_POINTS() { return 300; }
@@ -42,12 +42,12 @@ class StructraCharts extends StructraOverlay {
     const data = Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first'); return; }
 
-    this._sources = Structra.engine.findAllArrays(data, '')
+    this._sources = Structra.dataEngine.findAllArrays(data, '')
       .filter((a) => Array.isArray(a.data) && a.data.length > 0)
       .map((a) => ({ path: a.path, label: `${a.path === '(root)' || a.path === '$' ? 'The whole list' : a.path} (${a.data.length.toLocaleString()} ${a.data.length === 1 ? 'item' : 'items'})`, rows: a.data }));
     if (!this._sources.length) { Structra.toast('No arrays to chart in this document'); return; }
 
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     this.$('#chSource').innerHTML = this._sources
       .map((s, i) => `<option value="${i}">${esc(s.label)}</option>`).join('');
 
@@ -69,7 +69,7 @@ class StructraCharts extends StructraOverlay {
   _fillColumns(preferred) {
     const src = this._sources[parseInt(this.$('#chSource').value, 10)];
     const sel = this.$('#chColumn');
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     let cols;
     if (this._isObjectRows(src.rows)) {
       const seen = new Map();
@@ -116,7 +116,7 @@ class StructraCharts extends StructraOverlay {
   }
 
   _stat(label, value) {
-    return `<div class="ch-stat"><span class="ch-stat-v">${Structra.util.esc(value)}</span><span class="ch-stat-l">${Structra.util.esc(label)}</span></div>`;
+    return `<div class="ch-stat"><span class="ch-stat-v">${Structra.sharedHelpers.esc(value)}</span><span class="ch-stat-l">${Structra.sharedHelpers.esc(label)}</span></div>`;
   }
 
   _fmt(n) {
@@ -196,7 +196,7 @@ class StructraCharts extends StructraOverlay {
     const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1]);
     const top = ranked.slice(0, StructraCharts.MAX_BARS);
     const peak = top[0][1];
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
 
     const stats = [
       this._stat('values', values.length.toLocaleString()), this._stat('empty', nulls.toLocaleString()),

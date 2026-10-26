@@ -1,11 +1,11 @@
 /* ============================================================
    STRUCTRA V2 - Panel Resizer
-   Structra.resizer - drag a panel edge to change its width.
+   Structra.panelResizer - drag a panel edge to change its width.
    The width lives in a CSS variable, so layout.css stays in charge,
    and the chosen width is remembered between visits.
 
    API:
-     Structra.resizer.attach(panel, { name, edge, cssVar, min, max })
+     Structra.panelResizer.attach(panel, { name, edge, cssVar, min, max })
        panel   the element to resize
        name    storage key suffix, e.g. 'query'
        edge    'right' for a panel on the left side of the page, 'left' for one on the right
@@ -17,7 +17,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.resizer = (() => {
+Structra.panelResizer = (() => {
   const KEY = (name) => 'structra.panelWidth.' + name;
   const STEP = 16;
 

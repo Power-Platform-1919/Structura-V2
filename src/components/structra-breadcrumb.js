@@ -8,7 +8,7 @@
      Sets state: currentPath
    ============================================================ */
 
-class StructraBreadcrumb extends StructraElement {
+class StructraBreadcrumb extends StructraComponent {
   init() {
     this.on('state:currentPath', () => this._update());
     this.on('state:jsonData', () => this._update());
@@ -18,21 +18,21 @@ class StructraBreadcrumb extends StructraElement {
     this.addEventListener('click', (e) => {
       const seg = e.target.closest('[data-path]');
       if (!seg) return;
-      Structra.set('currentPath', seg.dataset.path);
+      Structra.setState('currentPath', seg.dataset.path);
     });
     this._update();
   }
 
   _update() {
     if (!this._mounted) return;
-    const tokens = Structra.paths.tokenize(Structra.state.currentPath);
+    const tokens = Structra.dataPaths.tokenize(Structra.state.currentPath);
     if (!tokens.length || !Structra.state.jsonData) {
       this.innerHTML = '';
       this.classList.remove('show');
       return;
     }
 
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     let running = '';
     const parts = [`<button class="bc-seg" data-path="$">root</button>`];
     tokens.forEach((t, i) => {

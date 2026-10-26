@@ -9,7 +9,7 @@
      Sets state: activeView, findBarOpen, filterBarOpen
    ============================================================ */
 
-class StructraCanvasHeader extends StructraElement {
+class StructraCanvasHeader extends StructraComponent {
   static get observedAttributes() { return ['active-view']; }
 
   /** Buttons a person may hide. View tabs and Find always stay. */
@@ -81,7 +81,7 @@ class StructraCanvasHeader extends StructraElement {
     this.addEventListener('click', (e) => {
       const viewBtn = e.target.closest('[data-view]');
       if (viewBtn) {
-        Structra.set('activeView', viewBtn.dataset.view);
+        Structra.setState('activeView', viewBtn.dataset.view);
         return;
       }
 
@@ -98,8 +98,8 @@ class StructraCanvasHeader extends StructraElement {
         case 'wrap':         Structra.log.info('CanvasHeader', 'Action: wrap'); Structra.events.emit('tree:toggle-wrap'); break;
         case 'copy-json':    Structra.log.info('CanvasHeader', 'Action: copy-json'); this._copyJson(); break;
         case 'more':         this._showMoreMenu(actionBtn); break;
-        case 'find':         Structra.set('findBarOpen', true); break;
-        case 'filter':       Structra.set('filterBarOpen', !Structra.state.filterBarOpen); break;
+        case 'find':         Structra.setState('findBarOpen', true); break;
+        case 'filter':       Structra.setState('filterBarOpen', !Structra.state.filterBarOpen); break;
       }
     });
   }
@@ -136,7 +136,7 @@ class StructraCanvasHeader extends StructraElement {
     menu.setAttribute('role', 'menu');
     menu.innerHTML = items.map((it) => it === '-'
       ? '<div class="menu-sep"></div>'
-      : `<button class="menu-item" type="button" role="menuitem" data-i="${items.indexOf(it)}">${Structra.util.esc(it.label)}</button>`).join('');
+      : `<button class="menu-item" type="button" role="menuitem" data-i="${items.indexOf(it)}">${Structra.sharedHelpers.esc(it.label)}</button>`).join('');
     document.body.appendChild(menu);
     const r = menu.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(x, window.innerWidth - r.width - 8)) + 'px';
@@ -194,7 +194,7 @@ class StructraCanvasHeader extends StructraElement {
     const data = Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first'); return; }
     const text = JSON.stringify(data, null, 2);
-    Structra.util.copy(text, 'JSON copied');
+    Structra.sharedHelpers.copy(text, 'JSON copied');
   }
 }
 

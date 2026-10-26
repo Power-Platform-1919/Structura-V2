@@ -3,7 +3,7 @@
    All custom elements extend this. ~30 lines, no magic.
    ============================================================ */
 
-class StructraElement extends HTMLElement {
+class StructraComponent extends HTMLElement {
   constructor() {
     super();
     this._mounted = false;

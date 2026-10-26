@@ -63,20 +63,20 @@ function serve() {
     // plain names for the rail, the Query modes and the Filter tabs
     const rail = await text('structra-rail .rail-btn');
     if (rail[rail.length - 1] !== 'Settings' || !rail.includes('Themes')) failures.push('the rail should end with Themes then Settings: ' + rail.join(', '));
-    await page.evaluate(() => Structra.set('queryPanelOpen', true));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', true));
     await page.waitForTimeout(300);
     const modes = (await text('structra-query [data-mode]')).join(',');
     if (modes !== 'Path,JSONPath,Pattern,JavaScript,SQL') failures.push('Query modes should read Path, JSONPath, Pattern, JavaScript, SQL: ' + modes);
     const title = (await text('structra-query .panel-title'))[0];
     if (title !== 'Query and Transform') failures.push('the Query panel title should be Query and Transform: ' + title);
-    await page.evaluate(() => Structra.set('queryPanelOpen', false));
-    await page.evaluate(() => Structra.set('filterBarOpen', true));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', false));
+    await page.evaluate(() => Structra.setState('filterBarOpen', true));
     await page.waitForTimeout(300);
     const tabs = (await text('structra-filter .filter-mode-tab')).join(',');
     if (tabs !== 'Simple,JSONPath,Pattern,Formula') failures.push('Filter tabs should read Simple, JSONPath, Pattern, Formula: ' + tabs);
     const firstField = await page.evaluate(() => (document.querySelector('structra-filter .filter-field, structra-filter select') || {}).value);
     if (firstField !== 'name') failures.push('the filter should start on the first text column (name), it starts on ' + firstField);
-    await page.evaluate(() => Structra.set('filterBarOpen', false));
+    await page.evaluate(() => Structra.setState('filterBarOpen', false));
 
     // the Load URL box refuses text that is not a web address, before sending anything
     const sent = [];
@@ -102,7 +102,7 @@ function serve() {
     await closeAll();
     const recs = Array.from({ length: 40 }, (_, i) => ({ id: 'r' + i, status: ['Open', 'Closed', 'Hold'][i % 3], notes: i % 3 === 0 ? 'x' : null }));
     await load('recs.json', JSON.stringify(recs));
-    await page.evaluate(() => Structra.set('activeView', 'overview'));
+    await page.evaluate(() => Structra.setState('activeView', 'overview'));
     await page.waitForTimeout(800);
     const finds = await page.evaluate(() => [...document.querySelectorAll('.ovw-find')].map((b) => ({ cls: b.className, text: b.textContent.replace(/\s+/g, ' ').trim() })));
     if (finds.some((f) => /unique/.test(f.text) && /status/i.test(f.text))) failures.push('a Status column should not be flagged as not unique: ' + JSON.stringify(finds));
@@ -118,23 +118,23 @@ function serve() {
     await page.keyboard.press('Escape');
 
     // Transform: a Pivot entry, and the code box is under Advanced
-    await page.evaluate(() => Structra.set('queryPanelOpen', true));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', true));
     await page.locator('[data-qtab="transform"]').click();
     const tr = await page.evaluate(() => ({ pivot: !!document.querySelector('[data-action="openPivot"]'), boxVisible: document.querySelector('#qpAdvanced').open }));
     if (!tr.pivot) failures.push('the Transform panel should offer Pivot');
     if (tr.boxVisible) failures.push('the code box should be folded under Advanced');
-    await page.evaluate(() => Structra.set('queryPanelOpen', false));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', false));
 
     // Every built-in theme keeps muted text, null and true readable (4.5:1) and the dark panels apart from the page
     const weak = await page.evaluate(() => {
       const out = [];
-      for (const t of Structra.theme.list().filter((x) => x.builtIn)) {
+      for (const t of Structra.themeEngine.list().filter((x) => x.builtIn)) {
         const c = t.colors;
         for (const k of ['textMuted', 'synNull', 'synBoolean', 'accent']) {
-          const worst = Math.min(...['bg', 'surface', 'surfaceAlt'].map((b) => Structra.theme.contrast(c[k], c[b])));
+          const worst = Math.min(...['bg', 'surface', 'surfaceAlt'].map((b) => Structra.themeEngine.contrast(c[k], c[b])));
           if (worst < 4.5) out.push(`${t.name} ${k} ${worst.toFixed(2)}`);
         }
-        if (t.mode === 'dark' && Structra.theme.contrast(c.border, c.bg) < 1.4) out.push(`${t.name} border is lost against the page`);
+        if (t.mode === 'dark' && Structra.themeEngine.contrast(c.border, c.bg) < 1.4) out.push(`${t.name} border is lost against the page`);
       }
       return out;
     });
@@ -145,13 +145,13 @@ function serve() {
     await load('prices.csv', 'Item,Price\nA,10.00\nB,"1,200.00"\nC,2.50\n');
     const prices = await page.evaluate(() => Structra.state.jsonData.map((r) => r.Price));
     if (prices.join() !== '10,1200,2.5') failures.push('CSV prices should be numbers, "1,200.00" included: ' + prices.join());
-    await page.evaluate(() => Structra.set('activeView', 'table'));
+    await page.evaluate(() => Structra.setState('activeView', 'table'));
     await page.waitForTimeout(600);
     const cells = await page.evaluate(() => [...document.querySelectorAll('structra-table tbody tr td:nth-child(2)')].map((t) => t.textContent.trim()));
     if (cells.join() !== '10.00,1200.00,2.50') failures.push('the Table should keep two decimals for Price: ' + cells.join());
 
     // Editor: an error in plain words
-    await page.evaluate(() => Structra.set('activeView', 'editor'));
+    await page.evaluate(() => Structra.setState('activeView', 'editor'));
     await page.waitForTimeout(400);
     await page.evaluate(() => { document.querySelector('structra-editor .cv').codeView.replaceAll("{ 'a': 1 }"); });
     await page.waitForTimeout(500);

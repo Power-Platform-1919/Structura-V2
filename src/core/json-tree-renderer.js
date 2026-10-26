@@ -14,16 +14,16 @@
    large arrays. Object/primitive rendering is inline (no chunking).
 
    API:
-     Structra.jsonTree.render(container, data, opts)
-     Structra.jsonTree.expandAll(container)
-     Structra.jsonTree.collapseAll(container)
-     Structra.jsonTree.collapseToDepth(container, depth)
-     Structra.jsonTree.highlightPath(container, path)
-     Structra.jsonTree.highlightPaths(container, paths)
-     Structra.jsonTree.setFilter(container, matchedPaths)
-     Structra.jsonTree.setFilterByRegex(container, regex)
-     Structra.jsonTree.clearFilter(container)
-     Structra.jsonTree.renderInto(container, data)
+     Structra.jsonTreeRenderer.render(container, data, opts)
+     Structra.jsonTreeRenderer.expandAll(container)
+     Structra.jsonTreeRenderer.collapseAll(container)
+     Structra.jsonTreeRenderer.collapseToDepth(container, depth)
+     Structra.jsonTreeRenderer.highlightPath(container, path)
+     Structra.jsonTreeRenderer.highlightPaths(container, paths)
+     Structra.jsonTreeRenderer.setFilter(container, matchedPaths)
+     Structra.jsonTreeRenderer.setFilterByRegex(container, regex)
+     Structra.jsonTreeRenderer.clearFilter(container)
+     Structra.jsonTreeRenderer.renderInto(container, data)
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Emits: tree:search-key, loading:show, loading:hide, tree:inline-edit
@@ -31,12 +31,12 @@
 
 window.Structra = window.Structra || {};
 
-Structra.jsonTree = (() => {
+Structra.jsonTreeRenderer = (() => {
   'use strict';
 
   const CHUNK_SIZE = 100;
   const OFFSCREEN_MARGIN = 3000;
-  const esc = Structra.util.esc;
+  const esc = Structra.sharedHelpers.esc;
 
   /* ============================
      RENDER STATE (per container)
@@ -314,7 +314,7 @@ Structra.jsonTree = (() => {
     const startLine = parseInt(chunk.dataset.chunkstartline) || 0;
 
     const dataRef = st.data;
-    const actualArr = path ? Structra.paths.resolve(dataRef, path) : dataRef;
+    const actualArr = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
     if (!actualArr || !Array.isArray(actualArr)) return;
 
     const lines = buildChunkLines(st, actualArr, path, indent, start, end, total, startLine);
@@ -333,7 +333,7 @@ Structra.jsonTree = (() => {
     const end = Math.min(start + CHUNK_SIZE, total);
 
     const dataRef = st.data;
-    const actualArr = path ? Structra.paths.resolve(dataRef, path) : dataRef;
+    const actualArr = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
     if (!actualArr || !Array.isArray(actualArr)) { sentinel.remove(); return; }
 
     // Create chunk container
@@ -591,7 +591,7 @@ Structra.jsonTree = (() => {
     const st = getState(container);
     if (st && st.highlightedEl) { st.highlightedEl.classList.remove('highlighted'); st.highlightedEl = null; }
     if (!path) return;
-    const match = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.paths.strip(path))}"]`);
+    const match = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.dataPaths.strip(path))}"]`);
     if (match) {
       match.classList.add('highlighted');
       if (st) st.highlightedEl = match;
@@ -608,7 +608,7 @@ Structra.jsonTree = (() => {
   function highlightPaths(container, paths) {
     // Highlight multiple paths (for search results)
     // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b"
-    const set = new Set((Array.isArray(paths) ? paths : []).map((p) => Structra.paths.strip(p)));
+    const set = new Set((Array.isArray(paths) ? paths : []).map((p) => Structra.dataPaths.strip(p)));
     container.querySelectorAll('.j-line').forEach(el => {
       const dp = el.getAttribute('data-path') || '';
       el.classList.toggle('find-match', set.has(dp));
@@ -627,7 +627,7 @@ Structra.jsonTree = (() => {
     for (let i = 0; i < st.bookmarkedEls.length; i++) st.bookmarkedEls[i].classList.remove('bookmarked');
     st.bookmarkedEls = [];
     for (const b of bookmarks) {
-      const el = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.paths.strip(b))}"]`);
+      const el = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.dataPaths.strip(b))}"]`);
       if (el) { el.classList.add('bookmarked'); st.bookmarkedEls.push(el); }
     }
   }
@@ -675,7 +675,7 @@ Structra.jsonTree = (() => {
     const data = st.data;
     if (!path || !data) return;
 
-    const currentVal = Structra.paths.resolve(data, path);
+    const currentVal = Structra.dataPaths.resolve(data, path);
     let displayVal;
     if (currentVal === null) displayVal = 'null';
     else if (typeof currentVal === 'string') displayVal = currentVal;
@@ -777,7 +777,7 @@ Structra.jsonTree = (() => {
     const st = getState(container);
     if (!st) return;
     // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b". The filter looks paths up, so keep them as a Set in the tree's form.
-    st.filterMatchedPaths = new Set([...matchedPaths].map((p) => Structra.paths.strip(p)));
+    st.filterMatchedPaths = new Set([...matchedPaths].map((p) => Structra.dataPaths.strip(p)));
     st.filterPathRegex = null;
     // The lines above a match stay visible, so a match is shown inside the record that holds it
     st.filterAncestors = new Set(['']);
@@ -905,7 +905,7 @@ Structra.jsonTree = (() => {
   }
 
   /* --- Utility --- */
-  const tick = Structra.util.nextTick;
+  const tick = Structra.sharedHelpers.nextTick;
 
   /* ============================
      PUBLIC API

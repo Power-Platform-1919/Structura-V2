@@ -1,21 +1,21 @@
 /* ============================================================
    STRUCTRA V2 - JSON Tools
-   Structra.jsonTools - repair, duplicate keys, JSON Patch, schema validation.
+   Structra.jsonRepairAndValidation - repair, duplicate keys, JSON Patch, schema validation.
 
    API:
-     await Structra.jsonTools.repair(text)            → repaired JSON text
-     await Structra.jsonTools.findDuplicateKeys(text) → [{ key, path, line }]
-     Structra.jsonTools.patch(from, to)               → RFC 6902 operations
-     await Structra.jsonTools.validate(data, schema)  → { valid, errors: [{ path, message, keyword }] }
+     await Structra.jsonRepairAndValidation.repair(text)            → repaired JSON text
+     await Structra.jsonRepairAndValidation.findDuplicateKeys(text) → [{ key, path, line }]
+     Structra.jsonRepairAndValidation.patch(from, to)               → RFC 6902 operations
+     await Structra.jsonRepairAndValidation.validate(data, schema)  → { valid, errors: [{ path, message, keyword }] }
    ============================================================ */
 
 window.Structra = window.Structra || {};
 
-Structra.jsonTools = (() => {
+Structra.jsonRepairAndValidation = (() => {
   /* ---------- repair ---------- */
 
   async function repair(text) {
-    await Structra.libs.require('jsonrepair');
+    await Structra.libraryLoader.require('jsonrepair');
     const lib = window.JSONRepair || window.jsonrepair;
     const fn = lib && (lib.jsonrepair || lib);
     if (typeof fn !== 'function') throw new Error('jsonrepair did not load');
@@ -73,7 +73,7 @@ Structra.jsonTools = (() => {
 
       // Large files: give the page a turn about every 12 ms
       if ((i & 0xFFFF) === 0xFFFF && performance.now() - lastYield > 12) {
-        await Structra.util.yieldToBrowser();
+        await Structra.sharedHelpers.yieldToBrowser();
         lastYield = performance.now();
       }
     }
@@ -124,7 +124,7 @@ Structra.jsonTools = (() => {
   }
 
   async function validate(data, schema) {
-    await Structra.libs.require('ajv');
+    await Structra.libraryLoader.require('ajv');
     const ajv = new window.Ajv({ allErrors: true, jsonPointers: true });
     const check = ajv.compile(schema);          // throws on an invalid schema
     const valid = check(data);

@@ -12,7 +12,7 @@
      Sets state: filterBarOpen, findBarOpen
    ============================================================ */
 
-class StructraFind extends StructraElement {
+class StructraFind extends StructraComponent {
   static get observedAttributes() { return ['open']; }
 
   init() {
@@ -24,14 +24,14 @@ class StructraFind extends StructraElement {
     this.on('state:findBarOpen', (d) => {
       Structra.log.info('Find', 'findBar ' + (d.value ? 'opened' : 'closed'));
       this.props.open = d.value ? 'true' : '';
-      if (d.value && Structra.state.filterBarOpen) Structra.set('filterBarOpen', false);
+      if (d.value && Structra.state.filterBarOpen) Structra.setState('filterBarOpen', false);
       this._toggle(d.value);
     });
     this.on('overlay:close', () => this._close());
     this.on('find:toggle-replace', () => this._toggleReplace());
     // Open the bar in a mode, optionally with text typed in (Fuzzy search and SQL commands use this)
     this.on('find:open', ({ mode, text, run } = {}) => {
-      Structra.set('findBarOpen', true);
+      Structra.setState('findBarOpen', true);
       const input = this.$('#findInput');
       if (!input) return;
       this._setMode(mode || 'text');
@@ -42,7 +42,7 @@ class StructraFind extends StructraElement {
     });
     // Double-click a key in the Tree, or choose a key in the Overview: find where that field appears
     this.on('tree:search-key', (key) => {
-      Structra.set('findBarOpen', true);
+      Structra.setState('findBarOpen', true);
       const input = this.$('#findInput');
       if (!input) return;
       this._setMode('text');
@@ -52,7 +52,7 @@ class StructraFind extends StructraElement {
     });
     // Open the bar with a search already typed in (used by "Find this value" in the Node panel)
     this.on('find:prefill', (text) => {
-      Structra.set('findBarOpen', true);
+      Structra.setState('findBarOpen', true);
       const input = this.$('#findInput');
       if (!input) return;
       this._setMode('text');
@@ -143,7 +143,7 @@ class StructraFind extends StructraElement {
       const a = btn.dataset.action;
       if (a === 'prev') this._prev();
       else if (a === 'next') this._next();
-      else if (a === 'close-find') Structra.set('findBarOpen', false);
+      else if (a === 'close-find') Structra.setState('findBarOpen', false);
       else if (a === 'toggleReplace') this._toggleReplace();
       else if (a === 'replaceOne') this._replaceOne();
       else if (a === 'replaceAll') this._replaceAll();
@@ -189,7 +189,7 @@ class StructraFind extends StructraElement {
   }
 
   _close() {
-    Structra.set('findBarOpen', false);
+    Structra.setState('findBarOpen', false);
     this._clearSearch();
     this._replaceOpen = false;
     const row = this.$('#replaceRow');
@@ -217,7 +217,7 @@ class StructraFind extends StructraElement {
   /* --- Fuzzy search (engine.fuzzySearch) --- */
   async _doFuzzyFind(query) {
     try {
-      const results = await Structra.engine.fuzzySearch(query);
+      const results = await Structra.dataEngine.fuzzySearch(query);
       const total = (results && results.total) || 0;
       this._idx = -1;
       this.$('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
@@ -230,7 +230,7 @@ class StructraFind extends StructraElement {
   /* --- Regex search (engine.regexSearch) --- */
   async _doRegexFind(query) {
     try {
-      const results = await Structra.engine.regexSearch(query);
+      const results = await Structra.dataEngine.regexSearch(query);
       const total = (results && results.total) || 0;
       this._idx = -1;
       this.$('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
@@ -243,7 +243,7 @@ class StructraFind extends StructraElement {
   /* --- DuckDB-backed find --- */
   async _doDbFind(query) {
     try {
-      const result = await Structra.engine.findInDb(query);
+      const result = await Structra.dataEngine.findInDb(query);
       if (result && result.total > 0) {
         this.$('#findCount').textContent = result.total + ' found';
       } else {
@@ -258,9 +258,9 @@ class StructraFind extends StructraElement {
   /* --- SQL query --- */
   async _doSqlFind(query) {
     // The SQL engine starts on first use (runSql does that), so say so while it loads
-    if (!Structra.engine.duckReady) this.$('#findCount').textContent = 'Starting SQL…';
+    if (!Structra.dataEngine.duckReady) this.$('#findCount').textContent = 'Starting SQL…';
     try {
-      const result = await Structra.engine.runSql(query);
+      const result = await Structra.dataEngine.runSql(query);
       if (result.error) {
         this.$('#findCount').textContent = 'SQL Error';
         Structra.toast(result.error, 'error');
@@ -277,10 +277,10 @@ class StructraFind extends StructraElement {
 
   /** Replace in the open document, keeping the original so Ctrl+Z can bring it back */
   _replace(findText, replaceText, all) {
-    const ds = Structra.engine.getActive();
+    const ds = Structra.dataEngine.getActive();
     const tabId = Structra.tabs.activeId;
     const kept = ds ? Structra.undoStack.push(ds.raw, 'Before replace', tabId) : false;
-    const result = Structra.engine.replaceInData(findText, replaceText, all);
+    const result = Structra.dataEngine.replaceInData(findText, replaceText, all);
     if (result.replaced > 0 && kept) Structra.undoStack.push(ds.raw, `Replace "${findText}" with "${replaceText}"`, tabId);
     return { ...result, undoable: kept };
   }
@@ -324,7 +324,7 @@ class StructraFind extends StructraElement {
   /* ======== NAVIGATION ======== */
 
   _next() {
-    const query = Structra.engine.getQuery();
+    const query = Structra.dataEngine.getQuery();
     if (!query || !query.matchedPaths || query.matchedPaths.length === 0) return;
     this._idx = (this._idx + 1) % query.total;
     this._updateCount();
@@ -334,7 +334,7 @@ class StructraFind extends StructraElement {
   }
 
   _prev() {
-    const query = Structra.engine.getQuery();
+    const query = Structra.dataEngine.getQuery();
     if (!query || !query.matchedPaths || query.matchedPaths.length === 0) return;
     this._idx = (this._idx - 1 + query.total) % query.total;
     this._updateCount();
@@ -345,7 +345,7 @@ class StructraFind extends StructraElement {
   _updateCount() {
     const el = this.$('#findCount');
     if (!el) return;
-    const query = Structra.engine.getQuery();
+    const query = Structra.dataEngine.getQuery();
     if (query && query.total > 0) {
       el.textContent = `${this._idx + 1}/${query.total}`;
     }
@@ -360,7 +360,7 @@ class StructraFind extends StructraElement {
     if (countEl) countEl.textContent = '0/0';
     const input = this.$('#findInput');
     if (input) input.value = '';
-    Structra.engine.clearQuery();
+    Structra.dataEngine.clearQuery();
   }
 }
 

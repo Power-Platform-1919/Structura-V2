@@ -1,7 +1,7 @@
 /**
  * JSONPath - find values by path.
  *
- *   Structra.jsonpath.query(data, '$.value[*].Requester.Email')
+ *   Structra.jsonpathQuery.query(data, '$.value[*].Requester.Email')
  *     → [{ path: '$.value[0].Requester.Email', value: 'ann@contoso.com' }, ...]
  *
  * Supported (the parts people use):
@@ -12,7 +12,7 @@
  *   [?(@.Cost > 100 && @.Approved == true)]   items that pass a test (== != > >= < <= =~, && ||)
  *   ['a','b'] [0,2]  several at once
  */
-Structra.jsonpath = (() => {
+Structra.jsonpathQuery = (() => {
 
   /* ---------- reading the expression ---------- */
 

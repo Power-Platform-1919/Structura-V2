@@ -2,7 +2,7 @@
  * Transform Operations - operation registry for safe jq-style expression evaluation.
  * Each operation has a pattern (regex) and an exec function.
  */
-Structra.transformOps = (() => {
+Structra.transformStepOperations = (() => {
 
   // Safety: block dangerous patterns in callback expressions
   function validateExpression(body, allowedParams) {

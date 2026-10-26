@@ -48,7 +48,7 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => Structra.set('activeView', 'graph'));
+    await page.evaluate(() => Structra.setState('activeView', 'graph'));
     await page.waitForTimeout(600);
 
     // ---- opens centred: the drawing sits in the middle of the view, not in the top left corner ----
@@ -73,7 +73,7 @@ function serve() {
     if (sel.marked.join() !== '$.value[0].Title') failures.push('the selected node should be highlighted: ' + JSON.stringify(sel));
 
     // ---- Heatmap colours the Tree lines, Minimap has a title and a close button, Diff labels its counts ----
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
     await page.waitForTimeout(500);
     await page.evaluate(() => Structra.events.emit('heatmap:toggle'));
     await page.waitForTimeout(500);

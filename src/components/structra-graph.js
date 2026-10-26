@@ -9,7 +9,7 @@
      Sets state: currentPath
    ============================================================ */
 
-class StructraGraph extends StructraElement {
+class StructraGraph extends StructraComponent {
   static get observedAttributes() { return ['max-depth']; }
 
   /* ---- Constants ---- */
@@ -77,9 +77,9 @@ class StructraGraph extends StructraElement {
   /* ---- Public ---- */
   renderGraph() {
     this._stale = false;
-    const query = Structra.engine.getQuery();
-    const dataset = Structra.engine.getActive();
-    const data = query ? Structra.engine.getQueryData() : (dataset ? dataset.raw : Structra.state.jsonData);
+    const query = Structra.dataEngine.getQuery();
+    const dataset = Structra.dataEngine.getActive();
+    const data = query ? Structra.dataEngine.getQueryData() : (dataset ? dataset.raw : Structra.state.jsonData);
     const container = this._containerEl;
     if (!container) return;
 
@@ -252,7 +252,7 @@ class StructraGraph extends StructraElement {
       group.style.cursor = 'pointer';
       group.addEventListener('click', e => {
         e.stopPropagation();
-        Structra.set('currentPath', node.path);
+        Structra.setState('currentPath', node.path);
         Structra.events.emit('tree:node-selected', node.path);
         if (node.collapsed) this._expandCollapsed(node);
       });

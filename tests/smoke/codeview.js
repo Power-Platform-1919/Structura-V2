@@ -125,7 +125,7 @@ function serve() {
     if (preview.ms > 200 || preview.len > 700 || !preview.more) failures.push('the preview of a huge list should be short and quick: ' + JSON.stringify(preview));
 
     // ---- The JSON editor: folding, error marking ----
-    await page.evaluate(() => Structra.set('activeView', 'editor'));
+    await page.evaluate(() => Structra.setState('activeView', 'editor'));
     await page.waitForSelector('structra-editor .cm-editor', { timeout: 20000 });
     await page.waitForTimeout(500);
     const ed = await page.evaluate(() => {

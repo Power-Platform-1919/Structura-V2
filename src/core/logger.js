@@ -29,7 +29,7 @@ Structra.log = (() => {
   // Priority: URL param > settings > localStorage > default
   const _urlMode = new URLSearchParams(window.location.search).get('log');
   let _mode = (['dev', 'normal', 'off'].includes(_urlMode) ? _urlMode : null)
-    || (Structra.settings && Structra.settings.get('logMode'))
+    || (Structra.appSettings && Structra.appSettings.get('logMode'))
     || localStorage.getItem('structra.logMode')
     || 'normal';
 
@@ -99,8 +99,8 @@ Structra.log = (() => {
       }
       _mode = mode;
       // Persist via settings if available, else direct localStorage
-      if (Structra.settings) {
-        Structra.settings.set('logMode', mode);
+      if (Structra.appSettings) {
+        Structra.appSettings.set('logMode', mode);
       } else {
         localStorage.setItem('structra.logMode', mode);
       }

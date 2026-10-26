@@ -1,6 +1,6 @@
 /* ============================================================
    STRUCTRA V2 - Insights
-   Structra.insights.build(...) turns the analysis of a document into the
+   Structra.overviewInsights.build(...) turns the analysis of a document into the
    plain-language summary the Overview screen shows:
      - a one-sentence description of what the data is
      - a few headline figures
@@ -8,7 +8,7 @@
      - the biggest lists in the document
    Pure logic: no DOM, no engine calls. Give it the analysis and it answers.
 
-   Structra.insights.build({ analysis, meta, data, duplicateKeys }) → {
+   Structra.overviewInsights.build({ analysis, meta, data, duplicateKeys }) → {
      headline, facts: [{ label, value }],
      findings: [{ severity: 'high'|'med'|'info', title, detail, go: { path?, view?, drawer? } }],
      arrays: [{ path, count, sample }]
@@ -17,7 +17,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.insights = (() => {
+Structra.overviewInsights = (() => {
   const plural = (n, one, many) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
   const SEVERITY_ORDER = { high: 0, med: 1, info: 2 };
 
@@ -97,7 +97,7 @@ Structra.insights = (() => {
       findings.push({
         severity: 'info',
         title: 'This looks like a connector or API response',
-        detail: Structra.expressions ? Structra.expressions.connectorShape(data) : '',
+        detail: Structra.powerPlatformExpressions ? Structra.powerPlatformExpressions.connectorShape(data) : '',
         go: { drawer: 'expressions' },
       });
     }
@@ -120,7 +120,7 @@ Structra.insights = (() => {
     return {
       headline: describe(data, firstArr, profile),
       facts: [
-        { label: 'Size', value: Structra.util.formatBytes(meta.fileSize) },
+        { label: 'Size', value: Structra.sharedHelpers.formatBytes(meta.fileSize) },
         { label: 'Values', value: s.totalNodes.toLocaleString() },
         { label: 'Keys', value: s.keys.toLocaleString() },
         { label: 'Depth', value: String(s.depth) },

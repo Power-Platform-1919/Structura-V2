@@ -11,7 +11,7 @@
      Sets state: activeView
    ============================================================ */
 
-class StructraDrawerStats extends StructraElement {
+class StructraDrawerStats extends StructraComponent {
   init() {
     this._stale = true;
     this._renderTimer = null;
@@ -46,14 +46,14 @@ class StructraDrawerStats extends StructraElement {
     const root = this.$('#dsRoot');
     if (!root) return;
 
-    const dataset = Structra.engine.getActive();
+    const dataset = Structra.dataEngine.getActive();
     const data = dataset ? dataset.raw : Structra.state.jsonData;
     if (!data) {
       root.innerHTML = '<p class="ds-empty">Load data to see analysis</p>';
       return;
     }
 
-    const analysis = await Structra.engine.getAnalysis();
+    const analysis = await Structra.dataEngine.getAnalysis();
     if (!analysis) return;
     const { stats: s, firstArr, profile, gaps } = analysis;
     const q = profile ? profile.quality : null;
@@ -116,9 +116,9 @@ class StructraDrawerStats extends StructraElement {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
       if (btn.dataset.action === 'open-overview') {
-        Structra.set('activeView', 'overview');
+        Structra.setState('activeView', 'overview');
       } else if (btn.dataset.action === 'open-profiler') {
-        Structra.set('activeView', 'overview');
+        Structra.setState('activeView', 'overview');
         // Scroll to profiler section after view switch
         requestAnimationFrame(() => {
           const prof = document.querySelector('.profiler-table');

@@ -1,20 +1,20 @@
 /* ============================================================
    STRUCTRA V2 - Share and Capture
-   Structra.share   - put a small JSON document in the URL hash, and read it back.
-   Structra.capture - save an element as a PNG image.
+   Structra.shareLink   - put a small JSON document in the URL hash, and read it back.
+   Structra.imageCapture - save an element as a PNG image.
 
    The hash looks like  #share=g.<base64url>  (gzip)  or  #share=p.<base64url>  (plain).
 
    API:
-     await Structra.share.createUrl(data, name)   → { url, bytes }, throws when too large
-     await Structra.share.readHash()        → { data, name } or null
-     Structra.share.clearHash()
-     await Structra.capture.png(element, fileName)
+     await Structra.shareLink.createUrl(data, name)   → { url, bytes }, throws when too large
+     await Structra.shareLink.readHash()        → { data, name } or null
+     Structra.shareLink.clearHash()
+     await Structra.imageCapture.png(element, fileName)
    ============================================================ */
 
 window.Structra = window.Structra || {};
 
-Structra.share = (() => {
+Structra.shareLink = (() => {
   const MAX_ENCODED = 30000;   // characters in the hash
 
   const toBase64Url = (bytes) => {
@@ -80,7 +80,7 @@ Structra.share = (() => {
   return { createUrl, readHash, clearHash };
 })();
 
-Structra.capture = (() => {
+Structra.imageCapture = (() => {
   // html2canvas reads colours itself and does not know the colour functions the themes use
   // (color-mix and color()). Before it draws, every colour in the copy of the page is written as plain rgb().
   const COLOR_PROPS = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
@@ -122,7 +122,7 @@ Structra.capture = (() => {
 
   async function png(element, fileName) {
     if (!element) throw new Error('Nothing to capture');
-    await Structra.libs.require('html2canvas');
+    await Structra.libraryLoader.require('html2canvas');
     const bg = getComputedStyle(document.body).backgroundColor;
     const canvas = await window.html2canvas(element, {
       backgroundColor: MODERN.test(bg) ? colorResolver()(bg) : bg,
@@ -132,7 +132,7 @@ Structra.capture = (() => {
     MODERN.lastIndex = 0;
     await new Promise((resolve, reject) => canvas.toBlob((blob) => {
       if (!blob) { reject(new Error('Could not create the image')); return; }
-      Structra.util.download(blob, fileName || 'structra.png');
+      Structra.sharedHelpers.download(blob, fileName || 'structra.png');
       resolve();
     }, 'image/png'));
   }

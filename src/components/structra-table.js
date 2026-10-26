@@ -13,14 +13,14 @@
      Sets state: currentPath
    ============================================================ */
 
-class StructraTable extends StructraElement {
+class StructraTable extends StructraComponent {
   static get observedAttributes() { return ['path']; }
 
   init() {
     this._sortCol = null;
     this._sortAsc = true;
     this._page = 0;
-    this._pageSize = parseInt(Structra.settings.get('pageSize'), 10) || 50;
+    this._pageSize = parseInt(Structra.appSettings.get('pageSize'), 10) || 50;
     this._stale = false;
     this._totalRows = 0;
     this._keys = [];
@@ -120,7 +120,7 @@ class StructraTable extends StructraElement {
       if (opt) {
         this._pageSize = parseInt(opt.dataset.pageSize, 10);
         this._page = 0;
-        Structra.settings.set('pageSize', this._pageSize);
+        Structra.appSettings.set('pageSize', this._pageSize);
         this.renderTable();
         return;
       }
@@ -129,7 +129,7 @@ class StructraTable extends StructraElement {
       if (tr) {
         this.$$('tbody tr.row-sel').forEach(r => r.classList.remove('row-sel'));
         tr.classList.add('row-sel');
-        Structra.set('currentPath', tr.dataset.path);
+        Structra.setState('currentPath', tr.dataset.path);
         Structra.events.emit('tree:node-selected', tr.dataset.path);
       }
     });
@@ -200,14 +200,14 @@ class StructraTable extends StructraElement {
   }
 
   _resolveBase() {
-    const dataset = Structra.engine.getActive();
-    const query = Structra.engine.getQuery();
+    const dataset = Structra.dataEngine.getActive();
+    const query = Structra.dataEngine.getQuery();
     let allRows, totalRows, keys, basePath;
 
     // A filter that matches nothing shows an empty table with its headers, not the whole document
     if (query && query.source === 'filter' && query.rows && query.rows.length === 0) {
-      const main = Structra.engine.mainList(dataset);
-      return { allRows: [], totalRows: 0, keys: main ? Structra.engine.collectKeys(main.rows) : [], basePath: '$', filtered: true };
+      const main = Structra.dataEngine.mainList(dataset);
+      return { allRows: [], totalRows: 0, keys: main ? Structra.dataEngine.collectKeys(main.rows) : [], basePath: '$', filtered: true };
     }
 
     // Active query (from find, filter, or SQL) - render query result rows
@@ -216,7 +216,7 @@ class StructraTable extends StructraElement {
       totalRows = allRows.length;
       keys = query.columns && query.columns.length > 0
         ? query.columns
-        : Structra.engine.collectKeys(allRows);
+        : Structra.dataEngine.collectKeys(allRows);
       basePath = '$';
       this._baseRows = dataset ? dataset.raw : null;
       if (this._sortCol && keys.includes(this._sortCol)) {
@@ -228,25 +228,25 @@ class StructraTable extends StructraElement {
     if (dataset && (dataset.meta.shape === 'flat-array' || dataset.meta.shape === 'nested-array')) {
       // Engine-backed: sort full array, return reference
       if (this._sortCol) {
-        Structra.engine.sort(this._sortCol, this._sortAsc ? 'asc' : 'desc');
+        Structra.dataEngine.sort(this._sortCol, this._sortAsc ? 'asc' : 'desc');
       }
-      const ds = Structra.engine.getActive();
+      const ds = Structra.dataEngine.getActive();
       this._baseRows = ds.raw;
       allRows = ds.indexes.sorted ? ds.indexes.sorted.refs : ds.raw;
       totalRows = Array.isArray(allRows) ? allRows.length : 0;
       keys = dataset.indexes.columns
         ? dataset.indexes.columns.map(c => c.name)
-        : Structra.engine.collectKeys(allRows);
+        : Structra.dataEngine.collectKeys(allRows);
       basePath = '$';
     } else {
       // Fallback: find array in raw data
       const data = Structra.state.jsonData;
-      const arr = Structra.engine.findFirstObjectArray(data);
+      const arr = Structra.dataEngine.findFirstObjectArray(data);
       if (!arr || arr.rows.length === 0) return null;
       totalRows = arr.rows.length;
       basePath = arr.path;
       this._baseRows = arr.rows;
-      keys = Structra.engine.collectKeys(arr.rows);
+      keys = Structra.dataEngine.collectKeys(arr.rows);
 
       // Sort if needed
       if (this._sortCol && keys.includes(this._sortCol)) {
@@ -272,7 +272,7 @@ class StructraTable extends StructraElement {
       if (va == null && vb == null) return 0;
       if (va == null) return 1;
       if (vb == null) return -1;
-      const cmp = Structra.util.compareValues(va, vb);
+      const cmp = Structra.sharedHelpers.compareValues(va, vb);
       return asc ? cmp : -cmp;
     });
   }
@@ -300,7 +300,7 @@ class StructraTable extends StructraElement {
         // One record, no list: show it as a Field and Value table
         const shown = (v) => v !== null && typeof v === 'object' ? JSON.stringify(v) : v;
         head.innerHTML = '<tr><th>Field</th><th>Value</th></tr>';
-        body.innerHTML = Object.entries(doc).map(([k, v]) => `<tr><td>${Structra.util.esc(k)}</td><td>${this._formatCell(shown(v))}</td></tr>`).join('');
+        body.innerHTML = Object.entries(doc).map(([k, v]) => `<tr><td>${Structra.sharedHelpers.esc(k)}</td><td>${this._formatCell(shown(v))}</td></tr>`).join('');
         if (pager) pager.innerHTML = `<span class="table-page-info">${Object.keys(doc).length.toLocaleString()} fields</span>`;
         return;
       }
@@ -386,10 +386,10 @@ class StructraTable extends StructraElement {
     };
     const filterIcon = (col) => {
       const isFiltered = this._colFilters && this._colFilters[col];
-      return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${Structra.util.esc(col)}" title="Filter this column">${Structra.icons.svg('list-filter', { size: 12 })}</span>`;
+      return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${Structra.sharedHelpers.esc(col)}" title="Filter this column">${Structra.icons.svg('list-filter', { size: 12 })}</span>`;
     };
     head.innerHTML = '<tr>' + visibleKeys.map(k =>
-      `<th data-col="${Structra.util.esc(k)}"${this._numericCols.has(k) ? ' class="num"' : ''}><span class="th-label">${Structra.util.esc(k)}${sortIcon(k)}</span>${filterIcon(k)}</th>`
+      `<th data-col="${Structra.sharedHelpers.esc(k)}"${this._numericCols.has(k) ? ' class="num"' : ''}><span class="th-label">${Structra.sharedHelpers.esc(k)}${sortIcon(k)}</span>${filterIcon(k)}</th>`
     ).join('') + '</tr>';
     this._visibleKeys = visibleKeys;
   }
@@ -491,7 +491,7 @@ class StructraTable extends StructraElement {
         const v = r ? r[visibleKeys[k]] : undefined;
         cells += `<td${this._numericCols && this._numericCols.has(visibleKeys[k]) ? ' class="num"' : ''}>${this._formatCell(v, visibleKeys[k])}</td>`;
       }
-      html += path ? `<tr data-path="${Structra.util.esc(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
+      html += path ? `<tr data-path="${Structra.sharedHelpers.esc(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
     }
     return html;
   }
@@ -509,7 +509,7 @@ class StructraTable extends StructraElement {
     }
     const idx = this._indexMap.get(src);
     if (idx === undefined) return '';
-    return `${Structra.paths.strip(this._basePath)}[${idx}]`;
+    return `${Structra.dataPaths.strip(this._basePath)}[${idx}]`;
   }
 
   /* ======== PAGE ACTIONS ======== */
@@ -527,7 +527,7 @@ class StructraTable extends StructraElement {
 
   /* ======== UTILITIES ======== */
 
-  /* _collectKeys and _findFirstArray removed - use Structra.engine.collectKeys() and Structra.engine.findFirstObjectArray() */
+  /* _collectKeys and _findFirstArray removed - use Structra.dataEngine.collectKeys() and Structra.dataEngine.findFirstObjectArray() */
 
   _formatCell(val, key) {
     if (val === null || val === undefined) return '<span class="tree-null" title="No value">empty</span>';
@@ -540,8 +540,8 @@ class StructraTable extends StructraElement {
     if (typeof val === 'boolean') return `<span class="bool-badge ${val ? 'bool-true' : 'bool-false'}">${val}</span>`;
     if (typeof val === 'object') return this._formatNested(val);
     const s = String(val);
-    if (s.length > 120) return Structra.util.esc(s.slice(0, 117)) + '…';
-    return Structra.util.esc(s);
+    if (s.length > 120) return Structra.sharedHelpers.esc(s.slice(0, 117)) + '…';
+    return Structra.sharedHelpers.esc(s);
   }
 
   /**
@@ -549,7 +549,7 @@ class StructraTable extends StructraElement {
    * useful part is one field (Value, DisplayName, Title...), so show that instead of "{…}".
    */
   _formatNested(val) {
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const FRIENDLY = ['Value', 'DisplayName', 'Title', 'Name', 'Email', 'value', 'displayName', 'title', 'name', 'label', 'text'];
     const brief = (o) => {
       if (o === null || o === undefined) return 'null';
@@ -598,7 +598,7 @@ class StructraTable extends StructraElement {
       ${hasFilter ? `<div class="col-ctx-item" data-col-action="clear-filter">${ic('x')} Clear the filter</div>` : ''}
       <div class="col-ctx-sep"></div>
       ${hasObjects ? `<div class="col-ctx-item" data-col-action="expand">${ic('unfold-horizontal')} Split into columns…</div>` : ''}
-      ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">${ic('fold-horizontal')} Join back into "${Structra.util.esc(this._expandParent.get(col))}"</div>` : ''}
+      ${this._expandParent.has(col) ? `<div class="col-ctx-item" data-col-action="collapse">${ic('fold-horizontal')} Join back into "${Structra.sharedHelpers.esc(this._expandParent.get(col))}"</div>` : ''}
       <div class="col-ctx-item" data-col-action="move-left">${ic('arrow-left')} Move left</div>
       <div class="col-ctx-item" data-col-action="move-right">${ic('arrow-right')} Move right</div>
       <div class="col-ctx-item" data-col-action="hide">${ic('eye-off')} Hide this column</div>
@@ -696,7 +696,7 @@ class StructraTable extends StructraElement {
         break;
       case 'copy-col': {
         const vals = (this._rows || []).map(r => r ? String(r[col] ?? '') : '').join('\n');
-        Structra.util.copy(vals, `${col} values copied`);
+        Structra.sharedHelpers.copy(vals, `${col} values copied`);
         break;
       }
     }
@@ -707,7 +707,7 @@ class StructraTable extends StructraElement {
   _showColumnReport(col, kind) {
     this._dismissColumnMenu();
     const rows = this._rows || [];
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const text = (v) => (v === null || v === undefined ? '(empty)' : v === '' ? '(empty text)' : typeof v === 'object' ? JSON.stringify(v).slice(0, 80) : String(v));
     const values = rows.map((r) => (r ? r[col] : undefined));
     const filled = values.filter((v) => v !== null && v !== undefined && v !== '');
@@ -764,7 +764,7 @@ class StructraTable extends StructraElement {
     box.addEventListener('click', (e) => {
       const b = e.target.closest('[data-rep]');
       if (!b) return;
-      if (b.dataset.rep === 'copy') Structra.util.copy(ranked.map(([v, n]) => `${v}\t${n}`).join('\n'), 'List copied');
+      if (b.dataset.rep === 'copy') Structra.sharedHelpers.copy(ranked.map(([v, n]) => `${v}\t${n}`).join('\n'), 'List copied');
       else done();
     });
     box.querySelector('[data-rep="close"]').focus();
@@ -790,9 +790,9 @@ class StructraTable extends StructraElement {
     const box = document.createElement('div');
     box.className = 'col-pick';
     box.innerHTML = `
-      <div class="col-pick-title">Expand "${Structra.util.esc(col)}" into columns</div>
+      <div class="col-pick-title">Expand "${Structra.sharedHelpers.esc(col)}" into columns</div>
       <div class="col-pick-list">${keys.slice(0, 60).map((k, i) =>
-        `<label class="col-pick-item"><input type="checkbox" value="${Structra.util.esc(k)}" ${ticked.has(k) ? 'checked' : ''}> ${Structra.util.esc(k)}${isSystem(k) ? ' <span class="col-pick-sys">system</span>' : ''}</label>`).join('')}</div>
+        `<label class="col-pick-item"><input type="checkbox" value="${Structra.sharedHelpers.esc(k)}" ${ticked.has(k) ? 'checked' : ''}> ${Structra.sharedHelpers.esc(k)}${isSystem(k) ? ' <span class="col-pick-sys">system</span>' : ''}</label>`).join('')}</div>
       ${keys.length > 60 ? `<div class="col-pick-note">Showing the 60 most common of ${keys.length} keys</div>` : ''}
       <div class="col-pick-actions">
         <button class="btn btn-primary" data-pick="ok">Expand</button>
@@ -839,7 +839,7 @@ class StructraTable extends StructraElement {
     panel.className = 'col-filter-panel';
     panel.innerHTML = `
       <div class="cfp-header">
-        <span class="cfp-title">Filter: ${Structra.util.esc(col)}</span>
+        <span class="cfp-title">Filter: ${Structra.sharedHelpers.esc(col)}</span>
         <button class="cfp-close" data-cfp="close">${Structra.icons.svg('x', { size: 14 })}</button>
       </div>
       <div class="cfp-tabs">
@@ -855,8 +855,8 @@ class StructraTable extends StructraElement {
         <div class="cfp-list" id="cfpList">
           ${uniqueValues.slice(0, 200).map(([val, cnt]) => `
             <label class="cfp-row">
-              <input type="checkbox" class="cfp-cb" value="${Structra.util.esc(val)}" checked>
-              <span class="cfp-val">${Structra.util.esc(val.length > 40 ? val.slice(0, 37) + '…' : val)}</span>
+              <input type="checkbox" class="cfp-cb" value="${Structra.sharedHelpers.esc(val)}" checked>
+              <span class="cfp-val">${Structra.sharedHelpers.esc(val.length > 40 ? val.slice(0, 37) + '…' : val)}</span>
               <span class="cfp-cnt">${cnt}</span>
             </label>`).join('')}
         </div>
@@ -995,8 +995,8 @@ class StructraTable extends StructraElement {
     dropdown.className = 'col-filter-dropdown';
     dropdown.style.cssText = `position:absolute;top:${top}px;left:${left}px;z-index:900`;
     dropdown.innerHTML = `
-      <div class="cfd-header">${Structra.util.esc(col)}</div>
-      <input type="text" class="cfd-input" placeholder="Filter value…" value="${Structra.util.esc(currentVal)}" autofocus>
+      <div class="cfd-header">${Structra.sharedHelpers.esc(col)}</div>
+      <input type="text" class="cfd-input" placeholder="Filter value…" value="${Structra.sharedHelpers.esc(currentVal)}" autofocus>
       <div class="cfd-actions">
         <button class="cfd-btn cfd-apply">Apply</button>
         <button class="cfd-btn cfd-clear">Clear</button>

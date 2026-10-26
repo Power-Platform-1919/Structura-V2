@@ -1,6 +1,6 @@
 /* ============================================================
    STRUCTRA V2 - Shared Utilities
-   Structra.util - small helpers that used to be copied into many files.
+   Structra.sharedHelpers - small helpers that used to be copied into many files.
    Anything two components would otherwise each write for themselves lives here.
 
    API:
@@ -20,7 +20,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.util = (() => {
+Structra.sharedHelpers = (() => {
   const ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
   const ESC_RE = /[&<>"']/g;
 

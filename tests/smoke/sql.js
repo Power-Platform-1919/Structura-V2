@@ -55,7 +55,7 @@ function serve() {
     ];
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles({ name: 'sales.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(rows)) });
     await page.waitForTimeout(1200);
-    await page.evaluate(() => Structra.set('queryPanelOpen', true));
+    await page.evaluate(() => Structra.setState('queryPanelOpen', true));
     await page.waitForTimeout(300);
 
     // ---- SQL is one of the modes, and the columns of the file are listed ----
@@ -159,7 +159,7 @@ function serve() {
     if (!r.error) failures.push('a typo should give an error');
 
     // ---- The Tree and Table are not changed by a panel query ----
-    const filter = await page.evaluate(() => (Structra.engine.getQuery ? Structra.engine.getQuery() : null));
+    const filter = await page.evaluate(() => (Structra.dataEngine.getQuery ? Structra.dataEngine.getQuery() : null));
     if (filter && filter.source === 'sql') failures.push('a panel SQL query should not change what the Tree and Table show');
 
     // ---- History keeps earlier queries ----

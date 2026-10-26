@@ -1,6 +1,6 @@
 const { load, test, eq, truthy } = require('./harness');
-load(['util', 'code-gen']);
-const G = Structra.codeGen;
+load(['shared-helpers', 'type-code-generator']);
+const G = Structra.typeCodeGenerator;
 
 console.log('type definitions');
 

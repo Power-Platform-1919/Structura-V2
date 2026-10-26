@@ -7,7 +7,7 @@
      Listens to: shortcuts:open
    ============================================================ */
 
-class StructraShortcuts extends StructraOverlay {
+class StructraShortcuts extends StructraDialog {
   init() {
     super.init();
     this.on('shortcuts:open', () => this.open());

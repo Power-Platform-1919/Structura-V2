@@ -6,7 +6,7 @@
      Listens to: toast
    ============================================================ */
 
-class StructraToast extends StructraElement {
+class StructraToast extends StructraComponent {
   static get observedAttributes() { return ['duration']; }
 
   init() {

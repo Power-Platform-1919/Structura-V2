@@ -20,7 +20,7 @@
      Sets state: jsonData
    ============================================================ */
 
-class StructraEditor extends StructraElement {
+class StructraEditor extends StructraComponent {
   static get observedAttributes() { return ['readonly']; }
 
   /** The biggest file (as it was on disk) that opens in the editor */
@@ -262,7 +262,7 @@ class StructraEditor extends StructraElement {
         where = `Line ${lc[1]}, column ${lc[2]}`;
       }
       const reason = why.replace(/\s*in JSON at position.*$/i, '').replace(/\s*\(line.*\)$/i, '').replace(/^JSON\.parse:\s*/i, '').trim();
-      this._status('error', 'x', `${Structra.util.esc(where ? where + ': ' : '')}${Structra.util.esc(this._plainReason(reason, text, this._errorAt).slice(0, 110))}`);
+      this._status('error', 'x', `${Structra.sharedHelpers.esc(where ? where + ': ' : '')}${Structra.sharedHelpers.esc(this._plainReason(reason, text, this._errorAt).slice(0, 110))}`);
       status.disabled = this._errorAt == null;
       status.title = this._errorAt == null ? '' : 'Click to go to the problem';
     }
@@ -316,7 +316,7 @@ class StructraEditor extends StructraElement {
       return;
     } catch { /* invalid: fall through to repair */ }
     try {
-      const fixed = await Structra.jsonTools.repair(before);
+      const fixed = await Structra.jsonRepairAndValidation.repair(before);
       this._replaceText(fixed);
       // Say how much changed, so the repair is not a leap of faith
       const lines = (t) => t.split(/\r?\n/);
@@ -341,7 +341,7 @@ class StructraEditor extends StructraElement {
       Structra.undoStack.push(Structra.state.jsonData, 'Before editing', tabId);
       this._dropDraft(tabId);
       this._dirty = false;
-      Structra.set('jsonData', data);
+      Structra.setState('jsonData', data);
       Structra.undoStack.push(data, 'Edited in the Editor', tabId);
       const tab = Structra.tabs.list.find((t) => t.id === tabId);
       if (tab) { tab.modified = true; Structra.events.emit('tabs:changed'); }

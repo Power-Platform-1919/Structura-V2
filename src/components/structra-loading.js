@@ -7,7 +7,7 @@
      Listens to: loading:show, loading:hide
    ============================================================ */
 
-class StructraLoading extends StructraElement {
+class StructraLoading extends StructraComponent {
   static get observedAttributes() { return ['active', 'message']; }
 
   init() {

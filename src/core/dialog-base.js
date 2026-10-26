@@ -1,6 +1,6 @@
 /* ============================================================
    STRUCTRA V2 - Overlay Base
-   StructraOverlay - one implementation of "a dialog on top of the app".
+   StructraDialog - one implementation of "a dialog on top of the app".
    Dialogs (validate, charts, theme, shortcuts, ...) extend this and only
    describe their content. The base owns:
      - the shell markup (backdrop, box, header, close button, body, footer)
@@ -10,7 +10,7 @@
    Styling is in ui.css (.ov, .ov-box, .ov-head ...).
 
    A dialog class:
-     class StructraThing extends StructraOverlay {
+     class StructraThing extends StructraDialog {
        init() { super.init(); this.on('thing:open', () => this.open()); }
        render() {
          this.mount({ title: 'Thing', size: 'md', body: '<p>...</p>', foot: '<button ...>' });
@@ -40,14 +40,14 @@ Structra.closeTop = function () {
   if (dialog) { dialog.close(); return true; }
   const palette = document.querySelector('#cmdOverlay.show');
   if (palette) { Structra.events.emit('command-palette:toggle'); return true; }
-  if (Structra.state.findBarOpen) { Structra.set('findBarOpen', false); return true; }
-  if (Structra.state.filterBarOpen) { Structra.set('filterBarOpen', false); return true; }
-  if (Structra.state.contextPanelOpen) { Structra.set('contextPanelOpen', false); return true; }
-  if (Structra.state.queryPanelOpen) { Structra.set('queryPanelOpen', false); return true; }
+  if (Structra.state.findBarOpen) { Structra.setState('findBarOpen', false); return true; }
+  if (Structra.state.filterBarOpen) { Structra.setState('filterBarOpen', false); return true; }
+  if (Structra.state.contextPanelOpen) { Structra.setState('contextPanelOpen', false); return true; }
+  if (Structra.state.queryPanelOpen) { Structra.setState('queryPanelOpen', false); return true; }
   return false;
 };
 
-class StructraOverlay extends StructraElement {
+class StructraDialog extends StructraComponent {
   init() {
     this.on('overlay:close', () => this.close());
   }
@@ -57,7 +57,7 @@ class StructraOverlay extends StructraElement {
    * @param {{ title: string, body?: string, foot?: string, head?: string, size?: string }} spec
    */
   mount({ title, body = '', foot = '', head = '', size = 'md' }) {
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     this.innerHTML = `
       <div class="ov" role="presentation">
         <section class="ov-box ov-${size}" role="dialog" aria-modal="true" aria-label="${esc(title)}">

@@ -65,23 +65,23 @@ function serve() {
     if (!/IBM Plex Sans/.test(font)) failures.push('the app font did not load from the app folder: "' + font + '"');
 
     // SQL starts from the app folder and answers
-    await page.evaluate(() => { Structra.engine.enableSql(); });
-    await page.waitForFunction(() => Structra.engine.duckReady || Structra.engine.duckFailed, null, { timeout: 90000 });
-    if (!(await page.evaluate(() => Structra.engine.duckReady))) failures.push('the SQL engine did not start without the internet');
+    await page.evaluate(() => { Structra.dataEngine.enableSql(); });
+    await page.waitForFunction(() => Structra.dataEngine.duckReady || Structra.dataEngine.duckFailed, null, { timeout: 90000 });
+    if (!(await page.evaluate(() => Structra.dataEngine.duckReady))) failures.push('the SQL engine did not start without the internet');
     else {
-      const r = await page.evaluate(() => Structra.engine.runSql('SELECT COUNT(*) AS n FROM data'));
+      const r = await page.evaluate(() => Structra.dataEngine.runSql('SELECT COUNT(*) AS n FROM data'));
       if (!r || r.error) failures.push('a SQL query failed offline: ' + JSON.stringify(r).slice(0, 120));
     }
 
     // Repair, Validate and Export as image use their own libraries
-    const fixed = await page.evaluate(() => Structra.jsonTools.repair("{'a': 1, b: [1,2,],}"));
+    const fixed = await page.evaluate(() => Structra.jsonRepairAndValidation.repair("{'a': 1, b: [1,2,],}"));
     if (!/"a"/.test(fixed)) failures.push('Repair did not work offline: ' + fixed);
     await page.evaluate(() => Structra.events.emit('validate:open'));
     await page.waitForTimeout(400);
-    const v = await page.evaluate(async () => { try { return await Structra.jsonTools.validate(Structra.state.jsonData, { type: 'object' }); } catch (e) { return { error: e.message }; } });
+    const v = await page.evaluate(async () => { try { return await Structra.jsonRepairAndValidation.validate(Structra.state.jsonData, { type: 'object' }); } catch (e) { return { error: e.message }; } });
     if (v && v.error) failures.push('Validate against a schema did not work offline: ' + v.error);
     await page.evaluate(() => Structra.events.emit('overlay:close'));
-    const png = await page.evaluate(async () => { try { await Structra.capture.png(document.querySelector('.view-panel.active') || document.body, 'x.png'); return 'ok'; } catch (e) { return e.message; } });
+    const png = await page.evaluate(async () => { try { await Structra.imageCapture.png(document.querySelector('.view-panel.active') || document.body, 'x.png'); return 'ok'; } catch (e) { return e.message; } });
     if (png !== 'ok') failures.push('Export as image did not work offline: ' + png);
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));

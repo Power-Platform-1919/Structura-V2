@@ -7,7 +7,7 @@
      Sets state: currentPath
    ============================================================ */
 
-class StructraSchema extends StructraElement {
+class StructraSchema extends StructraComponent {
   static get observedAttributes() { return ['show-required']; }
 
   init() {
@@ -34,12 +34,12 @@ class StructraSchema extends StructraElement {
     this.renderSchema();
     // A field is a place in the document: click it to see its expressions, like a node in the Tree
     this.addEventListener('click', (e) => {
-      if (e.target.closest('[data-schema-copy]')) { if (this._schema) Structra.util.copy(JSON.stringify(this._schema, null, 2), 'Schema copied'); return; }
+      if (e.target.closest('[data-schema-copy]')) { if (this._schema) Structra.sharedHelpers.copy(JSON.stringify(this._schema, null, 2), 'Schema copied'); return; }
       const line = e.target.closest('.s-line');
       if (!line || !line.dataset.path || line.dataset.path === '$') return;
       this.querySelectorAll('.s-line.selected').forEach((l) => l.classList.remove('selected'));
       line.classList.add('selected');
-      Structra.set('currentPath', line.dataset.path);
+      Structra.setState('currentPath', line.dataset.path);
     });
   }
 
@@ -48,7 +48,7 @@ class StructraSchema extends StructraElement {
     const t0 = performance.now();
     const container = this.$('#schemaContainer');
 
-    const dataset = Structra.engine.getActive();
+    const dataset = Structra.dataEngine.getActive();
     const data = dataset ? dataset.raw : Structra.state.jsonData;
     if (!data) {
       container.innerHTML = '<p style="color:var(--text-muted);padding:var(--sp-4)">Load JSON to see schema</p>';
@@ -57,7 +57,7 @@ class StructraSchema extends StructraElement {
 
     // The same schema the Schema Gen tab copies, so the two never disagree: every record is read,
     // a field that is sometimes empty is "string | null", and a field present in every record is "required"
-    const schema = Structra.schemaGen.smart(data, { integers: true, required: true });
+    const schema = Structra.parseJsonSchemaGenerator.smart(data, { integers: true, required: true });
     this._schema = schema;
     const lines = [];
     this._collect(schema, 'root', 0, false, lines);
@@ -66,9 +66,9 @@ class StructraSchema extends StructraElement {
     const shown = lines.slice(0, MAX);
     container.innerHTML = shown.map((l) => {
       const nullable = l.types.includes('null');
-      const types = l.types.map((t) => `<span class="s-type${t === 'null' ? ' s-null' : ''}">${Structra.util.esc(t)}</span>`).join('<span class="s-or"> | </span>');
-      return `<div class="s-line" data-path="${Structra.util.esc(l.path)}" style="padding-left:${l.depth * 16}px">` +
-        `<span class="s-key">${Structra.util.esc(l.key)}</span>: ${types}` +
+      const types = l.types.map((t) => `<span class="s-type${t === 'null' ? ' s-null' : ''}">${Structra.sharedHelpers.esc(t)}</span>`).join('<span class="s-or"> | </span>');
+      return `<div class="s-line" data-path="${Structra.sharedHelpers.esc(l.path)}" style="padding-left:${l.depth * 16}px">` +
+        `<span class="s-key">${Structra.sharedHelpers.esc(l.key)}</span>: ${types}` +
         (l.required ? ' <span class="s-req" title="This field is in every record">required</span>' : '') +
         (nullable ? '' : '') +
         `</div>`;

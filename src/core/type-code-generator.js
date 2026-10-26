@@ -1,9 +1,9 @@
 /**
  * Code Generator - generate typed code from JSON in multiple languages
  */
-Structra.codeGen = (() => {
+Structra.typeCodeGenerator = (() => {
 
-  const { snakeCase } = Structra.util;
+  const { snakeCase } = Structra.sharedHelpers;
 
   /**
    * The generators below read one example of each record. To be right for every record, a list is first

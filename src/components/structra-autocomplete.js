@@ -14,7 +14,7 @@
      Sets state: currentPath
    ============================================================ */
 
-class StructraAutocomplete extends StructraElement {
+class StructraAutocomplete extends StructraComponent {
   static get MAX_SUGGESTIONS() { return 12; }
 
   init() {
@@ -42,7 +42,7 @@ class StructraAutocomplete extends StructraElement {
 
   /* ---------- suggestions ---------- */
 
-  _typeOf(v) { return Structra.util.typeOf(v); }
+  _typeOf(v) { return Structra.sharedHelpers.typeOf(v); }
 
   _join(parent, key) {
     if (/^[A-Za-z_$][\w$]*$/.test(key)) return parent ? parent + '.' + key : key;
@@ -52,7 +52,7 @@ class StructraAutocomplete extends StructraElement {
   _suggest(raw) {
     const data = Structra.state.jsonData;
     if (!data) return [];
-    const text = Structra.paths.strip(raw.trim());
+    const text = Structra.dataPaths.strip(raw.trim());
 
     // Split into the part that must already exist, and the part being typed
     let parent, partial;
@@ -63,7 +63,7 @@ class StructraAutocomplete extends StructraElement {
     else if (lastBracket > lastDot) { parent = text.slice(0, lastBracket); partial = text.slice(lastBracket + 1); inBracket = true; }
     else { parent = lastDot < 0 ? '' : text.slice(0, lastDot); partial = text.slice(lastDot + 1); }
 
-    const node = parent ? Structra.paths.resolve(data, parent) : data;
+    const node = parent ? Structra.dataPaths.resolve(data, parent) : data;
     if (node === null || typeof node !== 'object') return [];
 
     const q = partial.toLowerCase();
@@ -127,10 +127,10 @@ class StructraAutocomplete extends StructraElement {
   _accept(i) {
     const item = this._items[i];
     if (!item) return;
-    const path = Structra.paths.canonical(item.path);
+    const path = Structra.dataPaths.canonical(item.path);
     this._input.value = path;
     this._hide();
-    Structra.set('currentPath', path);
+    Structra.setState('currentPath', path);
     Structra.events.emit('tree:navigate-path', path);
   }
 
@@ -150,7 +150,7 @@ class StructraAutocomplete extends StructraElement {
   }
 
   _paint() {
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const dd = this.$('#acDropdown');
     dd.innerHTML = this._items.map((it, i) =>
       `<div class="ac-item${i === this._selected ? ' ac-selected' : ''}" role="option" data-ac-idx="${i}">

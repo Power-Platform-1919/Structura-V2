@@ -7,7 +7,7 @@
      Listens to: heatmap:toggle, state:jsonData, tree:rendered, view:switched
    ============================================================ */
 
-class StructraHeatmap extends StructraElement {
+class StructraHeatmap extends StructraComponent {
   init() {
     this._active = false;
     this._sizeMap = null;
@@ -86,7 +86,7 @@ class StructraHeatmap extends StructraElement {
   _applyStyles(maxSize) {
     // The Tree marks each line with a coloured edge; its data-path is the short form (value[0].Title)
     document.querySelectorAll('.j-line[data-path]:not(.j-close)').forEach(el => {
-      const size = this._sizeMap.get(Structra.paths.canonical(el.dataset.path));
+      const size = this._sizeMap.get(Structra.dataPaths.canonical(el.dataset.path));
       if (size === undefined) return;
       el.style.boxShadow = `inset 3px 0 0 ${this._getColor(size / maxSize)}`;
       el.title = `${size.toLocaleString()} characters`;

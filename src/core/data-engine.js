@@ -3,19 +3,19 @@
    Unified query API managing named datasets (one per tab).
 
    API:
-     Structra.engine.ingest(tabId, data, meta)  → index + store dataset
-     Structra.engine.remove(tabId)              → cleanup dataset
-     Structra.engine.setActive(tabId)           → switch context
-     Structra.engine.getActive()                → current Dataset
-     Structra.engine.slice(offset, limit)       → paginated rows
-     Structra.engine.sort(key, dir)             → sort active dataset
-     Structra.engine.search(pattern, opts)      → search values/keys/paths
-     Structra.engine.filter(predicate)          → filter active array
-     Structra.engine.aggregate(key, fn)         → aggregation result
-     Structra.engine.getSchema()                → inferred schema
-     Structra.engine.getStats()                 → stats summary
-     Structra.engine.pathQuery(expr)            → JSONPath query
-     Structra.engine.sql(query)                 → DuckDB SQL (when ready)
+     Structra.dataEngine.ingest(tabId, data, meta)  → index + store dataset
+     Structra.dataEngine.remove(tabId)              → cleanup dataset
+     Structra.dataEngine.setActive(tabId)           → switch context
+     Structra.dataEngine.getActive()                → current Dataset
+     Structra.dataEngine.slice(offset, limit)       → paginated rows
+     Structra.dataEngine.sort(key, dir)             → sort active dataset
+     Structra.dataEngine.search(pattern, opts)      → search values/keys/paths
+     Structra.dataEngine.filter(predicate)          → filter active array
+     Structra.dataEngine.aggregate(key, fn)         → aggregation result
+     Structra.dataEngine.getSchema()                → inferred schema
+     Structra.dataEngine.getStats()                 → stats summary
+     Structra.dataEngine.pathQuery(expr)            → JSONPath query
+     Structra.dataEngine.sql(query)                 → DuckDB SQL (when ready)
 
    Events:
      'engine:ingested'    → {tabId, meta}
@@ -26,8 +26,8 @@
      'engine:error'        → {message, context}
 
    Console:
-     Structra.engine.getActive()
-     Structra.engine.runSql('SELECT COUNT(*) FROM data')
+     Structra.dataEngine.getActive()
+     Structra.dataEngine.runSql('SELECT COUNT(*) FROM data')
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: engine:duckdb-failed, engine:data-modified
@@ -38,7 +38,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.engine = (() => {
+Structra.dataEngine = (() => {
   /* --- Internal State --- */
   const _datasets = new Map();  // tabId → Dataset
   let _activeId = null;
@@ -174,12 +174,12 @@ Structra.engine = (() => {
 
     // Keep the original text for Recents. Not urgent, so wait until the page is idle.
     if (meta.rawSource) {
-      new Promise((resolve) => Structra.util.whenIdle(resolve, 3000))
-        .then(() => Structra.persistence.raw.put(meta.rawSource, { format: meta.format, name: meta.name }))
+      new Promise((resolve) => Structra.sharedHelpers.whenIdle(resolve, 3000))
+        .then(() => Structra.browserDatabase.raw.put(meta.rawSource, { format: meta.format, name: meta.name }))
         .then(hash => {
           dataset.meta.hash = hash;
           Structra.events.emit('engine:persisted', { tabId });
-          Structra.persistence.recents.add({
+          Structra.browserDatabase.recents.add({
             name: meta.name,
             format: meta.format,
             size: meta.size,
@@ -196,7 +196,7 @@ Structra.engine = (() => {
     // SQL is optional and starts on demand (see enableSql). If it is already running, load this
     // dataset into it in the background so SQL stays in step with the open document.
     if (_duckAvailable()) {
-      dataset._duckPromise = Structra.duckdb.registerDataset(dataset)
+      dataset._duckPromise = Structra.duckdbAdapter.registerDataset(dataset)
         .then(() => Structra.events.emit('engine:duckdb-registered', { tabId }))
         .catch(err => Structra.log.error('Engine', 'DuckDB register failed', err));
     }
@@ -215,7 +215,7 @@ Structra.engine = (() => {
     }
     // Drop DuckDB table if ready
     if (_duckAvailable()) {
-      Structra.duckdb.dropTable(dataset.duckTable).catch(() => {});
+      Structra.duckdbAdapter.dropTable(dataset.duckTable).catch(() => {});
     }
     Structra.log.info('Engine', `Removed dataset: tab ${tabId}`);
     Structra.events.emit('engine:removed', { tabId });
@@ -265,7 +265,7 @@ Structra.engine = (() => {
       if (av == null && bv == null) return 0;
       if (av == null) return 1;
       if (bv == null) return -1;
-      const cmp = Structra.util.compareValues(av, bv);
+      const cmp = Structra.sharedHelpers.compareValues(av, bv);
       return dir === 'asc' ? cmp : -cmp;
     });
 
@@ -284,7 +284,7 @@ Structra.engine = (() => {
 
     // Stack-based traversal
     const stack = [{ val: ds.raw, path: '$', depth: 0 }];
-    const maxDepth = Structra.settings.get('maxDepth');
+    const maxDepth = Structra.appSettings.get('maxDepth');
 
     while (stack.length > 0) {
       const { val, path, depth } = stack.pop();
@@ -454,7 +454,7 @@ Structra.engine = (() => {
           meta: ds.meta,
         })),
       };
-      Structra.persistence.session.save(state).catch(() => {});
+      Structra.browserDatabase.session.save(state).catch(() => {});
     }, 2000);
   }
 
@@ -496,7 +496,7 @@ Structra.engine = (() => {
     }
     if (/^\s*\$[.\[]/.test(text)) {
       let hits;
-      try { hits = Structra.jsonpath.query(ds.raw, text.trim()); } catch (err) { throw new Error('This path could not be read: ' + err.message); }
+      try { hits = Structra.jsonpathQuery.query(ds.raw, text.trim()); } catch (err) { throw new Error('This path could not be read: ' + err.message); }
       return _setFindResult(ds, text, hits.map((h) => h.path));
     }
     // Search the values themselves: every match carries its path, so the count is the number of matching
@@ -559,7 +559,7 @@ Structra.engine = (() => {
       // Clear caches, re-register with DuckDB
       cacheClear(ds);
       if (_duckAvailable()) {
-        Structra.duckdb.registerDataset(ds).catch(() => {});
+        Structra.duckdbAdapter.registerDataset(ds).catch(() => {});
       }
       Structra.log.info('Engine', `Replaced ${count} occurrence(s) of "${findText}" → "${replaceText}"`);
       Structra.events.emit('engine:data-modified', { tabId: ds.id, action: 'replace', count });
@@ -652,7 +652,7 @@ Structra.engine = (() => {
 
       const sqlQuery = `SELECT * FROM "${tableName}" WHERE ${sqlWhere}`;
       try {
-        const rows = await Structra.duckdb.query(sqlQuery);
+        const rows = await Structra.duckdbAdapter.query(sqlQuery);
         const result = {
           source: 'filter',
           query: sqlQuery,
@@ -712,7 +712,7 @@ Structra.engine = (() => {
     try {
       // In SQL the open document is the table "data" (SELECT * FROM data), whichever tab it is in
       if (ds && _isDuckRegistered(ds)) {
-        await Structra.duckdb.query(`CREATE OR REPLACE TEMP VIEW data AS SELECT * FROM "${_tableOf(ds)}"`);
+        await Structra.duckdbAdapter.query(`CREATE OR REPLACE TEMP VIEW data AS SELECT * FROM "${_tableOf(ds)}"`);
       } else if (/\bdata\b/i.test(sqlText)) {
         return { error: 'This document is not a list or object, so there is no table named data to query' };
       }
@@ -724,7 +724,7 @@ Structra.engine = (() => {
         text = `SELECT * FROM (\n${text}\n) AS q LIMIT ${opts.maxRows + 1}`;
         capped = true;
       }
-      let rows = await Structra.duckdb.query(text);
+      let rows = await Structra.duckdbAdapter.query(text);
       const columnTypes = rows.columnTypes || [];
       let truncated = false;
       if (capped && rows.length > opts.maxRows) { rows = rows.slice(0, opts.maxRows); truncated = true; }
@@ -850,7 +850,7 @@ Structra.engine = (() => {
     const ds = getActive();
     if (!ds) return null;
     let found;
-    try { found = Structra.jsonpath.query(ds.raw, expr); }
+    try { found = Structra.jsonpathQuery.query(ds.raw, expr); }
     catch (err) { throw new Error('This path could not be read: ' + err.message); }
     const isRecord = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
     const rows = found.map((m) => (isRecord(m.value) ? m.value : { path: m.path, value: m.value }));
@@ -991,12 +991,12 @@ Structra.engine = (() => {
   }
 
   function _canUseDuck(ds) {
-    return _duckReady && !_duckFailed && !!Structra.duckdb && _isDuckRegistered(ds);
+    return _duckReady && !_duckFailed && !!Structra.duckdbAdapter && _isDuckRegistered(ds);
   }
 
   /** Is DuckDB engine available at all? (ignores dataset registration) */
   function _duckAvailable() {
-    return _duckReady && !_duckFailed && !!Structra.duckdb;
+    return _duckReady && !_duckFailed && !!Structra.duckdbAdapter;
   }
 
   /** Get column names from DuckDB-registered dataset */
@@ -1016,7 +1016,7 @@ Structra.engine = (() => {
     if (!ds || !_duckAvailable()) return [];
     if (ds._duckColumns) return ds._duckColumns;
     const tableName = _tableOf(ds);
-    const cols = await Structra.duckdb.getTableColumns(tableName);
+    const cols = await Structra.duckdbAdapter.getTableColumns(tableName);
     ds._duckColumns = cols;
     return cols;
   }
@@ -1046,7 +1046,7 @@ Structra.engine = (() => {
         const sqlPath = path.replace(/\[(\d+)\]/g, '[$1+1]'); // DuckDB uses 1-based list indexing
         const sql = `SELECT "${sqlPath}" AS value FROM "${tableName}" WHERE "${sqlPath}" IS NOT NULL`;
         try {
-          return await Structra.duckdb.query(sql);
+          return await Structra.duckdbAdapter.query(sql);
         } catch {
           // Struct access failed - fall through to json_extract
         }
@@ -1054,7 +1054,7 @@ Structra.engine = (() => {
 
       // Fallback: json_extract on each column
       const sql = `SELECT json_extract_string(CAST(ROW(*) AS JSON), '${jsonPath}') AS value FROM "${tableName}"`;
-      return await Structra.duckdb.query(sql);
+      return await Structra.duckdbAdapter.query(sql);
     } catch (err) {
       Structra.log.warn('Engine', `jsonExtract("${path}") failed: ${err.message}`);
       return [];
@@ -1071,7 +1071,7 @@ Structra.engine = (() => {
     if (!ds || !_canUseDuck(ds)) return [];
     const tableName = _tableOf(ds);
     try {
-      return await Structra.duckdb.query(`SELECT UNNEST("${column}") AS item FROM "${tableName}"`);
+      return await Structra.duckdbAdapter.query(`SELECT UNNEST("${column}") AS item FROM "${tableName}"`);
     } catch (err) {
       Structra.log.warn('Engine', `unnest("${column}") failed: ${err.message}`);
       return [];
@@ -1125,7 +1125,7 @@ Structra.engine = (() => {
   }
 
   /** Yield to the browser so the UI stays responsive during long loops */
-  const _tick = () => Structra.util.yieldToBrowser();
+  const _tick = () => Structra.sharedHelpers.yieldToBrowser();
   const _SLICE_MS = 12;
 
   /**
@@ -1623,13 +1623,13 @@ Structra.engine = (() => {
     if (!ds || !_canUseDuck(ds)) return [];
     const tableName = _tableOf(ds);
     try {
-      return await Structra.duckdb.query(
+      return await Structra.duckdbAdapter.query(
         `SELECT UNNEST(approx_top_k("${column}", ${k})) AS val FROM "${tableName}"`
       );
     } catch {
       // Fallback: regular GROUP BY
       try {
-        return await Structra.duckdb.query(
+        return await Structra.duckdbAdapter.query(
           `SELECT "${column}" AS val, COUNT(*) AS cnt FROM "${tableName}" WHERE "${column}" IS NOT NULL GROUP BY "${column}" ORDER BY cnt DESC LIMIT ${k}`
         );
       } catch { return []; }
@@ -1671,10 +1671,10 @@ Structra.engine = (() => {
    * @returns {Promise<boolean>} true when SQL can be used on the active dataset
    */
   async function enableSql() {
-    if (_duckFailed || !Structra.duckdb) return false;
+    if (_duckFailed || !Structra.duckdbAdapter) return false;
     if (!_duckReady) {
       Structra.events.emit('engine:duckdb-starting');
-      if (!_duckStarting) _duckStarting = Structra.duckdb.init();
+      if (!_duckStarting) _duckStarting = Structra.duckdbAdapter.init();
       // Say what the wait is: the SQL engine is downloaded and started once, then stays ready
       Structra.events.emit('loading:show', 'Preparing the SQL engine (first use only)…');
       try { await _duckStarting; } finally { Structra.events.emit('loading:hide'); }
@@ -1700,7 +1700,7 @@ Structra.engine = (() => {
    */
   async function _ensureRegistered(ds) {
     if (_isDuckRegistered(ds)) return true;
-    if (!ds._duckPromise) ds._duckPromise = Structra.duckdb.registerDataset(ds);
+    if (!ds._duckPromise) ds._duckPromise = Structra.duckdbAdapter.registerDataset(ds);
     await ds._duckPromise;
     ds._duckPromise = null;
     return _isDuckRegistered(ds);
@@ -1730,7 +1730,7 @@ Structra.engine = (() => {
     if (!ds || !(await enableSql())) return null;
     const tableName = _tableOf(ds);
     try {
-      const result = await Structra.duckdb.query(`
+      const result = await Structra.duckdbAdapter.query(`
         SELECT
           median("${column}") AS median,
           mode("${column}") AS mode,
@@ -1782,7 +1782,7 @@ Structra.engine = (() => {
     if (!ds || !(await enableSql())) return null;
     const tableName = _tableOf(ds);
     try {
-      const result = await Structra.duckdb.query(`SELECT corr("${col1}", "${col2}") AS r FROM "${tableName}"`);
+      const result = await Structra.duckdbAdapter.query(`SELECT corr("${col1}", "${col2}") AS r FROM "${tableName}"`);
       return result[0]?.r ?? null;
     } catch { return null; }
   }
@@ -1862,7 +1862,7 @@ Structra.engine = (() => {
   async function regexSearch(pattern) {
     const ds = getActive();
     if (!ds) return { total: 0, matchedPaths: [] };
-    if (Structra.util.riskyRegex(pattern)) throw new Error(Structra.util.RISKY_MESSAGE);
+    if (Structra.sharedHelpers.riskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_MESSAGE);
     const re = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
     return _findInMemory(ds, pattern, re);
   }
@@ -1911,7 +1911,7 @@ Structra.engine = (() => {
     const seen = new Set();
     for (const r of flat) for (const k of Object.keys(r)) if (!seen.has(k)) { seen.add(k); cols.push(k); }
     if (!cols.length) return '';
-    return Structra.convert.generateCsv(flat, cols);
+    return Structra.formatConversion.generateCsv(flat, cols);
   }
 
   /**
@@ -1935,7 +1935,7 @@ Structra.engine = (() => {
     }
     const tableName = _tableOf(ds);
     try {
-      return await Structra.duckdb.query(`SELECT * FROM "${tableName}" USING SAMPLE ${n} ROWS`);
+      return await Structra.duckdbAdapter.query(`SELECT * FROM "${tableName}" USING SAMPLE ${n} ROWS`);
     } catch (err) {
       Structra.log.warn('Engine', `sampleData failed`, err.message);
       return [];
@@ -1954,7 +1954,7 @@ Structra.engine = (() => {
     if (!ds || !(await enableSql())) return [];
     const tableName = _tableOf(ds);
     try {
-      return await Structra.duckdb.query(
+      return await Structra.duckdbAdapter.query(
         `PIVOT "${tableName}" ON "${onCol}" USING ${aggFn}("${valueCol}")`
       );
     } catch (err) {
@@ -1971,7 +1971,7 @@ Structra.engine = (() => {
    */
   async function sql(query) {
     if (!_duckAvailable()) return [];
-    return Structra.duckdb.query(query);
+    return Structra.duckdbAdapter.query(query);
   }
 
   /**
@@ -1983,7 +1983,7 @@ Structra.engine = (() => {
     if (!ds || !_canUseDuck(ds)) return [];
     const tableName = _tableOf(ds);
     try {
-      return await Structra.duckdb.query(`SUMMARIZE "${tableName}"`);
+      return await Structra.duckdbAdapter.query(`SUMMARIZE "${tableName}"`);
     } catch (err) {
       Structra.log.warn('Engine', 'summarizeTable failed', err.message);
       return [];

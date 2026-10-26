@@ -7,7 +7,7 @@
           engine:duckdb-ready, engine:duckdb-failed, state:duplicateKeys
    ============================================================ */
 
-class StructraStatus extends StructraElement {
+class StructraStatus extends StructraComponent {
   static get observedAttributes() { return ['file', 'path']; }
 
   init() {
@@ -22,7 +22,7 @@ class StructraStatus extends StructraElement {
 
   render() {
     const mode = Structra.log.getMode();
-    const duckState = Structra.engine && Structra.engine.duckReady ? 'ready' : 'idle';
+    const duckState = Structra.dataEngine && Structra.dataEngine.duckReady ? 'ready' : 'idle';
     this.innerHTML = `
       <span class="st-ready">
         <span class="st-dot"></span> Ready
@@ -44,7 +44,7 @@ class StructraStatus extends StructraElement {
 
     this.$('#logToggle')?.addEventListener('click', () => this._cycleLogMode());
     this.$('#statusDuck').addEventListener('click', () => {
-      if (this.$('#statusDuck').dataset.state === 'idle') Structra.engine.enableSql();
+      if (this.$('#statusDuck').dataset.state === 'idle') Structra.dataEngine.enableSql();
     });
     this._updateDuckStatus(duckState);
   }

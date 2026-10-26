@@ -7,7 +7,7 @@
      Emits: tabs:changed, tabs:switched, tabs:closed
    ============================================================ */
 
-class StructraTabs extends StructraElement {
+class StructraTabs extends StructraComponent {
   static get observedAttributes() { return ['max-tabs']; }
 
   init() {
@@ -23,9 +23,9 @@ class StructraTabs extends StructraElement {
     const tabsHtml = tabs.map(t => `
       <div class="doc-tab ${t.id === activeId ? 'active' : ''} ${t.modified || t.draft ? 'modified' : ''}"
            data-id="${t.id}" role="tab" aria-selected="${t.id === activeId}" tabindex="${t.id === activeId ? 0 : -1}" draggable="true"
-           aria-label="${Structra.util.esc(t.label)}${t.modified ? ' (changed)' : t.draft ? ' (typed changes not applied)' : ''}">
+           aria-label="${Structra.sharedHelpers.esc(t.label)}${t.modified ? ' (changed)' : t.draft ? ' (typed changes not applied)' : ''}">
         ${Structra.icons.svg('file', { cls: 'tab-icon' })}
-        <span class="tab-label">${Structra.util.esc(t.label)}</span>
+        <span class="tab-label">${Structra.sharedHelpers.esc(t.label)}</span>
         <span class="tab-modified"></span>
         <span class="tab-close" data-close="${t.id}">
           ${Structra.icons.svg('x')}
@@ -119,7 +119,7 @@ class StructraTabs extends StructraElement {
     menu.className = 'menu';
     menu.setAttribute('role', 'menu');
     menu.innerHTML = items.map((it, i) => it === '-' ? '<div class="menu-sep"></div>'
-      : `<button class="menu-item" type="button" role="menuitem" data-i="${i}"${it.disabled ? ' disabled' : ''}>${Structra.util.esc(it.label)}</button>`).join('');
+      : `<button class="menu-item" type="button" role="menuitem" data-i="${i}"${it.disabled ? ' disabled' : ''}>${Structra.sharedHelpers.esc(it.label)}</button>`).join('');
     document.body.appendChild(menu);
     const r = menu.getBoundingClientRect();
     menu.style.left = Math.max(8, Math.min(e.clientX, innerWidth - r.width - 8)) + 'px';
@@ -195,7 +195,7 @@ class StructraTabs extends StructraElement {
 
     // Keep what was in the tab, so closing it is never final: the message offers to bring it back
     const closed = tabs.list[idx];
-    const ds = Structra.engine.getDataset(id);
+    const ds = Structra.dataEngine.getDataset(id);
     const snapshot = closed.data || (ds && ds.raw) || null;
     const wasEmpty = !snapshot;
 

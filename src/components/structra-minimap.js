@@ -7,7 +7,7 @@
      Listens to: state:jsonData, minimap:toggle, view:switched
    ============================================================ */
 
-class StructraMinimap extends StructraElement {
+class StructraMinimap extends StructraComponent {
   init() {
     this._canvas = null;
     this._ctx = null;

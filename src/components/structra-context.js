@@ -9,7 +9,7 @@
      Sets state: contextPanelOpen, currentPath
    ============================================================ */
 
-class StructraContext extends StructraElement {
+class StructraContext extends StructraComponent {
   static get observedAttributes() { return ['path']; }
 
   init() {
@@ -21,7 +21,7 @@ class StructraContext extends StructraElement {
       Structra.log.debug('Context', 'contextPanel ' + (d.value ? 'opened' : 'closed'));
       this.classList.toggle('show', d.value);
     });
-    this.on('overlay:close', () => Structra.set('contextPanelOpen', false));
+    this.on('overlay:close', () => Structra.setState('contextPanelOpen', false));
     this.on('bookmarks:changed', () => this._renderBookmarks());
     this.on('state:fileName', () => this._renderBookmarks());
   }
@@ -72,15 +72,15 @@ class StructraContext extends StructraElement {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
       const a = btn.dataset.action;
-      if (a === 'close') Structra.set('contextPanelOpen', false);
+      if (a === 'close') Structra.setState('contextPanelOpen', false);
       else if (a === 'copy-value') this._copyValue();
       else if (a === 'copy-path') this._copyPath();
       else if (a === 'bookmark') this._toggleBookmark();
-      else if (a === 'go-bookmark') Structra.set('currentPath', btn.dataset.path);
+      else if (a === 'go-bookmark') Structra.setState('currentPath', btn.dataset.path);
       else if (a === 'del-bookmark') Structra.bookmarks.remove(btn.dataset.path);
       else if (a === 'find-value') this._findValue();
       else if (a === 'mock') this._mockFromContext();
-      else if (a === 'copy-pp') Structra.util.copy(btn.dataset.code, 'Copied');
+      else if (a === 'copy-pp') Structra.sharedHelpers.copy(btn.dataset.code, 'Copied');
       else if (a === 'pp-source') Structra.events.emit('drawer:show', 'expressions');
     });
   }
@@ -94,7 +94,7 @@ class StructraContext extends StructraElement {
   _renderBookmarks() {
     const el = this.$('#ctxBookmarks');
     if (!el) return;
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const items = Structra.bookmarks.list();
     el.innerHTML = items.length
       ? items.map((b) => `<div class="ctx-bm">
@@ -105,7 +105,7 @@ class StructraContext extends StructraElement {
   }
 
   _show(path) {
-    Structra.set('contextPanelOpen', true);
+    Structra.setState('contextPanelOpen', true);
     this._currentPath = path;
 
     const data = Structra.state.jsonData;
@@ -179,7 +179,7 @@ class StructraContext extends StructraElement {
     section.hidden = false;
     preview.innerHTML = detections.map(d => `<div class="ctx-detection">
       <span class="ctx-det-badge ctx-det-${d.type}">${d.type}</span>
-      <span class="ctx-det-value">${d.html || Structra.util.esc(d.display || val.slice(0, 80))}</span>
+      <span class="ctx-det-value">${d.html || Structra.sharedHelpers.esc(d.display || val.slice(0, 80))}</span>
     </div>`).join('');
   }
 
@@ -189,7 +189,7 @@ class StructraContext extends StructraElement {
 
     // URL
     if (/^https?:\/\/.+/i.test(s)) {
-      detections.push({ type: 'url', html: `<a href="${Structra.util.esc(s)}" target="_blank" rel="noopener" class="ctx-link">${Structra.util.esc(s.slice(0, 60))}</a>` });
+      detections.push({ type: 'url', html: `<a href="${Structra.sharedHelpers.esc(s)}" target="_blank" rel="noopener" class="ctx-link">${Structra.sharedHelpers.esc(s.slice(0, 60))}</a>` });
     }
 
     // Email
@@ -247,9 +247,9 @@ class StructraContext extends StructraElement {
     const box = this.$('#ctxPp');
     if (!section || !box) return;
     if (!path || path === '$') { section.hidden = true; return; }
-    const esc = Structra.util.esc;
-    const rows = Structra.expressions.quick(path, val);
-    const src = Structra.expressions.getSource();
+    const esc = Structra.sharedHelpers.esc;
+    const rows = Structra.powerPlatformExpressions.quick(path, val);
+    const src = Structra.powerPlatformExpressions.getSource();
     const srcText = src.kind === 'trigger' ? 'the trigger body' : src.kind === 'item' ? 'the current loop item' : src.kind === 'custom' ? 'your own expression' : `the action ${src.name}`;
     box.innerHTML = rows.map((r) => `
       <div class="ctx-pp-row">
@@ -272,25 +272,25 @@ class StructraContext extends StructraElement {
   _mockFromContext() {
     const val = this._currentValue;
     if (val == null) { Structra.toast('No value to mock', 'warning'); return; }
-    const mocked = Structra.mockGen.generate(val, 3);
-    Structra.util.copy(JSON.stringify(mocked, null, 2), 'Mock data copied to clipboard');
+    const mocked = Structra.mockDataGenerator.generate(val, 3);
+    Structra.sharedHelpers.copy(JSON.stringify(mocked, null, 2), 'Mock data copied to clipboard');
   }
 
   _resolve(data, path) {
     if (!data || !path || path === '$') return data;
-    return Structra.paths.resolve(data, path);
+    return Structra.dataPaths.resolve(data, path);
   }
 
   _copyValue() {
     // The whole value, not the shortened text shown on screen
     const v = this._currentValue;
     const text = v === undefined ? '' : (typeof v === 'string' ? v : JSON.stringify(v, null, 2));
-    Structra.util.copy(text, 'Value copied');
+    Structra.sharedHelpers.copy(text, 'Value copied');
   }
 
   _copyPath() {
     const text = this.$('#ctxPath').textContent;
-    Structra.util.copy(text, 'Path copied');
+    Structra.sharedHelpers.copy(text, 'Path copied');
   }
 
 }

@@ -9,7 +9,7 @@
      Sets state: activeView, currentPath, fontSize
    ============================================================ */
 
-class StructraWorkspace extends StructraOverlay {
+class StructraWorkspace extends StructraDialog {
   init() {
     super.init();
     this.on('workspace:export', () => this._export());
@@ -54,7 +54,7 @@ class StructraWorkspace extends StructraOverlay {
   /** Every open tab: its name, its data, where you were looking */
   _tabsSnapshot() {
     return Structra.tabs.list.map((t) => {
-      const ds = Structra.engine.datasets.get(t.id);
+      const ds = Structra.dataEngine.datasets.get(t.id);
       if (!ds || ds.raw === undefined || ds.raw === null) return null;
       const active = t.id === Structra.tabs.activeId;
       return {
@@ -83,7 +83,7 @@ class StructraWorkspace extends StructraOverlay {
         const key = localStorage.key(i);
         if (key.startsWith('structra_setting_')) ws.settings[key] = localStorage.getItem(key);
       }
-      ws.theme = Structra.theme.snapshot();
+      ws.theme = Structra.themeEngine.snapshot();
       ws.fontSize = Structra.state.fontSize;
     }
     if (this.$('#wsExpHistory')?.checked !== false) {
@@ -97,7 +97,7 @@ class StructraWorkspace extends StructraOverlay {
     }
 
     const json = JSON.stringify(ws, null, 2);
-    Structra.util.download(json, `structra-workspace-${new Date().toISOString().slice(0, 10)}.structra`, 'application/json');
+    Structra.sharedHelpers.download(json, `structra-workspace-${new Date().toISOString().slice(0, 10)}.structra`, 'application/json');
     const parts = [];
     if (ws.tabs) parts.push(`${ws.tabs.length} tab${ws.tabs.length === 1 ? '' : 's'}`);
     if (ws.bookmarks) parts.push(`${ws.bookmarks.length} bookmark${ws.bookmarks.length === 1 ? '' : 's'}`);
@@ -139,16 +139,16 @@ class StructraWorkspace extends StructraOverlay {
         }
         const label = String(t.label || t.fileName || 'Imported').slice(0, 80);
         await panel._loadSuccess(t.data, JSON.stringify(t.data), label);
-        if (typeof t.view === 'string' && t.view !== 'overview') Structra.set('activeView', t.view);
-        if (typeof t.path === 'string') Structra.set('currentPath', t.path);
+        if (typeof t.view === 'string' && t.view !== 'overview') Structra.setState('activeView', t.view);
+        if (typeof t.path === 'string') Structra.setState('currentPath', t.path);
         opened++;
       }
 
       const store = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage not available */ } };
       if (bookmarks) { store('structra_bookmarks', bookmarks); Structra.events.emit('bookmarks:changed'); }
       if (settings) for (const [k, v] of Object.entries(settings)) { try { localStorage.setItem(k, v); } catch { /* storage not available */ } }
-      if (ws.theme) Structra.theme.restore(ws.theme);
-      if (typeof ws.fontSize === 'number') Structra.set('fontSize', Math.max(10, Math.min(24, ws.fontSize)));
+      if (ws.theme) Structra.themeEngine.restore(ws.theme);
+      if (typeof ws.fontSize === 'number') Structra.setState('fontSize', Math.max(10, Math.min(24, ws.fontSize)));
       if (history) store('structra_query_history', history);
       if (snippets) store('structra_snippets', snippets);
 

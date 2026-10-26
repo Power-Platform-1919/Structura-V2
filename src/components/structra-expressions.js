@@ -4,7 +4,7 @@
    for the selected path, plus whole-document Power Platform helpers.
    Lives in the Expressions tab of <structra-drawer>.
 
-   Data comes from Structra.expressions (rows / sections).
+   Data comes from Structra.powerPlatformExpressions (rows / sections).
    Click any expression to copy it.
 
    Wiring (generated from the code below; update it when you add or remove an event):
@@ -13,17 +13,17 @@
      Sets state: activeView
    ============================================================ */
 
-class StructraExpressions extends StructraElement {
+class StructraExpressions extends StructraComponent {
   init() {
     this._tab = 'automate';
     this._path = '';
-    this.on('state:currentPath', (d) => { this._path = Structra.paths.strip(d.value); this._refresh(); });
+    this.on('state:currentPath', (d) => { this._path = Structra.dataPaths.strip(d.value); this._refresh(); });
     this.on('state:jsonData', () => this._refresh());
     this.on('expressions:source-changed', () => this._refresh());
     this.on('expressions:columns-changed', () => this._refresh());
     this.on('tabs:switched', () => this._refresh());
     this.on('drawer:tab-switched', (id) => { if (id === 'expressions') this._refresh(); });
-    this._path = Structra.paths.strip(Structra.state.currentPath);
+    this._path = Structra.dataPaths.strip(Structra.state.currentPath);
   }
 
   render() {
@@ -42,16 +42,16 @@ class StructraExpressions extends StructraElement {
       <div class="expr-pane" data-pane="helpers"></div>`;
 
     this.addEventListener('click', (e) => {
-      if (e.target.closest('[data-goto-tree]')) { Structra.set('activeView', 'tree'); return; }
+      if (e.target.closest('[data-goto-tree]')) { Structra.setState('activeView', 'tree'); return; }
       const tab = e.target.closest('.expr-subtab');
       if (tab) { this._switch(tab.dataset.sub); return; }
       const copyAll = e.target.closest('[data-copy-block]');
-      if (copyAll) { Structra.util.copy(copyAll.closest('.expr-block').querySelector('pre').textContent, 'Action copied'); return; }
+      if (copyAll) { Structra.sharedHelpers.copy(copyAll.closest('.expr-block').querySelector('pre').textContent, 'Action copied'); return; }
       const copy = e.target.closest('.expr-copy');
-      if (copy) { Structra.util.copy(copy.parentElement.querySelector('.ecode').textContent, 'Copied'); return; }
+      if (copy) { Structra.sharedHelpers.copy(copy.parentElement.querySelector('.ecode').textContent, 'Copied'); return; }
       const code = e.target.closest('.ecode');
       if (code) {
-        Structra.util.copy(code.textContent, 'Copied');
+        Structra.sharedHelpers.copy(code.textContent, 'Copied');
       }
       const all = e.target.closest('[data-cols-all]');
       if (all) this._setAllColumns(all.dataset.colsAll === 'on');
@@ -59,20 +59,20 @@ class StructraExpressions extends StructraElement {
     this.addEventListener('change', (e) => {
       const col = e.target.closest('[data-col]');
       if (col) {
-        const rows = Structra.paths.resolve(Structra.state.jsonData, this._path);
-        if (Array.isArray(rows)) Structra.expressions.setColumn(this._path, rows, col.dataset.col, col.checked);
+        const rows = Structra.dataPaths.resolve(Structra.state.jsonData, this._path);
+        if (Array.isArray(rows)) Structra.powerPlatformExpressions.setColumn(this._path, rows, col.dataset.col, col.checked);
         return;
       }
       const kind = e.target.closest('[data-src="kind"]');
-      if (kind) { Structra.expressions.setSource({ kind: kind.value }); return; }
+      if (kind) { Structra.powerPlatformExpressions.setSource({ kind: kind.value }); return; }
       const full = e.target.closest('[data-src="full"]');
-      if (full) Structra.expressions.setSource({ fullOutput: full.value === 'auto' ? 'auto' : full.value === 'yes' });
+      if (full) Structra.powerPlatformExpressions.setSource({ fullOutput: full.value === 'auto' ? 'auto' : full.value === 'yes' });
     });
     this.addEventListener('input', (e) => {
       const name = e.target.closest('[data-src="name"]');
-      if (name) { this._keepFocus = 'name'; Structra.expressions.setSource({ name: name.value }); return; }
+      if (name) { this._keepFocus = 'name'; Structra.powerPlatformExpressions.setSource({ name: name.value }); return; }
       const v = e.target.closest('[data-src="fxvar"]');
-      if (v) { this._keepFocus = 'fxvar'; Structra.expressions.setSource({ fxVar: v.value || 'jsonText' }); }
+      if (v) { this._keepFocus = 'fxvar'; Structra.powerPlatformExpressions.setSource({ fxVar: v.value || 'jsonText' }); }
     });
     this._refresh();
   }
@@ -83,8 +83,8 @@ class StructraExpressions extends StructraElement {
     if (!el) return;
     if (this._tab === 'helpers') { el.hidden = true; return; }
     el.hidden = false;
-    const src = Structra.expressions.getSource();
-    const esc = Structra.util.esc;
+    const src = Structra.powerPlatformExpressions.getSource();
+    const esc = Structra.sharedHelpers.esc;
     if (this._tab === 'canvas') {
       el.innerHTML = `<label class="expr-src-field">Text variable that holds the JSON
         <input type="text" data-src="fxvar" value="${esc(src.fxVar)}" spellcheck="false"></label>`;
@@ -133,19 +133,19 @@ class StructraExpressions extends StructraElement {
 
     if (this._tab === 'helpers') {
       this._fill('helpers', data
-        ? this._sections(() => Structra.expressions.helpers(data))
+        ? this._sections(() => Structra.powerPlatformExpressions.helpers(data))
         : this._empty('Load JSON to see Power Platform helpers'));
       return;
     }
 
-    const make = this._tab === 'automate' ? Structra.expressions.powerAutomate : Structra.expressions.powerFx;
+    const make = this._tab === 'automate' ? Structra.powerPlatformExpressions.powerAutomate : Structra.powerPlatformExpressions.powerFx;
     const kind = this._tab === 'automate' ? 'Power Automate' : this._tab === 'flow' ? 'flow action' : 'Power Fx';
     if (!data || !this._path) {
       const view = Structra.state.activeView;
-      this._fill(this._tab, `<div class="expr-empty">Select a value in the Tree to see ${Structra.util.esc(kind)} expressions.${view === 'tree' ? '' : ' <button class="btn btn-sm" type="button" data-goto-tree>Go to the Tree</button>'}</div>`);
+      this._fill(this._tab, `<div class="expr-empty">Select a value in the Tree to see ${Structra.sharedHelpers.esc(kind)} expressions.${view === 'tree' ? '' : ' <button class="btn btn-sm" type="button" data-goto-tree>Go to the Tree</button>'}</div>`);
       return;
     }
-    const value = Structra.paths.resolve(data, this._path);
+    const value = Structra.dataPaths.resolve(data, this._path);
     if (value === undefined) {
       this._fill(this._tab, this._empty('No value at this path'));
       return;
@@ -153,7 +153,7 @@ class StructraExpressions extends StructraElement {
     // Typed tables and Select actions are built from the columns the person keeps ticked
     const picker = this._tab === 'automate' ? '' : this._columnPicker(value);
     if (this._tab === 'flow') {
-      this._fill('flow', picker + this._blocks(() => Structra.expressions.flowActions(this._path, value)));
+      this._fill('flow', picker + this._blocks(() => Structra.powerPlatformExpressions.flowActions(this._path, value)));
       this.querySelectorAll('[data-pane="flow"] .expr-block pre').forEach((pre) => Structra.codeView.colorize(pre, pre.textContent, 'json'));
       return;
     }
@@ -163,9 +163,9 @@ class StructraExpressions extends StructraElement {
   /** For a list of records: which columns go into typed tables (Power Fx) and the Select action (flow). */
   _columnPicker(value) {
     if (!Array.isArray(value) || !value.length || !value[0] || typeof value[0] !== 'object' || Array.isArray(value[0])) return '';
-    const cols = Structra.expressions.pickedColumns(this._path, value);
+    const cols = Structra.powerPlatformExpressions.pickedColumns(this._path, value);
     if (!cols.length) return '';
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const on = cols.filter((c) => c.on).length;
     return `<div class="expr-cols">
       <div class="expr-cols-head"><strong>Columns</strong>
@@ -178,9 +178,9 @@ class StructraExpressions extends StructraElement {
   }
 
   _setAllColumns(on) {
-    const rows = Structra.paths.resolve(Structra.state.jsonData, this._path);
+    const rows = Structra.dataPaths.resolve(Structra.state.jsonData, this._path);
     if (!Array.isArray(rows)) return;
-    Structra.expressions.pickedColumns(this._path, rows).forEach((c) => { if (c.on !== on) Structra.expressions.setColumn(this._path, rows, c.id, on); });
+    Structra.powerPlatformExpressions.pickedColumns(this._path, rows).forEach((c) => { if (c.on !== on) Structra.powerPlatformExpressions.setColumn(this._path, rows, c.id, on); });
   }
 
   /** Action JSON: a titled block with its own copy button */
@@ -190,7 +190,7 @@ class StructraExpressions extends StructraElement {
       Structra.log.error('Expressions', 'Could not build flow actions', err);
       return this._empty('Could not build flow actions for this data');
     }
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     return '<p class="expr-note">Paste into a cloud flow with Peek code or the code view, under "actions".</p>' + items.map((it) => `
       <section class="expr-block">
         <header class="expr-block-head"><strong>${esc(it.label)}</strong>
@@ -206,7 +206,7 @@ class StructraExpressions extends StructraElement {
   }
 
   _empty(msg) {
-    return `<div class="expr-empty">${Structra.util.esc(msg)}</div>`;
+    return `<div class="expr-empty">${Structra.sharedHelpers.esc(msg)}</div>`;
   }
 
   _sections(build) {
@@ -217,7 +217,7 @@ class StructraExpressions extends StructraElement {
       Structra.log.error('Expressions', 'Could not build expressions', err);
       return this._empty('Could not build expressions for this data');
     }
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     return sections.map((s) => `
       <section class="expr-section">
         ${s.title ? `<h4 class="expr-title">${esc(s.title)}</h4>` : ''}

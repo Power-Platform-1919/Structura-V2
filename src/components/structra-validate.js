@@ -9,7 +9,7 @@
      Sets state: activeView, currentPath
    ============================================================ */
 
-class StructraValidate extends StructraOverlay {
+class StructraValidate extends StructraDialog {
   static get MAX_SHOWN() { return 200; }
 
   init() {
@@ -52,7 +52,7 @@ class StructraValidate extends StructraOverlay {
   _infer() {
     const data = Structra.state.jsonData;
     if (!data) return;
-    this.$('#valSchema').value = JSON.stringify(Structra.schemaGen.smart(data), null, 2);
+    this.$('#valSchema').value = JSON.stringify(Structra.parseJsonSchemaGenerator.smart(data), null, 2);
     this._summary('Inferred from the loaded data. Edit it, then validate.', '');
   }
 
@@ -75,11 +75,11 @@ class StructraValidate extends StructraOverlay {
 
     this._summary('Validating...', '');
     try {
-      const { valid, errors } = await Structra.jsonTools.validate(Structra.state.jsonData, schema);
+      const { valid, errors } = await Structra.jsonRepairAndValidation.validate(Structra.state.jsonData, schema);
       if (valid) { this._summary('Valid. The data matches the schema.', 'ok'); return; }
 
       // The same problem in thousands of rows is one line with a count and the first place it happens
-      const esc = Structra.util.esc;
+      const esc = Structra.sharedHelpers.esc;
       const groups = new Map();
       for (const e of errors) {
         const general = (e.path || 'root').replace(/\[\d+\]/g, '[*]');
@@ -105,8 +105,8 @@ class StructraValidate extends StructraOverlay {
 
   _goto(path) {
     this.close();
-    Structra.set('activeView', 'tree');
-    Structra.set('currentPath', path || '$');
+    Structra.setState('activeView', 'tree');
+    Structra.setState('currentPath', path || '$');
   }
 }
 

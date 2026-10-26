@@ -9,7 +9,7 @@
      Sets state: drawerState
    ============================================================ */
 
-class StructraDrawer extends StructraElement {
+class StructraDrawer extends StructraComponent {
   static get observedAttributes() { return ['state']; }
 
   init() {
@@ -27,12 +27,12 @@ class StructraDrawer extends StructraElement {
       if (d.value === 'overview' && analyzeOpen() && this._stateIdx !== 0) {
         this._autoFolded = true;
         this._stateIdx = 0;
-        Structra.set('drawerState', 'collapsed');
+        Structra.setState('drawerState', 'collapsed');
         this._applyState();
       } else if (d.value !== 'overview' && this._autoFolded) {
         this._autoFolded = false;
         this._stateIdx = 1;
-        Structra.set('drawerState', 'medium');
+        Structra.setState('drawerState', 'medium');
         this._applyState();
       }
     });
@@ -89,7 +89,7 @@ class StructraDrawer extends StructraElement {
         const states = Structra.constants.DRAWER_STATES;
         this.classList.remove('resizing'); this.style.height = '';
         this._stateIdx = this._stateIdx === 2 ? 1 : 2;
-        Structra.set('drawerState', states[this._stateIdx]);
+        Structra.setState('drawerState', states[this._stateIdx]);
         this._applyState();
         return;
       }
@@ -147,7 +147,7 @@ class StructraDrawer extends StructraElement {
     const states = Structra.constants.DRAWER_STATES;
     // Open ⇄ folded away. (A taller drawer is made by dragging the bar above the tabs.)
     this._stateIdx = this._stateIdx === 0 ? 1 : 0;
-    Structra.set('drawerState', states[this._stateIdx]);
+    Structra.setState('drawerState', states[this._stateIdx]);
     this._applyState();
   }
 
@@ -176,7 +176,7 @@ class StructraDrawer extends StructraElement {
     // Choosing a tab while the drawer is folded away opens it
     if (this.classList.contains('collapsed')) {
       this._stateIdx = 1;
-      Structra.set('drawerState', Structra.constants.DRAWER_STATES[1]);
+      Structra.setState('drawerState', Structra.constants.DRAWER_STATES[1]);
       this._applyState();
     }
     this.$$('.drawer-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === id));

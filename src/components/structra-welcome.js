@@ -3,14 +3,14 @@
    <structra-welcome> - shown once, the first time the app is opened.
    Says what the app is for, lets the person pick light or dark, and offers
    the two ways to start (a sample or their own file). Reopen it from the
-   command palette ("Welcome"). Built on StructraOverlay.
+   command palette ("Welcome"). Built on StructraDialog.
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: welcome:open
      Emits: theme:open
    ============================================================ */
 
-class StructraWelcome extends StructraOverlay {
+class StructraWelcome extends StructraDialog {
   static SEEN_KEY = 'structra.welcomeSeen';
 
   init() {
@@ -19,7 +19,7 @@ class StructraWelcome extends StructraOverlay {
   }
 
   render() {
-    const mode = Structra.theme.mode();
+    const mode = Structra.themeEngine.mode();
     this.mount({
       title: 'Welcome to Structra',
       size: 'lg',
@@ -80,7 +80,7 @@ class StructraWelcome extends StructraOverlay {
     this.root.addEventListener('click', (e) => {
       const mode = e.target.closest('[data-mode]');
       if (mode) {
-        Structra.theme.setMode(mode.dataset.mode);
+        Structra.themeEngine.setMode(mode.dataset.mode);
         this.$$('#wlMode .seg-btn').forEach((b) => b.classList.toggle('active', b === mode));
         return;
       }

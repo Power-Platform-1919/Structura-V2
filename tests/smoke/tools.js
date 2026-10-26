@@ -61,7 +61,7 @@ function serve() {
   };
   const shown = () => page.evaluate(() => ({
     state: JSON.stringify(Structra.state.jsonData),
-    engine: JSON.stringify(Structra.engine.getActive().raw),
+    engine: JSON.stringify(Structra.dataEngine.getActive().raw),
     tabs: Structra.tabs.list.length,
     tabId: Structra.tabs.activeId,
     // the last message that is not the one-time tip (a tip may appear a moment after a result)

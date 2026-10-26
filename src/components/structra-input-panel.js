@@ -10,7 +10,7 @@
      Sets state: jsonData, fileName, fileSize, currentPath, activeView, duplicateKeys
    ============================================================ */
 
-class StructraInputPanel extends StructraElement {
+class StructraInputPanel extends StructraComponent {
   init() {
     this._activeTab = 'file';
     // Ctrl+V anywhere on an empty tab loads what was copied, as long as it looks like data and the focus is not in a field
@@ -256,7 +256,7 @@ class StructraInputPanel extends StructraElement {
   /* ======== LOAD SUCCESS ======== */
   async _loadSuccess(data, text, name) {
     // Data nested very deeply freezes every view: keep the first 200 levels and say so
-    const depth = Structra.util.capDepth(data, 200);
+    const depth = Structra.sharedHelpers.capDepth(data, 200);
     Structra.parseNotes = Object.assign(Structra.parseNotes || {}, { deepest: depth.capped ? depth.deepest : 0 });
     const unopenable = Structra.describeUnopenable(data);
     if (unopenable) {
@@ -288,7 +288,7 @@ class StructraInputPanel extends StructraElement {
     // Ingest into engine (indexes + DuckDB registration)
     Structra.events.emit('loading:show', 'Indexing data…');
     const tabId = Structra.tabs.activeId;
-    await Structra.engine.ingest(tabId, data, {
+    await Structra.dataEngine.ingest(tabId, data, {
       fileName: name,
       fileSize: byteSize,
       rawSource,
@@ -297,22 +297,22 @@ class StructraInputPanel extends StructraElement {
     // Fire state events - triggers view rendering
     Structra.events.emit('loading:show', 'Rendering views…');
     Structra.log.debug('InputPanel', 'Setting jsonData...');
-    Structra.set('jsonData', data);
+    Structra.setState('jsonData', data);
     Structra.log.perf('InputPanel', 'set(jsonData) + all listeners', performance.now() - t0);
-    Structra.set('fileName', name);
-    Structra.set('fileSize', byteSize);
-    Structra.set('currentPath', '$');
+    Structra.setState('fileName', name);
+    Structra.setState('fileSize', byteSize);
+    Structra.setState('currentPath', '$');
     // A new document opens on its overview, unless it is so big that computing it would make the first view wait (measured: 88 MB is ready in under 2 s)
-    if (byteSize <= 120 * 1048576) Structra.set('activeView', 'overview');
+    if (byteSize <= 120 * 1048576) Structra.setState('activeView', 'overview');
     this._tipOnce();
 
     // Duplicate keys are invisible after parsing (JSON.parse keeps the last one), so scan the text
     // This runs in the background and yields to the page, so it never delays the first paint.
-    Structra.set('duplicateKeys', []);
+    Structra.setState('duplicateKeys', []);
     if (/^\s*[\[{]/.test(text) && text.length <= 8 * 1048576) {
-      Structra.jsonTools.findDuplicateKeys(text).then((dupes) => {
+      Structra.jsonRepairAndValidation.findDuplicateKeys(text).then((dupes) => {
         if (Structra.state.fileName !== name) return;            // another file was opened meanwhile
-        Structra.set('duplicateKeys', dupes);
+        Structra.setState('duplicateKeys', dupes);
         if (dupes.length) Structra.toast(dupes.length + ' duplicate key' + (dupes.length === 1 ? '' : 's') + ' found');
       });
     }
@@ -589,7 +589,7 @@ class StructraInputPanel extends StructraElement {
       const cls = resp.status < 300 ? 'ok' : resp.status < 400 ? 'redirect' : 'error';
       statusEl.innerHTML =
         `<span class="io-status-badge io-status-${cls}">${resp.status} ${resp.statusText}</span>` +
-        `<span class="io-status-meta">${elapsed}ms \xB7 ${Structra.util.formatBytes(size)}</span>`;
+        `<span class="io-status-meta">${elapsed}ms \xB7 ${Structra.sharedHelpers.formatBytes(size)}</span>`;
 
       if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
       // Detect format from content-type header or URL extension
@@ -709,7 +709,7 @@ class StructraInputPanel extends StructraElement {
           if (btn.dataset.copy === 'header') text = JSON.stringify(header, null, 2);
           else if (btn.dataset.copy === 'payload') text = JSON.stringify(payload, null, 2);
           else text = JSON.stringify({ header, payload }, null, 2);
-          Structra.util.copy(text, null).then(() => {
+          Structra.sharedHelpers.copy(text, null).then(() => {
             const orig = btn.textContent;
             btn.textContent = 'Copied!';
             setTimeout(() => btn.textContent = orig, 1500);
@@ -717,14 +717,14 @@ class StructraInputPanel extends StructraElement {
         });
       });
     } catch (e) {
-      claimsEl.innerHTML = `<div class="io-jwt-error">${Structra.util.esc(e.message)}</div>`;
+      claimsEl.innerHTML = `<div class="io-jwt-error">${Structra.sharedHelpers.esc(e.message)}</div>`;
     }
   }
 
   _jwtSection(label, obj, copyKey) {
     return `<div class="io-jwt-section">
       <div class="io-jwt-section-header"><span class="io-jwt-label">${label}</span><button class="io-jwt-copy" data-copy="${copyKey}" type="button">Copy</button></div>
-      <pre class="io-jwt-json" data-colorize="json">${Structra.util.esc(JSON.stringify(obj, null, 2))}</pre>
+      <pre class="io-jwt-json" data-colorize="json">${Structra.sharedHelpers.esc(JSON.stringify(obj, null, 2))}</pre>
     </div>`;
   }
 
@@ -765,11 +765,11 @@ class StructraInputPanel extends StructraElement {
       return;
     }
     list.innerHTML = recent.map((r, i) => `
-      <div class="io-recent-item" data-idx="${i}" role="button" tabindex="0" aria-label="Open ${Structra.util.esc(r.name)}">
-        <button class="io-recent-remove" type="button" data-remove="${i}" aria-label="Remove ${Structra.util.esc(r.name)} from Recent" title="Remove from Recent">${Structra.icons.svg('x', { size: 12 })}</button>
-        <div class="io-recent-name">${Structra.util.esc(r.name)}</div>
-        <div class="io-recent-meta">${Structra.util.formatBytes(r.size)} &middot; ${Structra.util.timeAgo(r.ts)}${r.request ? ' &middot; from ' + Structra.util.esc(r.request.url.replace(/^https?:\/\//, '').slice(0, 40)) : ''}</div>
-        <div class="io-recent-preview">${Structra.util.esc(r.preview)}</div>
+      <div class="io-recent-item" data-idx="${i}" role="button" tabindex="0" aria-label="Open ${Structra.sharedHelpers.esc(r.name)}">
+        <button class="io-recent-remove" type="button" data-remove="${i}" aria-label="Remove ${Structra.sharedHelpers.esc(r.name)} from Recent" title="Remove from Recent">${Structra.icons.svg('x', { size: 12 })}</button>
+        <div class="io-recent-name">${Structra.sharedHelpers.esc(r.name)}</div>
+        <div class="io-recent-meta">${Structra.sharedHelpers.formatBytes(r.size)} &middot; ${Structra.sharedHelpers.timeAgo(r.ts)}${r.request ? ' &middot; from ' + Structra.sharedHelpers.esc(r.request.url.replace(/^https?:\/\//, '').slice(0, 40)) : ''}</div>
+        <div class="io-recent-preview">${Structra.sharedHelpers.esc(r.preview)}</div>
       </div>`).join('') +
       '<div class="io-recent-clear"><p class="io-recent-note">Recent files are kept in this browser only, with their content, so you can reopen them. Remove one with the x, or clear them all.</p><button class="io-btn-clear" data-action="clear-recent">Clear History</button></div>';
 
@@ -818,7 +818,7 @@ class StructraInputPanel extends StructraElement {
         return keys.length ? 'Fields: ' + keys.join(', ') : text.substring(0, 20).replace(/\s+/g, ' ') + '…';
       })(),
       // The content is kept so the file can be reopened; Settings can turn that off (then only the name and size are kept)
-      data: text.length <= 200000 && Structra.settings.get('keepRecentContent') !== false ? text : null,
+      data: text.length <= 200000 && Structra.appSettings.get('keepRecentContent') !== false ? text : null,
       request: this._pendingRequest || null,
     };
     this._pendingRequest = null;
@@ -864,7 +864,7 @@ class StructraInputPanel extends StructraElement {
     }
     const preview = text.substring(0, 60).replace(/\s+/g, ' ');
     banner.innerHTML = `
-      <span>\ud83d\udccb JSON on clipboard: <em>${Structra.util.esc(preview)}...</em></span>
+      <span>\ud83d\udccb JSON on clipboard: <em>${Structra.sharedHelpers.esc(preview)}...</em></span>
       <button class="io-clip-load">Load</button>
       <button class="io-clip-dismiss">\u2715</button>`;
     banner.style.display = 'flex';
@@ -898,7 +898,7 @@ class StructraInputPanel extends StructraElement {
 
   _showError(msg, rawText, title) {
     const el = this.$('[data-role="error"]');
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const kind = (/^(\w+) parse error/i.exec(msg) || [])[1] || 'JSON';
     const { detail, where } = this._explainError(msg, rawText);
     const canRepair = !!rawText && /^json$/i.test(kind);
@@ -913,7 +913,7 @@ class StructraInputPanel extends StructraElement {
     if (repair) {
       repair.addEventListener('click', async () => {
         try {
-          const fixed = await Structra.jsonTools.repair(rawText);
+          const fixed = await Structra.jsonRepairAndValidation.repair(rawText);
           const data = await Structra.parseJsonAsync(fixed);
           this._clearError();
           Structra.toast('Fixed: the data now opens');

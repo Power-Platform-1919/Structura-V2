@@ -1,7 +1,7 @@
 /**
  * Format conversion & export - JSON ↔ YAML, JSON → XML, CSV export
  */
-Structra.convert = (() => {
+Structra.formatConversion = (() => {
   const toast = (msg) => Structra.toast(msg);
 
   // --- YAML ---
@@ -89,7 +89,7 @@ Structra.convert = (() => {
 
   function downloadCsv(rows, columns, filename) {
     const csv = generateCsv(rows, columns);
-    Structra.util.download(csv, filename || 'export.csv', 'text/csv');
+    Structra.sharedHelpers.download(csv, filename || 'export.csv', 'text/csv');
     toast('CSV exported');
   }
 

@@ -10,7 +10,7 @@
      Sets state: activeView, currentPath
    ============================================================ */
 
-class StructraNullfinder extends StructraOverlay {
+class StructraNullfinder extends StructraDialog {
   init() {
     super.init();
     this._results = [];
@@ -52,9 +52,9 @@ class StructraNullfinder extends StructraOverlay {
 
   /** Show a result in the Tree (the other views have no place to show a path) */
   _go(path) {
-    const p = Structra.paths.canonical(path);
-    if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.set('activeView', 'tree');
-    Structra.set('currentPath', p);
+    const p = Structra.dataPaths.canonical(path);
+    if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.setState('activeView', 'tree');
+    Structra.setState('currentPath', p);
     setTimeout(() => Structra.events.emit('tree:navigate-path', p), 80);
   }
 
@@ -127,7 +127,7 @@ class StructraNullfinder extends StructraOverlay {
       g.total++;
     });
     const rows = [...groups.values()].sort((a, b) => b.total - a.total);
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     container.innerHTML = rows.slice(0, 200).map((g) => `
       <div class="nf-item" data-nf-path="${esc(g.first)}" data-nf-idx="${g.firstIdx}" title="Show the first one">
         <span class="nf-path">${esc(g.pattern)}</span>

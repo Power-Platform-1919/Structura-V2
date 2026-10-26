@@ -2,7 +2,7 @@
    STRUCTRA V2 - Tree View Component
    <structra-tree> - Virtualized JSON tree view with chunked
    lazy-loading, DOM recycling, and rehydration for 200k+ nodes.
-   Delegates rendering to Structra.jsonTree (V2 renderer).
+   Delegates rendering to Structra.jsonTreeRenderer (V2 renderer).
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: state:jsonData, state:currentPath, bookmarks:changed, tree:expand-all,
@@ -12,7 +12,7 @@
      Sets state: currentPath, activeView
    ============================================================ */
 
-class StructraTree extends StructraElement {
+class StructraTree extends StructraComponent {
   static get observedAttributes() { return ['wrap']; }
 
   init() {
@@ -37,10 +37,10 @@ class StructraTree extends StructraElement {
       const view = this._getView();
       if (!view) return;
       if (query && query.matchedPaths) {
-        Structra.jsonTree.setFilter(view, query.matchedPaths);
-        Structra.jsonTree.highlightPaths(view, query.matchedPaths);
+        Structra.jsonTreeRenderer.setFilter(view, query.matchedPaths);
+        Structra.jsonTreeRenderer.highlightPaths(view, query.matchedPaths);
       } else {
-        Structra.jsonTree.clearFilter(view);
+        Structra.jsonTreeRenderer.clearFilter(view);
       }
     });
   }
@@ -66,8 +66,8 @@ class StructraTree extends StructraElement {
         view.querySelectorAll('.j-line.highlighted').forEach((x) => x.classList.remove('highlighted'));
         l.classList.add('highlighted');
         this._kcur = l;
-        const p = Structra.paths.canonical(l.dataset.path);
-        Structra.set('currentPath', p);
+        const p = Structra.dataPaths.canonical(l.dataset.path);
+        Structra.setState('currentPath', p);
         Structra.events.emit('tree:node-selected', p);
         l.scrollIntoView({ block: 'nearest' });
       };
@@ -101,16 +101,16 @@ class StructraTree extends StructraElement {
     const t0 = performance.now();
 
     // Render using V2 json-tree renderer
-    Structra.jsonTree.render(view, data, {
+    Structra.jsonTreeRenderer.render(view, data, {
       onPathSelect: (path) => {
-        const p = Structra.paths.canonical(path);
-        Structra.set('currentPath', p);
+        const p = Structra.dataPaths.canonical(path);
+        Structra.setState('currentPath', p);
         Structra.events.emit('tree:node-selected', p);
       },
       onContextMenu: (x, y, path) => {
         // A right-click selects the line first, so the path bar and the expressions follow the menu
-        const p = Structra.paths.canonical(path);
-        Structra.set('currentPath', p);
+        const p = Structra.dataPaths.canonical(path);
+        Structra.setState('currentPath', p);
         this._showContextMenu(x, y, p);
       },
     });
@@ -124,7 +124,7 @@ class StructraTree extends StructraElement {
   /** Show the bookmark marker on bookmarked lines that are currently rendered */
   _markBookmarks() {
     const view = this._getView();
-    if (view) Structra.jsonTree.updateBookmarkHighlights(view, Structra.bookmarks.paths());
+    if (view) Structra.jsonTreeRenderer.updateBookmarkHighlights(view, Structra.bookmarks.paths());
   }
 
   _emptyState() {
@@ -134,25 +134,25 @@ class StructraTree extends StructraElement {
   _expandAll() {
     Structra.log.debug('Tree', 'expandAll()');
     const view = this._getView();
-    if (view) Structra.jsonTree.expandAll(view);
+    if (view) Structra.jsonTreeRenderer.expandAll(view);
   }
 
   _collapseAll() {
     Structra.log.debug('Tree', 'collapseAll()');
     const view = this._getView();
-    if (view) Structra.jsonTree.collapseAll(view);
+    if (view) Structra.jsonTreeRenderer.collapseAll(view);
   }
 
   _collapseToDepth(depth) {
     Structra.log.debug('Tree', 'collapseToDepth(' + depth + ')');
     const view = this._getView();
-    if (view) Structra.jsonTree.collapseToDepth(view, depth);
+    if (view) Structra.jsonTreeRenderer.collapseToDepth(view, depth);
   }
 
   _highlightPath(path) {
     Structra.log.debug('Tree', 'highlightPath: ' + path);
     const view = this._getView();
-    if (view) Structra.jsonTree.highlightPath(view, path);
+    if (view) Structra.jsonTreeRenderer.highlightPath(view, path);
   }
 
   /* ======== RIGHT-CLICK CONTEXT MENU ======== */
@@ -239,11 +239,11 @@ class StructraTree extends StructraElement {
   async _execCtxAction(action, path, val, lang) {
     switch (action) {
       case 'copy-path':
-        Structra.util.copy(path, 'Path copied');
+        Structra.sharedHelpers.copy(path, 'Path copied');
         break;
       case 'copy-value': {
         const text = val === null ? 'null' : typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
-        Structra.util.copy(text, 'Value copied');
+        Structra.sharedHelpers.copy(text, 'Value copied');
         break;
       }
       case 'open-json-text': {
@@ -258,14 +258,14 @@ class StructraTree extends StructraElement {
       }
       case 'copy-subtree': {
         const json = JSON.stringify(val, null, 2);
-        Structra.util.copy(json, 'Subtree copied');
+        Structra.sharedHelpers.copy(json, 'Subtree copied');
         break;
       }
       case 'gen': {
         if (!lang) break;
         try {
-          const code = Structra.codeGen.generate(lang, val, 'Data');
-          Structra.util.copy(code, `Copied as ${lang}`);
+          const code = Structra.typeCodeGenerator.generate(lang, val, 'Data');
+          Structra.sharedHelpers.copy(code, `Copied as ${lang}`);
         } catch (e) {
           Structra.toast('Could not generate the code: ' + e.message, 'error');
         }
@@ -274,18 +274,18 @@ class StructraTree extends StructraElement {
       case 'expand-here': {
         // If it's an array of objects, switch to table view focused on this path
         if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
-          Structra.set('activeView', 'table');
+          Structra.setState('activeView', 'table');
           Structra.toast(`Showing ${val.length} items in table`);
         } else if (typeof val === 'object' && val !== null) {
           // Single object - show key/value pairs
-          Structra.set('activeView', 'table');
+          Structra.setState('activeView', 'table');
         }
         break;
       }
       case 'mock': {
         try {
-          const mocked = Structra.mockGen.generate(val, 3);
-          Structra.util.copy(JSON.stringify(mocked, null, 2), 'Mock data copied');
+          const mocked = Structra.mockDataGenerator.generate(val, 3);
+          Structra.sharedHelpers.copy(JSON.stringify(mocked, null, 2), 'Mock data copied');
         } catch { Structra.toast('Could not make sample data', 'error'); }
         break;
       }
@@ -295,8 +295,8 @@ class StructraTree extends StructraElement {
       case 'copy-pa':
       case 'copy-fx': {
         const want = action === 'copy-pa' ? 'Power Automate' : 'Power Fx';
-        const row = Structra.expressions.quick(path, val).filter((r) => r.app === want)[0];
-        if (row) Structra.util.copy(row.code, row.label + ' copied');
+        const row = Structra.powerPlatformExpressions.quick(path, val).filter((r) => r.app === want)[0];
+        if (row) Structra.sharedHelpers.copy(row.code, row.label + ' copied');
         break;
       }
       case 'find-value':
@@ -307,7 +307,7 @@ class StructraTree extends StructraElement {
 
   _resolve(data, path) {
     if (!data || !path || path === '$') return data;
-    return Structra.paths.resolve(data, path);
+    return Structra.dataPaths.resolve(data, path);
   }
 
   _preview(val) {

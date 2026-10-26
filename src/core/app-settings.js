@@ -6,20 +6,20 @@
    All keys prefixed with 'structra.' in localStorage.
 
    API:
-     Structra.settings.get('pageSize')       → 50
-     Structra.settings.set('pageSize', 100)  → persists + emits event
-     Structra.settings.getAll()              → {logMode:'normal', pageSize:50, ...}
-     Structra.settings.reset()               → restore all defaults
-     Structra.settings.export()              → JSON string
-     Structra.settings.import(json)          → bulk restore
+     Structra.appSettings.get('pageSize')       → 50
+     Structra.appSettings.set('pageSize', 100)  → persists + emits event
+     Structra.appSettings.getAll()              → {logMode:'normal', pageSize:50, ...}
+     Structra.appSettings.reset()               → restore all defaults
+     Structra.appSettings.export()              → JSON string
+     Structra.appSettings.import(json)          → bulk restore
 
    Events (via Structra.events if available):
      'settings:changed' → {key, value, old}
 
    Console:
-     Structra.settings.getAll()
-     Structra.settings.set('pageSize', 100)
-     Structra.settings.reset()
+     Structra.appSettings.getAll()
+     Structra.appSettings.set('pageSize', 100)
+     Structra.appSettings.reset()
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Emits: settings:changed, settings:reset
@@ -27,7 +27,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.settings = (() => {
+Structra.appSettings = (() => {
   const PREFIX = 'structra.';
 
   /* --- Defaults --- */

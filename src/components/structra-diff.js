@@ -14,7 +14,7 @@
      Listens to: diff:open
    ============================================================ */
 
-class StructraDiff extends StructraOverlay {
+class StructraDiff extends StructraDialog {
   init() {
     super.init();
     this._left = null;
@@ -93,7 +93,7 @@ class StructraDiff extends StructraOverlay {
   /** Every other open document can be a side: the choices are rebuilt each time the dialog opens */
   _tabChoices() {
     const others = (Structra.tabs.list || []).filter((t) => t.id !== Structra.tabs.activeId && t.data);
-    return others.map((t) => `<option value="tab:${t.id}">Tab: ${Structra.util.esc(t.label || 'Untitled')}</option>`).join('');
+    return others.map((t) => `<option value="tab:${t.id}">Tab: ${Structra.sharedHelpers.esc(t.label || 'Untitled')}</option>`).join('');
   }
 
   _tabData(value) {
@@ -298,7 +298,7 @@ class StructraDiff extends StructraOverlay {
 
   _renderInline() {
     const rows = this._diffs.slice(0, StructraDiff.MAX_ROWS);
-    const line = (cls, sign, path, value) => `<div class="diff-line ${cls}"><span class="diff-ln">${sign}</span><span class="diff-code">${Structra.util.esc(path)}: ${Structra.util.esc(this._preview(value))}</span></div>`;
+    const line = (cls, sign, path, value) => `<div class="diff-line ${cls}"><span class="diff-ln">${sign}</span><span class="diff-code">${Structra.sharedHelpers.esc(path)}: ${Structra.sharedHelpers.esc(this._preview(value))}</span></div>`;
     let html = '<div class="diff-lines">';
     for (const d of rows) {
       if (d.type === 'removed') html += line('diff-rm', '-', d.leftPath, d.left);
@@ -321,10 +321,10 @@ class StructraDiff extends StructraOverlay {
     }
     let html = '<div class="diff-structural">';
     for (const [path, changes] of Object.entries(groups)) {
-      html += `<div class="diff-struct-group"><div class="diff-struct-path">${Structra.util.esc(path)}</div>`;
+      html += `<div class="diff-struct-group"><div class="diff-struct-path">${Structra.sharedHelpers.esc(path)}</div>`;
       for (const c of changes) {
         const cls = c.type === 'added' ? 'diff-add' : c.type === 'removed' ? 'diff-rm' : 'diff-chg';
-        html += `<div class="diff-struct-item ${cls}">${c.type}: ${Structra.util.esc(c.path.replace(path + '.', ''))}</div>`;
+        html += `<div class="diff-struct-item ${cls}">${c.type}: ${Structra.sharedHelpers.esc(c.path.replace(path + '.', ''))}</div>`;
       }
       html += '</div>';
     }
@@ -344,14 +344,14 @@ class StructraDiff extends StructraOverlay {
       if (d.type === 'moved') return `> ${d.leftPath} to ${d.rightPath}`;
       return `~ ${d.path}: ${JSON.stringify(d.left)} → ${JSON.stringify(d.right)}`;
     }).join('\n');
-    Structra.util.copy(text, 'Diff copied');
+    Structra.sharedHelpers.copy(text, 'Diff copied');
   }
 
   async _copyPatch() {
     if (!this._result) { Structra.toast('Fill in both sides first'); return; }
     const ops = await Structra.jsonDiff.patchOps(this._result, this._left, this._right);
     if (!ops.length) { Structra.toast('No differences'); return; }
-    Structra.util.copy(JSON.stringify(ops, null, 2), 'Copied ' + ops.length + ' patch operation' + (ops.length === 1 ? '' : 's'));
+    Structra.sharedHelpers.copy(JSON.stringify(ops, null, 2), 'Copied ' + ops.length + ' patch operation' + (ops.length === 1 ? '' : 's'));
   }
 
   _preview(val) {

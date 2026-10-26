@@ -4,14 +4,14 @@
 
    Sections:
    0. Summary: one-sentence description, headline figures, findings worth a look, biggest lists
-      (all of it computed by Structra.insights)
+      (all of it computed by Structra.overviewInsights)
    2. Type distribution (bar chart pills)
    3. Data quality score (donut + completeness/consistency/uniqueness)
    4. Arrays found (clickable paths, drill-into)
    5. Key coverage table (present/empty/missing %, nested drill)
    6. Field profiler (type, coverage, min/max/avg, top values)
 
-   All data from Structra.engine - zero window.App, zero DOM queries
+   All data from Structra.dataEngine - zero window.App, zero DOM queries
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: state:jsonData, view:switched, tabs:switched, state:duplicateKeys,
@@ -20,7 +20,7 @@
      Sets state: currentPath, activeView
    ============================================================ */
 
-class StructraOverview extends StructraElement {
+class StructraOverview extends StructraComponent {
   static get observedAttributes() { return ['compact']; }
 
   init() {
@@ -72,19 +72,19 @@ class StructraOverview extends StructraElement {
     const container = this.$('#statsContainer');
     if (!container) return;
 
-    const dataset = Structra.engine.getActive();
+    const dataset = Structra.dataEngine.getActive();
     const data = dataset ? dataset.raw : Structra.state.jsonData;
     if (!data) {
       container.innerHTML = '<p style="color:var(--text-muted);padding:var(--sp-4)">Open a file to see an overview of it.</p>';
       return;
     }
 
-    const analysis = await Structra.engine.getAnalysis();
+    const analysis = await Structra.dataEngine.getAnalysis();
     if (!analysis) return;
     const { stats: s, firstArr, profile } = analysis;
     let html = '';
 
-    this._insights = Structra.insights.build({
+    this._insights = Structra.overviewInsights.build({
       analysis,
       meta: { fileSize: dataset ? dataset.meta.fileSize : Structra.state.fileSize },
       data,
@@ -112,11 +112,11 @@ class StructraOverview extends StructraElement {
   }
 
   /* ====================================================
-     SUMMARY (Structra.insights)
+     SUMMARY (Structra.overviewInsights)
      ==================================================== */
 
   _renderSummary(ins) {
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const icons = Structra.icons;
     const facts = ins.facts.map((f) => `<div class="ovw-fact"><dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd></div>`).join('');
 
@@ -157,11 +157,11 @@ class StructraOverview extends StructraElement {
   /** Take the person from a finding or a list to the place in the data it talks about */
   _go(go) {
     if (go.path) {
-      Structra.set('currentPath', go.path);
-      Structra.set('activeView', 'tree');
+      Structra.setState('currentPath', go.path);
+      Structra.setState('activeView', 'tree');
       Structra.events.emit('tree:node-selected', go.path);
     } else if (go.view) {
-      Structra.set('activeView', go.view);
+      Structra.setState('activeView', go.view);
     }
     if (go.drawer) Structra.events.emit('drawer:show', go.drawer);
   }
@@ -225,7 +225,7 @@ class StructraOverview extends StructraElement {
             <span class="pf-q-val">${q.uniqueness}%</span></div>
         </div>
         ${q.issues.length > 0 ? `<div class="pf-q-issues"><span class="pf-q-issues-title">Top Issues</span>${q.issues.map(i =>
-          `<div class="pf-q-issue pf-q-issue-${i.severity}"><span class="pf-q-issue-field">${Structra.util.esc(i.field)}</span> ${Structra.util.esc(i.msg)}</div>`
+          `<div class="pf-q-issue pf-q-issue-${i.severity}"><span class="pf-q-issue-field">${Structra.sharedHelpers.esc(i.field)}</span> ${Structra.sharedHelpers.esc(i.msg)}</div>`
         ).join('')}</div>` : ''}
       </div></div>`;
     return html;
@@ -291,13 +291,13 @@ class StructraOverview extends StructraElement {
     for (const g of groups) {
       const isPrim = g.primaryType !== 'object';
       html += `<tr>
-        <td class="arr-path${isPrim ? ' arr-prim' : ''}">${Structra.util.esc(g.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
+        <td class="arr-path${isPrim ? ' arr-prim' : ''}">${Structra.sharedHelpers.esc(g.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
         <td class="arr-count">${g.occurrences.toLocaleString()}</td>
         <td class="arr-count">${g.totalItems.toLocaleString()}</td>
         <td class="arr-count">${g.avg}</td>
         <td class="arr-count">${g.min.toLocaleString()}</td>
         <td class="arr-count">${g.max.toLocaleString()}</td>
-        <td>${Structra.util.esc(g.primaryType)}</td>
+        <td>${Structra.sharedHelpers.esc(g.primaryType)}</td>
       </tr>`;
     }
     html += '</tbody></table>';
@@ -314,9 +314,9 @@ class StructraOverview extends StructraElement {
       const cls = isPrim ? 'arr-path arr-prim' : 'arr-path';
       html += `<tr>
         <td class="arr-count" style="color:var(--text-muted)">${i + 1}</td>
-        <td class="${cls}" data-action="drill-array" data-path="${Structra.util.esc(a.path)}">${Structra.util.esc(a.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
+        <td class="${cls}" data-action="drill-array" data-path="${Structra.sharedHelpers.esc(a.path)}">${Structra.sharedHelpers.esc(a.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
         <td class="arr-count">${a.count.toLocaleString()}</td>
-        <td>${Structra.util.esc(a.sample)}</td>
+        <td>${Structra.sharedHelpers.esc(a.sample)}</td>
       </tr>`;
     }
     html += '</tbody></table>';
@@ -368,9 +368,9 @@ class StructraOverview extends StructraElement {
         const isPrim = a.sample !== 'object';
         const cls = isPrim ? 'arr-path arr-prim' : 'arr-path';
         rows += `<tr>
-          <td class="${cls}" data-action="drill-array" data-path="${Structra.util.esc(a.path)}">${Structra.util.esc(a.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
+          <td class="${cls}" data-action="drill-array" data-path="${Structra.sharedHelpers.esc(a.path)}">${Structra.sharedHelpers.esc(a.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
           <td class="arr-count">${a.count.toLocaleString()}</td>
-          <td>${Structra.util.esc(a.sample)}</td>
+          <td>${Structra.sharedHelpers.esc(a.sample)}</td>
         </tr>`;
       }
 
@@ -401,14 +401,14 @@ class StructraOverview extends StructraElement {
      ==================================================== */
 
   _renderKeyCoverage(path, rows, drillStack, precomputed) {
-    const coverage = precomputed || Structra.engine.analyzeKeys(rows);
+    const coverage = precomputed || Structra.dataEngine.analyzeKeys(rows);
     if (coverage.length === 0) return '';
 
     const backBtn = drillStack.length > 0
       ? ` <span class="stat-drill-back" data-action="drill-back" title="Go back">↑ Back</span>`
       : '';
 
-    let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage: ${Structra.util.esc(path)} (${rows.length} rows)${backBtn}</div>`;
+    let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage: ${Structra.sharedHelpers.esc(path)} (${rows.length} rows)${backBtn}</div>`;
     html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th title="Rows where the key is there and not empty">Has a value</th><th></th></tr></thead><tbody>';
 
     const sorted = [...coverage].sort((a, b) => b.missing - a.missing || b.empty - a.empty || a.key.localeCompare(b.key));
@@ -416,19 +416,19 @@ class StructraOverview extends StructraElement {
       // "Has a value": present and not empty (a key that is there but null is not a value)
       const hasValue = rows.length ? Math.round(Math.max(0, k.present - k.empty) / rows.length * 100) : 0;
       const color = hasValue === 100 ? 'var(--success)' : hasValue >= 80 ? 'var(--warning)' : 'var(--danger)';
-      const missStyle = k.missing > 0 ? 'class="stat-missing-cell" data-action="show-missing" data-keyname="' + Structra.util.esc(k.key) + '"' : '';
-      const emptyStyle = k.empty > 0 ? 'class="stat-empty-cell" data-action="show-empty" data-keyname="' + Structra.util.esc(k.key) + '"' : '';
+      const missStyle = k.missing > 0 ? 'class="stat-missing-cell" data-action="show-missing" data-keyname="' + Structra.sharedHelpers.esc(k.key) + '"' : '';
+      const emptyStyle = k.empty > 0 ? 'class="stat-empty-cell" data-action="show-empty" data-keyname="' + Structra.sharedHelpers.esc(k.key) + '"' : '';
 
       // Detect nested type for drill tags
       let typeTag = '';
       if (k.types && k.types.has('object')) {
-        typeTag = ` <span class="stat-nested-tag" data-action="toggle-nested" data-keyname="${Structra.util.esc(k.key)}">${Structra.icons.svg('chevron-right', { size: 12 })} {…}</span>`;
+        typeTag = ` <span class="stat-nested-tag" data-action="toggle-nested" data-keyname="${Structra.sharedHelpers.esc(k.key)}">${Structra.icons.svg('chevron-right', { size: 12 })} {…}</span>`;
       } else if (k.types && k.types.has('array')) {
-        typeTag = ` <span class="stat-nested-tag" data-action="drill-nested-array" data-keyname="${Structra.util.esc(k.key)}">[…]</span>`;
+        typeTag = ` <span class="stat-nested-tag" data-action="drill-nested-array" data-keyname="${Structra.sharedHelpers.esc(k.key)}">[…]</span>`;
       }
 
       html += `<tr>
-        <td class="cov-key" data-action="highlight-key" data-keyname="${Structra.util.esc(k.key)}">${Structra.util.esc(k.key)}${typeTag}</td>
+        <td class="cov-key" data-action="highlight-key" data-keyname="${Structra.sharedHelpers.esc(k.key)}">${Structra.sharedHelpers.esc(k.key)}${typeTag}</td>
         <td>${k.present}</td>
         <td ${emptyStyle}>${k.empty || '-'}</td>
         <td ${missStyle} style="${k.missing > 0 ? 'color:var(--danger);font-weight:700;cursor:pointer' : ''}">${k.missing || '-'}</td>
@@ -438,11 +438,11 @@ class StructraOverview extends StructraElement {
 
       // Nested object keys (hidden by default, toggled)
       if (k.types && k.types.has('object')) {
-        const nestedCoverage = Structra.engine.analyzeNestedKeys(rows, k.key);
+        const nestedCoverage = Structra.dataEngine.analyzeNestedKeys(rows, k.key);
         for (const nk of nestedCoverage) {
           const nc = nk.pct === 100 ? 'var(--success)' : nk.pct >= 80 ? 'var(--warning)' : 'var(--danger)';
-          html += `<tr class="stat-nested-row" data-parent="${Structra.util.esc(k.key)}" style="display:none">
-            <td class="cov-key" style="padding-left:24px;color:var(--text-sec)"><span style="color:var(--text-muted)">└ </span>${Structra.util.esc(nk.key)}</td>
+          html += `<tr class="stat-nested-row" data-parent="${Structra.sharedHelpers.esc(k.key)}" style="display:none">
+            <td class="cov-key" style="padding-left:24px;color:var(--text-sec)"><span style="color:var(--text-muted)">└ </span>${Structra.sharedHelpers.esc(nk.key)}</td>
             <td>${nk.present}</td><td>${nk.empty || '-'}</td>
             <td style="${nk.missing > 0 ? 'color:var(--danger);font-weight:700' : ''}">${nk.missing || '-'}</td>
             <td class="cov-pct" style="color:${nc}">${nk.pct}%</td>
@@ -470,9 +470,9 @@ class StructraOverview extends StructraElement {
     html += '</tr></thead><tbody>';
 
     for (const f of profileData.fields) {
-      const topStr = f.topValues ? f.topValues.map(t => `${Structra.util.esc(t.val)} (${t.cnt})`).join(', ') : '-';
+      const topStr = f.topValues ? f.topValues.map(t => `${Structra.sharedHelpers.esc(t.val)} (${t.cnt})`).join(', ') : '-';
       html += `<tr>
-        <td class="pf-key">${Structra.util.esc(f.key)}</td>
+        <td class="pf-key">${Structra.sharedHelpers.esc(f.key)}</td>
         <td><span class="pf-type pf-type-${f.primaryType}">${f.primaryType}</span></td>
         <td>${f.coverage}%</td>
         <td style="${parseFloat(f.nullPct) > 20 ? 'color:var(--danger);font-weight:600' : ''}">${f.nullPct}%</td>
@@ -500,7 +500,7 @@ class StructraOverview extends StructraElement {
     let html = '<div class="stats-section"><div class="stats-section-title">Value Distribution</div><div class="dist-grid">';
     for (const f of fields) {
       html += `<div class="dist-card">
-        <div class="dist-card-title">${Structra.util.esc(f.key)} <span class="dist-card-type">${f.histogram ? 'numeric' : 'categorical'}</span></div>`;
+        <div class="dist-card-title">${Structra.sharedHelpers.esc(f.key)} <span class="dist-card-type">${f.histogram ? 'numeric' : 'categorical'}</span></div>`;
       if (f.histogram) {
         const maxBin = Math.max(...f.histogram.map((b) => b.count), 1);
         html += '<div class="dist-histogram">';
@@ -517,7 +517,7 @@ class StructraOverview extends StructraElement {
         html += '<div class="dist-categorical">';
         for (const tv of f.distTop) {
           html += `<div class="dist-cat-row">
-            <span class="dist-cat-label" title="${Structra.util.esc(String(tv.value))}">${Structra.util.esc(String(tv.value).slice(0, 24))}</span>
+            <span class="dist-cat-label" title="${Structra.sharedHelpers.esc(String(tv.value))}">${Structra.sharedHelpers.esc(String(tv.value).slice(0, 24))}</span>
             <div class="dist-cat-bar"><div class="dist-cat-fill" style="width:${Math.round(tv.count / maxVal * 100)}%"></div></div>
             <span class="dist-cat-count">${tv.count}</span>
           </div>`;
@@ -571,9 +571,9 @@ class StructraOverview extends StructraElement {
       }
       case 'drill-array': {
         const path = action.dataset.path;
-        const dataset = Structra.engine.getActive();
+        const dataset = Structra.dataEngine.getActive();
         const data = dataset ? dataset.raw : Structra.state.jsonData;
-        const resolved = Structra.paths.resolve(data, path);
+        const resolved = Structra.dataPaths.resolve(data, path);
         if (Array.isArray(resolved) && resolved.length > 0 && typeof resolved[0] === 'object') {
           this._drillStack = [];
           this._currentArr = { path, rows: resolved };
@@ -581,7 +581,7 @@ class StructraOverview extends StructraElement {
         } else if (Array.isArray(resolved)) {
           Structra.toast(`Simple list with ${resolved.length} values`);
         }
-        Structra.set('currentPath', path);
+        Structra.setState('currentPath', path);
         break;
       }
       case 'drill-back': {
@@ -604,7 +604,7 @@ class StructraOverview extends StructraElement {
       case 'drill-nested-array': {
         if (!this._currentArr) break;
         const keyName = action.dataset.keyname;
-        const merged = Structra.engine.collectArrayItems(this._currentArr.rows, keyName);
+        const merged = Structra.dataEngine.collectArrayItems(this._currentArr.rows, keyName);
         if (merged.length > 0 && typeof merged[0] === 'object') {
           this._drillStack.push({ ...this._currentArr });
           const newPath = this._currentArr.path + '[*].' + keyName;
@@ -645,8 +645,8 @@ class StructraOverview extends StructraElement {
       }
       case 'goto-index': {
         const path = action.dataset.path;
-        Structra.set('currentPath', path);
-        Structra.set('activeView', 'tree');
+        Structra.setState('currentPath', path);
+        Structra.setState('activeView', 'tree');
         break;
       }
       case 'close-popup': {
@@ -677,10 +677,10 @@ class StructraOverview extends StructraElement {
     const maxShow = 50;
     const showing = indices.slice(0, maxShow);
 
-    let html = `<div class="missing-panel"><div class="missing-header"><span>${Structra.util.esc(title)} (${indices.length})</span><span class="missing-close" data-action="close-popup">&times;</span></div><div class="missing-list">`;
+    let html = `<div class="missing-panel"><div class="missing-header"><span>${Structra.sharedHelpers.esc(title)} (${indices.length})</span><span class="missing-close" data-action="close-popup">&times;</span></div><div class="missing-list">`;
     for (const idx of showing) {
       const path = `${basePath}[${idx}]`;
-      html += `<span class="missing-item" data-action="goto-index" data-path="${Structra.util.esc(path)}">[${idx}]</span>`;
+      html += `<span class="missing-item" data-action="goto-index" data-path="${Structra.sharedHelpers.esc(path)}">[${idx}]</span>`;
     }
     if (indices.length > maxShow) html += `<span class="missing-more">…and ${indices.length - maxShow} more</span>`;
     html += '</div></div>';
@@ -689,7 +689,7 @@ class StructraOverview extends StructraElement {
   }
 
   /* ====================================================
-     UTILS - all analysis delegated to Structra.engine
+     UTILS - all analysis delegated to Structra.dataEngine
      ==================================================== */
 
 }

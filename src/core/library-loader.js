@@ -1,21 +1,21 @@
 /* ============================================================
    STRUCTRA V2 - Library Loader
-   Structra.libs - load third-party libraries on first use.
+   Structra.libraryLoader - load third-party libraries on first use.
 
    Script libraries (UMD) set a window global. Module libraries
    (ESM) return their namespace. Each library loads once.
 
    API:
-     await Structra.libs.require('jsonrepair')   → window.JSONRepair
-     await Structra.libs.require('ajv')          → window.Ajv
-     await Structra.libs.require('html2canvas')  → window.html2canvas
-     await Structra.libs.require('jsonpath')     → window.JSONPath
-     const duckdb = await Structra.libs.require('duckdb')
+     await Structra.libraryLoader.require('jsonrepair')   → window.JSONRepair
+     await Structra.libraryLoader.require('ajv')          → window.Ajv
+     await Structra.libraryLoader.require('html2canvas')  → window.html2canvas
+     await Structra.libraryLoader.require('jsonpath')     → window.JSONPath
+     const duckdb = await Structra.libraryLoader.require('duckdb')
    ============================================================ */
 
 window.Structra = window.Structra || {};
 
-Structra.libs = (() => {
+Structra.libraryLoader = (() => {
   // Everything is served from this app's own folder: nothing is downloaded from another site
   const REGISTRY = {
     jsonrepair:  { type: 'script', urls: ['src/libs/jsonrepair.min.js'] },

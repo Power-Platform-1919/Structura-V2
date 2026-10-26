@@ -7,7 +7,7 @@
      Listens to: snippets:open, snippets:save
    ============================================================ */
 
-class StructraSnippets extends StructraOverlay {
+class StructraSnippets extends StructraDialog {
   init() {
     super.init();
     this._snippets = this._load();
@@ -69,7 +69,7 @@ class StructraSnippets extends StructraOverlay {
     const data = Structra.state.jsonData;
     // Pre-fill with current selection
     if (data && path !== '$') {
-      const val = Structra.paths.resolve(data, path);
+      const val = Structra.dataPaths.resolve(data, path);
       this.$('#snipContent').value = JSON.stringify(val, null, 2);
     } else if (data) {
       this.$('#snipContent').value = JSON.stringify(data, null, 2).slice(0, 2000);
@@ -135,7 +135,7 @@ class StructraSnippets extends StructraOverlay {
 
   _copySnippet(idx) {
     const snip = this._snippets[idx];
-    if (snip) Structra.util.copy(snip.content, 'Copied');
+    if (snip) Structra.sharedHelpers.copy(snip.content, 'Copied');
   }
 
   _renderList() {
@@ -148,10 +148,10 @@ class StructraSnippets extends StructraOverlay {
     container.innerHTML = this._snippets.map((s, i) => `
       <div class="snip-item" data-snip-idx="${i}">
         <div class="snip-item-top">
-          <span class="snip-item-name">${Structra.util.esc(s.name)}</span>
-          <span class="snip-item-size">${Structra.util.formatBytes(s.size)}</span>
+          <span class="snip-item-name">${Structra.sharedHelpers.esc(s.name)}</span>
+          <span class="snip-item-size">${Structra.sharedHelpers.formatBytes(s.size)}</span>
         </div>
-        <div class="snip-item-preview">${Structra.util.esc(s.content.slice(0, 80))}</div>
+        <div class="snip-item-preview">${Structra.sharedHelpers.esc(s.content.slice(0, 80))}</div>
         <div class="snip-item-actions">
           <button class="snip-act" data-action="use-snippet" data-idx="${i}">Load</button>
           <button class="snip-act" data-action="copy-snippet" data-idx="${i}">Copy</button>

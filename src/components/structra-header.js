@@ -9,7 +9,7 @@
      Sets state: activeView, currentPath
    ============================================================ */
 
-class StructraHeader extends StructraElement {
+class StructraHeader extends StructraComponent {
   static get observedAttributes() { return ['path', 'show-bookmark']; }
 
   init() {
@@ -29,8 +29,8 @@ class StructraHeader extends StructraElement {
     const back = this.$('[data-action="back"]');
     const fwd = this.$('[data-action="forward"]');
     const mark = this.$('[data-action="bookmark"]');
-    if (back) back.disabled = !Structra.nav.canBack();
-    if (fwd) fwd.disabled = !Structra.nav.canForward();
+    if (back) back.disabled = !Structra.pathHistory.canBack();
+    if (fwd) fwd.disabled = !Structra.pathHistory.canForward();
     if (mark) mark.classList.toggle('active', Structra.bookmarks.has(Structra.state.currentPath));
     const count = this.$('#bmCount');
     if (count) { const n = Structra.bookmarks.list().length; count.textContent = n ? String(n) : ''; }
@@ -83,11 +83,11 @@ class StructraHeader extends StructraElement {
       if (!btn) return;
       const action = btn.dataset.action;
       if (action === 'copy-path') this._copyPath();
-      else if (action === 'back') Structra.nav.back();
-      else if (action === 'forward') Structra.nav.forward();
+      else if (action === 'back') Structra.pathHistory.back();
+      else if (action === 'forward') Structra.pathHistory.forward();
       else if (action === 'bookmark') this._toggleBookmark();
       else if (action === 'bookmarks') this._showBookmarks(btn);
-      else if (action === 'toggle-theme') Structra.theme.toggle();
+      else if (action === 'toggle-theme') Structra.themeEngine.toggle();
       else if (action === 'appearance') Structra.events.emit('theme:open');
       else if (action === 'command-palette') Structra.events.emit('command-palette:toggle');
     });
@@ -109,9 +109,9 @@ class StructraHeader extends StructraElement {
     if (!text) return;
     const data = Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first'); return; }
-    const path = Structra.paths.canonical(text);
+    const path = Structra.dataPaths.canonical(text);
     let value;
-    try { value = path === '$' ? data : Structra.paths.resolve(data, path); } catch { value = undefined; }
+    try { value = path === '$' ? data : Structra.dataPaths.resolve(data, path); } catch { value = undefined; }
     if (value === undefined) {
       input.classList.add('invalid');
       Structra.toast(`Nothing at ${text}. Paths are case sensitive: check the spelling, or start typing to see suggestions.`);
@@ -119,8 +119,8 @@ class StructraHeader extends StructraElement {
     }
     input.classList.remove('invalid');
     // Overview, Editor and the others have no place to show a path: go to the Tree
-    if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.set('activeView', 'tree');
-    Structra.set('currentPath', path);
+    if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.setState('activeView', 'tree');
+    Structra.setState('currentPath', path);
     input.value = path;
     setTimeout(() => {
       Structra.events.emit('tree:navigate-path', path);
@@ -139,7 +139,7 @@ class StructraHeader extends StructraElement {
     const old = document.querySelector('.bm-menu');
     if (old) { old.remove(); return; }
     const items = Structra.bookmarks.list();
-    const esc = Structra.util.esc;
+    const esc = Structra.sharedHelpers.esc;
     const menu = document.createElement('div');
     menu.className = 'bm-menu';
     menu.setAttribute('role', 'menu');
@@ -170,7 +170,7 @@ class StructraHeader extends StructraElement {
   _copyPath() {
     const path = this.$('#pathInput').value;
     if (path) {
-      Structra.util.copy(path, 'Path copied');
+      Structra.sharedHelpers.copy(path, 'Path copied');
     }
   }
 }

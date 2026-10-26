@@ -52,7 +52,7 @@ function serve() {
     await page.waitForTimeout(1500);
     await page.evaluate(() => { window.__toasts = []; const t = Structra.toast; Structra.toast = (m, ...r) => { window.__toasts.push(String(m)); return t.call(Structra, m, ...r); }; });
     const original = await page.evaluate(() => JSON.stringify(Structra.state.jsonData));
-    await page.evaluate(() => Structra.set('activeView', 'editor'));
+    await page.evaluate(() => Structra.setState('activeView', 'editor'));
     await page.waitForTimeout(500);
 
     // ---- Line numbers ----

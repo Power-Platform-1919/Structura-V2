@@ -1,6 +1,6 @@
 /* ============================================================
    STRUCTRA V2 - Theme Engine
-   Structra.theme - built-in themes, custom themes, light / dark / system.
+   Structra.themeEngine - built-in themes, custom themes, light / dark / system.
 
    A theme is a mode plus 17 base colours (see tokens.css, everything else
    is derived). Custom themes are stored in this browser and can be exported
@@ -12,21 +12,21 @@
        "fonts":  { "ui": "IBM Plex Sans", "mono": "JetBrains Mono", "size": 15 } }   // fonts is optional
 
    API:
-     Structra.theme.list()                  → every theme (built-in first, then custom)
-     Structra.theme.get(id)
-     Structra.theme.current()               → { mode, theme }  the theme in effect right now
-     Structra.theme.mode()                  → 'light' | 'dark' | 'system'
-     Structra.theme.setMode(mode)
-     Structra.theme.toggle()                → flip between light and dark
-     Structra.theme.use(id)                 → make a theme the choice for its mode and switch to it
-     Structra.theme.preview(theme)          → apply a theme without saving (editing)
-     Structra.theme.endPreview()
-     Structra.theme.saveCustom(theme)       → id
-     Structra.theme.deleteCustom(id)
-     Structra.theme.exportJson(id)          → JSON text
-     Structra.theme.importJson(text)        → saved theme, throws with a readable message when invalid
-     Structra.theme.contrast(hexA, hexB)    → WCAG contrast ratio
-     Structra.theme.BASE_KEYS, Structra.theme.LABELS
+     Structra.themeEngine.list()                  → every theme (built-in first, then custom)
+     Structra.themeEngine.get(id)
+     Structra.themeEngine.current()               → { mode, theme }  the theme in effect right now
+     Structra.themeEngine.mode()                  → 'light' | 'dark' | 'system'
+     Structra.themeEngine.setMode(mode)
+     Structra.themeEngine.toggle()                → flip between light and dark
+     Structra.themeEngine.use(id)                 → make a theme the choice for its mode and switch to it
+     Structra.themeEngine.preview(theme)          → apply a theme without saving (editing)
+     Structra.themeEngine.endPreview()
+     Structra.themeEngine.saveCustom(theme)       → id
+     Structra.themeEngine.deleteCustom(id)
+     Structra.themeEngine.exportJson(id)          → JSON text
+     Structra.themeEngine.importJson(text)        → saved theme, throws with a readable message when invalid
+     Structra.themeEngine.contrast(hexA, hexB)    → WCAG contrast ratio
+     Structra.themeEngine.BASE_KEYS, Structra.themeEngine.LABELS
 
    Events: 'theme:changed'
 
@@ -36,7 +36,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.theme = (() => {
+Structra.themeEngine = (() => {
   const STORE_KEY = 'structra.theme';
   const FORMAT = 'structra-theme';
 

@@ -1,11 +1,11 @@
 /* ============================================================
    STRUCTRA V2 - Parse JSON Schema Generator
-   Structra.schemaGen - JSON Schema for the Power Automate
+   Structra.parseJsonSchemaGenerator - JSON Schema for the Power Automate
    "Parse JSON" action.
 
    API:
-     Structra.schemaGen.basic(value, opts)  → schema from the first array item only
-     Structra.schemaGen.smart(value, opts)  → schema from every item, merged:
+     Structra.parseJsonSchemaGenerator.basic(value, opts)  → schema from the first array item only
+     Structra.parseJsonSchemaGenerator.smart(value, opts)  → schema from every item, merged:
          - a key that is sometimes null becomes a type list, e.g. ["string", "null"]
          - a key that is missing from some objects is left out of "required"
          - a key that holds different types gets all of them, e.g. ["string", "number"]
@@ -21,8 +21,8 @@
 
 window.Structra = window.Structra || {};
 
-Structra.schemaGen = (() => {
-  const kindOf = Structra.util.typeOf;
+Structra.parseJsonSchemaGenerator = (() => {
+  const kindOf = Structra.sharedHelpers.typeOf;
   const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
   const DEFAULTS = { integers: false, required: true };

@@ -9,7 +9,7 @@
           state:drawerState
    ============================================================ */
 
-class StructraSchemaGen extends StructraElement {
+class StructraSchemaGen extends StructraComponent {
   init() {
     this._allItems = true;
     this._integers = false;     // false: every number is "number" (safe); true: whole numbers are "integer"
@@ -54,7 +54,7 @@ class StructraSchemaGen extends StructraElement {
       if (!e.target.closest('[data-action="copy"]')) return;
       const text = this.$('#sgOutput').dataset.schema;
       if (!text) { Structra.toast('No schema to copy'); return; }
-      Structra.util.copy(text, 'Schema copied');
+      Structra.sharedHelpers.copy(text, 'Schema copied');
     });
     this.addEventListener('change', (e) => {
       const a = e.target.dataset && e.target.dataset.action;
@@ -88,7 +88,7 @@ class StructraSchemaGen extends StructraElement {
     const out = this.$('#sgOutput');
     let data = Structra.state.jsonData;
     if (data && this._selected && Structra.state.currentPath) {
-      const part = Structra.paths.resolve(data, Structra.state.currentPath);
+      const part = Structra.dataPaths.resolve(data, Structra.state.currentPath);
       if (part !== undefined) data = part;
     }
     if (!out) return;
@@ -99,7 +99,7 @@ class StructraSchemaGen extends StructraElement {
     }
     try {
       const opts = { integers: this._integers, required: this._required };
-      const schema = this._allItems ? Structra.schemaGen.smart(data, opts) : Structra.schemaGen.basic(data, opts);
+      const schema = this._allItems ? Structra.parseJsonSchemaGenerator.smart(data, opts) : Structra.parseJsonSchemaGenerator.basic(data, opts);
       const text = JSON.stringify(schema, null, 2);
       out.dataset.schema = text;
       Structra.codeView.colorize(out, text, 'json');

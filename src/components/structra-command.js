@@ -14,7 +14,7 @@
           fileName, currentPath
    ============================================================ */
 
-class StructraCommand extends StructraElement {
+class StructraCommand extends StructraComponent {
   static get observedAttributes() { return ['open']; }
 
   init() {
@@ -107,7 +107,7 @@ class StructraCommand extends StructraElement {
       const before = Structra.state.jsonData;
       if (!before) return;
       const after = typeof structuredClone === 'function' ? structuredClone(before) : JSON.parse(JSON.stringify(before));
-      Structra.paths.setNested(after, Structra.paths.canonical(path), value);
+      Structra.dataPaths.setNested(after, Structra.dataPaths.canonical(path), value);
       this._edit('Edit value', before, after, 'Value changed');
     });
   }
@@ -179,14 +179,14 @@ class StructraCommand extends StructraElement {
     const filtered = this._commands.filter(c => this._available(c)
       && (!q || c.label.toLowerCase().includes(q) || c.id.includes(q) || (c.cat && c.cat.toLowerCase().includes(q)) || (c.keys && c.keys.includes(q))));
     if (!filtered.length) {
-      list.innerHTML = `<div class="cmd-empty">No command matches <strong>${Structra.util.esc(query)}</strong>. Try a word like sort, mask, export, table or power.</div>`;
+      list.innerHTML = `<div class="cmd-empty">No command matches <strong>${Structra.sharedHelpers.esc(query)}</strong>. Try a word like sort, mask, export, table or power.</div>`;
       return;
     }
     list.innerHTML = filtered
       .map((c, i) =>
         `<div class="cmd-item ${i === this._selectedIdx ? 'selected' : ''}" data-cmd="${c.id}">
           ${Structra.icons.svg(c.icon)}
-          <span class="cmd-text">${Structra.util.esc(c.label)}</span>
+          <span class="cmd-text">${Structra.sharedHelpers.esc(c.label)}</span>
           <span class="cmd-cat">${c.cat || ''}</span>
           ${c.kbd ? `<kbd>${c.kbd}</kbd>` : ''}
         </div>`
@@ -223,11 +223,11 @@ class StructraCommand extends StructraElement {
 
     // View switching
     if (views.includes(cmdId)) {
-      Structra.set('activeView', cmdId);
+      Structra.setState('activeView', cmdId);
       return;
     }
 
-    const ds = Structra.engine.getActive();
+    const ds = Structra.dataEngine.getActive();
     const data = ds ? ds.raw : Structra.state.jsonData;
 
     switch (cmdId) {
@@ -254,7 +254,7 @@ class StructraCommand extends StructraElement {
       }
       case 'mask': {
         if (!data) { Structra.toast('Open a file first'); return; }
-        const masked = Structra.dataMask.maskData(data);
+        const masked = Structra.personalDataMasker.maskData(data);
         if (!masked.count) { Structra.toast('Nothing to mask: no emails, phone numbers or other personal values found'); return; }
         // Keep the original of this tab, so Unmask can bring it back even after other edits
         if (!this._maskBackups) this._maskBackups = new Map();
@@ -265,7 +265,7 @@ class StructraCommand extends StructraElement {
       }
       case 'mock': {
         if (!data) { Structra.toast('Open a file first. Sample data is made from its structure.'); return; }
-        const mockData = Structra.mockGen.generate(data);
+        const mockData = Structra.mockDataGenerator.generate(data);
         const rows = Array.isArray(mockData) ? mockData.length : 1;
         this._openInNewTab(mockData, this._baseName() + ' (mock)')
           .then((opened) => { if (opened) Structra.toast(`Mock data made from the structure: ${rows} ${rows === 1 ? 'record' : 'records'}, opened in a new tab`); });
@@ -277,7 +277,7 @@ class StructraCommand extends StructraElement {
         const open = (rows) => this._openInNewTab(rows, this._baseName() + ' (sample)')
           .then((opened) => { if (opened) Structra.toast(`${rows.length} random rows, opened in a new tab`); });
         const shuffle = () => [...data].sort(() => Math.random() - 0.5).slice(0, n);
-        Structra.engine.sampleData(n).then((sampled) => open(sampled && sampled.length ? sampled : shuffle())).catch(() => open(shuffle()));
+        Structra.dataEngine.sampleData(n).then((sampled) => open(sampled && sampled.length ? sampled : shuffle())).catch(() => open(shuffle()));
         break;
       }
 
@@ -292,23 +292,23 @@ class StructraCommand extends StructraElement {
       /* ---- Export / Convert ---- */
       case 'export-csv': {
         if (!data) { Structra.toast('Open a file first'); return; }
-        Structra.engine.exportData('csv').then(csv => {
-          Structra.util.download(csv, this._baseName() + '.csv', 'text/csv');
+        Structra.dataEngine.exportData('csv').then(csv => {
+          Structra.sharedHelpers.download(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         }).catch(() => {
           // JS fallback for non-array data
           const rows = Array.isArray(data) ? data : [data];
           const keys = [...new Set(rows.flatMap(r => Object.keys(r)))];
           const csv = [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
-          Structra.util.download(csv, this._baseName() + '.csv', 'text/csv');
+          Structra.sharedHelpers.download(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         });
         break;
       }
       case 'export-yaml': {
         if (!data) { Structra.toast('Open a file first'); return; }
-        Structra.convert.jsonToYaml(data).then(yaml => {
-          Structra.util.download(yaml, this._baseName() + '.yaml', 'text/yaml');
+        Structra.formatConversion.jsonToYaml(data).then(yaml => {
+          Structra.sharedHelpers.download(yaml, this._baseName() + '.yaml', 'text/yaml');
           Structra.toast('YAML downloaded');
         }).catch(e => Structra.toast('Could not convert to YAML: ' + e.message));
         break;
@@ -316,16 +316,16 @@ class StructraCommand extends StructraElement {
       case 'export-xml': {
         if (!data) { Structra.toast('Open a file first'); return; }
         try {
-          const xml = Structra.convert.jsonToXml(data);
-          Structra.util.download(xml, this._baseName() + '.xml', 'text/xml');
+          const xml = Structra.formatConversion.jsonToXml(data);
+          Structra.sharedHelpers.download(xml, this._baseName() + '.xml', 'text/xml');
           Structra.toast('XML downloaded');
         } catch (e) { Structra.toast('Could not convert to XML: ' + e.message); }
         break;
       }
 
       /* ---- Search & Filter ---- */
-      case 'find':   Structra.set('findBarOpen', !Structra.state.findBarOpen); break;
-      case 'filter': Structra.set('filterBarOpen', !Structra.state.filterBarOpen); break;
+      case 'find':   Structra.setState('findBarOpen', !Structra.state.findBarOpen); break;
+      case 'filter': Structra.setState('filterBarOpen', !Structra.state.filterBarOpen); break;
       case 'fuzzy':
         Structra.events.emit('find:open', { mode: 'fuzzy' });
         break;
@@ -348,20 +348,20 @@ class StructraCommand extends StructraElement {
       case 'pp-copy-pa':
       case 'pp-copy-fx': {
         const path = Structra.state.currentPath;
-        const value = Structra.paths.resolve(Structra.state.jsonData, path);
+        const value = Structra.dataPaths.resolve(Structra.state.jsonData, path);
         if (!path || path === '$') {
           // The Table and Overview have no selected value: the Tree is where one is picked
-          if (Structra.state.activeView !== 'tree') Structra.set('activeView', 'tree');
+          if (Structra.state.activeView !== 'tree') Structra.setState('activeView', 'tree');
           Structra.toast('Select a value in the Tree, then run this again');
           return;
         }
-        const rows = Structra.expressions.quick(path, value).filter((r) => r.app === (cmdId === 'pp-copy-pa' ? 'Power Automate' : 'Power Fx'));
-        if (rows[0]) Structra.util.copy(rows[0].code, rows[0].label + ' copied');
+        const rows = Structra.powerPlatformExpressions.quick(path, value).filter((r) => r.app === (cmdId === 'pp-copy-pa' ? 'Power Automate' : 'Power Fx'));
+        if (rows[0]) Structra.sharedHelpers.copy(rows[0].code, rows[0].label + ' copied');
         break;
       }
       case 'pp-schema': {
         if (!data) { Structra.toast('Open a file first'); return; }
-        Structra.util.copy(JSON.stringify(Structra.schemaGen.smart(data, { integers: true, required: true }), null, 2), 'Parse JSON schema copied');
+        Structra.sharedHelpers.copy(JSON.stringify(Structra.parseJsonSchemaGenerator.smart(data, { integers: true, required: true }), null, 2), 'Parse JSON schema copied');
         break;
       }
 
@@ -370,14 +370,14 @@ class StructraCommand extends StructraElement {
         Structra.events.emit('validate:open');
         break;
       case 'dup-keys': {
-        const src = Structra.engine.getActive() && Structra.engine.getActive()._rawSource;
+        const src = Structra.dataEngine.getActive() && Structra.dataEngine.getActive()._rawSource;
         if (!src) { Structra.toast('No duplicate keys. This document was not read from JSON text (CSV, edited or generated data), so a key cannot repeat.'); return; }
         Structra.toast('Checking for duplicate keys...');
         // Duplicates only exist in the original text (parsing keeps the last value)
         (typeof src === 'string' ? Promise.resolve(src) : src.text())
-          .then((text) => Structra.jsonTools.findDuplicateKeys(text))
+          .then((text) => Structra.jsonRepairAndValidation.findDuplicateKeys(text))
           .then((dupes) => {
-            Structra.set('duplicateKeys', dupes);
+            Structra.setState('duplicateKeys', dupes);
             Structra.toast(dupes.length ? dupes.length + ' duplicate key' + (dupes.length === 1 ? '' : 's') + ' found' : 'No duplicate keys');
           });
         break;
@@ -387,8 +387,8 @@ class StructraCommand extends StructraElement {
         break;
       case 'share-url': {
         if (!data) { Structra.toast('Open a file first'); return; }
-        Structra.share.createUrl(data, Structra.state.fileName)
-          .then(({ url, bytes }) => Structra.util.copy(url, `Share link copied (${bytes < 1000 ? bytes + ' characters' : Math.round(bytes / 1000) + ' KB'}). The data is inside the link, nothing is uploaded, and anyone with the link can read it.`))
+        Structra.shareLink.createUrl(data, Structra.state.fileName)
+          .then(({ url, bytes }) => Structra.sharedHelpers.copy(url, `Share link copied (${bytes < 1000 ? bytes + ' characters' : Math.round(bytes / 1000) + ' KB'}). The data is inside the link, nothing is uploaded, and anyone with the link can read it.`))
           .catch((e) => Structra.toast(e.message));
         break;
       }
@@ -397,7 +397,7 @@ class StructraCommand extends StructraElement {
         const view = Structra.state.activeView;
         const base = (Structra.state.fileName || 'structra').replace(/\.[^.]+$/, '');
         Structra.toast('Creating image...');
-        Structra.capture.png(panel, base + '-' + view + '.png')
+        Structra.imageCapture.png(panel, base + '-' + view + '.png')
           .then(() => Structra.toast('Image saved'))
           .catch((e) => Structra.toast('Could not save the image: ' + e.message));
         break;
@@ -405,7 +405,7 @@ class StructraCommand extends StructraElement {
       case 'repair':
       case 'format-json':
       case 'minify-json': {
-        Structra.set('activeView', 'editor');
+        Structra.setState('activeView', 'editor');
         const evt = { 'repair': 'editor:repair', 'format-json': 'editor:format', 'minify-json': 'editor:minify' }[cmdId];
         setTimeout(() => Structra.events.emit(evt), 80);
         break;
@@ -458,15 +458,15 @@ class StructraCommand extends StructraElement {
       case 'collapse-all': Structra.events.emit('tree:collapse-all'); break;
       case 'depth-3':      Structra.events.emit('tree:collapse-depth', 3); break;
       case 'wrap':         Structra.events.emit('tree:toggle-wrap'); break;
-      case 'copy-path':    Structra.util.copy(Structra.state.currentPath || '$', 'Path copied'); break;
+      case 'copy-path':    Structra.sharedHelpers.copy(Structra.state.currentPath || '$', 'Path copied'); break;
       case 'bookmark': {
         const path = Structra.state.currentPath;
         if (!path || path === '$') { Structra.toast('Select a path to bookmark'); break; }
         Structra.toast(Structra.bookmarks.toggle(path) ? 'Bookmarked ' + path : 'Bookmark removed');
         break;
       }
-      case 'back':         Structra.nav.back(); break;
-      case 'forward':      Structra.nav.forward(); break;
+      case 'back':         Structra.pathHistory.back(); break;
+      case 'forward':      Structra.pathHistory.forward(); break;
       case 'new-tab':      Structra.events.emit('tabs:add'); break;
       case 'load-url':
         Structra.events.emit('tabs:add');
@@ -489,15 +489,15 @@ class StructraCommand extends StructraElement {
   /* ---- Helpers ---- */
   /** Show new data in the open tab: the engine and every view (Tree, Table, Overview...) switch to it together */
   async _reingest(data) {
-    const ds = Structra.engine.getActive();
+    const ds = Structra.dataEngine.getActive();
     const tabId = ds ? ds.id : Structra.tabs.activeId;
     const size = JSON.stringify(data).length;
-    await Structra.engine.ingest(tabId, data, {
+    await Structra.dataEngine.ingest(tabId, data, {
       fileName: (ds && ds.meta.fileName) || Structra.state.fileName || 'data.json',
       fileSize: size,
     });
-    Structra.set('jsonData', data);
-    Structra.set('fileSize', size);
+    Structra.setState('jsonData', data);
+    Structra.setState('fileSize', size);
     const tab = Structra.tabs.list.find((t) => t.id === tabId);
     if (tab) { tab.modified = true; Structra.events.emit('tabs:changed'); }
   }
@@ -534,17 +534,17 @@ class StructraCommand extends StructraElement {
     if (Structra.tabs.list.length === before) return false;           // the tab limit was reached (the tab bar already said so)
     const tabId = Structra.tabs.activeId;
     const size = JSON.stringify(data).length;
-    await Structra.engine.ingest(tabId, data, { fileName: name, fileSize: size });
-    Structra.set('jsonData', data);
-    Structra.set('fileName', name);
-    Structra.set('fileSize', size);
-    Structra.set('currentPath', '$');
-    Structra.set('activeView', 'tree');
+    await Structra.dataEngine.ingest(tabId, data, { fileName: name, fileSize: size });
+    Structra.setState('jsonData', data);
+    Structra.setState('fileName', name);
+    Structra.setState('fileSize', size);
+    Structra.setState('currentPath', '$');
+    Structra.setState('activeView', 'tree');
     return true;
   }
 
   _showCodeGen(lang) {
-    const ds = Structra.engine.getActive();
+    const ds = Structra.dataEngine.getActive();
     const data = ds ? ds.raw : Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first'); return; }
     Structra.events.emit('typedef:open', { lang, name: 'Root' });

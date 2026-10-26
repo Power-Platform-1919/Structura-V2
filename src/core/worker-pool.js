@@ -287,7 +287,7 @@ Structra.protectBigNumbers = function (src) {
 
 Structra.parseJsonAsync = async function (text) {
   var t0 = performance.now();
-  await Structra.util.nextTick();   // let the loading message paint first
+  await Structra.sharedHelpers.nextTick();   // let the loading message paint first
   var src = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
   var protectedText = Structra.protectBigNumbers(src);
   Structra.parseNotes = { bigNumbers: protectedText.count };

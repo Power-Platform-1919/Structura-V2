@@ -1,6 +1,6 @@
 /* ============================================================
    STRUCTRA V2 - Paths
-   Structra.paths - parse, resolve and format data paths.
+   Structra.dataPaths - parse, resolve and format data paths.
 
    Accepted path syntax (a leading "$" is optional):
      users[0].name          dot keys and [index]
@@ -8,18 +8,18 @@
      items[*].id            wildcard over an array
 
    API:
-     Structra.paths.tokenize(path)       → [{type:'key'|'index'|'wildcard', value}]
-     Structra.paths.resolve(data, path)  → value, or undefined when missing
-     Structra.paths.setNested(data, path, value) → assign in place, true when set
-     Structra.paths.strip(path)          → path without the leading "$"
-     Structra.paths.lastKey(path)        → last key name, or 'data'
-     Structra.paths.powerAutomate(path)  → body('Parse_JSON')?['a'][0]
-     Structra.paths.powerFx(path)        → ParseJSON(jsonText).a
+     Structra.dataPaths.tokenize(path)       → [{type:'key'|'index'|'wildcard', value}]
+     Structra.dataPaths.resolve(data, path)  → value, or undefined when missing
+     Structra.dataPaths.setNested(data, path, value) → assign in place, true when set
+     Structra.dataPaths.strip(path)          → path without the leading "$"
+     Structra.dataPaths.lastKey(path)        → last key name, or 'data'
+     Structra.dataPaths.powerAutomate(path)  → body('Parse_JSON')?['a'][0]
+     Structra.dataPaths.powerFx(path)        → ParseJSON(jsonText).a
    ============================================================ */
 
 window.Structra = window.Structra || {};
 
-Structra.paths = (() => {
+Structra.dataPaths = (() => {
   const SIMPLE_FX_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
   function strip(path) {
