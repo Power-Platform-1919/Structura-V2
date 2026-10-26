@@ -225,20 +225,26 @@ Structra.codeView = (() => {
   /** Folding for JSON text: from the bracket that a line leaves open to the bracket that closes it. Strings are skipped.
       The folded part shows as { ... } on one line. */
   function jsonFoldService(state, lineStart, lineEnd) {
+    // Text pasted into a box that was small when it was made can grow past BIG_FOLD. Finding the closing bracket would then
+    // scan most of the document every time the margin is redrawn, so stop here: no fold arrows for text this large.
+    if (state.doc.length > BIG_FOLD) return null;
     const text = state.sliceDoc(lineStart, lineEnd);
-    let open = -1;
-    let depth = 0;
+    // The brackets this line opens and does not close itself. A closer with nothing open before it on the line belongs to an
+    // earlier line and is ignored, so a line such as `}, {` or `], "b": [` still leaves its last opener open.
+    const openers = [];
     let inString = false;
     for (let i = 0; i < text.length; i++) {
       const character = text[i];
       if (inString) { if (character === '\\') i++; else if (character === '"') inString = false; continue; }
       if (character === '"') inString = true;
-      else if (character === '{' || character === '[') { depth++; open = i; }
-      else if (character === '}' || character === ']') depth--;
+      else if (character === '{' || character === '[') openers.push(i);
+      else if (character === '}' || character === ']') openers.pop();
     }
-    if (depth <= 0 || open < 0) return null;                    // nothing is left open on this line
+    if (!openers.length) return null;                           // nothing is left open on this line
+    const open = openers[openers.length - 1];                   // fold from the last opener on the line
     const doc = state.doc;
-    let level = depth;
+    let level = openers.length;
+    const closesAt = level - 1;                                 // the level once that last opener has been closed
     for (let lineNumber = doc.lineAt(lineStart).number + 1; lineNumber <= doc.lines; lineNumber++) {
       const line = doc.line(lineNumber);
       let text = false;
@@ -249,7 +255,7 @@ Structra.codeView = (() => {
         else if (character === '{' || character === '[') level++;
         else if (character === '}' || character === ']') {
           level--;
-          if (level === 0) return line.from + i > lineStart + open + 1 ? { from: lineStart + open + 1, to: line.from + i } : null;
+          if (level === closesAt) return line.from + i > lineStart + open + 1 ? { from: lineStart + open + 1, to: line.from + i } : null;
         }
       }
     }
@@ -383,9 +389,11 @@ Structra.codeView = (() => {
     view.scrollDOM.addEventListener('scroll', () => scrollHandlers.forEach((scrollHandler) => scrollHandler()), { passive: true });
 
     // Escape closes an open suggestion list first. It must not also reach the app and close a panel.
+    // The listeners sit on the host, which outlives the box, so destroy() removes them (a host can be given a new box later).
+    const hostListeners = new AbortController();
     let listWasOpen = false;
-    host.addEventListener('keydown', (event) => { if (event.key === 'Escape') listWasOpen = completionStatus(view.state) === 'active'; }, true);
-    host.addEventListener('keydown', (event) => { if (event.key === 'Escape' && listWasOpen) { event.stopPropagation(); listWasOpen = false; } });
+    host.addEventListener('keydown', (event) => { if (event.key === 'Escape') listWasOpen = completionStatus(view.state) === 'active'; }, { capture: true, signal: hostListeners.signal });
+    host.addEventListener('keydown', (event) => { if (event.key === 'Escape' && listWasOpen) { event.stopPropagation(); listWasOpen = false; } }, { signal: hostListeners.signal });
 
     let big = initial.length > BIG_FOLD;
     const lineAt = (lineIndex) => view.state.doc.line(Math.max(1, Math.min(view.state.doc.lines, lineIndex + 1)));
@@ -450,9 +458,11 @@ Structra.codeView = (() => {
         view.dispatch({ effects: language.reconfigure(current.language ? current.language.extension : []) });
       },
       destroy() {
+        hostListeners.abort();
         view.destroy();
         handlers.length = 0;
         scrollHandlers.length = 0;
+        host.classList.remove('cv', 'cv-grow', 'cv-readonly');
         delete host.codeView;
       },
     };

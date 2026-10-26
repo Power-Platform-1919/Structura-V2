@@ -141,6 +141,58 @@ function serve() {
     const folded = await page.evaluate(() => ({ placeholder: !!document.querySelector('structra-editor .cm-foldPlaceholder'), lines: document.querySelectorAll('structra-editor .cm-line').length }));
     if (!folded.placeholder) failures.push('clicking the fold arrow should fold the block: ' + JSON.stringify(folded));
 
+    // ---- Folding finds the right bracket when a line closes one block and opens another, or opens two at once ----
+    const foldCases = await page.evaluate(async () => {
+      const make = async (text) => {
+        const host = document.createElement('div');
+        host.style.cssText = 'position:fixed;left:0;top:0;width:600px;height:300px;z-index:99999';
+        document.body.appendChild(host);
+        const box = await Structra.codeView.create(host, { mode: 'json', value: text, label: 'fold case' });
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        return { host, box, arrows: () => host.querySelectorAll('.cm-foldGutter .cm-gutterElement span').length - 1 };   // the first element is a hidden spacer that sizes the margin
+      };
+      const out = {};
+      // a line that closes a block and opens the next, "}, "b": {", must still get a fold arrow: lines 1, 2 and 4 leave a block open
+      let c = await make('{\n  "a": {\n    "n": 1\n  }, "b": {\n    "m": 2\n  }\n}');
+      out.closeThenOpen = c.arrows();
+      c.box.destroy(); c.host.remove();
+      // a line that opens two blocks at once gets one arrow and folds the inner block only
+      c = await make('{\n  "list": [{\n    "x": 1\n  }]\n}');
+      out.openTwo = c.arrows();
+      c.host.querySelectorAll('.cm-foldGutter .cm-gutterElement span')[2].click();     // the arrow on line 2
+      await new Promise((r) => setTimeout(r, 200));
+      out.openTwoFolded = !!c.host.querySelector('.cm-foldPlaceholder');
+      out.openTwoText = c.host.querySelector('.cm-content').textContent.replace(/\s+/g, '');
+      c.box.destroy(); c.host.remove();
+      // text pasted in after the box was made must not leave the slow bracket search running: no arrows once it is large
+      c = await make('{\n  "a": 1\n}');
+      out.smallArrows = c.arrows();
+      const line = '  "key": 1234567890,\n';
+      c.box.view.dispatch({ changes: { from: 0, to: c.box.view.state.doc.length, insert: '{\n' + line.repeat(Math.ceil(Structra.codeView.BIG_FOLD / line.length) + 10) + '  "end": 0\n}' } });
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const t0 = performance.now();
+      c.box.view.dispatch({ selection: { anchor: 5 } });
+      await new Promise((r) => requestAnimationFrame(r));
+      out.pastedMs = Math.round(performance.now() - t0);
+      out.pastedArrows = c.arrows();
+      c.box.destroy(); c.host.remove();
+      // a host can be given a new box after destroy(): the old box must leave nothing behind on it
+      const host = document.createElement('div');
+      host.style.cssText = 'position:fixed;left:0;top:0;width:600px;height:200px;z-index:99999';
+      document.body.appendChild(host);
+      const first = await Structra.codeView.create(host, { mode: 'json', value: '{}', label: 'first' });
+      first.destroy();
+      out.classesAfterDestroy = host.className;
+      host.remove();
+      return out;
+    });
+    if (foldCases.closeThenOpen !== 3) failures.push('a line like "}, \\"b\\": {" should get a fold arrow (3 arrows expected): ' + JSON.stringify(foldCases));
+    if (foldCases.openTwo !== 2) failures.push('a line that opens two blocks should get one arrow: ' + JSON.stringify(foldCases));
+    if (!foldCases.openTwoFolded || foldCases.openTwoText.includes('"x"') || !foldCases.openTwoText.includes('"list":[{')) failures.push('folding a line that opens two blocks should hide the inner block: ' + JSON.stringify(foldCases));
+    if (foldCases.smallArrows < 1 || foldCases.pastedArrows !== 0) failures.push('text pasted in that is larger than the fold limit should lose its fold arrows: ' + JSON.stringify(foldCases));
+    if (foldCases.pastedMs > 500) failures.push('a large pasted text should stay quick to use, it took ' + foldCases.pastedMs + ' ms');
+    if (foldCases.classesAfterDestroy) failures.push('destroy() should remove the cv classes from the host: ' + JSON.stringify(foldCases.classesAfterDestroy));
+
     // ---- Large text: folding is left off, and the editor still works ----
     const big = await page.evaluate(async () => {
       const host = document.createElement('div');
