@@ -674,7 +674,7 @@ Structra.engine = (() => {
   }
 
   /** Words a read-only query may start with (comments and spaces before them are skipped) */
-  const SQL_READ_ONLY = /^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*(select|with|from|values|describe|show|summarize|explain)\b/i;
+  const SQL_READ_ONLY = /^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*(select|with|from|values|describe|show|summarize|explain|pivot|unpivot)\b/i;
   /** Words a query that can sit inside another query starts with */
   const SQL_SELECT_LIKE = /^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*(select|with|from|values)\b/i;
 
@@ -698,7 +698,7 @@ Structra.engine = (() => {
   async function runSql(sqlText, opts = {}) {
     if (opts.readOnly) {
       if (!SQL_READ_ONLY.test(sqlText)) {
-        return { error: 'Only queries that read data can run here. Start with SELECT, WITH, DESCRIBE, SHOW or SUMMARIZE.' };
+        return { error: 'Only queries that read data can run here. Start with SELECT, WITH, VALUES, DESCRIBE, SHOW, SUMMARIZE, PIVOT or UNPIVOT.' };
       }
       if (/;\s*\S/.test(_sqlSkeleton(sqlText))) {
         return { error: 'Run one statement at a time. Select the statement you want, or remove the extra ones.' };
@@ -725,6 +725,7 @@ Structra.engine = (() => {
         capped = true;
       }
       let rows = await Structra.duckdb.query(text);
+      const columnTypes = rows.columnTypes || [];
       let truncated = false;
       if (capped && rows.length > opts.maxRows) { rows = rows.slice(0, opts.maxRows); truncated = true; }
       const duration = performance.now() - t0;
@@ -737,6 +738,7 @@ Structra.engine = (() => {
         matchedPaths: null,
         total: rows.length,
         columns: cols,
+        columnTypes,
         truncated,
         duration,
       };

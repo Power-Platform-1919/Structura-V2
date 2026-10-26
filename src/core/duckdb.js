@@ -112,6 +112,9 @@ Structra.duckdb = (() => {
       }
       rows.push(row);
     }
+    // What each column is (DATE, DECIMAL(10,2), ...). The values alone cannot say: a date arrives as a number of milliseconds
+    // and a decimal as its digits without the point.
+    rows.columnTypes = table.schema.fields.map((f) => ({ type: String(f.type), scale: f.type.scale }));
     return rows;
   }
 

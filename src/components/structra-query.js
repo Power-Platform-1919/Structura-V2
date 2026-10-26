@@ -463,6 +463,7 @@ class StructraQuery extends StructraElement {
       return;
     }
     this._rememberSql(this._sqlGet().trim());
+    result.table = this._prepare(result);           // dates, decimals and nested values turned into plain data once
     this._lastSql = result;
     this._renderSqlResult(result);
     this._loadSqlSchemaIfStale();
@@ -472,22 +473,72 @@ class StructraQuery extends StructraElement {
     if (!this.$('#sqlColumns').querySelector('.qp-sql-col')) this._loadSqlSchema();
   }
 
-  /** One cell as text. Dates, big numbers and nested values from the engine are turned into plain text */
-  _cell(v) {
+  /** What kind of value a column holds, from the type the engine reported */
+  _kind(info) {
+    const t = info && info.type ? info.type : '';
+    if (/^Decimal/.test(t)) return { name: 'decimal', scale: info.scale || 0, numeric: true };
+    if (/^(Int|Uint|Float)/.test(t)) return { name: 'number', numeric: true };
+    if (/^Date/.test(t)) return { name: 'date' };
+    if (/^Timestamp/.test(t)) return { name: 'timestamp' };
+    if (/^Time/.test(t)) return { name: 'time' };               // after Timestamp, which also starts with Time
+    if (/^Bool/.test(t)) return { name: 'bool' };
+    return { name: 'other' };
+  }
+
+  /** One value as plain JSON data, for copying, saving and opening in a tab */
+  _plain(v, kind) {
     if (v === null || v === undefined) return null;
+    const pad = (n, w = 2) => String(n).padStart(w, '0');
+    if (kind.name === 'date' && typeof v === 'number') return new Date(v).toISOString().slice(0, 10);
+    if (kind.name === 'timestamp' && typeof v === 'number') {
+      const d = new Date(v);
+      const text = d.toISOString().replace('T', ' ').replace('Z', '');
+      return d.getUTCMilliseconds() ? text : text.slice(0, 19);
+    }
+    if (kind.name === 'time') {
+      const micros = Number(v);
+      const secs = Math.floor(micros / 1e6);
+      const frac = micros % 1e6;
+      return `${pad(Math.floor(secs / 3600))}:${pad(Math.floor(secs / 60) % 60)}:${pad(secs % 60)}${frac ? '.' + pad(frac, 6).replace(/0+$/, '') : ''}`;
+    }
+    if (kind.name === 'decimal') {                       // the engine gives the digits without the point: put it back
+      let digits = String(v).replace('-', '');
+      const negative = String(v).startsWith('-');
+      if (kind.scale) {
+        digits = digits.padStart(kind.scale + 1, '0');
+        digits = digits.slice(0, -kind.scale) + '.' + digits.slice(-kind.scale);
+      }
+      const text = (negative ? '-' : '') + digits;
+      return digits.replace('.', '').length <= 15 ? Number(text) : text;
+    }
     if (typeof v === 'bigint') return Number.isSafeInteger(Number(v)) ? Number(v) : v.toString();
     if (v instanceof Date) return v.toISOString();
     if (typeof v === 'object') {
-      try { return JSON.stringify(v, (k, x) => (typeof x === 'bigint' ? x.toString() : x)); } catch { return String(v); }
+      if (ArrayBuffer.isView(v) && !(v instanceof DataView)) return Array.from(v, (x) => (typeof x === 'bigint' ? x.toString() : x));
+      try { return JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'bigint' ? x.toString() : x))); } catch { return String(v); }
     }
     return v;
+  }
+
+  /** The text shown in the grid for a plain value (a decimal keeps its trailing zeros: 12.50) */
+  _text(value, kind) {
+    if (kind.name === 'decimal' && typeof value === 'number') return value.toFixed(kind.scale);
+    if (value !== null && typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+
+  /** The result of a query ready to show and to save */
+  _prepare(result) {
+    const cols = result.columns;
+    const kinds = cols.map((c, i) => this._kind((result.columnTypes || [])[i]));
+    const plain = result.rows.map((r) => cols.map((c, i) => this._plain(r[c], kinds[i])));
+    return { cols, kinds, plain };
   }
 
   _renderSqlResult(result) {
     const results = this.$('#queryResults');
     const esc = Structra.util.esc;
-    const cols = result.columns;
-    const rows = result.rows.map((r) => cols.map((c) => this._cell(r[c])));
+    const { cols, kinds, plain: rows } = result.table;
     const shown = rows.slice(0, StructraQuery.SQL_SHOW_ROWS);
     const ms = result.duration < 1000 ? Math.round(result.duration) + ' ms' : (result.duration / 1000).toFixed(1) + ' s';
     let note = `${rows.length.toLocaleString()}${result.truncated ? '+' : ''} ${rows.length === 1 ? 'row' : 'rows'} in ${ms}`;
@@ -495,10 +546,10 @@ class StructraQuery extends StructraElement {
     else if (rows.length > shown.length) note += `. The first ${shown.length.toLocaleString()} are shown below; copy or open the result to get them all.`;
     if (!cols.length) { results.innerHTML = `<div class="qp-summary">The query ran and returned no rows (${esc(ms)}).</div>`; return; }
     const head = cols.map((c) => `<th title="${esc(c)}">${esc(c)}</th>`).join('');
-    const body = shown.map((r, i) => `<tr><td class="qp-sql-n">${i + 1}</td>${r.map((v) => {
+    const body = shown.map((r, i) => `<tr><td class="qp-sql-n">${i + 1}</td>${r.map((v, c) => {
       if (v === null) return '<td class="qp-sql-null">NULL</td>';
-      const t = String(v);
-      return `<td${typeof v === 'number' ? ' class="qp-sql-num"' : ''} title="${esc(t.length > 300 ? t.slice(0, 300) + '…' : t)}">${esc(t.length > 120 ? t.slice(0, 120) + '…' : t)}</td>`;
+      const t = this._text(v, kinds[c]);
+      return `<td${kinds[c].numeric ? ' class="qp-sql-num"' : ''} title="${esc(t.length > 300 ? t.slice(0, 300) + '…' : t)}">${esc(t.length > 120 ? t.slice(0, 120) + '…' : t)}</td>`;
     }).join('')}</tr>`).join('');
     results.innerHTML = `<div class="qp-summary">${esc(note)}</div>
       <div class="qp-actions">
@@ -512,14 +563,17 @@ class StructraQuery extends StructraElement {
   _sqlExport(how) {
     const result = this._lastSql;
     if (!result || !result.rows.length) return;
-    const cols = result.columns;
-    const rows = result.rows.map((r) => Object.fromEntries(cols.map((c) => [c, this._cell(r[c])])));
+    const { cols, kinds } = result.table;
+    const rows = result.table.plain.map((r) => Object.fromEntries(cols.map((c, i) => [c, r[i]])));
     const base = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '');
     if (how === 'copy') {
       Structra.util.copy(JSON.stringify(rows, null, 2), `${rows.length} ${rows.length === 1 ? 'row' : 'rows'} copied`);
     } else if (how === 'csv') {
-      const q = (v) => (v === null ? '' : /[",\n\r]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : String(v));
-      const csv = [cols.map(q).join(','), ...rows.map((r) => cols.map((c) => q(r[c])).join(','))].join('\r\n');
+      const q = (v) => {
+        const t = v === null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+        return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      };
+      const csv = [cols.map(q).join(','), ...result.table.plain.map((r, n) => r.map((v, i) => q(kinds[i].name === 'decimal' && typeof v === 'number' ? v.toFixed(kinds[i].scale) : v)).join(','))].join('\r\n');
       Structra.util.download('﻿' + csv, base + ' (query).csv', 'text/csv;charset=utf-8');
       Structra.toast('CSV downloaded');
     } else {

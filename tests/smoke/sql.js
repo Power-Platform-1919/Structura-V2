@@ -131,6 +131,25 @@ function serve() {
     r = await run("SELECT * FROM data WHERE name = 'a;b'");
     if (r.error) failures.push('a ; inside text should not count as a second statement: ' + r.summary);
 
+    // PIVOT and UNPIVOT only read data, so they are allowed
+    r = await run("PIVOT (SELECT region, name FROM data) ON region USING COUNT(*)");
+    if (r.error) failures.push('PIVOT should run: ' + r.summary);
+    r = await run("UNPIVOT (SELECT id, amount FROM data) ON id, amount INTO NAME field VALUE content");
+    if (r.error) failures.push('UNPIVOT should run: ' + r.summary);
+
+    // ---- Each kind of value is shown as what it is ----
+    r = await run('SELECT SUM(id) AS total FROM data');
+    if (r.cells[0][0] !== '10') failures.push('a whole-number total should read 10, not quoted or odd: ' + JSON.stringify(r.cells));
+    r = await run("SELECT 12.50::DECIMAL(10,2) AS price, DATE '2026-03-17' AS day, TIMESTAMP '2026-03-17 10:30:00' AS moment, TIME '10:30:15' AS clock, 5::HUGEINT AS big, TRUE AS flag");
+    const kinds = r.cells[0] ? r.cells[0].join(' | ') : JSON.stringify(r);
+    if (kinds !== '12.50 | 2026-03-17 | 2026-03-17 10:30:00 | 10:30:15 | 5 | true') failures.push('decimal, date, timestamp, time and whole numbers should read as themselves: ' + kinds);
+    const aligned = await page.evaluate(() => [...document.querySelectorAll('#queryResults .qp-sql-grid tbody tr:first-child td:not(.qp-sql-n)')].map((td) => td.classList.contains('qp-sql-num')).join());
+    if (aligned !== 'true,false,false,false,true,false') failures.push('numbers should line up on the right and the rest on the left: ' + aligned);
+    // A list and a record are real data when they are copied or opened in a tab, not text
+    r = await run("SELECT [1, 2, 3] AS numbers, {'a': 1, 'b': [true]} AS record");
+    const plain = await page.evaluate(() => document.querySelector('structra-query')._lastSql.table.plain[0]);
+    if (JSON.stringify(plain) !== '[[1,2,3],{"a":1,"b":[true]}]') failures.push('a list and a record should stay real data: ' + JSON.stringify(plain));
+
     // ---- Errors are short and say what to do ----
     r = await run('SELECT nope FROM data');
     if (!r.error || /Binder Error|LINE 1/.test(r.summary) || !/nope/i.test(r.summary)) failures.push('a wrong column name should give a plain message that names it: ' + r.summary);
