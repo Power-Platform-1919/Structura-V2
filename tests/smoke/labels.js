@@ -62,7 +62,7 @@ function serve() {
 
     // plain names for the rail, the Query modes and the Filter tabs
     const rail = await text('structra-rail .rail-btn');
-    if (!rail.includes('Settings') || rail.includes('Theme')) failures.push('the last rail button should be called Settings: ' + rail.join(', '));
+    if (rail[rail.length - 1] !== 'Settings' || !rail.includes('Themes')) failures.push('the rail should end with Themes then Settings: ' + rail.join(', '));
     await page.evaluate(() => Structra.set('queryPanelOpen', true));
     await page.waitForTimeout(300);
     const modes = (await text('structra-query [data-mode]')).join(',');

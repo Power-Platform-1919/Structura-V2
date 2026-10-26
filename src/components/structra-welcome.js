@@ -18,7 +18,7 @@ class StructraWelcome extends StructraOverlay {
     const mode = Structra.theme.mode();
     this.mount({
       title: 'Welcome to Structra',
-      size: 'md',
+      size: 'lg',
       body: `
         <p class="wl-lead">Open a JSON, CSV, XML, YAML or TOML file and see what is inside it: its shape, its types, and where the data has gaps.</p>
         <ul class="wl-points">
@@ -28,15 +28,41 @@ class StructraWelcome extends StructraOverlay {
           </li>
           <li>
             ${Structra.icons.svg('search')}
-            <div><strong>Understand a payload quickly.</strong> Browse it as a tree, table, graph or schema, then query, filter and compare.</div>
+            <div><strong>Understand a payload quickly.</strong> The Overview tells you what the file holds and what to look at first. Then browse it as a tree, table, graph or schema, and query, filter and compare.</div>
           </li>
           <li>
             ${Structra.icons.svg('zap')}
-            <div><strong>Built in for Power Platform.</strong> Click any value to get the Power Automate expression, Parse JSON schema or Power Fx formula for it.</div>
+            <div><strong>Built in for Power Platform.</strong> Click any value to get the Power Automate expression, Parse JSON schema or Power Fx formula for it, plus paste-ready flow actions such as Select and Filter array.</div>
           </li>
         </ul>
+        <div class="wl-grid">
+          <section>
+            <h3 class="wl-h">Ways to bring data in</h3>
+            <ul class="wl-list">
+              <li>Drag a file onto the page, or use <strong>Open</strong> on the left</li>
+              <li>Press <kbd>Ctrl</kbd> + <kbd>V</kbd> to paste text or a copied value</li>
+              <li>Open a file with a link, or reopen a recent one</li>
+            </ul>
+          </section>
+          <section>
+            <h3 class="wl-h">Five views</h3>
+            <ul class="wl-list">
+              <li><kbd>Ctrl</kbd> + <kbd>1</kbd> Tree, <kbd>2</kbd> Table, <kbd>3</kbd> Graph</li>
+              <li><kbd>Ctrl</kbd> + <kbd>4</kbd> Schema, <kbd>5</kbd> Overview</li>
+              <li>The Transform panel reshapes data: pick fields, sort, group and total</li>
+            </ul>
+          </section>
+          <section>
+            <h3 class="wl-h">Good to know</h3>
+            <ul class="wl-list">
+              <li><kbd>Ctrl</kbd> + <kbd>K</kbd> opens the command palette; <kbd>?</kbd> lists every shortcut</li>
+              <li>Your tabs are saved and come back when you reopen the page</li>
+              <li>Everything works offline once the page has loaded</li>
+            </ul>
+          </section>
+        </div>
         <div class="wl-theme">
-          <span id="wlThemeLabel">Appearance</span>
+          <span id="wlThemeLabel">Appearance <button class="io-link" type="button" data-act="themes">More themes</button></span>
           <div class="seg" role="group" aria-labelledby="wlThemeLabel" id="wlMode">
             ${['light', 'dark', 'system'].map((m) => `<button class="seg-btn ${m === mode ? 'active' : ''}" type="button" data-mode="${m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}
           </div>
@@ -57,7 +83,8 @@ class StructraWelcome extends StructraOverlay {
       const act = e.target.closest('[data-act]');
       if (!act) return;
       this.close();
-      if (act.dataset.act === 'sample') this._startSample();
+      if (act.dataset.act === 'themes') Structra.events.emit('theme:open');
+      else if (act.dataset.act === 'sample') this._startSample();
       else if (act.dataset.act === 'file') this._openFilePicker();
     });
 

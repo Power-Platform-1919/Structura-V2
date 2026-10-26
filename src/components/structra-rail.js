@@ -24,6 +24,9 @@ class StructraRail extends StructraElement {
         ${Structra.icons.svg('chart-column')}<span class="rail-label">Overview</span>
       </button>
       <div style="flex:1"></div>
+      <button class="rail-btn" data-rail="themes" title="Themes: light, dark and custom colours" aria-label="Themes">
+        ${Structra.icons.svg('palette')}<span class="rail-label">Themes</span>
+      </button>
       <button class="rail-btn" data-rail="settings" title="Settings: appearance, shortcuts and saved data" aria-label="Settings">
         ${Structra.icons.svg('settings')}<span class="rail-label">Settings</span>
       </button>`;
@@ -62,6 +65,9 @@ class StructraRail extends StructraElement {
         case 'transform':
           Structra.set('queryPanelOpen', true);
           Structra.events.emit('query:show-tab', 'transform');
+          break;
+        case 'themes':
+          Structra.events.emit('theme:open');
           break;
         case 'settings':
           Structra.events.emit('settings:open');
