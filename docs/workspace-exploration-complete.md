@@ -7,7 +7,7 @@
 - `structra-v2.html` - Alternative complete prototype/design mockup
 
 ### Core Directory (`src/core/`)
-- `base.js` - StructraElement base class (custom element parent)
+- `base.js` - StructraComponent base class (custom element parent)
 - `logger.js` - Centralized logger (dev/normal/off modes)
 - `state.js` - Global state & event bus (Structra.state, Structra.events, Structra.tabs)
 - `constants.js` - Shared config (VIEWS, SHORTCUTS, RAIL_ITEMS, etc.)
@@ -166,7 +166,7 @@
 - `idbGet(key)`, `idbPut(key, value)`, `idbDelete(key)`, `idbClear()`
 
 ### Base Element Class (base.js)
-- All custom elements extend `StructraElement`
+- All custom elements extend `StructraComponent`
 - Auto-init: `connectedCallback()` → `_readProps()` → `init()` → `render()`
 - Helpers: `on(event, fn)`, `$(selector)`, `$$(selector)`, `emit(event, data)`
 - Props from HTML attributes (camelCase conversion)

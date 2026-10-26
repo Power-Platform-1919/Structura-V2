@@ -6,7 +6,7 @@
 ```
 app.js                          # Bootstrap & initialization
 core/
-  base.js                       # StructraElement base class
+  base.js                       # StructraComponent base class
   state.js                      # Global state + event bus
   worker-pool.js               # Generic worker pool for parsing
   logger.js                    # Centralized logging
@@ -162,10 +162,10 @@ Structra.tabs = {
 - Graph: Depth-limited (no virtualization)
 - Editor: Skips rendering if > 10MB (guard)
 
-### 7. Base Element Class (StructraElement)
+### 7. Base Element Class (StructraComponent)
 
 ```javascript
-class StructraElement extends HTMLElement {
+class StructraComponent extends HTMLElement {
   // Lifecycle hooks
   connectedCallback()         // Mount: calls init() → render()
   attributeChangedCallback()  // Observed attr change: calls update()

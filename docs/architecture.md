@@ -9,7 +9,7 @@
 - No ES Modules (won't work from file://) - use regular <script> tags
 - No frameworks/libraries - vanilla only
 - Global state via `window.Structra` namespace
-- Base class: `StructraElement extends HTMLElement` (~30 lines)
+- Base class: `StructraComponent extends HTMLElement` (~30 lines)
 - Each component: one file, one class, one custom element tag
 - Console access: `Structra.state.*`, `Structra.tabs.*`, or `document.querySelector('structra-*')`
 
@@ -17,7 +17,7 @@
 - index.html - thin shell (~50 lines of tags + script refs)
 - src/core/component-base.js - StructraComponent base class
 - src/core/app-state-and-events.js - Structra global state + event bus
-- src/core/constants.js - MAX_TABS, shortcuts map
+- src/core/app-constants.js - MAX_TABS, shortcuts map
 - src/components/structra-*.js - one per UI panel
 - src/css/variables.css, layout.css, components.css
 
