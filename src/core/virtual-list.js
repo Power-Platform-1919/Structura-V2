@@ -1,32 +1,32 @@
 /* ============================================================
-   STRUCTRA V2 — Virtual List
+   STRUCTRA V2 - Virtual List
    Generic chunked virtualization with IntersectionObserver-based
    loading, DOM recycling, and rehydration.
 
    Used by: tree view, table view (virtual scroll), graph view.
-   All rendering logic is delegated to callbacks — this module
+   All rendering logic is delegated to callbacks - this module
    only manages chunks, sentinels, and visibility.
 
    API:
      Structra.virtualList.create(opts) → VirtualListController
 
    Options:
-     container    : HTMLElement — scrollable container
-     totalItems   : number — total data items
-     chunkSize    : number — items per chunk (default 100)
-     offscreenPx  : number — px buffer before recycling (default 3000)
-     buildChunk   : (start, end, total) → string|HTMLElement — render items
-     rehydrate    : (chunkEl, start, end, total) → void — re-render recycled chunk
-     sentinelHtml : (remaining, start) → string — sentinel placeholder text
-     onChunkLoaded: (chunkEl, start, end) → void — post-insert hook (optional)
+     container    : HTMLElement - scrollable container
+     totalItems   : number - total data items
+     chunkSize    : number - items per chunk (default 100)
+     offscreenPx  : number - px buffer before recycling (default 3000)
+     buildChunk   : (start, end, total) → string|HTMLElement - render items
+     rehydrate    : (chunkEl, start, end, total) → void - re-render recycled chunk
+     sentinelHtml : (remaining, start) → string - sentinel placeholder text
+     onChunkLoaded: (chunkEl, start, end) → void - post-insert hook (optional)
 
    Controller:
-     .loadAll()         — force-load all remaining chunks
-     .destroy()         — disconnect observers, remove handlers
-     .getChunk(index)   — get chunk element containing item at index
-     .scrollToItem(idx) — scroll to make item visible
-     .applyToChunks(fn) — iterate all chunk elements
-     .reset(totalItems) — reset with new total
+     .loadAll()         - force-load all remaining chunks
+     .destroy()         - disconnect observers, remove handlers
+     .getChunk(index)   - get chunk element containing item at index
+     .scrollToItem(idx) - scroll to make item visible
+     .applyToChunks(fn) - iterate all chunk elements
+     .reset(totalItems) - reset with new total
    ============================================================ */
 
 window.Structra = window.Structra || {};

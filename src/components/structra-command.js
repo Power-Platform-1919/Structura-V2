@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Command Palette Component
-   <structra-command> — searchable command palette overlay
+   STRUCTRA V2 - Command Palette Component
+   <structra-command> - searchable command palette overlay
    ============================================================ */
 
 class StructraCommand extends StructraElement {
@@ -222,12 +222,12 @@ class StructraCommand extends StructraElement {
     switch (cmdId) {
       /* ---- Data Operations ---- */
       case 'sort': {
-        if (!data || typeof data !== 'object') { Structra.toast('No data to sort'); return; }
+        if (!data || typeof data !== 'object') { Structra.toast('Open a file first'); return; }
         this._edit('Sort keys A→Z', data, this._sortKeysDeep(data), 'Keys sorted A→Z');
         break;
       }
       case 'flatten': {
-        if (!data || typeof data !== 'object') { Structra.toast('No data to flatten'); return; }
+        if (!data || typeof data !== 'object') { Structra.toast('Open a file first'); return; }
         const clash = [];
         const flat = this._flattenObj(data, '', {}, clash);
         if (clash.length) { Structra.toast(`Not flattened, because it would lose data: "${clash[0]}" would be written twice${clash.length > 1 ? ` (and ${clash.length - 1} more)` : ''}. Rename one of them first.`, 'warning'); return; }
@@ -235,14 +235,14 @@ class StructraCommand extends StructraElement {
         break;
       }
       case 'unflatten': {
-        if (!data || typeof data !== 'object') { Structra.toast('No data'); return; }
+        if (!data || typeof data !== 'object') { Structra.toast('Open a file first'); return; }
         const rebuilt = this._unflattenObj(data);
-        if (rebuilt.problem) { Structra.toast('Not unflattened: ' + rebuilt.problem, 'warning'); return; }
+        if (rebuilt.problem) { Structra.toast('Could not unflatten: ' + rebuilt.problem, 'warning'); return; }
         this._edit('Unflatten', data, rebuilt.data, 'JSON unflattened');
         break;
       }
       case 'mask': {
-        if (!data) { Structra.toast('No data to mask'); return; }
+        if (!data) { Structra.toast('Open a file first'); return; }
         const masked = Structra.dataMask.maskData(data);
         if (!masked.count) { Structra.toast('Nothing to mask: no emails, phone numbers or other personal values found'); return; }
         // Keep the original of this tab, so Unmask can bring it back even after other edits
@@ -253,7 +253,7 @@ class StructraCommand extends StructraElement {
         break;
       }
       case 'mock': {
-        if (!data) { Structra.toast('No data — load JSON first to generate mock data from its structure'); return; }
+        if (!data) { Structra.toast('Open a file first. Sample data is made from its structure.'); return; }
         const mockData = Structra.mockGen.generate(data);
         const rows = Array.isArray(mockData) ? mockData.length : 1;
         this._openInNewTab(mockData, this._baseName() + ' (mock)')
@@ -261,7 +261,7 @@ class StructraCommand extends StructraElement {
         break;
       }
       case 'sample': {
-        if (!Array.isArray(data)) { Structra.toast('Sample requires an array dataset'); return; }
+        if (!Array.isArray(data)) { Structra.toast('A random sample needs a list of records'); return; }
         const n = Math.min(10, data.length);
         const open = (rows) => this._openInNewTab(rows, this._baseName() + ' (sample)')
           .then((opened) => { if (opened) Structra.toast(`${rows.length} random rows, opened in a new tab`); });
@@ -280,7 +280,7 @@ class StructraCommand extends StructraElement {
 
       /* ---- Export / Convert ---- */
       case 'export-csv': {
-        if (!data) { Structra.toast('No data to export'); return; }
+        if (!data) { Structra.toast('Open a file first'); return; }
         Structra.engine.exportData('csv').then(csv => {
           Structra.util.download(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
@@ -295,20 +295,20 @@ class StructraCommand extends StructraElement {
         break;
       }
       case 'export-yaml': {
-        if (!data) { Structra.toast('No data'); return; }
+        if (!data) { Structra.toast('Open a file first'); return; }
         Structra.convert.jsonToYaml(data).then(yaml => {
           Structra.util.download(yaml, this._baseName() + '.yaml', 'text/yaml');
           Structra.toast('YAML downloaded');
-        }).catch(e => Structra.toast('YAML conversion failed: ' + e.message));
+        }).catch(e => Structra.toast('Could not convert to YAML: ' + e.message));
         break;
       }
       case 'export-xml': {
-        if (!data) { Structra.toast('No data'); return; }
+        if (!data) { Structra.toast('Open a file first'); return; }
         try {
           const xml = Structra.convert.jsonToXml(data);
           Structra.util.download(xml, this._baseName() + '.xml', 'text/xml');
           Structra.toast('XML downloaded');
-        } catch (e) { Structra.toast('XML conversion failed: ' + e.message); }
+        } catch (e) { Structra.toast('Could not convert to XML: ' + e.message); }
         break;
       }
 
@@ -375,7 +375,7 @@ class StructraCommand extends StructraElement {
         Structra.events.emit('charts:open');
         break;
       case 'share-url': {
-        if (!data) { Structra.toast('No data to share'); return; }
+        if (!data) { Structra.toast('Open a file first'); return; }
         Structra.share.createUrl(data, Structra.state.fileName)
           .then(({ url, bytes }) => Structra.util.copy(url, `Share link copied (${bytes < 1000 ? bytes + ' characters' : Math.round(bytes / 1000) + ' KB'}). The data is inside the link, nothing is uploaded, and anyone with the link can read it.`))
           .catch((e) => Structra.toast(e.message));
@@ -388,7 +388,7 @@ class StructraCommand extends StructraElement {
         Structra.toast('Creating image...');
         Structra.capture.png(panel, base + '-' + view + '.png')
           .then(() => Structra.toast('Image saved'))
-          .catch((e) => Structra.toast('Image export failed: ' + e.message));
+          .catch((e) => Structra.toast('Could not save the image: ' + e.message));
         break;
       }
       case 'repair':
@@ -535,7 +535,7 @@ class StructraCommand extends StructraElement {
   _showCodeGen(lang) {
     const ds = Structra.engine.getActive();
     const data = ds ? ds.raw : Structra.state.jsonData;
-    if (!data) { Structra.toast('No data — load JSON first'); return; }
+    if (!data) { Structra.toast('Open a file first'); return; }
     Structra.events.emit('typedef:open', { lang, name: 'Root' });
   }
 

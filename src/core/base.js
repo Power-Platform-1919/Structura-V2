@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — Base Element Class
+   STRUCTRA V2 - Base Element Class
    All custom elements extend this. ~30 lines, no magic.
    ============================================================ */
 
@@ -29,7 +29,7 @@ class StructraElement extends HTMLElement {
     }
   }
 
-  /** Called when an observed attribute changes — updates props and re-renders */
+  /** Called when an observed attribute changes - updates props and re-renders */
   attributeChangedCallback(name, oldVal, newVal) {
     if (oldVal === newVal) return;
     this.props[this._camel(name)] = newVal;
@@ -62,7 +62,7 @@ class StructraElement extends HTMLElement {
   /** Override in subclass for one-time setup (event listeners, state subscriptions) */
   init() {}
 
-  /** Override in subclass — set this.innerHTML */
+  /** Override in subclass - set this.innerHTML */
   render() {}
 
   /** Emit a custom event that bubbles up the DOM */

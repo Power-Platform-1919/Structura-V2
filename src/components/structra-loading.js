@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Loading Overlay Component
-   <structra-loading> — full-screen loading spinner with card UI
+   STRUCTRA V2 - Loading Overlay Component
+   <structra-loading> - full-screen loading spinner with card UI
    Uses g-loading styles (backdrop-filter, card-style inner container).
    ============================================================ */
 

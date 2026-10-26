@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Tree View Component
-   <structra-tree> — Virtualized JSON tree view with chunked
+   STRUCTRA V2 - Tree View Component
+   <structra-tree> - Virtualized JSON tree view with chunked
    lazy-loading, DOM recycling, and rehydration for 200k+ nodes.
    Delegates rendering to Structra.jsonTree (V2 renderer).
    ============================================================ */
@@ -85,12 +85,12 @@ class StructraTree extends StructraElement {
     const data = Structra.state.jsonData;
     const view = this._getView();
     if (!data) {
-      Structra.log.debug('Tree', 'No data — showing empty state');
+      Structra.log.debug('Tree', 'No data - showing empty state');
       view.innerHTML = this._emptyState();
       return;
     }
     const itemCount = Array.isArray(data) ? data.length : Object.keys(data).length;
-    Structra.log.info('Tree', 'renderTree() — ' + itemCount + ' top-level items');
+    Structra.log.info('Tree', 'renderTree() - ' + itemCount + ' top-level items');
     const t0 = performance.now();
 
     // Render using V2 json-tree renderer
@@ -246,7 +246,7 @@ class StructraTree extends StructraElement {
           const leaf = String(path).split('.').pop().replace(/\[\d+\]$/, '') || 'text';
           const ok = await cmd._openInNewTab(inner, leaf);
           if (!ok) Structra.toast('Close a tab first: the limit of open tabs is reached.', 'warning');
-        } catch { Structra.toast('This text is not valid JSON', 'error'); }
+        } catch { Structra.toast('This text is not valid JSON, so it cannot be opened', 'error'); }
         break;
       }
       case 'copy-subtree': {
@@ -260,7 +260,7 @@ class StructraTree extends StructraElement {
           const code = Structra.codeGen.generate(lang, val, 'Data');
           Structra.util.copy(code, `Copied as ${lang}`);
         } catch (e) {
-          Structra.toast('Code gen failed: ' + e.message, 'error');
+          Structra.toast('Could not generate the code: ' + e.message, 'error');
         }
         break;
       }
@@ -270,7 +270,7 @@ class StructraTree extends StructraElement {
           Structra.set('activeView', 'table');
           Structra.toast(`Showing ${val.length} items in table`);
         } else if (typeof val === 'object' && val !== null) {
-          // Single object — show key/value pairs
+          // Single object - show key/value pairs
           Structra.set('activeView', 'table');
         }
         break;
@@ -279,7 +279,7 @@ class StructraTree extends StructraElement {
         try {
           const mocked = Structra.mockGen.generate(val, 3);
           Structra.util.copy(JSON.stringify(mocked, null, 2), 'Mock data copied');
-        } catch { Structra.toast('Mock generation failed', 'error'); }
+        } catch { Structra.toast('Could not make sample data', 'error'); }
         break;
       }
       case 'bookmark':

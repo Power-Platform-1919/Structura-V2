@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — Global State & Event Bus
+   STRUCTRA V2 - Global State & Event Bus
    Single namespace: window.Structra
    Console-accessible: Structra.state, Structra.events, Structra.tabs
    ============================================================ */
@@ -13,7 +13,7 @@ Structra.events = (() => {
   return {
     on(event, fn) {
       (listeners[event] = listeners[event] || []).push(fn);
-      Structra.log.debug('EventBus', 'on("' + event + '") — ' + (listeners[event].length) + ' listener(s)');
+      Structra.log.debug('EventBus', 'on("' + event + '") - ' + (listeners[event].length) + ' listener(s)');
     },
 
     off(event, fn) {

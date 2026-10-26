@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Power Platform Expressions
-   Structra.expressions — ready-to-paste expressions for a data path.
+   STRUCTRA V2 - Power Platform Expressions
+   Structra.expressions - ready-to-paste expressions for a data path.
 
    Every function returns plain data, never HTML:
      rows      → [{ label, code }]
@@ -584,7 +584,7 @@ Structra.expressions = (() => {
   }
 
   /* ========================================================
-     HELPERS — whole-document patterns
+     HELPERS - whole-document patterns
      ======================================================== */
 
   /**

@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Type Definition Modal
-   <structra-typedef> — Code generation overlay with language tabs,
+   STRUCTRA V2 - Type Definition Modal
+   <structra-typedef> - Code generation overlay with language tabs,
    syntax highlighting preview, and copy/download actions.
    Uses Structra.codeGen for all language generation.
    ============================================================ */

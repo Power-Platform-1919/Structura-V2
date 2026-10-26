@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Breadcrumb
-   <structra-breadcrumb> — the selected path as clickable segments.
+   STRUCTRA V2 - Breadcrumb
+   <structra-breadcrumb> - the selected path as clickable segments.
    Click a segment to jump back up to that level.
    ============================================================ */
 

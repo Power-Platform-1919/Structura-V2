@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Path Navigation History
-   Structra.nav — back / forward through the paths you visited.
+   STRUCTRA V2 - Path Navigation History
+   Structra.nav - back / forward through the paths you visited.
    One history per tab.
 
    API:

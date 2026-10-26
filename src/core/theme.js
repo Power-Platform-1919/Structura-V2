@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Theme Engine
-   Structra.theme — built-in themes, custom themes, light / dark / system.
+   STRUCTRA V2 - Theme Engine
+   Structra.theme - built-in themes, custom themes, light / dark / system.
 
    A theme is a mode plus 17 base colours (see tokens.css, everything else
    is derived). Custom themes are stored in this browser and can be exported

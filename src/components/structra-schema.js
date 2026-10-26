@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Schema View Component
-   <structra-schema> — inferred JSON schema display
+   STRUCTRA V2 - Schema View Component
+   <structra-schema> - inferred JSON schema display
    ============================================================ */
 
 class StructraSchema extends StructraElement {
@@ -10,12 +10,12 @@ class StructraSchema extends StructraElement {
     this._stale = false;
     this.on('state:jsonData', () => {
       this._stale = true;
-      Structra.log.debug('Schema', 'jsonData changed — stale=true (activeView=' + Structra.state.activeView + ')');
+      Structra.log.debug('Schema', 'jsonData changed - stale=true (activeView=' + Structra.state.activeView + ')');
       if (Structra.state.activeView === 'schema') this.renderSchema();
     });
     this.on('view:switched', (view) => {
       if (view === 'schema' && this._stale) {
-        Structra.log.info('Schema', 'View switched to schema — rendering');
+        Structra.log.info('Schema', 'View switched to schema - rendering');
         this.renderSchema();
       }
     });

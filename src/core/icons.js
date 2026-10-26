@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Icons
-   Structra.icons — every icon in the app comes through here.
+   STRUCTRA V2 - Icons
+   Structra.icons - every icon in the app comes through here.
    Artwork and names come straight from the Lucide library
    (https://lucide.dev, ISC licence), shipped locally in
    src/vendor/lucide.min.js so the app works offline. Any Lucide icon

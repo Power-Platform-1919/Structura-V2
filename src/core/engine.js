@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — Data Engine
+   STRUCTRA V2 - Data Engine
    Unified query API managing named datasets (one per tab).
 
    API:
@@ -75,7 +75,7 @@ Structra.engine = (() => {
       indexes: {
         paths: null,     // built lazily or via worker
         columns: null,   // column metadata for arrays of objects
-        sorted: null,    // {key, dir, refs} — current sort
+        sorted: null,    // {key, dir, refs} - current sort
       },
       cache: new Map(),  // queryKey → result (LRU eviction at 50 entries)
       duckTable: 'tab_' + tabId,
@@ -408,7 +408,7 @@ Structra.engine = (() => {
     return stats;
   }
 
-  /* --- JSONPath Query (placeholder — needs jsonpath-plus) --- */
+  /* --- JSONPath Query (placeholder - needs jsonpath-plus) --- */
   function pathQuery(expr) {
     const ds = getActive();
     if (!ds) return { results: [], matchedPaths: [] };
@@ -461,14 +461,14 @@ Structra.engine = (() => {
   /* --- DuckDB Ready Hook --- */
   function onDuckDBReady() {
     _duckReady = true;
-    Structra.log.info('Engine', 'DuckDB WASM ready — SQL queries enabled');
+    Structra.log.info('Engine', 'DuckDB WASM ready - SQL queries enabled');
     Structra.events.emit('engine:duckdb-ready');
     // The active dataset is registered by enableSql(); other tabs register when they become active
   }
 
   function onDuckDBFailed() {
     _duckFailed = true;
-    Structra.log.warn('Engine', 'DuckDB WASM failed — using JS fallback for all analysis');
+    Structra.log.warn('Engine', 'DuckDB WASM failed - using JS fallback for all analysis');
   }
 
   // Listen for DuckDB failure
@@ -516,7 +516,7 @@ Structra.engine = (() => {
    * Find text in the active dataset via DuckDB.
    * Searches all columns (including nested STRUCT/LIST cast to VARCHAR) for ILIKE match.
    * Works for all shapes: flat-array, nested-array, object.
-   * @param {string} text — search text
+   * @param {string} text - search text
    * @returns {Promise<Object>} query result
    */
   async function findInDb(text) {
@@ -559,9 +559,9 @@ Structra.engine = (() => {
 
   /**
    * Replace matched values in the active dataset.
-   * @param {string} findText — text to find
-   * @param {string} replaceText — replacement text
-   * @param {boolean} all — replace all occurrences or just first
+   * @param {string} findText - text to find
+   * @param {string} replaceText - replacement text
+   * @param {boolean} all - replace all occurrences or just first
    * @returns {Object} { replaced: number }
    */
   /**
@@ -663,7 +663,7 @@ Structra.engine = (() => {
 
   /**
    * Apply structured filter conditions via DuckDB.
-   * @param {Array<Object>} conditions — [{field, op, value, logic}]
+   * @param {Array<Object>} conditions - [{field, op, value, logic}]
    *   op: 'eq'|'neq'|'gt'|'lt'|'gte'|'lte'|'contains'|'notcontains'|'startswith'|'endswith'|'isnull'|'notnull'
    *   logic: 'AND'|'OR' (how this condition joins with previous)
    * @returns {Promise<Object>} query result
@@ -921,7 +921,7 @@ Structra.engine = (() => {
     Structra.events.emit('engine:filter-changed', result);
   }
 
-  /** Clear active query — views revert to full dataset */
+  /** Clear active query - views revert to full dataset */
   function clearQuery() {
     if (!_activeFilter) return;
     _activeFilter = null;
@@ -959,7 +959,7 @@ Structra.engine = (() => {
 
   /* ============================
      DUCKDB ROUTING HELPERS
-     Central routing logic — all functions use these to decide
+     Central routing logic - all functions use these to decide
      SQL (DuckDB) vs JS (in-memory) execution path.
      ============================ */
 
@@ -969,7 +969,7 @@ Structra.engine = (() => {
   }
 
   /* ================================================================
-     ENGINE ROUTING — Centralized DuckDB vs JS decision
+     ENGINE ROUTING - Centralized DuckDB vs JS decision
      ================================================================
      _canUseDuck(ds)  → true if DuckDB is ready AND dataset is registered
      _duckOrNull(ds)  → returns dataset if DuckDB usable, else null (for early-return patterns)
@@ -1016,7 +1016,7 @@ Structra.engine = (() => {
   /**
    * Extract values at a JSON path from the DuckDB table.
    * Uses json_extract_string for nested access.
-   * @param {string} path — dot-separated path (e.g. 'address.city' or 'items[0].name')
+   * @param {string} path - dot-separated path (e.g. 'address.city' or 'items[0].name')
    * @returns {Promise<Array<Object>>}
    */
   async function jsonExtract(path) {
@@ -1035,13 +1035,13 @@ Structra.engine = (() => {
       const topKey = path.split('.')[0].split('[')[0];
 
       if (cols.includes(topKey)) {
-        // Column exists — use struct access for nested or direct select
+        // Column exists - use struct access for nested or direct select
         const sqlPath = path.replace(/\[(\d+)\]/g, '[$1+1]'); // DuckDB uses 1-based list indexing
         const sql = `SELECT "${sqlPath}" AS value FROM "${tableName}" WHERE "${sqlPath}" IS NOT NULL`;
         try {
           return await Structra.duckdb.query(sql);
         } catch {
-          // Struct access failed — fall through to json_extract
+          // Struct access failed - fall through to json_extract
         }
       }
 
@@ -1056,7 +1056,7 @@ Structra.engine = (() => {
 
   /**
    * Unnest/flatten an array column or nested array via DuckDB.
-   * @param {string} column — column name containing LIST/array values
+   * @param {string} column - column name containing LIST/array values
    * @returns {Promise<Array<Object>>}
    */
   async function unnest(column) {
@@ -1072,16 +1072,16 @@ Structra.engine = (() => {
   }
 
   /* ============================
-     ANALYSIS — Unified traversal & analytics
+     ANALYSIS - Unified traversal & analytics
      Consolidates all analysis functions so components never
      duplicate walks, coverage, profiling, or quality scoring.
      ============================ */
 
   /**
    * Iterative depth-first walk (stack-based, no recursion overflow).
-   * @param {*} obj — root value
-   * @param {function} visitor — (value, path, depth) → return false to skip children
-   * @param {object} opts — { maxDepth: 20 }
+   * @param {*} obj - root value
+   * @param {function} visitor - (value, path, depth) → return false to skip children
+   * @param {object} opts - { maxDepth: 20 }
    */
   function walk(obj, visitor, opts = {}) {
     const { maxDepth = 20 } = opts;
@@ -1108,9 +1108,9 @@ Structra.engine = (() => {
   }
 
   /**
-   * Full stats analysis — counts all node types, depth, arrays detail.
+   * Full stats analysis - counts all node types, depth, arrays detail.
    * Used by stats view, insight strip, drawer stats.
-   * @param {*} data — raw JSON data (or pass null to use active dataset)
+   * @param {*} data - raw JSON data (or pass null to use active dataset)
    * @returns {{ keys, depth, arrays, objects, strings, numbers, booleans, nulls, totalNodes, arraysDetail }}
    */
   function analyze(data) {
@@ -1211,8 +1211,8 @@ Structra.engine = (() => {
   /**
    * Find the first array of plain objects in a data structure.
    * Used by stats, table, drawer-stats, insight strip.
-   * @param {*} data — root JSON value (or null → active dataset)
-   * @param {string} path — base path
+   * @param {*} data - root JSON value (or null → active dataset)
+   * @param {string} path - base path
    * @returns {{ rows: Array, path: string } | null}
    */
   function findFirstObjectArray(data, path) {
@@ -1292,8 +1292,8 @@ Structra.engine = (() => {
   /**
    * Collect unique column names from an array of objects.
    * Used by table view and filter bar.
-   * @param {Array} rows — array of objects (or null → active dataset rows)
-   * @param {number} sampleLimit — max rows to scan (default 1000)
+   * @param {Array} rows - array of objects (or null → active dataset rows)
+   * @param {number} sampleLimit - max rows to scan (default 1000)
    * @returns {string[]}
    */
   function collectKeys(rows, sampleLimit) {
@@ -1316,7 +1316,7 @@ Structra.engine = (() => {
 
   /**
    * Analyze key presence/missing/empty across an array of objects.
-   * @param {Array} arr — array of objects
+   * @param {Array} arr - array of objects
    * @returns {Array<{key, present, missing, empty, pct, types: Set}>}
    */
   function analyzeKeys(arr) {
@@ -1347,8 +1347,8 @@ Structra.engine = (() => {
 
   /**
    * Analyze nested keys for a parent key's object-typed values.
-   * @param {Array} arr — parent array of objects
-   * @param {string} parentKey — key whose value is an object
+   * @param {Array} arr - parent array of objects
+   * @param {string} parentKey - key whose value is an object
    * @returns {Array<{key, present, missing, empty, pct}>}
    */
   function analyzeNestedKeys(arr, parentKey) {
@@ -1380,8 +1380,8 @@ Structra.engine = (() => {
   /**
    * Collect all values of a key from array items, flattening arrays.
    * Used for drill-into nested arrays.
-   * @param {Array} data — parent array
-   * @param {string} key — key name
+   * @param {Array} data - parent array
+   * @param {string} key - key name
    * @returns {Array}
    */
   function collectArrayItems(data, key) {
@@ -1402,7 +1402,7 @@ Structra.engine = (() => {
    * (missing keys). Yields to the browser about every 12 ms.
    *
    * Distinct values are tracked up to PROFILE_CAP per column to keep memory bounded.
-   * @param {Array} arr — array of objects (or null → active dataset)
+   * @param {Array} arr - array of objects (or null → active dataset)
    * @returns {Promise<{ fields, rowCount, fieldCount, quality, coverage, gaps } | null>}
    */
   const PROFILE_CAP = 20000;
@@ -1566,7 +1566,7 @@ Structra.engine = (() => {
   /**
    * Compute data quality score from profiled fields.
    * Weights: completeness 40% + consistency 35% + uniqueness 25%.
-   * @param {Array} fields — from profileFields().fields
+   * @param {Array} fields - from profileFields().fields
    * @returns {{ overall, completeness, consistency, uniqueness, issues }}
    */
   function computeQuality(fields) {
@@ -1709,7 +1709,7 @@ Structra.engine = (() => {
 
   /* ============================ */
   /*   PHASE D: DISTRIBUTION      */
-  /*   (SQL-only — no JS fallback) */
+  /*   (SQL-only - no JS fallback) */
   /* ============================ */
 
   /**
@@ -1782,13 +1782,13 @@ Structra.engine = (() => {
 
   /* ============================ */
   /*   PHASE E: ENHANCED SEARCH   */
-  /*   (SQL-only — no JS fallback) */
+  /*   (SQL-only - no JS fallback) */
   /* ============================ */
 
   /**
    * Fuzzy search across all VARCHAR columns using jaro_winkler_similarity.
-   * @param {string} text — search text
-   * @param {number} threshold — minimum similarity (0-1), default 0.8
+   * @param {string} text - search text
+   * @param {number} threshold - minimum similarity (0-1), default 0.8
    * @returns {Promise<Array>}
    */
   async function fuzzySearch(text, threshold = 0.8) {
@@ -1850,7 +1850,7 @@ Structra.engine = (() => {
 
   /**
    * Pattern (regular expression) search over the values of the open document.
-   * @param {string} pattern — regex pattern, case-insensitive
+   * @param {string} pattern - regex pattern, case-insensitive
    */
   async function regexSearch(pattern) {
     const ds = getActive();
@@ -1909,7 +1909,7 @@ Structra.engine = (() => {
 
   /**
    * Random sample of N rows via DuckDB SAMPLE.
-   * @param {number} n — number of rows
+   * @param {number} n - number of rows
    * @returns {Promise<Array>}
    */
   async function sampleData(n = 100) {
@@ -1937,9 +1937,9 @@ Structra.engine = (() => {
 
   /**
    * Pivot data via DuckDB PIVOT.
-   * @param {string} onCol — column to pivot on
-   * @param {string} valueCol — column with values
-   * @param {string} aggFn — aggregate function (count, sum, avg, etc.)
+   * @param {string} onCol - column to pivot on
+   * @param {string} valueCol - column with values
+   * @param {string} aggFn - aggregate function (count, sum, avg, etc.)
    * @returns {Promise<Array>}
    */
   async function pivotData(onCol, valueCol, aggFn = 'count') {

@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Pivot Table Component
-   <structra-pivot> — Aggregate/group tabular data with drag-and-
+   STRUCTRA V2 - Pivot Table Component
+   <structra-pivot> - Aggregate/group tabular data with drag-and-
    drop field placement. Uses DuckDB GROUP BY / aggregate SQL.
    ============================================================ */
 
@@ -57,7 +57,7 @@ class StructraPivot extends StructraOverlay {
         if (action.dataset.action === 'close') this.close();
         else if (action.dataset.action === 'run') this._runPivot();
       }
-      // Field chip click — add to appropriate zone
+      // Field chip click - add to appropriate zone
       const field = e.target.closest('[data-field]');
       if (field && !field.closest('.pivot-zone-drop')) {
         this._addFieldToZone(field.dataset.field);

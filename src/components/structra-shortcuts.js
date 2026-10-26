@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Keyboard Shortcuts Overlay
-   <structra-shortcuts> — Modal overlay showing all available
+   STRUCTRA V2 - Keyboard Shortcuts Overlay
+   <structra-shortcuts> - Modal overlay showing all available
    keyboard shortcuts grouped by category.
    ============================================================ */
 

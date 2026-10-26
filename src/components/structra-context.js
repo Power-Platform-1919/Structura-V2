@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Context Panel Component
-   <structra-context> — right detail panel (value, meta, actions)
+   STRUCTRA V2 - Context Panel Component
+   <structra-context> - right detail panel (value, meta, actions)
    ============================================================ */
 
 class StructraContext extends StructraElement {
@@ -24,7 +24,7 @@ class StructraContext extends StructraElement {
     this.innerHTML = `
       <div class="panel-head">
         <span class="panel-title">Node</span>
-        <span class="panel-sub" id="ctxPath">—</span>
+        <span class="panel-sub" id="ctxPath">-</span>
         <button class="btn btn-icon btn-ghost" type="button" data-action="close" aria-label="Close panel" title="Close">
           ${Structra.icons.svg('x', { size: 16 })}
         </button>
@@ -32,7 +32,7 @@ class StructraContext extends StructraElement {
       <div class="ctx-body">
         <div class="ctx-section">
           <div class="ctx-label">Value</div>
-          <div class="ctx-value" id="ctxValue">—</div>
+          <div class="ctx-value" id="ctxValue">-</div>
         </div>
         <div class="ctx-section" id="ctxPreviewSection" hidden>
           <div class="ctx-label">Content Preview</div>
@@ -40,7 +40,7 @@ class StructraContext extends StructraElement {
         </div>
         <div class="ctx-section">
           <div class="ctx-label">Properties</div>
-          <dl class="ctx-meta" id="ctxMeta"><dt>Type</dt><dd>—</dd></dl>
+          <dl class="ctx-meta" id="ctxMeta"><dt>Type</dt><dd>-</dd></dl>
         </div>
         <div class="ctx-section" id="ctxPpSection" hidden>
           <div class="ctx-label">Use in Power Platform</div>
@@ -128,7 +128,7 @@ class StructraContext extends StructraElement {
     meta.innerHTML = metaHtml;
   }
 
-  /* ======== CONTENT PREVIEW — pattern detection ======== */
+  /* ======== CONTENT PREVIEW - pattern detection ======== */
 
   _renderContentPreview(val) {
     const section = this.$('#ctxPreviewSection');
@@ -189,8 +189,8 @@ class StructraContext extends StructraElement {
     if (/^eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(s)) {
       try {
         const payload = JSON.parse(atob(s.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-        detections.push({ type: 'jwt', display: `JWT — sub: ${payload.sub || '?'}, exp: ${payload.exp ? new Date(payload.exp * 1000).toISOString() : '?'}` });
-      } catch { detections.push({ type: 'jwt', display: 'JWT token (decode failed)' }); }
+        detections.push({ type: 'jwt', display: `JWT, sub: ${payload.sub || '?'}, exp: ${payload.exp ? new Date(payload.exp * 1000).toISOString() : '?'}` });
+      } catch { detections.push({ type: 'jwt', display: 'JWT token (could not be decoded)' }); }
     }
 
     // Color hex

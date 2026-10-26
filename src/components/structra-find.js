@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Find & Replace Component
-   <structra-find> — Find values across the active dataset and
+   STRUCTRA V2 - Find & Replace Component
+   <structra-find> - Find values across the active dataset and
    optionally replace them.  Queries go through DuckDB when
    available, falls back to in-memory engine search.
    Works across all views (tree, table, graph).

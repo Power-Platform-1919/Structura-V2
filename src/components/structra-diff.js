@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Diff Viewer Component
-   <structra-diff> — Two-pane JSON comparison with line-by-line
+   STRUCTRA V2 - Diff Viewer Component
+   <structra-diff> - Two-pane JSON comparison with line-by-line
    difference highlighting. Uses DuckDB for structural comparison
    when both sides are tabular arrays.
    ============================================================ */
@@ -23,7 +23,7 @@ class StructraDiff extends StructraOverlay {
           <span class="diff-sep"></span>
           <button class="diff-btn" data-action="swap">${Structra.icons.svg('arrow-left-right', { size: 14 })} Swap</button>
           <button class="diff-btn" data-action="copy-diff">Copy Diff</button>
-          <button class="diff-btn" data-action="copy-patch" title="Copy the changes as an RFC 6902 JSON Patch">Copy JSON Patch</button>
+          <button class="diff-btn" data-action="copy-patch" title="Copy the changes as a JSON Patch">Copy JSON Patch</button>
         </div>
         <div class="diff-load-bar">
           <div class="diff-load-side">
@@ -144,7 +144,7 @@ class StructraDiff extends StructraOverlay {
       this._right = JSON.parse(text);
       this._computeAndRender();   // the paste box stays, so the right side can be edited and compared again
     } catch (e) {
-      Structra.toast('Invalid JSON: ' + e.message, 'error');
+      Structra.toast('This is not valid JSON: ' + e.message, 'error');
     }
   }
 
@@ -176,7 +176,7 @@ class StructraDiff extends StructraOverlay {
     const changed = this._diffs.filter(d => d.type === 'changed').length;
     this.$('#diffStats').innerHTML = added + removed + changed === 0
       ? '<span>The two sides are identical</span>'
-      : `<span class="diff-stat-add" title="Values only in the right side">${added} added</span> <span class="diff-stat-rm" title="Values only in the left side">${removed} removed</span> <span class="diff-stat-chg" title="Values that differ">${changed} changed</span>`;
+      : `<span class="diff-stat-add" title="Values only on the right side">${added} added</span> <span class="diff-stat-rm" title="Values only on the left side">${removed} removed</span> <span class="diff-stat-chg" title="Values that differ">${changed} changed</span>`;
     this.$('#diffStats').title = 'Green: only on the right. Red: only on the left. Orange: different.';
   }
 
@@ -328,7 +328,7 @@ class StructraDiff extends StructraOverlay {
   }
 
   _copyPatch() {
-    if (this._left === undefined || this._right === undefined) { Structra.toast('Load both sides first'); return; }
+    if (this._left === undefined || this._right === undefined) { Structra.toast('Fill in both sides first'); return; }
     const ops = Structra.jsonTools.patch(this._left, this._right);
     if (!ops.length) { Structra.toast('No differences'); return; }
     Structra.util.copy(JSON.stringify(ops, null, 2), 'Copied ' + ops.length + ' patch operation' + (ops.length === 1 ? '' : 's'));

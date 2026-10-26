@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Header Component
-   <structra-header> — brand, path bar, toolbar buttons
+   STRUCTRA V2 - Header Component
+   <structra-header> - brand, path bar, toolbar buttons
    ============================================================ */
 
 class StructraHeader extends StructraElement {

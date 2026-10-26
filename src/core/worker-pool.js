@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — Generic Worker Pool
+   STRUCTRA V2 - Generic Worker Pool
    Lazy, scaling worker pool factory. Creates pool instances for
    offloading heavy parsing (JSON, CSV) from the main thread.
    ============================================================ */
@@ -37,9 +37,9 @@ Structra.createWorkerPool = function(config) {
         w = new Worker(this.workerUrl);
         Structra.log.info('WorkerPool', this.name + ' worker #' + (this.workers.length + 1) + ' created (URL)');
       } catch (urlErr) {
-        // file:// origin blocks new Worker(url) — fall back to Blob URL
+        // file:// origin blocks new Worker(url) - fall back to Blob URL
         if (!this.workerCode) {
-          Structra.log.error('WorkerPool', this.name + ' — Worker URL blocked and no inline code: ' + urlErr.message);
+          Structra.log.error('WorkerPool', this.name + ' - Worker URL blocked and no inline code: ' + urlErr.message);
           return null;
         }
         try {
@@ -51,7 +51,7 @@ Structra.createWorkerPool = function(config) {
           w = new Worker(this._blobUrl);
           Structra.log.info('WorkerPool', this.name + ' worker #' + (this.workers.length + 1) + ' created (Blob URL)');
         } catch (blobErr) {
-          Structra.log.error('WorkerPool', this.name + ' — Blob URL worker also failed: ' + blobErr.message);
+          Structra.log.error('WorkerPool', this.name + ' - Blob URL worker also failed: ' + blobErr.message);
           return null;
         }
       }
@@ -395,7 +395,7 @@ Structra.parseXmlAsync = function(text) {
 Structra._yamlWorkerPool = Structra.createWorkerPool({
   name: 'YAML',
   workerUrl: 'src/workers/yaml-parse-worker.js',
-  workerCode: null,  // needs js-yaml lib — sync fallback on file://
+  workerCode: null,  // needs js-yaml lib - sync fallback on file://
   maxWorkers: 2,
   poolThreshold: 2,
   taskTimeout: 60000,
@@ -423,7 +423,7 @@ Structra.parseYamlAsync = function(text) {
 Structra._tomlWorkerPool = Structra.createWorkerPool({
   name: 'TOML',
   workerUrl: 'src/workers/toml-parse-worker.js',
-  workerCode: null,  // needs toml lib — sync fallback on file://
+  workerCode: null,  // needs toml lib - sync fallback on file://
   maxWorkers: 2,
   poolThreshold: 2,
   taskTimeout: 60000,

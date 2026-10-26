@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Parse JSON Schema Generator
-   Structra.schemaGen — JSON Schema for the Power Automate
+   STRUCTRA V2 - Parse JSON Schema Generator
+   Structra.schemaGen - JSON Schema for the Power Automate
    "Parse JSON" action.
 
    API:

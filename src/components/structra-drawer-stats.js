@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Drawer Stats Component (Edit-Mode Compact Strip)
-   <structra-drawer-stats> — mini stats panel inside drawer "Analyze" tab
+   STRUCTRA V2 - Drawer Stats Component (Edit-Mode Compact Strip)
+   <structra-drawer-stats> - mini stats panel inside drawer "Analyze" tab
 
    Shows: mini-grid (rows/keys/gaps), quick quality bar, clickable
    field list. Renders into the drawer's #dp-analyze panel.

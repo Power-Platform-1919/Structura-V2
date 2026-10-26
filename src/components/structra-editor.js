@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Editor View Component
-   <structra-editor> — raw JSON editor (format/minify/validate/apply)
+   STRUCTRA V2 - Editor View Component
+   <structra-editor> - raw JSON editor (format/minify/validate/apply)
    ============================================================ */
 
 class StructraEditor extends StructraElement {
@@ -14,12 +14,12 @@ class StructraEditor extends StructraElement {
     this.on('editor:minify', () => this._minify());
     this.on('state:jsonData', () => {
       this._stale = true;
-      Structra.log.debug('Editor', 'jsonData changed — stale=true (activeView=' + Structra.state.activeView + ')');
+      Structra.log.debug('Editor', 'jsonData changed - stale=true (activeView=' + Structra.state.activeView + ')');
       if (Structra.state.activeView === 'editor') this._loadData();
     });
     this.on('view:switched', (view) => {
       if (view === 'editor' && this._stale) {
-        Structra.log.info('Editor', 'View switched to editor — loading data');
+        Structra.log.info('Editor', 'View switched to editor - loading data');
         this._loadData();
       }
     });
@@ -104,7 +104,7 @@ class StructraEditor extends StructraElement {
     // Guard: skip JSON.stringify for very large data to avoid "Invalid string length"
     const size = Structra.state.fileSize || 0;
     if (size > 10 * 1024 * 1024) {
-      Structra.log.warn('Editor', 'File too large for editor (' + (size / 1048576).toFixed(1) + ' MB) — skipping stringify');
+      Structra.log.warn('Editor', 'File too large for editor (' + (size / 1048576).toFixed(1) + ' MB) - skipping stringify');
       area.value = '// File too large for editor (' + (size / 1048576).toFixed(1) + ' MB)\n// Use the tree view to explore this data.';
       const status = this.$('#edStatus');
       if (status) { status.innerHTML = Structra.icons.svg('triangle-alert', { size: 14, color: 'warning' }) + ' Too large'; status.className = 'ed-status warn'; }
@@ -215,7 +215,7 @@ class StructraEditor extends StructraElement {
       this._validate();
       Structra.toast('Formatted');
     } catch (e) {
-      Structra.toast('Invalid JSON');
+      Structra.toast('This is not valid JSON');
     }
   }
 
@@ -228,7 +228,7 @@ class StructraEditor extends StructraElement {
       this._validate();
       Structra.toast('Minified');
     } catch (e) {
-      Structra.toast('Invalid JSON');
+      Structra.toast('This is not valid JSON');
     }
   }
 

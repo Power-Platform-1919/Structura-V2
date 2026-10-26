@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — Engine Worker
+   STRUCTRA V2 - Engine Worker
    Web Worker for heavy data operations (>10K items).
 
    Offloaded ops: buildPathIndex, search, filter, sort, aggregate
@@ -98,7 +98,7 @@
   /* --- Filter --- */
   function filterArray(data, predicateSource) {
     // predicateSource is a string like "row => row.age > 30"
-    // Safe in worker context — isolated from main thread DOM
+    // Safe in worker context - isolated from main thread DOM
     const fn = new Function('row', 'return ' + predicateSource);
     return data.filter(row => {
       try { return fn(row); }

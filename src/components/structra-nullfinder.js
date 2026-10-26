@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Null/Empty Finder Component
-   <structra-nullfinder> — Locate all null, empty, and missing
+   STRUCTRA V2 - Null/Empty Finder Component
+   <structra-nullfinder> - Locate all null, empty, and missing
    values with navigation. Uses DuckDB WHERE col IS NULL queries
    when available.
    ============================================================ */

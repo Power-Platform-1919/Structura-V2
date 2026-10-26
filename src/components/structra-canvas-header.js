@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Canvas Header Component
-   <structra-canvas-header> — view tabs + tree toolbar buttons
+   STRUCTRA V2 - Canvas Header Component
+   <structra-canvas-header> - view tabs + tree toolbar buttons
    ============================================================ */
 
 class StructraCanvasHeader extends StructraElement {
@@ -186,7 +186,7 @@ class StructraCanvasHeader extends StructraElement {
 
   _copyJson() {
     const data = Structra.state.jsonData;
-    if (!data) { Structra.toast('No data to copy'); return; }
+    if (!data) { Structra.toast('Open a file first'); return; }
     const text = JSON.stringify(data, null, 2);
     Structra.util.copy(text, 'JSON copied');
   }

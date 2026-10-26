@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Overlay Base
-   StructraOverlay — one implementation of "a dialog on top of the app".
+   STRUCTRA V2 - Overlay Base
+   StructraOverlay - one implementation of "a dialog on top of the app".
    Dialogs (validate, charts, theme, shortcuts, ...) extend this and only
    describe their content. The base owns:
      - the shell markup (backdrop, box, header, close button, body, footer)

@@ -225,10 +225,10 @@
         if (ext === 'csv' || ext === 'tsv') {
           Structra.log.info('App', 'Parsing dropped CSV/TSV...');
           const result = await Structra.parseCsvAsync(reader.result);
-          if (result.data.length === 0) { Structra.toast('No data found in CSV'); return; }
+          if (result.data.length === 0) { Structra.toast('The CSV has no rows of data'); return; }
           if (result.errors.length > 0) {
             Structra.log.warn('App', 'CSV parse warnings: ' + result.errors.length);
-            Structra.toast('CSV parsed with ' + result.errors.length + ' warning(s)');
+            Structra.toast('The CSV opened with ' + result.errors.length + ' warning' + (result.errors.length === 1 ? '' : 's'));
           }
           data = result.data;
         } else {
@@ -237,7 +237,7 @@
         }
         const unopenable = Structra.describeUnopenable(data);
         if (unopenable) { Structra.toast(file.name + ' contains only ' + unopenable + ', so there is nothing to explore'); return; }
-        Structra.log.info('App', 'Drop parse success — setting state');
+        Structra.log.info('App', 'Drop parse success - setting state');
         Structra.set('jsonData', data);
         Structra.set('fileName', file.name);
         Structra.set('fileSize', file.size);
@@ -245,7 +245,7 @@
         Structra.toast('Loaded ' + file.name);
       } catch (err) {
         Structra.log.error('App', 'Drop parse failed: ' + err.message, err);
-        Structra.toast(ext === 'csv' || ext === 'tsv' ? 'CSV parse failed: ' + err.message : 'Invalid JSON file');
+        Structra.toast(ext === 'csv' || ext === 'tsv' ? 'Could not read the CSV: ' + err.message : 'This file is not valid JSON');
       }
     };
     reader.onerror = () => {

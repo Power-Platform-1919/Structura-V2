@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Query Panel Component
-   <structra-query> — query/filter panel (path/jsonpath/regex/js)
+   STRUCTRA V2 - Query Panel Component
+   <structra-query> - query/filter panel (path/jsonpath/regex/js)
    ============================================================ */
 
 class StructraQuery extends StructraElement {
@@ -66,7 +66,7 @@ class StructraQuery extends StructraElement {
         <button class="btn qp-pivot" type="button" data-action="openPivot" title="Group the rows and total or count a column, like a pivot table">${Structra.icons.svg('table-properties', { size: 14 })} Group and total (Pivot)</button>
         <details class="qp-advanced" id="qpAdvanced">
           <summary>Advanced: write your own steps</summary>
-          <textarea class="qp-input" id="transformInput" spellcheck="false" placeholder="jq-style expression: .[] | select(.active) | .name"></textarea>
+          <textarea class="qp-input" id="transformInput" spellcheck="false" placeholder="Steps, for example: .[] | select(.active) | .name"></textarea>
           <button class="btn btn-primary qp-run" type="button" data-action="runTransform">Run transform</button>
         </details>
       </div>
@@ -215,7 +215,7 @@ class StructraQuery extends StructraElement {
   async _runTransform() {
     const input = this.$('#transformInput').value.trim();
     const results = this.$('#queryResults');
-    if (!input) { results.innerHTML = '<div class="qp-summary">Enter a transform expression</div>'; return; }
+    if (!input) { results.innerHTML = '<div class="qp-summary">Type the steps first</div>'; return; }
 
     const data = Structra.state.jsonData;
     if (!data) { results.innerHTML = '<div class="qp-summary">No JSON loaded</div>'; return; }
@@ -224,7 +224,7 @@ class StructraQuery extends StructraElement {
       const output = Structra.transformOps.evaluate(input, data);
       this._lastTransform = output;
       if (output === undefined) {
-        results.innerHTML = '<div class="qp-summary">The steps found nothing (a field in the steps does not exist here)</div>';
+        results.innerHTML = '<div class="qp-summary">The steps found nothing. A field named in the steps is not in this data.</div>';
         return;
       }
       const preview = JSON.stringify(output, null, 2);

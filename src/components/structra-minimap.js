@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Minimap Component
-   <structra-minimap> — Bird's-eye canvas overview of JSON
+   STRUCTRA V2 - Minimap Component
+   <structra-minimap> - Bird's-eye canvas overview of JSON
    structure with viewport indicator and click-to-scroll.
    ============================================================ */
 

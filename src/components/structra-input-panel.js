@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Input Panel Component
-   <structra-input-panel> — shared input card (overlay & in-canvas)
+   STRUCTRA V2 - Input Panel Component
+   <structra-input-panel> - shared input card (overlay & in-canvas)
    Same card everywhere. Wrap in .io-overlay div for fullscreen mode.
    5 tabs: Upload File | Paste JSON | Import CSV | Load URL | Recent
    ============================================================ */
@@ -249,7 +249,7 @@ class StructraInputPanel extends StructraElement {
     Structra.log.info('InputPanel', '_loadSuccess: ' + name + ' (' + (text.length / 1024).toFixed(1) + ' KB text)');
     const t0 = performance.now();
 
-    // Show loading overlay — message updates at each step
+    // Show loading overlay - message updates at each step
     Structra.events.emit('loading:show', 'Parsing ' + name + '…');
 
     // A File already knows its size; copying a huge string into a Blob just to measure it costs ~250 ms
@@ -270,7 +270,7 @@ class StructraInputPanel extends StructraElement {
       rawSource,
     });
 
-    // Fire state events — triggers view rendering
+    // Fire state events - triggers view rendering
     Structra.events.emit('loading:show', 'Rendering views…');
     Structra.log.debug('InputPanel', 'Setting jsonData...');
     Structra.set('jsonData', data);
@@ -366,7 +366,7 @@ class StructraInputPanel extends StructraElement {
     reader.onload = async () => {
       const text = reader.result;
       this._fileText = text;
-      Structra.log.info('InputPanel', 'FileReader done — ' + text.length + ' chars (' + ext + ')');
+      Structra.log.info('InputPanel', 'FileReader done - ' + text.length + ' chars (' + ext + ')');
       const format = this._detectFormat(text, ext);
       Structra.log.info('InputPanel', 'Detected format: ' + format);
       try {
@@ -444,14 +444,14 @@ class StructraInputPanel extends StructraElement {
     Structra.parseNotes = {};
     this._clearError();
     const t0 = performance.now();
-    Structra.log.info('InputPanel', '_parseByFormat: ' + format + ' — ' + name + ' (' + (text.length / 1024).toFixed(1) + ' KB)');
+    Structra.log.info('InputPanel', '_parseByFormat: ' + format + ' - ' + name + ' (' + (text.length / 1024).toFixed(1) + ' KB)');
     let data;
     switch (format) {
       case 'csv': {
         const result = await Structra.parseCsvAsync(text);
-        if (result.data.length === 0) { Structra.toast('No data found in CSV'); return; }
+        if (result.data.length === 0) { Structra.toast('The CSV has no rows of data'); return; }
         if (result.errors.length > 0) {
-          Structra.toast('CSV parsed with ' + result.errors.length + ' warning(s)');
+          Structra.toast('The CSV opened with ' + result.errors.length + ' warning' + (result.errors.length === 1 ? '' : 's'));
         }
         data = result.data;
         Structra.parseNotes = Object.assign(Structra.parseNotes || {}, { decimals: (result.meta && result.meta.decimals) || {}, mixed: (result.meta && result.meta.mixed) || {} });
@@ -766,7 +766,7 @@ class StructraInputPanel extends StructraElement {
           try {
             const data = await Structra.parseJsonAsync(r.data);
             this._loadSuccess(data, r.data, r.name);
-          } catch { Structra.toast('Failed to load saved data'); }
+          } catch { Structra.toast('Could not open the saved data'); }
         }
       });
     });
@@ -849,7 +849,7 @@ class StructraInputPanel extends StructraElement {
       try {
         const data = await Structra.parseJsonAsync(text);
         this._loadSuccess(data, text, 'Clipboard');
-      } catch (e) { Structra.toast('Invalid JSON: ' + e.message); }
+      } catch (e) { Structra.toast('This is not valid JSON: ' + e.message); }
     });
     banner.querySelector('.io-clip-dismiss').addEventListener('click', () => { banner.style.display = 'none'; });
     setTimeout(() => { if (banner.style.display !== 'none') banner.style.display = 'none'; }, 8000);

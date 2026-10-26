@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — Insights
+   STRUCTRA V2 - Insights
    Structra.insights.build(...) turns the analysis of a document into the
    plain-language summary the Overview screen shows:
      - a one-sentence description of what the data is
@@ -85,7 +85,7 @@ Structra.insights = (() => {
 
     const emptyLists = s.arraysDetail.filter((a) => a.count === 0).length;
     if (emptyLists) {
-      findings.push({ severity: 'info', title: `${plural(emptyLists, 'empty list', 'empty lists')}`, detail: 'Their item shape cannot be inferred from this file.', go: { view: 'tree' } });
+      findings.push({ severity: 'info', title: `${plural(emptyLists, 'empty list', 'empty lists')}`, detail: 'This file does not show what their items would look like.', go: { view: 'tree' } });
     }
 
     const biggest = s.arraysDetail.reduce((m, a) => (a.count > m.count ? a : m), { count: 0 });

@@ -1,12 +1,12 @@
 /* ============================================================
-   STRUCTRA V2 — Persistence Manager
+   STRUCTRA V2 - Persistence Manager
    IndexedDB multi-store for large data, recents, session state.
 
    Stores:
-     'recents'     — file history with metadata (name, format, size, timestamp, hash)
-     'raw_files'   — original source text as Blob (keyed by content hash)
-     'session'     — tab/view/filter state (single key: "state")
-     'api_history' — URL load history
+     'recents'     - file history with metadata (name, format, size, timestamp, hash)
+     'raw_files'   - original source text as Blob (keyed by content hash)
+     'session'     - tab/view/filter state (single key: "state")
+     'api_history' - URL load history
 
    API:
      Structra.persistence.ready        → Promise (resolves when DB open)
@@ -36,21 +36,21 @@ Structra.persistence = (() => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
-        // Recents store — auto-increment, indexed by timestamp
+        // Recents store - auto-increment, indexed by timestamp
         if (!db.objectStoreNames.contains('recents')) {
           const store = db.createObjectStore('recents', { keyPath: 'id', autoIncrement: true });
           store.createIndex('timestamp', 'timestamp', { unique: false });
           store.createIndex('hash', 'hash', { unique: false });
         }
-        // Raw files — keyed by content hash
+        // Raw files - keyed by content hash
         if (!db.objectStoreNames.contains('raw_files')) {
           db.createObjectStore('raw_files');
         }
-        // Session — single-key store
+        // Session - single-key store
         if (!db.objectStoreNames.contains('session')) {
           db.createObjectStore('session');
         }
-        // API history — auto-increment, indexed by timestamp
+        // API history - auto-increment, indexed by timestamp
         if (!db.objectStoreNames.contains('api_history')) {
           const store = db.createObjectStore('api_history', { keyPath: 'id', autoIncrement: true });
           store.createIndex('timestamp', 'timestamp', { unique: false });
@@ -168,7 +168,7 @@ Structra.persistence = (() => {
 
   /* --- Raw Files --- */
   const raw = {
-    /** @param {string|Blob} source — the text, or the File it came from (stored as is, no copy) */
+    /** @param {string|Blob} source - the text, or the File it came from (stored as is, no copy) */
     async put(source, meta) {
       await open();
       const isBlob = typeof source !== 'string';

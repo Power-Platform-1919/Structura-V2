@@ -8,18 +8,18 @@ Open a JSON, CSV, XML, YAML or TOML file and see what is inside it: its shape, i
 
 ## What it does
 
-- **Overview** – a plain summary of the file: what it holds, key figures, findings to look at first and the biggest lists.
-- **Five views** – Tree, Table, Graph, Schema and Overview (`Ctrl+1` to `Ctrl+5`).
-- **Query and Transform** – search with a path, JSONPath, pattern or JavaScript; pick fields, sort, group and total.
-- **Filter, Find and Compare** – narrow the data, search inside it and diff two files.
-- **Power Platform tools** – click any value to get:
+- **Overview**: a plain summary of the file: what it holds, key figures, findings to look at first and the biggest lists.
+- **Five views**: Tree, Table, Graph, Schema and Overview (`Ctrl+1` to `Ctrl+5`).
+- **Query and Transform**: search with a path, JSONPath, pattern or JavaScript; pick fields, sort, group and total.
+- **Filter, Find and Compare**: narrow the data, search inside it and diff two files.
+- **Power Platform tools**: click any value to get:
   - the Power Automate expression (null-safe at every step)
   - a Parse JSON schema
   - the Power Fx formula (`ParseJSON`)
   - paste-ready flow actions: Select, Filter array, Apply to each, Compose, Condition
-- **Themes** – light, dark and system modes, 8 built-in themes, custom themes with JSON import and export. Use the **Themes** button on the left rail.
-- **Tabs and sessions** – open several files; tabs are saved and restored when you reopen the page.
-- **Command palette** – `Ctrl+K`; press `?` for every shortcut.
+- **Themes**: light, dark and system modes, 8 built-in themes, custom themes with JSON import and export. Use the **Themes** button on the left rail.
+- **Tabs and sessions**: open several files; tabs are saved and restored when you reopen the page.
+- **Command palette**: `Ctrl+K`; press `?` for every shortcut.
 
 ## Privacy
 

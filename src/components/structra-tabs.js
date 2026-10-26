@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Tabs Component
-   <structra-tabs> — document tab bar (multi-tab system)
+   STRUCTRA V2 - Tabs Component
+   <structra-tabs> - document tab bar (multi-tab system)
    ============================================================ */
 
 class StructraTabs extends StructraElement {

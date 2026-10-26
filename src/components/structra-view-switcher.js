@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — View Switcher Component
-   <structra-view-switcher> — manages view panels (tree/table/graph/schema/editor/stats)
+   STRUCTRA V2 - View Switcher Component
+   <structra-view-switcher> - manages view panels (tree/table/graph/schema/editor/stats)
    ============================================================ */
 
 class StructraViewSwitcher extends StructraElement {

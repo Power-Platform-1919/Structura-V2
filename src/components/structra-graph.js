@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Graph View Component
-   <structra-graph> — SVG node graph with zoom/pan/expand
+   STRUCTRA V2 - Graph View Component
+   <structra-graph> - SVG node graph with zoom/pan/expand
    ============================================================ */
 
 class StructraGraph extends StructraElement {

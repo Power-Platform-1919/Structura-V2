@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Settings
-   <structra-settings> — one place for the things you can change or clear:
+   STRUCTRA V2 - Settings
+   <structra-settings> - one place for the things you can change or clear:
    appearance, keyboard shortcuts, the SQL engine, and what is saved in this browser.
    ============================================================ */
 

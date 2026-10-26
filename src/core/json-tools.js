@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — JSON Tools
-   Structra.jsonTools — repair, duplicate keys, JSON Patch, schema validation.
+   STRUCTRA V2 - JSON Tools
+   Structra.jsonTools - repair, duplicate keys, JSON Patch, schema validation.
 
    API:
      await Structra.jsonTools.repair(text)            → repaired JSON text

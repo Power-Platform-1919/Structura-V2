@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Path Autocomplete
-   <structra-autocomplete> — suggestions for the path bar.
+   STRUCTRA V2 - Path Autocomplete
+   <structra-autocomplete> - suggestions for the path bar.
 
    Completes against the open document itself: it resolves everything
    before the last separator and lists the keys (or array indexes) found

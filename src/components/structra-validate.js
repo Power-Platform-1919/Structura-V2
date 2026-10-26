@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Schema Validation
-   <structra-validate> — validate the open data against a JSON Schema.
+   STRUCTRA V2 - Schema Validation
+   <structra-validate> - validate the open data against a JSON Schema.
    Paste a schema, or start from one inferred from the data.
    Click an error to jump to that path in the tree.
    ============================================================ */
@@ -41,7 +41,7 @@ class StructraValidate extends StructraOverlay {
   }
 
   _open() {
-    if (!Structra.state.jsonData) { Structra.toast('Load JSON first'); return; }
+    if (!Structra.state.jsonData) { Structra.toast('Open a file first'); return; }
     this.open();
   }
 

@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Welcome
-   <structra-welcome> — shown once, the first time the app is opened.
+   STRUCTRA V2 - Welcome
+   <structra-welcome> - shown once, the first time the app is opened.
    Says what the app is for, lets the person pick light or dark, and offers
    the two ways to start (a sample or their own file). Reopen it from the
    command palette ("Welcome"). Built on StructraOverlay.
@@ -28,7 +28,7 @@ class StructraWelcome extends StructraOverlay {
           </li>
           <li>
             ${Structra.icons.svg('search')}
-            <div><strong>Understand a payload quickly.</strong> The Overview tells you what the file holds and what to look at first. Then browse it as a tree, table, graph or schema, and query, filter and compare.</div>
+            <div><strong>Understand your data quickly.</strong> The Overview tells you what the file holds and what to look at first. Then browse it as a tree, table, graph or schema, and query, filter and compare.</div>
           </li>
           <li>
             ${Structra.icons.svg('zap')}
@@ -41,7 +41,7 @@ class StructraWelcome extends StructraOverlay {
             <ul class="wl-list">
               <li>Drag a file onto the page, or use <strong>Open</strong> on the left</li>
               <li>Press <kbd>Ctrl</kbd> + <kbd>V</kbd> to paste text or a copied value</li>
-              <li>Open a file with a link, or reopen a recent one</li>
+              <li>Open a shared link, or reopen a recent file</li>
             </ul>
           </section>
           <section>

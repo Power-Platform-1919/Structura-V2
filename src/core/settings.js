@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — Settings Manager
+   STRUCTRA V2 - Settings Manager
    Persistent user preferences via localStorage.
 
    Loads SYNCHRONOUSLY before first paint.

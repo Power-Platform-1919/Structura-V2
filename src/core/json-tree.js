@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — JSON Tree Renderer
+   STRUCTRA V2 - JSON Tree Renderer
    Chunked, virtualized JSON tree view with:
    - IntersectionObserver-based lazy chunk loading
    - DOM recycling (offscreen chunks replaced with placeholders)

@@ -46,7 +46,7 @@ test('an unknown step says what is available', () => {
 test('blocked words are refused inside steps', () => {
   let message = '';
   try { T.evaluate('.value | map(x => fetch(x))', sp); } catch (e) { message = e.message; }
-  truthy(/blocked/i.test(message), message);
+  truthy(/not allowed/i.test(message), message);
 });
 test('a missing field gives undefined, not an error', () => {
   eq(T.evaluate('.nothing.here', sp), undefined);

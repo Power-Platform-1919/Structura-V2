@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Status Bar Component
-   <structra-status> — bottom status bar
+   STRUCTRA V2 - Status Bar Component
+   <structra-status> - bottom status bar
    ============================================================ */
 
 class StructraStatus extends StructraElement {

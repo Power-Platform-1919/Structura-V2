@@ -1,12 +1,12 @@
 /* ============================================================
-   STRUCTRA V2 — DuckDB WASM Adapter
+   STRUCTRA V2 - DuckDB WASM Adapter
    Async-loaded DuckDB WASM, served from this app's own folder (src/libs/duckdb).
 
    - Non-blocking: loads in background, engine works via JS Core until ready
    - OPFS: database file persists across page reloads (instant resume)
    - Fallback: in-memory mode if OPFS unavailable
    - Registers ALL JSON shapes (flat-array, nested-array, object)
-     via read_json_auto — DuckDB handles nested STRUCTs/LISTs natively.
+     via read_json_auto - DuckDB handles nested STRUCTs/LISTs natively.
    - JSON functions: json_extract, json_keys, unnest, json_type
      available for querying into nested structures.
 
@@ -63,7 +63,7 @@ Structra.duckdb = (() => {
       // Open in-memory database
       // Note: OPFS persistence requires Cross-Origin-Isolation headers (COOP/COEP)
       // which are not available on simple HTTP servers or file:// protocol.
-      // In-memory is fine — Structra re-ingests data from localStorage/IndexedDB on load.
+      // In-memory is fine - Structra re-ingests data from localStorage/IndexedDB on load.
       await _db.open({});
       // The JSON add-on is also served from this folder
       await _db.connect().then(async (c) => { try { await c.query(`SET custom_extension_repository='${new URL('src/libs/duckdb/ext', document.baseURI).href}'`); } finally { await c.close(); } });
@@ -80,7 +80,7 @@ Structra.duckdb = (() => {
       Structra.engine.onDuckDBReady();
       return true;
     } catch (err) {
-      Structra.log.error('DuckDB', 'Init failed — SQL queries unavailable', err);
+      Structra.log.error('DuckDB', 'Init failed - SQL queries unavailable', err);
       _ready = false;
       Structra.events.emit('engine:duckdb-failed');
       return false;
@@ -117,7 +117,7 @@ Structra.duckdb = (() => {
     if (!_ready || !_conn) return;
     const { raw, duckTable, meta } = dataset;
 
-    // Skip empty / primitive data — nothing meaningful to query via SQL
+    // Skip empty / primitive data - nothing meaningful to query via SQL
     if (raw === null || raw === undefined) return;
     if (meta.shape === 'empty' || meta.shape === 'empty-array' || meta.shape === 'primitive') return;
 
@@ -143,10 +143,10 @@ Structra.duckdb = (() => {
       dataset._duckColumns = colInfo;
 
       const rowCount = dataToRegister.length;
-      Structra.log.info('DuckDB', `Registered "${tableName}" — shape:${meta.shape}, ${rowCount} rows, ${colInfo.length} columns (${colInfo.filter(c => c.nested).length} nested)`);
+      Structra.log.info('DuckDB', `Registered "${tableName}" - shape:${meta.shape}, ${rowCount} rows, ${colInfo.length} columns (${colInfo.filter(c => c.nested).length} nested)`);
     } catch (err) {
       Structra.log.warn('DuckDB', `Registration failed for "${tableName}": ${err.message}`);
-      // Table may not exist — that's OK, engine falls back to in-memory
+      // Table may not exist - that's OK, engine falls back to in-memory
     }
   }
 

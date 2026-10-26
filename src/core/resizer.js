@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Panel Resizer
-   Structra.resizer — drag a panel edge to change its width.
+   STRUCTRA V2 - Panel Resizer
+   Structra.resizer - drag a panel edge to change its width.
    The width lives in a CSS variable, so layout.css stays in charge,
    and the chosen width is remembered between visits.
 

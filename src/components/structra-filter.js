@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Filter Bar Component
-   <structra-filter> — Advanced data filter with structured
+   STRUCTRA V2 - Filter Bar Component
+   <structra-filter> - Advanced data filter with structured
    conditions.  Queries DuckDB directly when available, falls
    back to in-memory filtering.
 

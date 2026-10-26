@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Bookmarks
-   Structra.bookmarks — saved paths, kept per file name.
+   STRUCTRA V2 - Bookmarks
+   Structra.bookmarks - saved paths, kept per file name.
 
    Stored in localStorage key "structra_bookmarks" as an array of
    { path, fileName, preview, ts } (the workspace export reads the same key).

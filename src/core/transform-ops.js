@@ -1,5 +1,5 @@
 /**
- * Transform Operations — operation registry for safe jq-style expression evaluation.
+ * Transform Operations - operation registry for safe jq-style expression evaluation.
  * Each operation has a pattern (regex) and an exec function.
  */
 Structra.transformOps = (() => {
@@ -7,8 +7,8 @@ Structra.transformOps = (() => {
   // Safety: block dangerous patterns in callback expressions
   function validateExpression(body, allowedParams) {
     const blocked = /\b(eval|Function|import|require|fetch|XMLHttpRequest|document|window|globalThis|process|__proto__|constructor|prototype)\b/;
-    if (blocked.test(body)) throw new Error('Expression contains blocked keyword');
-    if (/(?<![=!<>])=(?![=>])/.test(body)) throw new Error('Assignment not allowed in expressions');
+    if (blocked.test(body)) throw new Error('That expression uses a word that is not allowed here');
+    if (/(?<![=!<>])=(?![=>])/.test(body)) throw new Error('Expressions cannot use a single = to set a value. Use == to compare.');
   }
 
   function buildFn1(param, body) {
@@ -21,7 +21,7 @@ Structra.transformOps = (() => {
     return new Function(p1, p2, `return (${body});`);
   }
 
-  // Operation registry — each entry: { pattern, exec(data, match) }
+  // Operation registry - each entry: { pattern, exec(data, match) }
   const operations = [
     // The data as it is
     { pattern: /^\.$/, exec(data) { return data; } },

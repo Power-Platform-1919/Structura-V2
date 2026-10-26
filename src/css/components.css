@@ -1,7 +1,7 @@
 /* ============================================================
-   STRUCTRA V2 — Shared Component Styles
+   STRUCTRA V2 - Shared Component Styles
    Reusable classes used across custom elements
-   ALL values reference variables.css tokens — zero hardcoded values
+   ALL values reference variables.css tokens - zero hardcoded values
    ============================================================ */
 
 /* ===== TREE VIEW ===== */
@@ -579,7 +579,7 @@ structra-overview {
 }
 
 /* =============================================================
-   INPUT OVERLAY — Full landing screen (Upload/Paste/CSV/URL/Recent)
+   INPUT OVERLAY - Full landing screen (Upload/Paste/CSV/URL/Recent)
    ============================================================= */
 .io-overlay {
   position: fixed; inset: 0;

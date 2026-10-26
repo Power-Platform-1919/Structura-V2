@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Library Loader
-   Structra.libs — load third-party libraries on first use.
+   STRUCTRA V2 - Library Loader
+   Structra.libs - load third-party libraries on first use.
 
    Script libraries (UMD) set a window global. Module libraries
    (ESM) return their namespace. Each library loads once.

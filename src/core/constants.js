@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 — Constants
+   STRUCTRA V2 - Constants
    Shared config values, shortcut map, view/rail definitions
    ============================================================ */
 

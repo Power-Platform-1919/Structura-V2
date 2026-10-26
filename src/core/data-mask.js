@@ -1,5 +1,5 @@
 /**
- * Data Masking — detect and anonymize PII
+ * Data Masking - detect and anonymize PII
  */
 Structra.dataMask = (() => {
 

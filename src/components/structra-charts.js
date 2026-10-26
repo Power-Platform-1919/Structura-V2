@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Charts
-   <structra-charts> — look at one column of an array.
+   STRUCTRA V2 - Charts
+   <structra-charts> - look at one column of an array.
    Numbers: summary, histogram and a trend line.
    Text and booleans: the most common values.
    Drawn as inline SVG, no chart library.
@@ -37,7 +37,7 @@ class StructraCharts extends StructraOverlay {
 
   _open({ path, column }) {
     const data = Structra.state.jsonData;
-    if (!data) { Structra.toast('Load JSON first'); return; }
+    if (!data) { Structra.toast('Open a file first'); return; }
 
     this._sources = Structra.engine.findAllArrays(data, '')
       .filter((a) => Array.isArray(a.data) && a.data.length > 0)

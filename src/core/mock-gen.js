@@ -1,5 +1,5 @@
 /**
- * Mock Data Generator — generates random data preserving JSON structure and types.
+ * Mock Data Generator - generates random data preserving JSON structure and types.
  */
 Structra.mockGen = (() => {
 

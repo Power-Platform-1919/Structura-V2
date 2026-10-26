@@ -1,5 +1,5 @@
 /**
- * JSONPath — find values by path.
+ * JSONPath - find values by path.
  *
  *   Structra.jsonpath.query(data, '$.value[*].Requester.Email')
  *     → [{ path: '$.value[0].Requester.Email', value: 'ann@contoso.com' }, ...]

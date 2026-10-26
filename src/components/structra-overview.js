@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Overview
-   <structra-overview> — what this document is, what to look at first, and the details
+   STRUCTRA V2 - Overview
+   <structra-overview> - what this document is, what to look at first, and the details
 
    Sections:
    0. Summary: one-sentence description, headline figures, findings worth a look, biggest lists
@@ -11,7 +11,7 @@
    5. Key coverage table (present/empty/missing %, nested drill)
    6. Field profiler (type, coverage, min/max/avg, top values)
 
-   All data from Structra.engine — zero window.App, zero DOM queries
+   All data from Structra.engine - zero window.App, zero DOM queries
    ============================================================ */
 
 class StructraOverview extends StructraElement {
@@ -19,7 +19,7 @@ class StructraOverview extends StructraElement {
 
   init() {
     this._stale = false;
-    this._currentArr = null;  // {path, rows} — active array for coverage
+    this._currentArr = null;  // {path, rows} - active array for coverage
     this._drillStack = [];    // for drill-back
 
     this.on('state:jsonData', () => {
@@ -227,7 +227,7 @@ class StructraOverview extends StructraElement {
   }
 
   /* ====================================================
-     ARRAYS FOUND — Tabbed with Virtual Scroll
+     ARRAYS FOUND - Tabbed with Virtual Scroll
      ==================================================== */
 
   _renderArraysFound(arraysDetail) {
@@ -278,7 +278,7 @@ class StructraOverview extends StructraElement {
     })).sort((a, b) => b.totalItems - a.totalItems);
   }
 
-  /** Summary tab — one row per unique schema path */
+  /** Summary tab - one row per unique schema path */
   _renderArraysSummary(groups) {
     let html = '<table class="arr-table"><thead><tr>';
     html += '<th>Schema Path</th><th>Occurrences</th><th>Total Items</th><th>Avg</th><th>Min</th><th>Max</th><th>Type</th>';
@@ -299,7 +299,7 @@ class StructraOverview extends StructraElement {
     return html;
   }
 
-  /** Top by Size tab — top 100 largest arrays */
+  /** Top by Size tab - top 100 largest arrays */
   _renderArraysTop(arraysDetail) {
     const sorted = [...arraysDetail].sort((a, b) => b.count - a.count).slice(0, 100);
     let html = '<table class="arr-table"><thead><tr><th>#</th><th>Path</th><th>Items</th><th>Element Type</th></tr></thead><tbody>';
@@ -318,7 +318,7 @@ class StructraOverview extends StructraElement {
     return html;
   }
 
-  /** All Instances tab — virtual-scrolled table */
+  /** All Instances tab - virtual-scrolled table */
   _renderArraysAll(arraysDetail) {
     const ROW_H = 32;
     const VISIBLE_H = 400;
@@ -334,7 +334,7 @@ class StructraOverview extends StructraElement {
       </table>
     </div>
     <div class="arr-virtual-info" style="text-align:center;font-size:11px;color:var(--text-muted);padding:4px">
-      ${arraysDetail.length.toLocaleString()} instances — scroll to browse
+      ${arraysDetail.length.toLocaleString()} instances. Scroll to browse
     </div>`;
   }
 
@@ -403,7 +403,7 @@ class StructraOverview extends StructraElement {
       ? ` <span class="stat-drill-back" data-action="drill-back" title="Go back">↑ Back</span>`
       : '';
 
-    let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage — ${Structra.util.esc(path)} (${rows.length} rows)${backBtn}</div>`;
+    let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage: ${Structra.util.esc(path)} (${rows.length} rows)${backBtn}</div>`;
     html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th title="Rows where the key is there and not empty">Has a value</th><th></th></tr></thead><tbody>';
 
     const sorted = [...coverage].sort((a, b) => b.missing - a.missing || b.empty - a.empty || a.key.localeCompare(b.key));
@@ -465,16 +465,16 @@ class StructraOverview extends StructraElement {
     html += '</tr></thead><tbody>';
 
     for (const f of profileData.fields) {
-      const topStr = f.topValues ? f.topValues.map(t => `${Structra.util.esc(t.val)} (${t.cnt})`).join(', ') : '—';
+      const topStr = f.topValues ? f.topValues.map(t => `${Structra.util.esc(t.val)} (${t.cnt})`).join(', ') : '-';
       html += `<tr>
         <td class="pf-key">${Structra.util.esc(f.key)}</td>
         <td><span class="pf-type pf-type-${f.primaryType}">${f.primaryType}</span></td>
         <td>${f.coverage}%</td>
         <td style="${parseFloat(f.nullPct) > 20 ? 'color:var(--danger);font-weight:600' : ''}">${f.nullPct}%</td>
         <td>${f.uniqueCapped ? '\u2265 ' : ''}${f.unique} <small>(${f.uniquePct}%)</small></td>
-        <td>${f.min != null ? f.min : '—'}</td>
-        <td>${f.max != null ? f.max : '—'}</td>
-        <td>${f.avg != null ? f.avg : '—'}</td>`;
+        <td>${f.min != null ? f.min : '-'}</td>
+        <td>${f.max != null ? f.max : '-'}</td>
+        <td>${f.avg != null ? f.avg : '-'}</td>`;
       html += `<td class="pf-top">${topStr}</td>
       </tr>`;
     }
@@ -684,7 +684,7 @@ class StructraOverview extends StructraElement {
   }
 
   /* ====================================================
-     UTILS — all analysis delegated to Structra.engine
+     UTILS - all analysis delegated to Structra.engine
      ==================================================== */
 
 }

@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Parse JSON Schema Generator
-   <structra-schemagen> — JSON Schema for the Power Automate
+   STRUCTRA V2 - Parse JSON Schema Generator
+   <structra-schemagen> - JSON Schema for the Power Automate
    "Parse JSON" action, generated from the loaded data.
    Lives in the Schema Gen tab of <structra-drawer>.
    ============================================================ */
@@ -36,7 +36,7 @@ class StructraSchemaGen extends StructraElement {
         <label class="sg-opt" title="Read every array item to find optional and nullable keys">
           <input type="checkbox" data-action="all-items" checked> Read all items
         </label>
-        <label class="sg-opt" title="Off: all numbers are typed number, which also accepts whole numbers. On: whole numbers are typed integer, and a later 1.5 would fail the Parse JSON action">
+        <label class="sg-opt" title="Off: every number is typed number, which also accepts whole numbers. On: whole numbers are typed integer, so a later 1.5 would make the Parse JSON action fail">
           <input type="checkbox" data-action="integers"> Whole numbers as integer
         </label>
         <label class="sg-opt" title="Off: no key is required, so a missing key never fails the Parse JSON action">

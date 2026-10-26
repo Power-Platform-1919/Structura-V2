@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Structra — JSON Analyzer</title>
+  <title>Structra: JSON Analyzer</title>
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Styles -->
@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="src/css/theme-panel.css">
 </head>
 <body>
-  <!-- App splash screen — visible immediately, hidden when ready -->
+  <!-- App splash screen - visible immediately, hidden when ready -->
   <div class="app-splash" id="appSplash">
     <div class="app-splash-inner">
       <div class="app-splash-spinner"></div>
@@ -30,7 +30,7 @@
     </div>
   </div>
   <script>
-    // Lightweight splash updater — runs before any module loads
+    // Lightweight splash updater - runs before any module loads
     window.__splashStep = function(msg) {
       var el = document.getElementById('splashMsg');
       if (el) el.textContent = msg;

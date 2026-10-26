@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Snippet Library Component
-   <structra-snippets> — Save/load reusable JSON fragments.
+   STRUCTRA V2 - Snippet Library Component
+   <structra-snippets> - Save/load reusable JSON fragments.
    Stored in localStorage. Integrates with engine for validation.
    ============================================================ */
 

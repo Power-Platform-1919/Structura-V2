@@ -1,11 +1,11 @@
 /* ============================================================
-   STRUCTRA V2 — Logger
+   STRUCTRA V2 - Logger
    Centralized logging with dev/normal modes.
 
    Modes:
-     'dev'    — All logs (debug, info, warn, error, perf)
-     'normal' — Main logs only (info, warn, error)
-     'off'    — Errors only
+     'dev'    - All logs (debug, info, warn, error, perf)
+     'normal' - Main logs only (info, warn, error)
+     'off'    - Errors only
 
    Usage:
      Structra.log.info('Component', 'message', optionalData);
@@ -84,7 +84,7 @@ Structra.log = (() => {
   function _shouldLog(level) {
     if (_mode === 'off') return level === 'error';
     if (_mode === 'normal') return level !== 'debug' && level !== 'perf';
-    return true; // dev mode — log everything
+    return true; // dev mode - log everything
   }
 
   return {
@@ -94,7 +94,7 @@ Structra.log = (() => {
     /** Set log mode: 'dev', 'normal', or 'off' */
     setMode(mode) {
       if (!['dev', 'normal', 'off'].includes(mode)) {
-        console.warn('[Structra][Logger] Invalid mode:', mode, '— use dev, normal, or off');
+        console.warn('[Structra][Logger] Invalid mode:', mode, '- use dev, normal, or off');
         return;
       }
       _mode = mode;
@@ -111,7 +111,7 @@ Structra.log = (() => {
       );
     },
 
-    /** Debug — only in dev mode */
+    /** Debug - only in dev mode */
     debug(tag, msg, ...data) {
       if (!_shouldLog('debug')) return;
       const p = _prefix(tag);
@@ -119,7 +119,7 @@ Structra.log = (() => {
       else console.debug(p[0] + ' ' + msg, p[1], p[2], p[3]);
     },
 
-    /** Info — dev + normal modes */
+    /** Info - dev + normal modes */
     info(tag, msg, ...data) {
       if (!_shouldLog('info')) return;
       const p = _prefix(tag);
@@ -127,7 +127,7 @@ Structra.log = (() => {
       else console.log(p[0] + ' ' + msg, p[1], p[2], p[3]);
     },
 
-    /** Warn — dev + normal modes */
+    /** Warn - dev + normal modes */
     warn(tag, msg, ...data) {
       if (!_shouldLog('warn')) return;
       const p = _prefix(tag);
@@ -135,7 +135,7 @@ Structra.log = (() => {
       else console.warn(p[0] + ' ' + msg, p[1], p[2], p[3]);
     },
 
-    /** Error — always logged */
+    /** Error - always logged */
     error(tag, msg, ...data) {
       if (!_shouldLog('error')) return;
       const p = _prefix(tag);
@@ -143,15 +143,15 @@ Structra.log = (() => {
       else console.error(p[0] + ' ' + msg, p[1], p[2], p[3]);
     },
 
-    /** Performance timing — dev mode only */
+    /** Performance timing - dev mode only */
     perf(tag, action, durationMs) {
       if (!_shouldLog('perf')) return;
       const p = _prefix(tag);
       const rounded = typeof durationMs === 'number' ? durationMs.toFixed(1) : durationMs;
-      console.log(p[0] + ' ⏱ ' + action + ' — ' + rounded + 'ms', p[1], p[2], p[3]);
+      console.log(p[0] + ' ⏱ ' + action + ' - ' + rounded + 'ms', p[1], p[2], p[3]);
     },
 
-    /** Grouped logs — dev mode only */
+    /** Grouped logs - dev mode only */
     group(tag, label) {
       if (!_shouldLog('debug')) return;
       const p = _prefix(tag);
@@ -164,7 +164,7 @@ Structra.log = (() => {
       console.groupEnd();
     },
 
-    /** Table output — dev mode only */
+    /** Table output - dev mode only */
     table(tag, label, data) {
       if (!_shouldLog('debug')) return;
       const p = _prefix(tag);

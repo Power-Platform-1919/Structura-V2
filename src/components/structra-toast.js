@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Toast Component
-   <structra-toast> — floating notification
+   STRUCTRA V2 - Toast Component
+   <structra-toast> - floating notification
    ============================================================ */
 
 class StructraToast extends StructraElement {

@@ -1,5 +1,5 @@
 /**
- * Code Generator — generate typed code from JSON in multiple languages
+ * Code Generator - generate typed code from JSON in multiple languages
  */
 Structra.codeGen = (() => {
 

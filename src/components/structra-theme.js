@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Appearance
-   <structra-theme> — choose light, dark or system; pick a built-in theme;
+   STRUCTRA V2 - Appearance
+   <structra-theme> - choose light, dark or system; pick a built-in theme;
    build your own with a live preview; export it as JSON and import it back.
    Built on StructraOverlay; the theme logic itself is Structra.theme.
    ============================================================ */
@@ -203,7 +203,7 @@ class StructraTheme extends StructraOverlay {
     el.innerHTML = '<div class="th-label">Contrast</div><div class="th-contrast-list">' + pairs.map(([label, a, b]) => {
       const ratio = Structra.theme.contrast(a, b);
       const ok = ratio >= 4.5;
-      return `<span class="th-cr ${ok ? 'ok' : 'low'}" title="WCAG AA needs 4.5 : 1 for normal text">${Structra.util.esc(label)} <b>${ratio.toFixed(1)}</b> ${ok ? 'AA' : 'low'}</span>`;
+      return `<span class="th-cr ${ok ? 'ok' : 'low'}" title="Easy-to-read text needs a contrast of at least 4.5 to 1">${Structra.util.esc(label)} <b>${ratio.toFixed(1)}</b> ${ok ? 'AA' : 'low'}</span>`;
     }).join('') + '</div>';
   }
 

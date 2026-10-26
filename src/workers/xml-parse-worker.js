@@ -1,6 +1,6 @@
 /**
- * Web Worker for XML parsing — uses built-in DOMParser, converts to JSON object.
- * No external library needed — works in Blob URL (file://) and URL (https://).
+ * Web Worker for XML parsing - uses built-in DOMParser, converts to JSON object.
+ * No external library needed - works in Blob URL (file://) and URL (https://).
  *
  * Dual-mode: <script src> registers source, Worker thread executes.
  */

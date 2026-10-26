@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Paths
-   Structra.paths — parse, resolve and format data paths.
+   STRUCTRA V2 - Paths
+   Structra.paths - parse, resolve and format data paths.
 
    Accepted path syntax (a leading "$" is optional):
      users[0].name          dot keys and [index]

@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Drawer Component
-   <structra-drawer> — bottom drawer with tabs (Stats, Expressions, Schema Gen)
+   STRUCTRA V2 - Drawer Component
+   <structra-drawer> - bottom drawer with tabs (Stats, Expressions, Schema Gen)
    ============================================================ */
 
 class StructraDrawer extends StructraElement {
@@ -40,11 +40,11 @@ class StructraDrawer extends StructraElement {
         // A short laptop screen keeps the panel folded: the Tree and Table get the height, and the tabs open it on demand
         this._autoFolded = false;
       } else if (d.value && this._stateIdx === 0) {
-        Structra.log.debug('Drawer', 'Data loaded — expanding to medium');
+        Structra.log.debug('Drawer', 'Data loaded - expanding to medium');
         this._stateIdx = 1;
         this._applyState();
       } else if (!d.value) {
-        Structra.log.debug('Drawer', 'Data cleared — collapsing');
+        Structra.log.debug('Drawer', 'Data cleared - collapsing');
         this._stateIdx = 0;
         this._applyState();
       }
@@ -117,7 +117,7 @@ class StructraDrawer extends StructraElement {
 
     bar.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      // Switch to custom height mode — remove class-driven height
+      // Switch to custom height mode - remove class-driven height
       this.classList.add('resizing');
       startY = e.clientY;
       startH = this.offsetHeight;

@@ -1,5 +1,5 @@
 /**
- * Undo/Redo — one history per tab, so Ctrl+Z in one tab never changes another.
+ * Undo/Redo - one history per tab, so Ctrl+Z in one tab never changes another.
  *
  * A history is a list of snapshots of the document. The first snapshot is the document as it was before
  * the first change; every change adds the document as it is after the change. Undo and Redo move along it.

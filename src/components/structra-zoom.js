@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Font Zoom Component
-   <structra-zoom> — Ctrl+/- zoom with persistent preference.
+   STRUCTRA V2 - Font Zoom Component
+   <structra-zoom> - Ctrl+/- zoom with persistent preference.
    Uses CSS custom property --structra-font-size.
    ============================================================ */
 

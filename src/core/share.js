@@ -1,7 +1,7 @@
 /* ============================================================
-   STRUCTRA V2 — Share and Capture
-   Structra.share   — put a small JSON document in the URL hash, and read it back.
-   Structra.capture — save an element as a PNG image.
+   STRUCTRA V2 - Share and Capture
+   Structra.share   - put a small JSON document in the URL hash, and read it back.
+   Structra.capture - save an element as a PNG image.
 
    The hash looks like  #share=g.<base64url>  (gzip)  or  #share=p.<base64url>  (plain).
 

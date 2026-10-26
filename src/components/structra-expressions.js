@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Expressions Component
-   <structra-expressions> — Power Automate and Power Fx expressions
+   STRUCTRA V2 - Expressions Component
+   <structra-expressions> - Power Automate and Power Fx expressions
    for the selected path, plus whole-document Power Platform helpers.
    Lives in the Expressions tab of <structra-drawer>.
 
@@ -98,7 +98,7 @@ class StructraExpressions extends StructraElement {
         ${named ? `<label class="expr-src-field">${label}
           <input type="text" data-src="name" value="${esc(src.name)}" spellcheck="false"></label>` : ''}
         <label class="expr-src-field">Whole action output
-          <select data-src="full" title="A whole output has statusCode, headers and body. Its body is the root, so it is not repeated.">
+          <select data-src="full" title="An action output has statusCode, headers and body. The body is the main part, so it is not repeated in the expression.">
             <option value="auto"${sel('auto', src.fullOutput)}>Detect</option>
             <option value="yes"${src.fullOutput === true ? ' selected' : ''}>Yes, skip body</option>
             <option value="no"${src.fullOutput === false ? ' selected' : ''}>No</option>

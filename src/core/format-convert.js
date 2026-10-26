@@ -1,5 +1,5 @@
 /**
- * Format conversion & export — JSON ↔ YAML, JSON → XML, CSV export
+ * Format conversion & export - JSON ↔ YAML, JSON → XML, CSV export
  */
 Structra.convert = (() => {
   const toast = (msg) => Structra.toast(msg);

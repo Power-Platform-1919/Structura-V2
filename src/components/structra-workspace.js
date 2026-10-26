@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Workspace Export/Import Component
-   <structra-workspace> — Serialize and restore full workspace
+   STRUCTRA V2 - Workspace Export/Import Component
+   <structra-workspace> - Serialize and restore full workspace
    state (tabs, bookmarks, settings, query history, undo stack).
    ============================================================ */
 

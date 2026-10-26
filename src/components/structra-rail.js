@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Rail Component
-   <structra-rail> — left icon sidebar
+   STRUCTRA V2 - Rail Component
+   <structra-rail> - left icon sidebar
    ============================================================ */
 
 class StructraRail extends StructraElement {

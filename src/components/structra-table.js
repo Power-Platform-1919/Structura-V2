@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Table View Component
-   <structra-table> — tabular data view with:
+   STRUCTRA V2 - Table View Component
+   <structra-table> - tabular data view with:
    - Engine-backed sorting + pagination
    - Virtual scrolling via Structra.virtualList for large datasets
    - Sticky header, row selection, column sort indicators
@@ -43,12 +43,12 @@ class StructraTable extends StructraElement {
       this._colOrder = null;
       this._expanded = new Map();
       this._expandParent = new Map();
-      Structra.log.debug('Table', 'jsonData changed — stale=true');
+      Structra.log.debug('Table', 'jsonData changed - stale=true');
       if (Structra.state.activeView === 'table') this.renderTable();
     });
     this.on('view:switched', (view) => {
       if (view === 'table' && this._stale) {
-        Structra.log.info('Table', 'View switched to table — rendering');
+        Structra.log.info('Table', 'View switched to table - rendering');
         this.renderTable();
       }
     });
@@ -204,7 +204,7 @@ class StructraTable extends StructraElement {
       return { allRows: [], totalRows: 0, keys: main ? Structra.engine.collectKeys(main.rows) : [], basePath: '$', filtered: true };
     }
 
-    // Active query (from find, filter, or SQL) — render query result rows
+    // Active query (from find, filter, or SQL) - render query result rows
     if (query && query.rows && query.rows.length > 0) {
       allRows = query.rows;
       totalRows = allRows.length;
@@ -521,7 +521,7 @@ class StructraTable extends StructraElement {
 
   /* ======== UTILITIES ======== */
 
-  /* _collectKeys and _findFirstArray removed — use Structra.engine.collectKeys() and Structra.engine.findFirstObjectArray() */
+  /* _collectKeys and _findFirstArray removed - use Structra.engine.collectKeys() and Structra.engine.findFirstObjectArray() */
 
   _formatCell(val, key) {
     if (val === null || val === undefined) return '<span class="tree-null" title="No value">empty</span>';

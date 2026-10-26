@@ -1021,7 +1021,7 @@
         },
         {
           "id": "13.104",
-          "title": "Editor view: the status says only 'Invalid' (and Apply says 'Invalid JSON — cannot apply') with no line, column or reason, and no marker in the text; there is no line-number gutter, and the text font is larger than the Tree's, so the two views look like different apps",
+          "title": "Editor view: the status says only 'Invalid' (and Apply says 'Invalid JSON - cannot apply') with no line, column or reason, and no marker in the text; there is no line-number gutter, and the text font is larger than the Tree's, so the two views look like different apps",
           "status": "done"
         },
         {

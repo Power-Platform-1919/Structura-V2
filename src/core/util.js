@@ -1,6 +1,6 @@
 /* ============================================================
-   STRUCTRA V2 — Shared Utilities
-   Structra.util — small helpers that used to be copied into many files.
+   STRUCTRA V2 - Shared Utilities
+   Structra.util - small helpers that used to be copied into many files.
    Anything two components would otherwise each write for themselves lives here.
 
    API:
@@ -42,7 +42,7 @@ Structra.util = (() => {
   const snakeCase = (s) => s.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '').replace(/[-\s]+/g, '_');
 
   function formatBytes(n) {
-    if (n === null || n === undefined || n === '' || Number.isNaN(Number(n))) return '—';
+    if (n === null || n === undefined || n === '' || Number.isNaN(Number(n))) return '-';
     n = Number(n);
     if (n < 1024) return n + ' B';
     if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
