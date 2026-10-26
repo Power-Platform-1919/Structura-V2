@@ -47,6 +47,8 @@ const results = [];
 let next = 0;
 let running = 0;
 const started = Date.now();
+/** The time of day (24 hour) and the seconds since the run began, for example "14:03:27 +85s" */
+const stamp = () => new Date().toTimeString().slice(0, 8) + ' +' + ((Date.now() - started) / 1000).toFixed(0) + 's';
 
 function launch() {
   while (running < width && next < jobs.length) {
@@ -54,6 +56,7 @@ function launch() {
     const file = job.file;
     running++;
     const t0 = Date.now();
+    const startedAt = stamp();
     const child = spawn(process.execPath, [path.join(dir, file)], { env: { ...process.env, SHARD: job.shard } });
     let out = '';
     child.stdout.on('data', (d) => { out += d; });
@@ -62,9 +65,9 @@ function launch() {
       running--;
       const secs = ((Date.now() - t0) / 1000).toFixed(0);
       const ok = code === 0;
-      results.push({ file, ok, secs, out });
+      results.push({ file, shard: job.shard, ok, secs, out, startedAt, endedAt: stamp() });
       if (ok) times[file] = Math.max(times[file] || 0, Number(secs) * (SHARDS[file] || 1));
-      console.log(`${ok ? 'ok  ' : 'FAIL'} ${file}${job.shard === '0/1' ? '' : ' [' + job.shard + ']'} (${secs}s)`);
+      console.log(`${stamp()}  ${ok ? 'ok  ' : 'FAIL'} ${file}${job.shard === '0/1' ? '' : ' [' + job.shard + ']'} (${secs}s, started ${startedAt})`);
       if (!ok) console.log(out.trim().split('\n').slice(-12).map((l) => '     ' + l).join('\n'));
       if (next >= jobs.length && running === 0) finish();
       else launch();
@@ -75,6 +78,13 @@ function launch() {
 function finish() {
   try { fs.writeFileSync(timesFile, JSON.stringify(times, null, 1)); } catch { /* read-only checkout */ }
   const failed = results.filter((r) => !r.ok);
+  // Where the time went: every test, slowest first, with when it started and ended
+  console.log('\nTime per test, slowest first (clock time +seconds since the run began):');
+  for (const r of [...results].sort((a, b) => Number(b.secs) - Number(a.secs))) {
+    const name = r.file + (r.shard === '0/1' ? '' : ' [' + r.shard + ']');
+    console.log(`  ${String(r.secs).padStart(4)}s  ${name.padEnd(26)} ${r.startedAt}  to  ${r.endedAt}`);
+  }
+  console.log('Started ' + new Date(started).toTimeString().slice(0, 8) + ', ' + width + ' at a time.');
   console.log(`\n${results.length - failed.length} of ${results.length} passed in ${((Date.now() - started) / 1000).toFixed(0)}s`);
   process.exit(failed.length ? 1 : 0);
 }
