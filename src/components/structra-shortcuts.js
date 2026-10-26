@@ -28,9 +28,9 @@ class StructraShortcuts extends StructraDialog {
     const categories = this._categorize(shortcuts);
 
     let html = '';
-    for (const [cat, items] of Object.entries(categories)) {
+    for (const [category, items] of Object.entries(categories)) {
       html += `<div class="sc-category">
-        <div class="sc-cat-title">${cat}</div>
+        <div class="sc-cat-title">${category}</div>
         <div class="sc-cat-items">`;
       for (const item of items) {
         html += `<div class="sc-item">
@@ -81,9 +81,9 @@ class StructraShortcuts extends StructraDialog {
     };
 
     for (const [key, action] of Object.entries(shortcuts)) {
-      const [cat, desc] = describe[action] || ['General', action];
-      if (!categories[cat]) categories[cat] = [];
-      categories[cat].push({ key, desc });
+      const [category, description] = describe[action] || ['General', action];
+      if (!categories[category]) categories[category] = [];
+      categories[category].push({ key, desc: description });
     }
     // Shortcuts that are handled outside the table
     categories.General.push({ key: '?', desc: 'Show this list' });

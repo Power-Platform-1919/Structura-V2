@@ -196,11 +196,11 @@ Structra.jsonTreeRenderer = (() => {
         const comma = i < keys.length - 1 ? ',' : '';
         const value = object[key];
         if (value && typeof value === 'object') {
-          const keyStr = `${innerPad}<span class="j-key" data-path="${esc(childPath)}">"${esc(key)}"</span>: `;
+          const keyText = `${innerPad}<span class="j-key" data-path="${esc(childPath)}">"${esc(key)}"</span>: `;
           const sub = buildLines(treeState, value, childPath, indent + 1);
           if (sub.length > 0) {
             const first = sub[0].replace(/^<span class="j-line"[^>]*>(\s*)/, '');
-            sub[0] = `<span class="j-line" data-path="${esc(childPath)}" data-ln="${sub[0].match(/data-ln="(\d+)"/)[1]}">${keyStr}${first}`;
+            sub[0] = `<span class="j-line" data-path="${esc(childPath)}" data-ln="${sub[0].match(/data-ln="(\d+)"/)[1]}">${keyText}${first}`;
             for (let index = 0; index < sub.length; index++) inner.push(sub[index]);
             if (comma && inner.length) {
               const last = inner[inner.length - 1];
@@ -314,10 +314,10 @@ Structra.jsonTreeRenderer = (() => {
     const startLine = parseInt(chunk.dataset.chunkstartline) || 0;
 
     const dataRef = treeState.data;
-    const actualArr = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
-    if (!actualArr || !Array.isArray(actualArr)) return;
+    const actualArray = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
+    if (!actualArray || !Array.isArray(actualArray)) return;
 
-    const lines = buildChunkLines(treeState, actualArr, path, indent, start, end, total, startLine);
+    const lines = buildChunkLines(treeState, actualArray, path, indent, start, end, total, startLine);
     chunk.innerHTML = lines.join('');
     chunk.style.height = '';
     delete chunk.dataset.recycled;
@@ -333,8 +333,8 @@ Structra.jsonTreeRenderer = (() => {
     const end = Math.min(start + CHUNK_SIZE, total);
 
     const dataRef = treeState.data;
-    const actualArr = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
-    if (!actualArr || !Array.isArray(actualArr)) { sentinel.remove(); return; }
+    const actualArray = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
+    if (!actualArray || !Array.isArray(actualArray)) { sentinel.remove(); return; }
 
     // Create chunk container
     const chunk = document.createElement('span');
@@ -347,14 +347,14 @@ Structra.jsonTreeRenderer = (() => {
     chunk.dataset.chunkstartline = startLine;
     chunk.id = 'jchunk' + (treeState.chunkId++);
 
-    const lines = buildChunkLines(treeState, actualArr, path, indent, start, end, total, startLine);
+    const lines = buildChunkLines(treeState, actualArray, path, indent, start, end, total, startLine);
     chunk.innerHTML = lines.join('');
     applyFilterToContainer(treeState, chunk);
 
     // Calculate next chunk's start line
     let nextStartLine = startLine;
     for (let i = start; i < end; i++) {
-      nextStartLine += countFileLines(actualArr[i]);
+      nextStartLine += countFileLines(actualArray[i]);
     }
 
     sentinel.parentNode.insertBefore(chunk, sentinel);
@@ -388,19 +388,19 @@ Structra.jsonTreeRenderer = (() => {
     const onContextMenu = treeState.opts.onContextMenu;
 
     container.addEventListener('click', ellipsis => {
-      const tog = ellipsis.target.closest('.j-toggle');
-      if (tog) { ellipsis.stopPropagation(); toggleCollapse(container, tog); return; }
-      const ell = ellipsis.target.closest('.j-ellipsis');
-      if (ell && ell.dataset.block) {
-        const owner = container.querySelector(`.j-toggle[data-block="${ell.dataset.block}"]`);
+      const toggle = ellipsis.target.closest('.j-toggle');
+      if (toggle) { ellipsis.stopPropagation(); toggleCollapse(container, toggle); return; }
+      const ellipsisElement = ellipsis.target.closest('.j-ellipsis');
+      if (ellipsisElement && ellipsisElement.dataset.block) {
+        const owner = container.querySelector(`.j-toggle[data-block="${ellipsisElement.dataset.block}"]`);
         if (owner) { ellipsis.stopPropagation(); toggleCollapse(container, owner); return; }
       }
 
-      const keyEl = ellipsis.target.closest('.j-key');
-      if (keyEl) {
+      const keyElement = ellipsis.target.closest('.j-key');
+      if (keyElement) {
         ellipsis.stopPropagation();
-        highlightKeyOccurrences(container, keyEl);
-        const path = keyEl.getAttribute('data-path');
+        highlightKeyOccurrences(container, keyElement);
+        const path = keyElement.getAttribute('data-path');
         if (path && onPathSelect) {
           clearTimeout(clickScrollTimer);
           clickScrollTimer = setTimeout(() => onPathSelect(path), 250);
@@ -410,10 +410,10 @@ Structra.jsonTreeRenderer = (() => {
 
       clearKeyHighlights(container);
 
-      const pathEl = ellipsis.target.closest('[data-path]');
-      if (pathEl) {
+      const pathElement = ellipsis.target.closest('[data-path]');
+      if (pathElement) {
         ellipsis.stopPropagation();
-        const path = pathEl.getAttribute('data-path');
+        const path = pathElement.getAttribute('data-path');
         if (path && onPathSelect) {
           clearTimeout(clickScrollTimer);
           clickScrollTimer = setTimeout(() => onPathSelect(path), 250);
@@ -424,26 +424,26 @@ Structra.jsonTreeRenderer = (() => {
     container.addEventListener('dblclick', ellipsis => {
       clearTimeout(clickScrollTimer);
 
-      const keyEl = ellipsis.target.closest('.j-key');
-      if (keyEl) {
+      const keyElement = ellipsis.target.closest('.j-key');
+      if (keyElement) {
         ellipsis.stopPropagation();
-        const keyName = extractKeyName(keyEl);
+        const keyName = extractKeyName(keyElement);
         if (keyName) Structra.events.emit('tree:search-key', keyName);
         return;
       }
 
-      const valEl = ellipsis.target.closest('.j-str, .j-num, .j-bool, .j-null');
-      if (valEl && valEl.dataset.path) {
+      const valElement = ellipsis.target.closest('.j-str, .j-num, .j-bool, .j-null');
+      if (valElement && valElement.dataset.path) {
         ellipsis.stopPropagation();
-        startInlineEdit(container, treeState, valEl);
+        startInlineEdit(container, treeState, valElement);
       }
     });
 
     container.addEventListener('contextmenu', ellipsis => {
-      const pathEl = ellipsis.target.closest('[data-path]');
-      if (pathEl) {
+      const pathElement = ellipsis.target.closest('[data-path]');
+      if (pathElement) {
         ellipsis.preventDefault(); ellipsis.stopPropagation();
-        if (onContextMenu) onContextMenu(ellipsis.clientX, ellipsis.clientY, pathEl.getAttribute('data-path'));
+        if (onContextMenu) onContextMenu(ellipsis.clientX, ellipsis.clientY, pathElement.getAttribute('data-path'));
       }
     });
   }
@@ -452,9 +452,9 @@ Structra.jsonTreeRenderer = (() => {
      COLLAPSE / EXPAND
      ============================ */
 
-  function toggleCollapse(container, tog) {
-    const blockId = tog.dataset.block;
-    const parentLine = tog.closest('.j-line');
+  function toggleCollapse(container, toggle) {
+    const blockId = toggle.dataset.block;
+    const parentLine = toggle.closest('.j-line');
     let ellipsis = null, block = null;
     if (parentLine) {
       ellipsis = parentLine.querySelector(`.j-ellipsis[data-block="${blockId}"]`);
@@ -467,7 +467,7 @@ Structra.jsonTreeRenderer = (() => {
     const collapsed = block.style.display === 'none';
     block.style.display = collapsed ? '' : 'none';
     if (ellipsis) ellipsis.style.display = collapsed ? 'none' : 'inline';
-    tog.textContent = collapsed ? '\u25BC' : '\u25B6';
+    toggle.textContent = collapsed ? '\u25BC' : '\u25B6';
     const closeLine = block.nextElementSibling;
     if (closeLine && closeLine.dataset.close === blockId) {
       closeLine.style.display = collapsed ? '' : 'none';
@@ -539,17 +539,17 @@ Structra.jsonTreeRenderer = (() => {
     }
     const toggles = container.getElementsByClassName('j-toggle');
     for (let i = 0; i < toggles.length; i++) {
-      const tog = toggles[i];
-      const depth = getDepth(container, tog);
+      const toggle = toggles[i];
+      const depth = getDepth(container, toggle);
       const shouldCollapse = depth >= maxDepth;
-      const blockId = tog.dataset.block;
+      const blockId = toggle.dataset.block;
       const block = blockMap[blockId];
       const ellipsis = ellMap[blockId];
       const closeLine = closeMap[blockId];
       if (block) block.style.display = shouldCollapse ? 'none' : '';
       if (ellipsis) ellipsis.style.display = shouldCollapse ? 'inline' : 'none';
       if (closeLine) closeLine.style.display = shouldCollapse ? 'none' : '';
-      tog.textContent = shouldCollapse ? '\u25B6' : '\u25BC';
+      toggle.textContent = shouldCollapse ? '\u25B6' : '\u25BC';
     }
     Structra.events.emit('loading:hide');
   }
@@ -645,8 +645,8 @@ Structra.jsonTreeRenderer = (() => {
     if (first) first.scrollIntoView({ behavior: 'instant', block: 'center' });
   }
 
-  function extractKeyName(keyEl) {
-    return keyEl.textContent.replace(/^"|"$/g, '');
+  function extractKeyName(keyElement) {
+    return keyElement.textContent.replace(/^"|"$/g, '');
   }
 
   function highlightKeyOccurrences(container, clickedKey) {
@@ -670,25 +670,25 @@ Structra.jsonTreeRenderer = (() => {
      INLINE EDITING
      ============================ */
 
-  function startInlineEdit(container, treeState, valEl) {
-    const path = valEl.dataset.path;
+  function startInlineEdit(container, treeState, valElement) {
+    const path = valElement.dataset.path;
     const data = treeState.data;
     if (!path || !data) return;
 
-    const currentVal = Structra.dataPaths.resolve(data, path);
-    let displayVal;
-    if (currentVal === null) displayVal = 'null';
-    else if (typeof currentVal === 'string') displayVal = currentVal;
-    else displayVal = String(currentVal);
+    const currentValue = Structra.dataPaths.resolve(data, path);
+    let displayValue;
+    if (currentValue === null) displayValue = 'null';
+    else if (typeof currentValue === 'string') displayValue = currentValue;
+    else displayValue = String(currentValue);
 
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'j-inline-edit';
-    input.value = displayVal;
-    input.style.cssText = 'font-family:var(--font-mono);font-size:inherit;padding:0 2px;border:1px solid var(--accent);border-radius:3px;background:var(--surface);color:var(--text);outline:none;min-width:40px;width:' + Math.max(60, valEl.offsetWidth + 20) + 'px;';
+    input.value = displayValue;
+    input.style.cssText = 'font-family:var(--font-mono);font-size:inherit;padding:0 2px;border:1px solid var(--accent);border-radius:3px;background:var(--surface);color:var(--text);outline:none;min-width:40px;width:' + Math.max(60, valElement.offsetWidth + 20) + 'px;';
 
-    const parent = valEl.parentNode;
-    parent.replaceChild(input, valEl);
+    const parent = valElement.parentNode;
+    parent.replaceChild(input, valElement);
     input.focus();
     input.select();
 
@@ -697,21 +697,21 @@ Structra.jsonTreeRenderer = (() => {
       if (committed) return;
       committed = true;
       const raw = input.value;
-      let newVal;
-      if (raw === 'null') newVal = null;
-      else if (raw === 'true') newVal = true;
-      else if (raw === 'false') newVal = false;
-      else if (raw !== '' && !isNaN(Number(raw)) && raw.trim() === raw) newVal = Number(raw);
-      else newVal = raw;
+      let newValue;
+      if (raw === 'null') newValue = null;
+      else if (raw === 'true') newValue = true;
+      else if (raw === 'false') newValue = false;
+      else if (raw !== '' && !isNaN(Number(raw)) && raw.trim() === raw) newValue = Number(raw);
+      else newValue = raw;
 
       // The command layer makes the change: it keeps the original for Undo, marks the tab and refreshes every view
-      Structra.events.emit('tree:inline-edit', { path, value: newVal });
+      Structra.events.emit('tree:inline-edit', { path, value: newValue });
     };
 
     input.addEventListener('blur', commit);
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
-      if (event.key === 'Escape') { committed = true; if (input.parentNode) input.parentNode.replaceChild(valEl, input); }
+      if (event.key === 'Escape') { committed = true; if (input.parentNode) input.parentNode.replaceChild(valElement, input); }
     });
   }
 
@@ -874,8 +874,8 @@ Structra.jsonTreeRenderer = (() => {
         const doLoad = () => {
           const sentinel = container.querySelector('.j-lazy-sentinel');
           if (!sentinel || chunksLoaded >= maxChunksPerScroll) { loading = false; Structra.events.emit('loading:hide'); return; }
-          const rem = container.scrollHeight - container.scrollTop - container.clientHeight;
-          if (rem > 400 && chunksLoaded > 0) { loading = false; Structra.events.emit('loading:hide'); return; }
+          const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
+          if (remaining > 400 && chunksLoaded > 0) { loading = false; Structra.events.emit('loading:hide'); return; }
           loadNextChunk(container, treeState, sentinel);
           chunksLoaded++;
           requestAnimationFrame(doLoad);

@@ -111,7 +111,7 @@ class StructraExpressions extends StructraComponent {
     }
     if (this._keepFocus) {
       const field = element.querySelector(`[data-src="${this._keepFocus}"]`);
-      if (field) { field.focus(); const n = field.value.length; field.setSelectionRange(n, n); }
+      if (field) { field.focus(); const length = field.value.length; field.setSelectionRange(length, length); }
       this._keepFocus = null;
     }
   }

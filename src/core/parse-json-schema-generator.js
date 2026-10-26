@@ -109,7 +109,7 @@ Structra.parseJsonSchemaGenerator = (() => {
 
   /** The quick version: only the first item of each list decides */
   function basic(value, options = {}) {
-    const opts = { ...DEFAULTS, ...options };
+    const schemaOptions = { ...DEFAULTS, ...options };
     const walk = (value) => {
       if (Array.isArray(value)) return value.length ? { type: 'array', items: walk(value[0]) } : { type: 'array' };
       if (isPlainObject(value)) {
@@ -120,10 +120,10 @@ Structra.parseJsonSchemaGenerator = (() => {
           if (child !== null) required.push(kind);
         }
         const schema = { type: 'object', properties };
-        if (opts.required && required.length) schema.required = required;
+        if (schemaOptions.required && required.length) schema.required = required;
         return schema;
       }
-      return infer([value], opts);
+      return infer([value], schemaOptions);
     };
     return walk(value);
   }

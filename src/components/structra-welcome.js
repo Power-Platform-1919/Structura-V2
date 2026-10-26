@@ -68,7 +68,7 @@ class StructraWelcome extends StructraDialog {
         <div class="wl-theme">
           <span id="wlThemeLabel">Appearance <button class="io-link" type="button" data-act="themes">More themes</button></span>
           <div class="seg" role="group" aria-labelledby="wlThemeLabel" id="wlMode">
-            ${['light', 'dark', 'system'].map((m) => `<button class="seg-btn ${m === mode ? 'active' : ''}" type="button" data-mode="${m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}
+            ${['light', 'dark', 'system'].map((modeName) => `<button class="seg-btn ${modeName === mode ? 'active' : ''}" type="button" data-mode="${modeName}">${modeName[0].toUpperCase() + modeName.slice(1)}</button>`).join('')}
           </div>
         </div>`,
       foot: `

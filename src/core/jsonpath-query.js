@@ -134,8 +134,8 @@ Structra.jsonpathQuery = (() => {
   function parseComparison(text) {
     const condition = text.trim();
     const match = /^(@[^\s=!<>~]*)\s*(==|!=|>=|<=|=~|>|<)\s*(.+)$/.exec(condition);
-    const read = (ref) => {
-      const keys = ref.replace(/^@\.?/, '').split('.').filter(Boolean);
+    const read = (reference) => {
+      const keys = reference.replace(/^@\.?/, '').split('.').filter(Boolean);
       return (node) => keys.reduce((value, index) => (value === null || value === undefined ? undefined : value[index]), node);
     };
     if (!match) {
@@ -214,9 +214,9 @@ Structra.jsonpathQuery = (() => {
                 if (index >= 0 && index < value.length) next.push({ path: childPath(node.path, index), value: value[index] });
               } else {
                 let [start, end, step] = item.slice;
-                const len = value.length;
-                start = start === null ? 0 : (start < 0 ? Math.max(0, len + start) : Math.min(start, len));
-                end = end === null ? len : (end < 0 ? Math.max(0, len + end) : Math.min(end, len));
+                const length = value.length;
+                start = start === null ? 0 : (start < 0 ? Math.max(0, length + start) : Math.min(start, length));
+                end = end === null ? length : (end < 0 ? Math.max(0, length + end) : Math.min(end, length));
                 for (let index = start; index < end; index += step || 1) next.push({ path: childPath(node.path, index), value: value[index] });
               }
             }

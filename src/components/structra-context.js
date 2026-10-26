@@ -69,18 +69,18 @@ class StructraContext extends StructraComponent {
     this._renderBookmarks();
 
     this.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const a = btn.dataset.action;
+      const button = e.target.closest('[data-action]');
+      if (!button) return;
+      const a = button.dataset.action;
       if (a === 'close') Structra.setState('contextPanelOpen', false);
       else if (a === 'copy-value') this._copyValue();
       else if (a === 'copy-path') this._copyPath();
       else if (a === 'bookmark') this._toggleBookmark();
-      else if (a === 'go-bookmark') Structra.setState('currentPath', btn.dataset.path);
-      else if (a === 'del-bookmark') Structra.bookmarks.remove(btn.dataset.path);
+      else if (a === 'go-bookmark') Structra.setState('currentPath', button.dataset.path);
+      else if (a === 'del-bookmark') Structra.bookmarks.remove(button.dataset.path);
       else if (a === 'find-value') this._findValue();
       else if (a === 'mock') this._mockFromContext();
-      else if (a === 'copy-pp') Structra.sharedHelpers.copyToClipboard(btn.dataset.code, 'Copied');
+      else if (a === 'copy-pp') Structra.sharedHelpers.copyToClipboard(button.dataset.code, 'Copied');
       else if (a === 'pp-source') Structra.events.emit('drawer:show', 'expressions');
     });
   }
@@ -92,11 +92,11 @@ class StructraContext extends StructraComponent {
   }
 
   _renderBookmarks() {
-    const el = this.queryOne('#ctxBookmarks');
-    if (!el) return;
+    const element = this.queryOne('#ctxBookmarks');
+    if (!element) return;
     const esc = Structra.sharedHelpers.escapeHtml;
     const items = Structra.bookmarks.list();
-    el.innerHTML = items.length
+    element.innerHTML = items.length
       ? items.map((b) => `<div class="ctx-bm">
           <button class="ctx-bm-path" data-action="go-bookmark" data-path="${esc(b.path)}" title="${esc(b.preview || b.path)}">${esc(b.path)}</button>
           <button class="ctx-bm-del" data-action="del-bookmark" data-path="${esc(b.path)}" title="Remove bookmark">${Structra.icons.svg('x', { size: 14 })}</button>
@@ -109,28 +109,28 @@ class StructraContext extends StructraComponent {
     this._currentPath = path;
 
     const data = Structra.state.jsonData;
-    const val = this._resolve(data, path);
-    this._currentValue = val;
+    const value = this._resolve(data, path);
+    this._currentValue = value;
 
     this.queryOne('#ctxPath').textContent = path;
-    this._renderPowerPlatform(path, val);
+    this._renderPowerPlatform(path, value);
 
     // Value preview
-    const valEl = this.queryOne('#ctxValue');
-    if (val === null) valEl.textContent = 'null';
-    else if (typeof val === 'object') Structra.codeView.colorize(valEl, this._previewJson(val), 'json');
-    else valEl.textContent = String(val);
+    const valElement = this.queryOne('#ctxValue');
+    if (value === null) valElement.textContent = 'null';
+    else if (typeof value === 'object') Structra.codeView.colorize(valElement, this._previewJson(value), 'json');
+    else valElement.textContent = String(value);
 
     // Content preview (pattern detection)
-    this._renderContentPreview(val);
+    this._renderContentPreview(value);
 
     // Meta
     const meta = this.queryOne('#ctxMeta');
-    const type = val === null ? 'null' : Array.isArray(val) ? 'array' : typeof val;
+    const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
     let metaHtml = `<dt>Type</dt><dd>${type}</dd>`;
-    if (Array.isArray(val)) metaHtml += `<dt>Length</dt><dd>${val.length}</dd>`;
-    else if (val && typeof val === 'object') metaHtml += `<dt>Keys</dt><dd>${Object.keys(val).length}</dd>`;
-    else if (typeof val === 'string') metaHtml += `<dt>Length</dt><dd>${val.length}</dd>`;
+    if (Array.isArray(value)) metaHtml += `<dt>Length</dt><dd>${value.length}</dd>`;
+    else if (value && typeof value === 'object') metaHtml += `<dt>Keys</dt><dd>${Object.keys(value).length}</dd>`;
+    else if (typeof value === 'string') metaHtml += `<dt>Length</dt><dd>${value.length}</dd>`;
     meta.innerHTML = metaHtml;
   }
 
@@ -138,7 +138,7 @@ class StructraContext extends StructraComponent {
    * The first part of a value as JSON text, for the preview box. Only the first few items of each list and object are
    * turned into text: the whole value can be as big as the document, and the box shows only the start of it anyway.
    */
-  _previewJson(val) {
+  _previewJson(value) {
     const KEEP = 12;
     const trim = (v, depth) => {
       if (v === null || typeof v !== 'object') return v;
@@ -154,23 +154,23 @@ class StructraContext extends StructraComponent {
       if (keys.length > KEEP) out['…'] = (keys.length - KEEP).toLocaleString() + ' more';
       return out;
     };
-    const text = JSON.stringify(trim(val, 0), null, 2);
+    const text = JSON.stringify(trim(value, 0), null, 2);
     return text.length > 600 ? text.slice(0, 600) + '\n…' : text;
   }
 
   /* ======== CONTENT PREVIEW - pattern detection ======== */
 
-  _renderContentPreview(val) {
+  _renderContentPreview(value) {
     const section = this.queryOne('#ctxPreviewSection');
     const preview = this.queryOne('#ctxPreview');
     if (!section || !preview) return;
 
-    if (typeof val !== 'string' || val.length === 0) {
+    if (typeof value !== 'string' || value.length === 0) {
       section.hidden = true;
       return;
     }
 
-    const detections = this._detectPatterns(val);
+    const detections = this._detectPatterns(value);
     if (detections.length === 0) {
       section.hidden = true;
       return;
@@ -179,13 +179,13 @@ class StructraContext extends StructraComponent {
     section.hidden = false;
     preview.innerHTML = detections.map(d => `<div class="ctx-detection">
       <span class="ctx-det-badge ctx-det-${d.type}">${d.type}</span>
-      <span class="ctx-det-value">${d.html || Structra.sharedHelpers.escapeHtml(d.display || val.slice(0, 80))}</span>
+      <span class="ctx-det-value">${d.html || Structra.sharedHelpers.escapeHtml(d.display || value.slice(0, 80))}</span>
     </div>`).join('');
   }
 
-  _detectPatterns(str) {
+  _detectPatterns(text) {
     const detections = [];
-    const s = str.trim();
+    const s = text.trim();
 
     // URL
     if (/^https?:\/\/.+/i.test(s)) {
@@ -242,15 +242,15 @@ class StructraContext extends StructraComponent {
   }
 
   /** The expressions a maker wants for this value, one click to copy. The full set lives in the Expressions tab. */
-  _renderPowerPlatform(path, val) {
+  _renderPowerPlatform(path, value) {
     const section = this.queryOne('#ctxPpSection');
     const box = this.queryOne('#ctxPp');
     if (!section || !box) return;
     if (!path || path === '$') { section.hidden = true; return; }
     const esc = Structra.sharedHelpers.escapeHtml;
-    const rows = Structra.powerPlatformExpressions.quick(path, val);
-    const src = Structra.powerPlatformExpressions.getSource();
-    const srcText = src.kind === 'trigger' ? 'the trigger body' : src.kind === 'item' ? 'the current loop item' : src.kind === 'custom' ? 'your own expression' : `the action ${src.name}`;
+    const rows = Structra.powerPlatformExpressions.quick(path, value);
+    const source = Structra.powerPlatformExpressions.getSource();
+    const srcText = source.kind === 'trigger' ? 'the trigger body' : source.kind === 'item' ? 'the current loop item' : source.kind === 'custom' ? 'your own expression' : `the action ${source.name}`;
     box.innerHTML = rows.map((r) => `
       <div class="ctx-pp-row">
         <div class="ctx-pp-head"><span class="ctx-pp-app ctx-pp-${r.app === 'Power Fx' ? 'fx' : 'pa'}">${esc(r.app)}</span><span class="ctx-pp-label">${esc(r.label)}</span></div>
@@ -270,9 +270,9 @@ class StructraContext extends StructraComponent {
   }
 
   _mockFromContext() {
-    const val = this._currentValue;
-    if (val == null) { Structra.toast('No value to mock', 'warning'); return; }
-    const mocked = Structra.mockDataGenerator.generate(val, 3);
+    const value = this._currentValue;
+    if (value == null) { Structra.toast('No value to mock', 'warning'); return; }
+    const mocked = Structra.mockDataGenerator.generate(value, 3);
     Structra.sharedHelpers.copyToClipboard(JSON.stringify(mocked, null, 2), 'Mock data copied to clipboard');
   }
 

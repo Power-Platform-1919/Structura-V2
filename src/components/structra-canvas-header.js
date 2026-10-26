@@ -79,15 +79,15 @@ class StructraCanvasHeader extends StructraComponent {
     this.addEventListener('contextmenu', (event) => this._onContextMenu(event));
 
     this.addEventListener('click', (event) => {
-      const viewBtn = event.target.closest('[data-view]');
-      if (viewBtn) {
-        Structra.setState('activeView', viewBtn.dataset.view);
+      const viewButton = event.target.closest('[data-view]');
+      if (viewButton) {
+        Structra.setState('activeView', viewButton.dataset.view);
         return;
       }
 
-      const actionBtn = event.target.closest('[data-action]');
-      if (!actionBtn) return;
-      const action = actionBtn.dataset.action;
+      const actionButton = event.target.closest('[data-action]');
+      if (!actionButton) return;
+      const action = actionButton.dataset.action;
 
       switch (action) {
         case 'expand-all':   Structra.log.info('CanvasHeader', 'Action: expand-all'); Structra.events.emit('tree:expand-all'); break;
@@ -97,7 +97,7 @@ class StructraCanvasHeader extends StructraComponent {
         case 'depth-3':      Structra.log.info('CanvasHeader', 'Action: depth-3'); Structra.events.emit('tree:collapse-depth', 3); break;
         case 'wrap':         Structra.log.info('CanvasHeader', 'Action: wrap'); Structra.events.emit('tree:toggle-wrap'); break;
         case 'copy-json':    Structra.log.info('CanvasHeader', 'Action: copy-json'); this._copyJson(); break;
-        case 'more':         this._showMoreMenu(actionBtn); break;
+        case 'more':         this._showMoreMenu(actionButton); break;
         case 'find':         Structra.setState('findBarOpen', true); break;
         case 'filter':       Structra.setState('filterBarOpen', !Structra.state.filterBarOpen); break;
       }

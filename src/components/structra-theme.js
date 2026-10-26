@@ -214,8 +214,8 @@ class StructraTheme extends StructraDialog {
 
   _onClick(event) {
     const field = event.target;
-    const modeBtn = field.closest('[data-mode]');
-    if (modeBtn) { Structra.themeEngine.setMode(modeBtn.dataset.mode); this._renderMode(); this._renderThemes(); return; }
+    const modeButton = field.closest('[data-mode]');
+    if (modeButton) { Structra.themeEngine.setMode(modeButton.dataset.mode); this._renderMode(); this._renderThemes(); return; }
 
     const edMode = field.closest('[data-edmode]');
     if (edMode && this._draft) {

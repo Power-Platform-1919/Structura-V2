@@ -9,8 +9,8 @@ Structra.formatConversion = (() => {
     return jsyaml.dump(json, { indent: 2, lineWidth: 120, noRefs: true });
   }
 
-  async function yamlToJson(yamlStr) {
-    return jsyaml.load(yamlStr);
+  async function yamlToJson(yamlText) {
+    return jsyaml.load(yamlText);
   }
 
   function isYaml(text) {
@@ -26,9 +26,9 @@ Structra.formatConversion = (() => {
   function jsonToXml(json, rootName = 'root') {
     // A JSON key is not always a legal XML name: no spaces or symbols, and it may not start with a digit
     const tagOf = (key) => {
-      let t = String(key).replace(/[^A-Za-z0-9_.-]/g, '_');
-      if (!/^[A-Za-z_]/.test(t)) t = '_' + t;
-      return t;
+      let safeName = String(key).replace(/[^A-Za-z0-9_.-]/g, '_');
+      if (!/^[A-Za-z_]/.test(safeName)) safeName = '_' + safeName;
+      return safeName;
     };
     // Characters XML cannot hold at all (control characters) are dropped
     const escXml = (text) => text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')

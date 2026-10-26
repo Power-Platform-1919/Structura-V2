@@ -202,7 +202,7 @@ class StructraFilter extends StructraComponent {
       : '<span class="fc-logic-placeholder">Where</span>';
 
     // Field selector
-    const fieldOpts = this._columns.map(column =>
+    const fieldOptions = this._columns.map(column =>
       `<option value="${Structra.sharedHelpers.escapeHtml(column)}"${column === this._conditions[index].field ? ' selected' : ''}>${Structra.sharedHelpers.escapeHtml(column)}</option>`
     ).join('');
 
@@ -221,14 +221,14 @@ class StructraFilter extends StructraComponent {
       ['isnull',      'is null'],
       ['notnull',     'not null'],
     ];
-    const opOpts = operations.map(([operation, label]) =>
+    const opOptions = operations.map(([operation, label]) =>
       `<option value="${operation}">${label}</option>`
     ).join('');
 
     row.innerHTML = `
       ${logicHtml}
-      <select class="fc-field">${fieldOpts}</select>
-      <select class="fc-op">${opOpts}</select>
+      <select class="fc-field">${fieldOptions}</select>
+      <select class="fc-op">${opOptions}</select>
       <input type="text" class="fc-value" placeholder="value…" autocomplete="off">
       <button class="fb-btn fc-remove" data-action="removeCondition" title="Remove">
         ${Structra.icons.svg('x', { size: 14 })}
@@ -268,8 +268,8 @@ class StructraFilter extends StructraComponent {
       const field = row.querySelector('.fc-field')?.value || '';
       const operation = row.querySelector('.fc-op')?.value || 'contains';
       const value = row.querySelector('.fc-value')?.value || '';
-      const logicEl = row.querySelector('.fc-logic');
-      const logic = logicEl ? logicEl.value : 'AND';
+      const logicElement = row.querySelector('.fc-logic');
+      const logic = logicElement ? logicElement.value : 'AND';
       if (field) conditions.push({ field, op: operation, value, logic });
     });
     return conditions;
@@ -278,8 +278,8 @@ class StructraFilter extends StructraComponent {
   /* ======== APPLY / CLEAR ======== */
 
   async _apply() {
-    const countEl = this.queryOne('#filterCount');
-    if (countEl) countEl.textContent = 'Querying…';
+    const countElement = this.queryOne('#filterCount');
+    if (countElement) countElement.textContent = 'Querying…';
 
     try {
       let result;
@@ -301,7 +301,7 @@ class StructraFilter extends StructraComponent {
       }
 
       const total = result ? (result.total ?? (Array.isArray(result) ? result.length : 0)) : 0;
-      if (countEl) countEl.textContent = total === 0 ? 'No rows match' : `${total.toLocaleString()} ${total === 1 ? 'row' : 'rows'} match`;
+      if (countElement) countElement.textContent = total === 0 ? 'No rows match' : `${total.toLocaleString()} ${total === 1 ? 'row' : 'rows'} match`;
       // Say which condition produced these rows
       const summary = this.queryOne('#filterSummary');
       if (summary && result && result.query) { summary.hidden = false; summary.textContent = result.query; summary.title = result.query; }
@@ -310,7 +310,7 @@ class StructraFilter extends StructraComponent {
       Structra.log.info('Filter', `Applied ${this._filterMode} filter → ${total} rows`);
     } catch (error) {
       Structra.log.error('Filter', 'Filter failed', error.message);
-      if (countEl) countEl.textContent = 'Error';
+      if (countElement) countElement.textContent = 'Error';
       Structra.toast(error.message, 'error');
     }
   }

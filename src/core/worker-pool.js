@@ -36,10 +36,10 @@ Structra.createWorkerPool = function(config) {
       try {
         worker = new Worker(this.workerUrl);
         Structra.log.info('WorkerPool', this.name + ' worker #' + (this.workers.length + 1) + ' created (URL)');
-      } catch (urlErr) {
+      } catch (urlError) {
         // file:// origin blocks new Worker(url) - fall back to Blob URL
         if (!this.workerCode) {
-          Structra.log.error('WorkerPool', this.name + ' - Worker URL blocked and no inline code: ' + urlErr.message);
+          Structra.log.error('WorkerPool', this.name + ' - Worker URL blocked and no inline code: ' + urlError.message);
           return null;
         }
         try {
@@ -50,8 +50,8 @@ Structra.createWorkerPool = function(config) {
           }
           worker = new Worker(this._blobUrl);
           Structra.log.info('WorkerPool', this.name + ' worker #' + (this.workers.length + 1) + ' created (Blob URL)');
-        } catch (blobErr) {
-          Structra.log.error('WorkerPool', this.name + ' - Blob URL worker also failed: ' + blobErr.message);
+        } catch (blobError) {
+          Structra.log.error('WorkerPool', this.name + ' - Blob URL worker also failed: ' + blobError.message);
           return null;
         }
       }
@@ -256,17 +256,17 @@ Structra.createWorkerPool = function(config) {
  */
 Structra.protectBigNumbers = function (source) {
   if (!/\d{16}|\d[eE][+-]?\d{3}/.test(source)) return { text: source, count: 0 };
-  var out = [], last = 0, count = 0, i = 0, n = source.length;
-  while (i < n) {
+  var out = [], last = 0, count = 0, i = 0, length = source.length;
+  while (i < length) {
     var code = source.charCodeAt(i);
     if (code === 34) {                                   // a string: skip it, numbers inside are text already
       i++;
-      while (i < n) { var d = source.charCodeAt(i); if (d === 92) i += 2; else if (d === 34) { i++; break; } else i++; }
+      while (i < length) { var nextCode = source.charCodeAt(i); if (nextCode === 92) i += 2; else if (nextCode === 34) { i++; break; } else i++; }
       continue;
     }
     if (code === 45 || (code >= 48 && code <= 57)) {
       var j = i + 1;
-      while (j < n) { var e = source.charCodeAt(j); if ((e >= 48 && e <= 57) || e === 46 || e === 101 || e === 69 || e === 43 || e === 45) j++; else break; }
+      while (j < length) { var digitCode = source.charCodeAt(j); if ((digitCode >= 48 && digitCode <= 57) || digitCode === 46 || digitCode === 101 || digitCode === 69 || digitCode === 43 || digitCode === 45) j++; else break; }
       var tok = source.slice(i, j);
       if (tok.length >= 16 || /[eE]/.test(tok)) {
         var number = Number(tok), lossy = false;
@@ -356,7 +356,7 @@ Structra.parseXmlAsync = function(text) {
     var doc = new DOMParser().parseFromString(text, 'application/xml');
     var bad = doc.querySelector('parsererror');
     if (bad) { reject(new Error('XML parse error: ' + bad.textContent.replace(/\s+/g, ' ').trim().substring(0, 200))); return; }
-    var domToObj = function(node) {
+    var domToObject = function(node) {
       if (node.nodeType === 3) return node.textContent.trim() || null;
       if (node.nodeType !== 1) return null;
       var object = {};
@@ -370,7 +370,7 @@ Structra.parseXmlAsync = function(text) {
         if (child.nodeType !== 1) continue;
         hasElements = true;
         var tag = child.nodeName;
-        var value = domToObj(child);
+        var value = domToObject(child);
         if (Object.prototype.hasOwnProperty.call(object, tag)) {
           if (!Array.isArray(object[tag])) object[tag] = [object[tag]];
           object[tag].push(value);
@@ -385,7 +385,7 @@ Structra.parseXmlAsync = function(text) {
       return object;
     };
     var result = {};
-    result[doc.documentElement.nodeName] = domToObj(doc.documentElement);
+    result[doc.documentElement.nodeName] = domToObject(doc.documentElement);
     Structra.log.perf('WorkerPool', 'XML parse', performance.now() - startTime);
     resolve(result);
   });

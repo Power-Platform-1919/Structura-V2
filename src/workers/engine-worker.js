@@ -37,9 +37,9 @@
           ? value.map((item, i) => [i, item])
           : Object.entries(value);
         for (let i = entries.length - 1; i >= 0; i--) {
-          const [key, v] = entries[i];
+          const [key, entryValue] = entries[i];
           const childPath = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
-          stack.push({ val: v, path: childPath, depth: depth + 1 });
+          stack.push({ val: entryValue, path: childPath, depth: depth + 1 });
         }
       }
     }

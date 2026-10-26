@@ -131,9 +131,9 @@ class StructraFind extends StructraComponent {
 
     // Button clicks
     this.addEventListener('click', (event) => {
-      const modeBtn = event.target.closest('[data-mode]');
-      if (modeBtn) {
-        this._setMode(modeBtn.dataset.mode);
+      const modeButton = event.target.closest('[data-mode]');
+      if (modeButton) {
+        this._setMode(modeButton.dataset.mode);
         const query = this._getInput();
         if (query) this._doFind(query);
         return;
@@ -356,8 +356,8 @@ class StructraFind extends StructraComponent {
   _clearSearch() {
     clearTimeout(this._debounceTimer);
     this._idx = -1;
-    const countEl = this.queryOne('#findCount');
-    if (countEl) countEl.textContent = '0/0';
+    const countElement = this.queryOne('#findCount');
+    if (countElement) countElement.textContent = '0/0';
     const input = this.queryOne('#findInput');
     if (input) input.value = '';
     Structra.dataEngine.clearQuery();

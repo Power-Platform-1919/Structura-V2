@@ -178,7 +178,7 @@ class StructraInputPanel extends StructraComponent {
     this.queryAll('.io-tab').forEach(button => {
       button.addEventListener('click', () => {
         this._activeTab = button.dataset.tab;
-        this.queryAll('.io-tab').forEach(b => b.classList.toggle('active', b === button));
+        this.queryAll('.io-tab').forEach(tabButton => tabButton.classList.toggle('active', tabButton === button));
         this.queryAll('.io-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === this._activeTab));
         this._clearError();
         if (this._activeTab === 'recent') this._renderRecent();
@@ -208,8 +208,8 @@ class StructraInputPanel extends StructraComponent {
     if (helpSample) helpSample.addEventListener('click', () => this._loadSample());
 
     // Sample
-    const sampleBtn = this.queryOne('[data-action="sample"]');
-    if (sampleBtn) sampleBtn.addEventListener('click', () => this._loadSample());
+    const sampleButton = this.queryOne('[data-action="sample"]');
+    if (sampleButton) sampleButton.addEventListener('click', () => this._loadSample());
     const sampleLink = this.queryOne('[data-role="sample-link"]');
     if (sampleLink) sampleLink.addEventListener('click', (event) => { event.stopPropagation(); this._loadSample(); });
 
@@ -220,7 +220,7 @@ class StructraInputPanel extends StructraComponent {
     // API sub-tabs
     this.queryAll('.io-api-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        this.queryAll('.io-api-tab').forEach(t => t.classList.toggle('active', t === tab));
+        this.queryAll('.io-api-tab').forEach(apiTab => apiTab.classList.toggle('active', apiTab === tab));
         this.queryAll('.io-api-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.appanel === tab.dataset.aptab));
       });
     });
@@ -338,10 +338,10 @@ class StructraInputPanel extends StructraComponent {
     const deep = (Structra.parseNotes && Structra.parseNotes.deepest) || 0;
     const big = (Structra.parseNotes && Structra.parseNotes.bigNumbers) || 0;
     const notes = Structra.parseNotes || {};
-    const mixedCols = Object.entries(notes.mixed || {});
+    const mixedColumns = Object.entries(notes.mixed || {});
     const csvTab = (Structra.tabs.list || []).find((tab) => tab.id === Structra.tabs.activeId);
     if (csvTab) csvTab.decimals = notes.decimals || null;
-    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : '') + (mixedCols.length ? `. ${mixedCols[0][0]} has text among its numbers (row ${mixedCols[0][1].row}: "${String(mixedCols[0][1].value).slice(0, 20)}")` + (mixedCols.length > 1 ? ` and ${mixedCols.length - 1} more column${mixedCols.length > 2 ? 's' : ''}` : '') : '') + (deep ? `. It is nested ${deep.toLocaleString()} levels deep: only the first 200 levels are shown.` : ''));
+    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : '') + (mixedColumns.length ? `. ${mixedColumns[0][0]} has text among its numbers (row ${mixedColumns[0][1].row}: "${String(mixedColumns[0][1].value).slice(0, 20)}")` + (mixedColumns.length > 1 ? ` and ${mixedColumns.length - 1} more column${mixedColumns.length > 2 ? 's' : ''}` : '') : '') + (deep ? `. It is nested ${deep.toLocaleString()} levels deep: only the first 200 levels are shown.` : ''));
     Structra.parseNotes = {};
     // Auto-hide overlay wrapper if present
     const overlay = this.closest('.io-overlay');
@@ -566,13 +566,13 @@ class StructraInputPanel extends StructraComponent {
       return;
     }
 
-    const sendBtn = this.queryOne('[data-role="api-send"]');
-    const statusEl = this.queryOne('[data-role="api-status"]');
-    const errorEl = this.queryOne('[data-role="url-error"]');
-    errorEl.textContent = '';
-    statusEl.innerHTML = '';
-    sendBtn.textContent = 'Sending...';
-    sendBtn.disabled = true;
+    const sendButton = this.queryOne('[data-role="api-send"]');
+    const statusElement = this.queryOne('[data-role="api-status"]');
+    const errorElement = this.queryOne('[data-role="url-error"]');
+    errorElement.textContent = '';
+    statusElement.innerHTML = '';
+    sendButton.textContent = 'Sending...';
+    sendButton.disabled = true;
 
     try {
       const options = this._buildFetchOpts();
@@ -587,7 +587,7 @@ class StructraInputPanel extends StructraComponent {
       const size = new Blob([text]).size;
 
       const className = resp.status < 300 ? 'ok' : resp.status < 400 ? 'redirect' : 'error';
-      statusEl.innerHTML =
+      statusElement.innerHTML =
         `<span class="io-status-badge io-status-${className}">${resp.status} ${resp.statusText}</span>` +
         `<span class="io-status-meta">${elapsed}ms \xB7 ${Structra.sharedHelpers.formatBytes(size)}</span>`;
 
@@ -606,12 +606,12 @@ class StructraInputPanel extends StructraComponent {
       const name = url.split('/').pop().split('?')[0] || 'API Response';
       await this._parseByFormat(text, format, name);
     } catch (error) {
-      errorEl.textContent = error instanceof TypeError
+      errorElement.textContent = error instanceof TypeError
         ? 'The browser could not read this address. Either it is not reachable, or the site does not allow other pages to read it (CORS). Save the file from the address and use Upload File instead.'
         : error.message;
     } finally {
-      sendBtn.textContent = '\u25B6 Send';
-      sendBtn.disabled = false;
+      sendButton.textContent = '\u25B6 Send';
+      sendButton.disabled = false;
     }
   }
 
@@ -677,8 +677,8 @@ class StructraInputPanel extends StructraComponent {
 
   async _decodeJwt() {
     const raw = (this.queryOne('[data-role="token"]')?.value || '').trim().replace(/^bearer\s+/i, '');
-    const claimsEl = this.queryOne('[data-role="claims"]');
-    if (!raw) { claimsEl.innerHTML = '<div class="io-jwt-error">No token entered</div>'; return; }
+    const claimsElement = this.queryOne('[data-role="claims"]');
+    if (!raw) { claimsElement.innerHTML = '<div class="io-jwt-error">No token entered</div>'; return; }
     try {
       const parts = raw.split('.');
       if (parts.length !== 3) throw new Error('Not a valid JWT (expected 3 parts, got ' + parts.length + ')');
@@ -700,10 +700,10 @@ class StructraInputPanel extends StructraComponent {
       }
       html += `<button class="io-api-add-row" data-copy="all" type="button">Copy Full Decoded Token</button>`;
 
-      claimsEl.innerHTML = html;
-      claimsEl.querySelectorAll('pre[data-colorize]').forEach((pre) => Structra.codeView.colorize(pre, pre.textContent, pre.dataset.colorize));
-      claimsEl.querySelector('[data-action="close-jwt"]').addEventListener('click', () => { claimsEl.innerHTML = ''; });
-      claimsEl.querySelectorAll('[data-copy]').forEach(element => {
+      claimsElement.innerHTML = html;
+      claimsElement.querySelectorAll('pre[data-colorize]').forEach((pre) => Structra.codeView.colorize(pre, pre.textContent, pre.dataset.colorize));
+      claimsElement.querySelector('[data-action="close-jwt"]').addEventListener('click', () => { claimsElement.innerHTML = ''; });
+      claimsElement.querySelectorAll('[data-copy]').forEach(element => {
         element.addEventListener('click', () => {
           let text;
           if (element.dataset.copy === 'header') text = JSON.stringify(header, null, 2);
@@ -717,7 +717,7 @@ class StructraInputPanel extends StructraComponent {
         });
       });
     } catch (error) {
-      claimsEl.innerHTML = `<div class="io-jwt-error">${Structra.sharedHelpers.escapeHtml(error.message)}</div>`;
+      claimsElement.innerHTML = `<div class="io-jwt-error">${Structra.sharedHelpers.escapeHtml(error.message)}</div>`;
     }
   }
 
@@ -796,9 +796,9 @@ class StructraInputPanel extends StructraComponent {
       });
     });
 
-    const clearBtn = list.querySelector('[data-action="clear-recent"]');
-    if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
+    const clearButton = list.querySelector('[data-action="clear-recent"]');
+    if (clearButton) {
+      clearButton.addEventListener('click', () => {
         localStorage.removeItem('structra_recent');
         this._renderRecent();
         Structra.toast('History cleared');

@@ -174,10 +174,10 @@ class StructraCommand extends StructraComponent {
   }
 
   _renderList(query) {
-    const q = query.toLowerCase().trim();
+    const searchText = query.toLowerCase().trim();
     const list = this.queryOne('#cmdList');
     const filtered = this._commands.filter(command => this._available(command)
-      && (!q || command.label.toLowerCase().includes(q) || command.id.includes(q) || (command.cat && command.cat.toLowerCase().includes(q)) || (command.keys && command.keys.includes(q))));
+      && (!searchText || command.label.toLowerCase().includes(searchText) || command.id.includes(searchText) || (command.cat && command.cat.toLowerCase().includes(searchText)) || (command.keys && command.keys.includes(searchText))));
     if (!filtered.length) {
       list.innerHTML = `<div class="cmd-empty">No command matches <strong>${Structra.sharedHelpers.escapeHtml(query)}</strong>. Try a word like sort, mask, export, table or power.</div>`;
       return;

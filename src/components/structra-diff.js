@@ -68,12 +68,12 @@ class StructraDiff extends StructraDialog {
     this.addEventListener('click', (event) => {
       const action = event.target.closest('[data-action]');
       if (action) {
-        const a = action.dataset.action;
-        if (a === 'close') this.close();
-        else if (a === 'swap') this._swapSides();
-        else if (a === 'copy-diff') this._copyDiff();
-        else if (a === 'copy-patch') this._copyPatch();
-        else if (a === 'load-paste') this._loadPaste();
+        const actionName = action.dataset.action;
+        if (actionName === 'close') this.close();
+        else if (actionName === 'swap') this._swapSides();
+        else if (actionName === 'copy-diff') this._copyDiff();
+        else if (actionName === 'copy-patch') this._copyPatch();
+        else if (actionName === 'load-paste') this._loadPaste();
       }
       const mode = event.target.closest('[data-diff-mode]');
       if (mode) {
@@ -126,26 +126,26 @@ class StructraDiff extends StructraDialog {
   }
 
   _handleSourceChange() {
-    const leftSrc = this.queryOne('#diffLeftSrc').value;
-    const rightSrc = this.queryOne('#diffRightSrc').value;
+    const leftSource = this.queryOne('#diffLeftSrc').value;
+    const rightSource = this.queryOne('#diffRightSrc').value;
 
-    if (leftSrc === 'current') this._left = Structra.state.jsonData;
-    else if (leftSrc.startsWith('tab:')) this._left = this._tabData(leftSrc);
-    else if (leftSrc === 'undo') {
-      const hist = Structra.undoStack.getHistory();
-      if (hist.length > 1) this._left = JSON.parse(hist[hist.length - 2].snapshot);
+    if (leftSource === 'current') this._left = Structra.state.jsonData;
+    else if (leftSource.startsWith('tab:')) this._left = this._tabData(leftSource);
+    else if (leftSource === 'undo') {
+      const history = Structra.undoStack.getHistory();
+      if (history.length > 1) this._left = JSON.parse(history[history.length - 2].snapshot);
     }
 
-    if (rightSrc === 'current') {
+    if (rightSource === 'current') {
       this._right = Structra.state.jsonData;
       this._computeAndRender();
-    } else if (rightSrc.startsWith('tab:')) {
-      this._right = this._tabData(rightSrc);
+    } else if (rightSource.startsWith('tab:')) {
+      this._right = this._tabData(rightSource);
       this.queryOne('#diffPasteArea').style.display = 'none';
       this._computeAndRender();
-    } else if (rightSrc === 'undo') {
-      const hist = Structra.undoStack.getHistory();
-      if (hist.length > 0) { this._right = JSON.parse(hist[hist.length - 1].snapshot); this._computeAndRender(); }
+    } else if (rightSource === 'undo') {
+      const history = Structra.undoStack.getHistory();
+      if (history.length > 0) { this._right = JSON.parse(history[history.length - 1].snapshot); this._computeAndRender(); }
     } else {
       this._showPasteArea();
     }

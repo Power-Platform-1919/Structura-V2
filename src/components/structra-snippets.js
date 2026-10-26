@@ -35,14 +35,14 @@ class StructraSnippets extends StructraDialog {
     this.addEventListener('click', (event) => {
       const action = event.target.closest('[data-action]');
       if (!action) return;
-      const a = action.dataset.action;
-      if (a === 'close') this.close();
-      else if (a === 'save-current') this._showSaveForm();
-      else if (a === 'confirm-save') this._confirmSave();
-      else if (a === 'cancel-save') this._hideSaveForm();
-      else if (a === 'use-snippet') this._useSnippet(action.dataset.idx);
-      else if (a === 'delete-snippet') this._deleteSnippet(action.dataset.idx);
-      else if (a === 'copy-snippet') this._copySnippet(action.dataset.idx);
+      const actionName = action.dataset.action;
+      if (actionName === 'close') this.close();
+      else if (actionName === 'save-current') this._showSaveForm();
+      else if (actionName === 'confirm-save') this._confirmSave();
+      else if (actionName === 'cancel-save') this._hideSaveForm();
+      else if (actionName === 'use-snippet') this._useSnippet(action.dataset.idx);
+      else if (actionName === 'delete-snippet') this._deleteSnippet(action.dataset.idx);
+      else if (actionName === 'copy-snippet') this._copySnippet(action.dataset.idx);
     });
 
     this.queryOne('#snipSearch').addEventListener('input', (event) => this._filterList(event.target.value));
@@ -161,10 +161,10 @@ class StructraSnippets extends StructraDialog {
   }
 
   _filterList(query) {
-    const q = query.toLowerCase();
+    const searchText = query.toLowerCase();
     this.querySelectorAll('.snip-item').forEach(element => {
       const name = element.querySelector('.snip-item-name')?.textContent.toLowerCase() || '';
-      element.style.display = name.includes(q) ? '' : 'none';
+      element.style.display = name.includes(searchText) ? '' : 'none';
     });
   }
 

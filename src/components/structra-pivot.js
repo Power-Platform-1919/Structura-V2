@@ -65,8 +65,8 @@ class StructraPivot extends StructraDialog {
       if (field && !field.closest('.pivot-zone-drop')) {
         this._addFieldToZone(field.dataset.field);
       }
-      const act = event.target.closest('[data-pivot-act]');
-      if (act) { if (act.dataset.pivotAct === 'copy') this._copyAll(); else this._openAll(); return; }
+      const actionName = event.target.closest('[data-pivot-act]');
+      if (actionName) { if (actionName.dataset.pivotAct === 'copy') this._copyAll(); else this._openAll(); return; }
       // Remove from zone
       const removeButton = event.target.closest('[data-rm-zone]');
       if (removeButton) {
@@ -144,9 +144,9 @@ class StructraPivot extends StructraDialog {
   }
 
   _removeFromZone(zone, field) {
-    if (zone === 'rows') this._rows = this._rows.filter(f => f !== field);
-    else if (zone === 'cols') this._cols = this._cols.filter(f => f !== field);
-    else if (zone === 'values') this._values = this._values.filter(f => f !== field);
+    if (zone === 'rows') this._rows = this._rows.filter(fieldName => fieldName !== field);
+    else if (zone === 'cols') this._cols = this._cols.filter(fieldName => fieldName !== field);
+    else if (zone === 'values') this._values = this._values.filter(fieldName => fieldName !== field);
     this._renderZones();
   }
 

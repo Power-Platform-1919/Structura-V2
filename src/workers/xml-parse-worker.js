@@ -7,7 +7,7 @@
 (function() {
   var WORKER_FN = function() {
     // Recursively convert DOM node to plain JS object
-    function domToObj(node) {
+    function domToObject(node) {
       if (node.nodeType === 3) return node.textContent.trim() || null; // text node
       if (node.nodeType !== 1) return null; // skip comments, etc.
 
@@ -27,7 +27,7 @@
         if (child.nodeType === 1) {
           hasElements = true;
           var tag = child.nodeName;
-          var value = domToObj(child);
+          var value = domToObject(child);
           if (object[tag] !== undefined) {
             // Multiple same-name siblings → array
             if (!Array.isArray(object[tag])) object[tag] = [object[tag]];
@@ -63,7 +63,7 @@
           self.postMessage({ id: id, success: false, error: 'XML parse error: ' + parseError.textContent.substring(0, 200) });
           return;
         }
-        var data = domToObj(doc.documentElement);
+        var data = domToObject(doc.documentElement);
         // Wrap in root element name
         var result = {};
         result[doc.documentElement.nodeName] = data;

@@ -40,10 +40,10 @@ class StructraTypedef extends StructraDialog {
     this.addEventListener('click', (event) => {
       const action = event.target.closest('[data-action]');
       if (!action) return;
-      const a = action.dataset.action;
-      if (a === 'close') this.close();
-      else if (a === 'copy') this._copy();
-      else if (a === 'download') this._download();
+      const actionName = action.dataset.action;
+      if (actionName === 'close') this.close();
+      else if (actionName === 'copy') this._copy();
+      else if (actionName === 'download') this._download();
 
       const tab = event.target.closest('[data-lang]');
       if (tab) {

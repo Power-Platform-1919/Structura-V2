@@ -44,16 +44,16 @@ Structra.libraryLoader = (() => {
   }
 
   async function firstThatWorks(name, urls, load) {
-    let lastErr;
+    let lastError;
     for (const url of urls) {
       try {
         return await load(url);
       } catch (error) {
-        lastErr = error;
+        lastError = error;
         Structra.log.warn('Libs', `"${name}" failed from ${url}: ${error.message}`);
       }
     }
-    throw new Error(`Could not load "${name}": ${lastErr ? lastErr.message : 'no source'}`);
+    throw new Error(`Could not load "${name}": ${lastError ? lastError.message : 'no source'}`);
   }
 
   function loadLibrary(name) {

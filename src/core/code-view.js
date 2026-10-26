@@ -257,7 +257,7 @@ Structra.codeView = (() => {
   }
 
   async function create(host, options = {}) {
-    const lib = await library();
+    const editorLibrary = await library();
     const modeName = MODES[options.mode] ? options.mode : 'text';
     const mode = MODES[modeName];
     const initial = options.value || '';
@@ -266,7 +266,7 @@ Structra.codeView = (() => {
       lineNumbers, drawSelection, placeholder, history, historyKeymap, defaultKeymap, bracketMatching, foldGutter, foldService,
       closeBrackets, closeBracketsKeymap, syntaxHighlighting, autocompletion, completionKeymap, acceptCompletion, startCompletion,
       completionStatus,
-    } = lib;
+    } = editorLibrary;
 
     const handlers = [];
     const scrollHandlers = [];
@@ -375,7 +375,7 @@ Structra.codeView = (() => {
     });
 
     // Load the language before the box shows, so the first paint is already coloured
-    current.language = await languageFor(lib, modeName, { columns: options.sql ? options.sql.columns() : [] });
+    current.language = await languageFor(editorLibrary, modeName, { columns: options.sql ? options.sql.columns() : [] });
     host.classList.add('cv');
     if (options.growsWithText) host.classList.add('cv-grow');
     host.classList.toggle('cv-readonly', readOnly);
@@ -415,13 +415,13 @@ Structra.codeView = (() => {
       suggest() { startCompletion(view); },
       async updateSchema() {
         if (modeName !== 'sql' || !options.sql) return;
-        current.language = await languageFor(lib, 'sql', { columns: options.sql.columns() });
+        current.language = await languageFor(editorLibrary, 'sql', { columns: options.sql.columns() });
         view.dispatch({ effects: language.reconfigure(current.language.extension) });
       },
       insertAtCursor(text) { view.dispatch(view.state.replaceSelection(text)); view.focus(); },
       setCursor(line, character) {
-        const l = lineAt(line);
-        view.dispatch({ selection: { anchor: l.from + Math.max(0, Math.min(character, l.length)) }, scrollIntoView: true });
+        const lineInfo = lineAt(line);
+        view.dispatch({ selection: { anchor: lineInfo.from + Math.max(0, Math.min(character, lineInfo.length)) }, scrollIntoView: true });
       },
       moveToEnd() { view.dispatch({ selection: { anchor: view.state.doc.length }, scrollIntoView: true }); },
       focus: () => view.focus(),
@@ -446,7 +446,7 @@ Structra.codeView = (() => {
       scrollTo(left, top) { view.scrollDOM.scrollLeft = left; view.scrollDOM.scrollTop = top; },
       async setMode(name) {
         const next = MODES[name] ? name : 'text';
-        current = { mode: next, language: await languageFor(lib, next, { columns: options.sql ? options.sql.columns() : [] }) };
+        current = { mode: next, language: await languageFor(editorLibrary, next, { columns: options.sql ? options.sql.columns() : [] }) };
         view.dispatch({ effects: language.reconfigure(current.language ? current.language.extension : []) });
       },
       destroy() {
@@ -470,7 +470,7 @@ Structra.codeView = (() => {
     const token = (element._cvToken = (element._cvToken || 0) + 1);
     if (!text || text.length > COLORIZE_MAX) return;
     try {
-      const lib = await library();
+      const editorLibrary = await library();
       const name = MODES[modeName] ? modeName : 'text';
       const fragment = document.createDocumentFragment();
       const span = (lineClass, text) => {
@@ -488,10 +488,10 @@ Structra.codeView = (() => {
           if (i < all.length - 1) span('', '\n');
         });
       } else {
-        const found = await languageFor(lib, name);
+        const found = await languageFor(editorLibrary, name);
         if (!found) return;
         const tree = found.language.parser.parse(text);
-        lib.highlightCode(text, tree, highlightStyle, (text, lineClass) => span(lineClass, text), () => span('', '\n'));
+        editorLibrary.highlightCode(text, tree, highlightStyle, (text, lineClass) => span(lineClass, text), () => span('', '\n'));
       }
       if (token !== element._cvToken || element.textContent !== text) return;      // newer text arrived while this loaded
       element.textContent = '';

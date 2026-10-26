@@ -47,7 +47,7 @@ Structra.personalDataMasker = (() => {
       if (Array.isArray(value)) return value.map(item => walk(item, key));
       if (value && typeof value === 'object') {
         const out = {};
-        for (const [key, v] of Object.entries(value)) Object.defineProperty(out, key, { value: walk(v, key), enumerable: true, writable: true, configurable: true });
+        for (const [key, entryValue] of Object.entries(value)) Object.defineProperty(out, key, { value: walk(entryValue, key), enumerable: true, writable: true, configurable: true });
         return out;
       }
       return value;

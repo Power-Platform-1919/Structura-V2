@@ -162,7 +162,7 @@ class StructraTable extends StructraComponent {
         const subs = this._expanded.get(key);
         if (subs && subs.length) {
           const names = subs.map((text) => key + '.' + text);
-          names.forEach((n) => this._expandParent.set(n, key));
+          names.forEach((name) => this._expandParent.set(name, key));
           plan.push({ col: key, subs, names });
         } else {
           plan.push({ col: key });
@@ -230,9 +230,9 @@ class StructraTable extends StructraComponent {
       if (this._sortCol) {
         Structra.dataEngine.sort(this._sortCol, this._sortAsc ? 'asc' : 'desc');
       }
-      const ds = Structra.dataEngine.getActive();
-      this._baseRows = ds.raw;
-      allRows = ds.indexes.sorted ? ds.indexes.sorted.refs : ds.raw;
+      const datasetInfo = Structra.dataEngine.getActive();
+      this._baseRows = datasetInfo.raw;
+      allRows = datasetInfo.indexes.sorted ? datasetInfo.indexes.sorted.refs : datasetInfo.raw;
       totalRows = Array.isArray(allRows) ? allRows.length : 0;
       keys = dataset.indexes.columns
         ? dataset.indexes.columns.map(column => column.name)
@@ -272,8 +272,8 @@ class StructraTable extends StructraComponent {
       if (firstValue == null && secondValue == null) return 0;
       if (firstValue == null) return 1;
       if (secondValue == null) return -1;
-      const cmp = Structra.sharedHelpers.compareValues(firstValue, secondValue);
-      return asc ? cmp : -cmp;
+      const compare = Structra.sharedHelpers.compareValues(firstValue, secondValue);
+      return asc ? compare : -compare;
     });
   }
 
@@ -351,11 +351,11 @@ class StructraTable extends StructraComponent {
     const stamp = keys.join('\u0001') + '#' + (Array.isArray(base) ? base.length : 0);
     if (this._widthStamp !== stamp) {
       const sample = (base || []).slice(0, 150);
-      const textLen = (value) => (value === null || value === undefined ? 4 : typeof value === 'object' ? (Array.isArray(value) ? 12 : 16) : String(value).length);
+      const textLength = (value) => (value === null || value === undefined ? 4 : typeof value === 'object' ? (Array.isArray(value) ? 12 : 16) : String(value).length);
       this._widths = {};
       for (const column of keys) {
         let max = String(column).length + 4;                       // the name plus the sort and filter marks
-        for (const row of sample) { const len = textLen(row ? row[column] : undefined); if (len > max) max = len; }
+        for (const row of sample) { const length = textLength(row ? row[column] : undefined); if (length > max) max = length; }
         this._widths[column] = Math.max(7, Math.min(40, max));
       }
       this._widthStamp = stamp;
@@ -406,7 +406,7 @@ class StructraTable extends StructraComponent {
 
     // Page size options
     const sizes = [25, 50, 100, 250, 500];
-    const sizeOpts = sizes.map(text =>
+    const sizeOptions = sizes.map(text =>
       `<span class="table-size-opt ${text === this._pageSize ? 'active' : ''}" data-page-size="${text}">${text}</span>`
     ).join('');
 
@@ -418,7 +418,7 @@ class StructraTable extends StructraComponent {
     const hiddenBadge = this._hiddenCols.size
       ? `<span class="filter-badge" data-page-action="unhide" title="Show hidden columns">${icon('eye-off')} ${this._hiddenCols.size} hidden</span>`
       : '';
-    const moreCols = this._moreCols
+    const moreColumns = this._moreCols
       ? `<span class="filter-badge" data-page-action="more-cols" title="Draw more columns">${icon('columns-3')} ${this._moreCols.toLocaleString()} more columns: show ${Math.min(100, this._moreCols).toLocaleString()}</span>`
       : '';
     // Scrolling replaces pages for a long list: no page buttons or page sizes then
@@ -431,8 +431,8 @@ class StructraTable extends StructraComponent {
       <button data-page-action="last" ${this._page >= maxPage ? 'disabled' : ''} title="Last page" aria-label="Last page">${icon('chevrons-right')}</button>
       <span class="table-sep"></span>
       <span class="table-size-label">Rows per page:</span>
-      ${sizeOpts}`;
-    pager.innerHTML = `${filterBadge}${hiddenBadge}${moreCols}${pages}`;
+      ${sizeOptions}`;
+    pager.innerHTML = `${filterBadge}${hiddenBadge}${moreColumns}${pages}`;
   }
 
   /* ======== PAGINATED RENDER (small datasets) ======== */
@@ -464,9 +464,9 @@ class StructraTable extends StructraComponent {
         return self._buildRowsHtml(rows, keys, basePath, start);
       },
 
-      rehydrate(chunkEl, start, end) {
+      rehydrate(chunkElement, start, end) {
         const rows = allRows.slice(start, end);
-        chunkEl.innerHTML = self._buildRowsHtml(rows, keys, basePath, start);
+        chunkElement.innerHTML = self._buildRowsHtml(rows, keys, basePath, start);
       },
 
       sentinelHtml(remaining) {
@@ -730,7 +730,7 @@ class StructraTable extends StructraComponent {
         ['With a value', `${filled.length.toLocaleString()} (${rows.length ? Math.round(filled.length / rows.length * 100) : 0}%)`],
         ['Empty', (rows.length - filled.length).toLocaleString()],
         ['Different values', frequency.size.toLocaleString()],
-        ['Kinds', Object.entries(kinds).map(([tab, n]) => `${n} ${tab}`).join(', ')],
+        ['Kinds', Object.entries(kinds).map(([tab, name]) => `${name} ${tab}`).join(', ')],
       ];
       if (numbers.length) {
         const sorted = [...numbers].sort((action, button) => action - button);
@@ -853,11 +853,11 @@ class StructraTable extends StructraComponent {
           <span class="cfp-link" data-cfp="select-none">Select None</span>
         </div>
         <div class="cfp-list" id="cfpList">
-          ${uniqueValues.slice(0, 200).map(([uniqueValue, cnt]) => `
+          ${uniqueValues.slice(0, 200).map(([uniqueValue, valueCount]) => `
             <label class="cfp-row">
               <input type="checkbox" class="cfp-cb" value="${Structra.sharedHelpers.escapeHtml(uniqueValue)}" checked>
               <span class="cfp-val">${Structra.sharedHelpers.escapeHtml(uniqueValue.length > 40 ? uniqueValue.slice(0, 37) + '…' : uniqueValue)}</span>
-              <span class="cfp-cnt">${cnt}</span>
+              <span class="cfp-cnt">${valueCount}</span>
             </label>`).join('')}
         </div>
       </div>
@@ -888,17 +888,17 @@ class StructraTable extends StructraComponent {
     panel.addEventListener('click', (event) => {
       const action = event.target.closest('[data-cfp]');
       if (!action) return;
-      const a = action.dataset.cfp;
-      if (a === 'close' || a === 'cancel') this._dismissColFilterPanel();
-      else if (a === 'apply') this._applyFilterPanel(column);
-      else if (a === 'clear') { delete this._colFilters[column]; this._dismissColFilterPanel(); this._page = 0; this.renderTable(); }
-      else if (a === 'select-all') panel.querySelectorAll('.cfp-cb').forEach(element => element.checked = true);
-      else if (a === 'select-none') panel.querySelectorAll('.cfp-cb').forEach(element => element.checked = false);
-      else if (a === 'add-cond') this._addFilterCondition();
+      const actionName = action.dataset.cfp;
+      if (actionName === 'close' || actionName === 'cancel') this._dismissColFilterPanel();
+      else if (actionName === 'apply') this._applyFilterPanel(column);
+      else if (actionName === 'clear') { delete this._colFilters[column]; this._dismissColFilterPanel(); this._page = 0; this.renderTable(); }
+      else if (actionName === 'select-all') panel.querySelectorAll('.cfp-cb').forEach(element => element.checked = true);
+      else if (actionName === 'select-none') panel.querySelectorAll('.cfp-cb').forEach(element => element.checked = false);
+      else if (actionName === 'add-cond') this._addFilterCondition();
 
       const tab = event.target.closest('[data-cfp-tab]');
       if (tab) {
-        panel.querySelectorAll('.cfp-tab').forEach(t => t.classList.toggle('active', t === tab));
+        panel.querySelectorAll('.cfp-tab').forEach(tabEntry => tabEntry.classList.toggle('active', tabEntry === tab));
         panel.querySelector('#cfpValuesBody').style.display = tab.dataset.cfpTab === 'values' ? '' : 'none';
         panel.querySelector('#cfpCondBody').style.display = tab.dataset.cfpTab === 'conditions' ? '' : 'none';
       }
@@ -990,13 +990,13 @@ class StructraTable extends StructraComponent {
     const top = rect.bottom - containerRect.top + 4;
     const left = rect.left - containerRect.left;
 
-    const currentVal = this._colFilters[column] || '';
+    const currentValue = this._colFilters[column] || '';
     const dropdown = document.createElement('div');
     dropdown.className = 'col-filter-dropdown';
     dropdown.style.cssText = `position:absolute;top:${top}px;left:${left}px;z-index:900`;
     dropdown.innerHTML = `
       <div class="cfd-header">${Structra.sharedHelpers.escapeHtml(column)}</div>
-      <input type="text" class="cfd-input" placeholder="Filter value…" value="${Structra.sharedHelpers.escapeHtml(currentVal)}" autofocus>
+      <input type="text" class="cfd-input" placeholder="Filter value…" value="${Structra.sharedHelpers.escapeHtml(currentValue)}" autofocus>
       <div class="cfd-actions">
         <button class="cfd-btn cfd-apply">Apply</button>
         <button class="cfd-btn cfd-clear">Clear</button>
@@ -1068,27 +1068,27 @@ class StructraTable extends StructraComponent {
     });
   }
 
-  _evalCondition(text, raw, cond) {
-    const s = text.toLowerCase();
-    const value = cond.val.toLowerCase();
-    switch (cond.op) {
-      case 'contains': return s.includes(value);
-      case 'not-contains': return !s.includes(value);
-      case 'equals': return s === value;
-      case 'not-equals': return s !== value;
-      case 'starts-with': return s.startsWith(value);
-      case 'ends-with': return s.endsWith(value);
+  _evalCondition(text, raw, condition) {
+    const lowered = text.toLowerCase();
+    const value = condition.val.toLowerCase();
+    switch (condition.op) {
+      case 'contains': return lowered.includes(value);
+      case 'not-contains': return !lowered.includes(value);
+      case 'equals': return lowered === value;
+      case 'not-equals': return lowered !== value;
+      case 'starts-with': return lowered.startsWith(value);
+      case 'ends-with': return lowered.endsWith(value);
       case 'wildcard': {
-        const pattern = new RegExp('^' + cond.val.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+        const pattern = new RegExp('^' + condition.val.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
         return pattern.test(text);
       }
-      case 'gt': return parseFloat(text) > parseFloat(cond.val);
-      case 'lt': return parseFloat(text) < parseFloat(cond.val);
-      case 'gte': return parseFloat(text) >= parseFloat(cond.val);
-      case 'lte': return parseFloat(text) <= parseFloat(cond.val);
+      case 'gt': return parseFloat(text) > parseFloat(condition.val);
+      case 'lt': return parseFloat(text) < parseFloat(condition.val);
+      case 'gte': return parseFloat(text) >= parseFloat(condition.val);
+      case 'lte': return parseFloat(text) <= parseFloat(condition.val);
       case 'is-empty': return raw == null || text === '';
       case 'not-empty': return raw != null && text !== '';
-      case 'regex': try { return new RegExp(cond.val, 'i').test(text); } catch { return false; }
+      case 'regex': try { return new RegExp(condition.val, 'i').test(text); } catch { return false; }
       default: return true;
     }
   }

@@ -24,20 +24,20 @@ Structra.overviewInsights = (() => {
   /** "$.body.value" → "body.value" for reading; the root stays "the document" */
   const readable = (path) => (!path || path === '$' ? 'the document' : path.replace(/^\$\.?/, ''));
 
-  function describe(data, firstArr, profile) {
+  function describe(data, firstArray, profile) {
     if (Array.isArray(data) && data.length === 0) return 'An empty list.';
     if (data && typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length === 0) return 'An empty object.';
     if (Array.isArray(data)) {
-      if (firstArr && firstArr.path === '$') {
+      if (firstArray && firstArray.path === '$') {
         const fields = profile ? plural(profile.fieldCount, 'field', 'fields') : 'fields';
         return `A list of ${plural(data.length, 'record', 'records')}, each an object with ${fields}.`;
       }
       return `A list of ${plural(data.length, 'item', 'items')}.`;
     }
     if (data && typeof data === 'object') {
-      if (firstArr) {
+      if (firstArray) {
         const fields = profile ? ` with ${plural(profile.fieldCount, 'field', 'fields')} each` : '';
-        return `An object whose main list is ${readable(firstArr.path)}: ${plural(firstArr.rows.length, 'record', 'records')}${fields}.`;
+        return `An object whose main list is ${readable(firstArray.path)}: ${plural(firstArray.rows.length, 'record', 'records')}${fields}.`;
       }
       return `An object with ${plural(Object.keys(data).length, 'top-level key', 'top-level keys')}.`;
     }
@@ -52,7 +52,7 @@ Structra.overviewInsights = (() => {
   }
 
   function build({ analysis, meta = {}, data, duplicateKeys = [] }) {
-    const { stats: stats, firstArr, profile } = analysis;
+    const { stats: stats, firstArr: firstArray, profile } = analysis;
     const findings = [];
 
     if (duplicateKeys.length) {
@@ -72,7 +72,7 @@ Structra.overviewInsights = (() => {
           severity: empty ? 'info' : issue.severity === 'high' ? 'high' : 'med',
           title: `${issue.field}: ${issue.msg}`,
           // Say what to do about it: in a flow an empty value breaks an expression that does not expect it
-          detail: (firstArr ? `In the records of ${readable(firstArr.path)}. ` : '')
+          detail: (firstArray ? `In the records of ${readable(firstArray.path)}. ` : '')
             + (empty ? `In Power Automate, wrap it as coalesce(item()?['${issue.field}'], 'default'). The Parse JSON schema from Schema Gen already allows null here.` : ''),
           go: { view: 'table', column: issue.field },
         });
@@ -118,7 +118,7 @@ Structra.overviewInsights = (() => {
     const arrays = [...groups.values()].sort((list, second) => second.items - list.items).slice(0, 5);
 
     return {
-      headline: describe(data, firstArr, profile),
+      headline: describe(data, firstArray, profile),
       facts: [
         { label: 'Size', value: Structra.sharedHelpers.formatBytes(meta.fileSize) },
         { label: 'Values', value: stats.totalNodes.toLocaleString() },

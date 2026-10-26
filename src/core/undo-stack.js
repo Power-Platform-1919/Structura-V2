@@ -30,47 +30,47 @@ Structra.undoStack = (() => {
   function push(data, label, tabId) {
     const snapshot = JSON.stringify(data);
     if (snapshot.length > MAX_SNAPSHOT_CHARS) return false;
-    const h = historyOf(tabId, true);
-    if (h.index >= 0 && h.stack[h.index].data === snapshot) return true;   // nothing changed
-    h.stack = h.stack.slice(0, h.index + 1);                                // a new change ends the redo path
-    h.stack.push({ data: snapshot, label, timestamp: Date.now() });
-    if (h.stack.length > MAX_SNAPSHOTS) h.stack.shift();
-    h.index = h.stack.length - 1;
+    const tabHistory = historyOf(tabId, true);
+    if (tabHistory.index >= 0 && tabHistory.stack[tabHistory.index].data === snapshot) return true;   // nothing changed
+    tabHistory.stack = tabHistory.stack.slice(0, tabHistory.index + 1);                                // a new change ends the redo path
+    tabHistory.stack.push({ data: snapshot, label, timestamp: Date.now() });
+    if (tabHistory.stack.length > MAX_SNAPSHOTS) tabHistory.stack.shift();
+    tabHistory.index = tabHistory.stack.length - 1;
     return true;
   }
 
-  function canUndo(tabId) { const h = historyOf(tabId); return !!h && h.index > 0; }
-  function canRedo(tabId) { const h = historyOf(tabId); return !!h && h.index < h.stack.length - 1; }
+  function canUndo(tabId) { const tabHistory = historyOf(tabId); return !!tabHistory && tabHistory.index > 0; }
+  function canRedo(tabId) { const tabHistory = historyOf(tabId); return !!tabHistory && tabHistory.index < tabHistory.stack.length - 1; }
 
   function undo(tabId) {
-    const h = historyOf(tabId);
-    if (!h || h.index <= 0) return null;
-    h.index--;
-    return JSON.parse(h.stack[h.index].data);
+    const tabHistory = historyOf(tabId);
+    if (!tabHistory || tabHistory.index <= 0) return null;
+    tabHistory.index--;
+    return JSON.parse(tabHistory.stack[tabHistory.index].data);
   }
 
   function redo(tabId) {
-    const h = historyOf(tabId);
-    if (!h || h.index >= h.stack.length - 1) return null;
-    h.index++;
-    return JSON.parse(h.stack[h.index].data);
+    const tabHistory = historyOf(tabId);
+    if (!tabHistory || tabHistory.index >= tabHistory.stack.length - 1) return null;
+    tabHistory.index++;
+    return JSON.parse(tabHistory.stack[tabHistory.index].data);
   }
 
   /** Label of the step Undo would undo, for messages like "Undid: Sort Keys A→Z" */
-  function nextUndoLabel(tabId) { const h = historyOf(tabId); return h && h.index > 0 ? h.stack[h.index].label : null; }
-  function nextRedoLabel(tabId) { const h = historyOf(tabId); return h && h.index < h.stack.length - 1 ? h.stack[h.index + 1].label : null; }
+  function nextUndoLabel(tabId) { const tabHistory = historyOf(tabId); return tabHistory && tabHistory.index > 0 ? tabHistory.stack[tabHistory.index].label : null; }
+  function nextRedoLabel(tabId) { const tabHistory = historyOf(tabId); return tabHistory && tabHistory.index < tabHistory.stack.length - 1 ? tabHistory.stack[tabHistory.index + 1].label : null; }
 
   function current(tabId) {
-    const h = historyOf(tabId);
-    if (!h || h.index < 0) return null;
-    return { label: h.stack[h.index].label, index: h.index, total: h.stack.length };
+    const tabHistory = historyOf(tabId);
+    if (!tabHistory || tabHistory.index < 0) return null;
+    return { label: tabHistory.stack[tabHistory.index].label, index: tabHistory.index, total: tabHistory.stack.length };
   }
 
   function clear(tabId) { histories.delete(tabId == null ? activeTab() : tabId); }
 
   function getHistory(tabId) {
-    const h = historyOf(tabId);
-    return h ? h.stack.map((snapshot, i) => ({ label: snapshot.label, active: i === h.index, timestamp: snapshot.timestamp })) : [];
+    const tabHistory = historyOf(tabId);
+    return tabHistory ? tabHistory.stack.map((snapshot, i) => ({ label: snapshot.label, active: i === tabHistory.index, timestamp: snapshot.timestamp })) : [];
   }
 
   // A closed tab takes its history with it

@@ -34,18 +34,18 @@ Structra.jsonDiff = (() => {
   /** Fields that name a record, tried in this order, to tell which item of a list is which */
   const ID_KEYS = ['id', 'Id', 'ID', '_id', 'key', 'Key', 'guid', 'uuid', 'ItemInternalId', 'name', 'Name'];
 
-  let lib = null;          // the jsondiffpatch module
+  let diffLibrary = null;          // the jsondiffpatch module
   let patchFormat = null;  // its JSON Patch formatter
 
   /** Give the library (used by the tests, which load it in Node) */
   function use(library, jsonPatchFormatter) {
-    lib = library;
+    diffLibrary = library;
     patchFormat = jsonPatchFormatter;
   }
 
   async function ready() {
-    if (lib && patchFormat) return;
-    lib = await Structra.libraryLoader.loadLibrary('jsondiffpatch');
+    if (diffLibrary && patchFormat) return;
+    diffLibrary = await Structra.libraryLoader.loadLibrary('jsondiffpatch');
     patchFormat = await Structra.libraryLoader.loadLibrary('jsondiffpatch-jsonpatch');
   }
 
@@ -198,7 +198,7 @@ Structra.jsonDiff = (() => {
       };
     }
     await ready();
-    const differ = lib.create({ objectHash, arrays: { detectMove: true, includeValueOnMove: false }, cloneDiffValues: false });
+    const differ = diffLibrary.create({ objectHash, arrays: { detectMove: true, includeValueOnMove: false }, cloneDiffValues: false });
     const delta = differ.diff(left, right);
     fromDelta(delta, left, right, '$', '$', out);
     return { changes: out, mode: 'smart', note: '', delta };

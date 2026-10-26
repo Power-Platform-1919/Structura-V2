@@ -33,7 +33,7 @@ class StructraHeader extends StructraComponent {
     if (fwd) fwd.disabled = !Structra.pathHistory.canForward();
     if (mark) mark.classList.toggle('active', Structra.bookmarks.has(Structra.state.currentPath));
     const count = this.queryOne('#bmCount');
-    if (count) { const n = Structra.bookmarks.list().length; count.textContent = n ? String(n) : ''; }
+    if (count) { const bookmarkCount = Structra.bookmarks.list().length; count.textContent = bookmarkCount ? String(bookmarkCount) : ''; }
   }
 
   render() {

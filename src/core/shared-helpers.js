@@ -84,13 +84,13 @@ Structra.sharedHelpers = (() => {
   }
 
   async function copyToClipboard(text, message = 'Copied') {
-    const str = String(text);
+    const stringValue = String(text);
     try {
-      await navigator.clipboard.writeText(str);
+      await navigator.clipboard.writeText(stringValue);
     } catch {
       // Clipboard API refused (insecure origin, no focus): fall back to a hidden textarea
       const textarea = document.createElement('textarea');
-      textarea.value = str;
+      textarea.value = stringValue;
       textarea.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
       document.body.appendChild(textarea);
       textarea.select();
@@ -135,8 +135,8 @@ Structra.sharedHelpers = (() => {
    * freezes the page while it does. Such patterns are refused with a message instead.
    */
   function isRiskyRegex(source) {
-    const src = String(source);
-    return /\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d+,\d*\})/.test(src);
+    const sourceText = String(source);
+    return /\((?:[^()\\]|\\.)*[+*](?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d+,\d*\})/.test(sourceText);
   }
   const RISKY_REGEX_MESSAGE = 'This pattern can take extremely long on some text (a repeat inside a repeat, like (a+)+). Simplify it, for example a+ instead of (a+)+.';
 

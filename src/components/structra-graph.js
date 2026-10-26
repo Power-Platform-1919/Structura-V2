@@ -205,18 +205,18 @@ class StructraGraph extends StructraComponent {
   _drawEdges(group, node) {
     const Graph = StructraGraph;
     for (const child of node.children) {
-      const x1 = node.x + Graph.NODE_W, y1 = node.y + Graph.NODE_H / 2;
-      const x2 = child.x, y2 = child.y + Graph.NODE_H / 2;
-      const middleX = (x1 + x2) / 2;
+      const startX = node.x + Graph.NODE_W, startY = node.y + Graph.NODE_H / 2;
+      const endX = child.x, endY = child.y + Graph.NODE_H / 2;
+      const middleX = (startX + endX) / 2;
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M${x1},${y1} C${middleX},${y1} ${middleX},${y2} ${x2},${y2}`);
+      path.setAttribute('d', `M${startX},${startY} C${middleX},${startY} ${middleX},${endY} ${endX},${endY}`);
       path.setAttribute('class', 'graph-edge-line');
       group.appendChild(path);
       this._drawEdges(group, child);
     }
   }
 
-  _drawNodes(g, node) {
+  _drawNodes(groupElement, node) {
     const Graph = StructraGraph;
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.setAttribute('transform', `translate(${node.x},${node.y})`);
@@ -259,8 +259,8 @@ class StructraGraph extends StructraComponent {
     }
     if (node.path && node.path === Structra.state.currentPath) rect.classList.add('graph-node-selected');
 
-    g.appendChild(group);
-    for (const child of node.children) this._drawNodes(g, child);
+    groupElement.appendChild(group);
+    for (const child of node.children) this._drawNodes(groupElement, child);
   }
 
   /* ---- Expand ---- */

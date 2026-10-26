@@ -33,23 +33,23 @@ Structra.pathHistory = (() => {
 
   function record(path) {
     if (replaying || !path) return;
-    const s = current();
-    if (s.items[s.index] === path) return;
-    s.items = s.items.slice(0, s.index + 1);   // a new visit drops the forward history
-    s.items.push(path);
-    if (s.items.length > MAX_ENTRIES) s.items.shift();
-    s.index = s.items.length - 1;
+    const timeline = current();
+    if (timeline.items[timeline.index] === path) return;
+    timeline.items = timeline.items.slice(0, timeline.index + 1);   // a new visit drops the forward history
+    timeline.items.push(path);
+    if (timeline.items.length > MAX_ENTRIES) timeline.items.shift();
+    timeline.index = timeline.items.length - 1;
     Structra.events.emit('nav:changed');
   }
 
   function moveBy(step) {
-    const s = current();
-    const next = s.index + step;
-    if (next < 0 || next >= s.items.length) return;
-    s.index = next;
+    const timeline = current();
+    const next = timeline.index + step;
+    if (next < 0 || next >= timeline.items.length) return;
+    timeline.index = next;
     replaying = true;
     try {
-      Structra.setState('currentPath', s.items[next]);
+      Structra.setState('currentPath', timeline.items[next]);
     } finally {
       replaying = false;
     }
@@ -59,7 +59,7 @@ Structra.pathHistory = (() => {
   const back = () => moveBy(-1);
   const forward = () => moveBy(1);
   const canBack = () => current().index > 0;
-  const canForward = () => { const s = current(); return s.index < s.items.length - 1; };
+  const canForward = () => { const timeline = current(); return timeline.index < timeline.items.length - 1; };
 
   Structra.events.on('state:currentPath', (change) => record(change.value));
 

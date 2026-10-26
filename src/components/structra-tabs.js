@@ -90,7 +90,7 @@ class StructraTabs extends StructraComponent {
     const tab = event.target.closest('.doc-tab');
     if (!tab || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Enter' && event.key !== ' ')) return;
     const list = Structra.tabs.list;
-    const i = list.findIndex((t) => t.id === Number(tab.dataset.id));
+    const i = list.findIndex((tabElement) => tabElement.id === Number(tab.dataset.id));
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this._switchTab(list[i].id); return; }
     const next = list[(i + (event.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
     event.preventDefault();
@@ -100,10 +100,10 @@ class StructraTabs extends StructraComponent {
 
   /* ---- right-click menu ---- */
   _handleContext = (event) => {
-    const tabEl = event.target.closest('.doc-tab');
-    if (!tabEl) return;
+    const tabElement = event.target.closest('.doc-tab');
+    if (!tabElement) return;
     event.preventDefault();
-    const id = Number(tabEl.dataset.id);
+    const id = Number(tabElement.dataset.id);
     const list = Structra.tabs.list;
     const index = list.findIndex((tab) => tab.id === id);
     const items = [
@@ -241,8 +241,8 @@ class StructraTabs extends StructraComponent {
     Structra.events.emit('tabs:switched', tab);
   }
 
-  _startRename(tabEl) {
-    const label = tabEl.querySelector('.tab-label');
+  _startRename(tabElement) {
+    const label = tabElement.querySelector('.tab-label');
     const old = label.textContent;
     label.contentEditable = 'true';
     label.focus();
@@ -251,7 +251,7 @@ class StructraTabs extends StructraComponent {
       label.contentEditable = 'false';
       const newName = label.textContent.trim() || old;
       label.textContent = newName;
-      const id = Number(tabEl.dataset.id);
+      const id = Number(tabElement.dataset.id);
       const tab = Structra.tabs.list.find(tab => tab.id === id);
       if (tab) { tab.label = newName; if (newName !== old) tab.customLabel = true; }
     };

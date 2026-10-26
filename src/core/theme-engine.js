@@ -251,12 +251,12 @@ Structra.themeEngine = (() => {
     }
 
     const theme = { name, mode: input.mode, colors };
-    const f = input.fonts;
-    if (f && typeof f === 'object') {
+    const fontSettings = input.fonts;
+    if (fontSettings && typeof fontSettings === 'object') {
       const fonts = {};
-      if (typeof f.ui === 'string' && SAFE_FONT.test(f.ui)) fonts.ui = f.ui;
-      if (typeof f.mono === 'string' && SAFE_FONT.test(f.mono)) fonts.mono = f.mono;
-      if (Number.isFinite(f.size) && f.size >= 12 && f.size <= 20) fonts.size = f.size;
+      if (typeof fontSettings.ui === 'string' && SAFE_FONT.test(fontSettings.ui)) fonts.ui = fontSettings.ui;
+      if (typeof fontSettings.mono === 'string' && SAFE_FONT.test(fontSettings.mono)) fonts.mono = fontSettings.mono;
+      if (Number.isFinite(fontSettings.size) && fontSettings.size >= 12 && fontSettings.size <= 20) fonts.size = fontSettings.size;
       if (Object.keys(fonts).length) theme.fonts = fonts;
     }
     if (errors.length) throw new Error(errors.join(' '));

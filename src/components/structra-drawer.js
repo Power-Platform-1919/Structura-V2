@@ -97,8 +97,8 @@ class StructraDrawer extends StructraComponent {
         this._cycle();
         return;
       }
-      const navBtn = event.target.closest('[data-tab]');
-      if (navBtn) this._switchTab(navBtn.dataset.tab);
+      const navButton = event.target.closest('[data-tab]');
+      if (navButton) this._switchTab(navButton.dataset.tab);
     });
   }
 
@@ -109,8 +109,8 @@ class StructraDrawer extends StructraComponent {
     let startY, startH;
     const onMove = (event) => {
       const delta = startY - event.clientY;
-      const newH = Math.max(36, Math.min(window.innerHeight * 0.6, startH + delta));
-      this.style.height = newH + 'px';
+      const newHeight = Math.max(36, Math.min(window.innerHeight * 0.6, startH + delta));
+      this.style.height = newHeight + 'px';
     };
     const onUp = () => {
       document.removeEventListener('mousemove', onMove);

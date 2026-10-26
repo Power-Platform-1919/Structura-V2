@@ -52,11 +52,11 @@ class StructraMinimap extends StructraComponent {
     if (!data) return;
 
     const canvas = this._canvas;
-    const ctx = this._ctx;
+    const context = this._ctx;
     const width = canvas.width;
     const height = canvas.height;
 
-    ctx.clearRect(0, 0, width, height);
+    context.clearRect(0, 0, width, height);
 
     // Generate structure map
     const lines = this._structureLines(data, 0);
@@ -66,13 +66,13 @@ class StructraMinimap extends StructraComponent {
       const line = lines[i];
       const y = i * lineH;
       const indent = Math.min(line.depth * 8, width - 10);
-      const barW = Math.max(4, (width - indent) * line.density);
+      const barWidth = Math.max(4, (width - indent) * line.density);
 
-      ctx.fillStyle = this._colorForType(line.type);
-      ctx.globalAlpha = 0.7;
-      ctx.fillRect(indent, y, barW, Math.max(lineH, 1));
+      context.fillStyle = this._colorForType(line.type);
+      context.globalAlpha = 0.7;
+      context.fillRect(indent, y, barWidth, Math.max(lineH, 1));
     }
-    ctx.globalAlpha = 1;
+    context.globalAlpha = 1;
 
     // Update viewport indicator
     this._updateViewport();
@@ -84,8 +84,8 @@ class StructraMinimap extends StructraComponent {
       if (depth > 30) return; // Safety
       if (value === null) { lines.push({ depth: depth, type: 'null', density: 0.2 }); return; }
       if (typeof value !== 'object') {
-        const len = typeof value === 'string' ? Math.min(value.length / 100, 1) : 0.3;
-        lines.push({ depth: depth, type: typeof value, density: len });
+        const length = typeof value === 'string' ? Math.min(value.length / 100, 1) : 0.3;
+        lines.push({ depth: depth, type: typeof value, density: length });
         return;
       }
       if (Array.isArray(value)) {

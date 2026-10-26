@@ -85,10 +85,10 @@ Structra.typeCodeGenerator = (() => {
       }
       if (value && typeof value === 'object') {
         const fields = [];
-        for (const [key, val] of Object.entries(value)) {
-          const type = walk(val, typeName(key));
+        for (const [key, fieldValue] of Object.entries(value)) {
+          const type = walk(fieldValue, typeName(key));
           // A field that can be empty reads "T | null": it is there, but may hold nothing
-          const orNull = isNullable(value, key, val) && type !== 'null' ? ' | null' : '';
+          const orNull = isNullable(value, key, fieldValue) && type !== 'null' ? ' | null' : '';
           fields.push(`  ${tsKey(key)}: ${type}${orNull};`);
         }
         interfaces.push(`interface ${interfaceName} {\n${fields.join('\n')}\n}`);
@@ -124,11 +124,11 @@ Structra.typeCodeGenerator = (() => {
       }
       if (value && typeof value === 'object') {
         const fields = [];
-        for (const [key, val] of Object.entries(value)) {
-          const type = walk(val, typeName(key));
-          const optional = isNullable(value, key, val) ? `Optional[${type}]` : type;
+        for (const [key, fieldValue] of Object.entries(value)) {
+          const type = walk(fieldValue, typeName(key));
+          const optional = isNullable(value, key, fieldValue) ? `Optional[${type}]` : type;
           const pyName = noKeyword('python', lead(snakeIdent(key)));
-          fields.push(`    ${pyName}: ${isNullable(value, key, val) ? optional : type}${pyName === key ? '' : '  # JSON key: "' + escapeQuotes(key) + '"'}`);
+          fields.push(`    ${pyName}: ${isNullable(value, key, fieldValue) ? optional : type}${pyName === key ? '' : '  # JSON key: "' + escapeQuotes(key) + '"'}`);
         }
         classes.push(`@dataclass\nclass ${className}:\n${fields.join('\n')}`);
         return className;
@@ -163,9 +163,9 @@ Structra.typeCodeGenerator = (() => {
       }
       if (value && typeof value === 'object') {
         const properties = [];
-        for (const [key, val] of Object.entries(value)) {
-          const type = walk(val, typeName(key));
-          const nullable = isNullable(value, key, val) ? '?' : '';
+        for (const [key, fieldValue] of Object.entries(value)) {
+          const type = walk(fieldValue, typeName(key));
+          const nullable = isNullable(value, key, fieldValue) ? '?' : '';
           const csName = typeName(key);
           properties.push((csName === key ? '' : '    [JsonPropertyName("' + escapeQuotes(key) + '")]\n') + `    public ${type}${nullable} ${csName} { get; set; }`);
         }
@@ -202,9 +202,9 @@ Structra.typeCodeGenerator = (() => {
       }
       if (value && typeof value === 'object') {
         const fields = [];
-        for (const [key, val] of Object.entries(value)) {
-          const type = walk(val, typeName(key));
-          const pointer = isNullable(value, key, val) ? '*' : '';
+        for (const [key, fieldValue] of Object.entries(value)) {
+          const type = walk(fieldValue, typeName(key));
+          const pointer = isNullable(value, key, fieldValue) ? '*' : '';
           fields.push(`\t${typeName(key)} ${pointer}${type} \`json:"${escapeQuotes(key)}"\``);
         }
         structs.push(`type ${structName} struct {\n${fields.join('\n')}\n}`);
@@ -240,11 +240,11 @@ Structra.typeCodeGenerator = (() => {
       }
       if (value && typeof value === 'object') {
         const fields = [];
-        for (const [key, val] of Object.entries(value)) {
-          const type = walk(val, typeName(key));
-          const option = isNullable(value, key, val) ? `Option<${type}>` : type;
+        for (const [key, fieldValue] of Object.entries(value)) {
+          const type = walk(fieldValue, typeName(key));
+          const option = isNullable(value, key, fieldValue) ? `Option<${type}>` : type;
           const rsName = noKeyword('rust', lead(snakeIdent(key)));
-          fields.push((rsName === key ? '' : '    #[serde(rename = "' + escapeQuotes(key) + '")]\n') + `    pub ${rsName}: ${isNullable(value, key, val) ? option : type},`);
+          fields.push((rsName === key ? '' : '    #[serde(rename = "' + escapeQuotes(key) + '")]\n') + `    pub ${rsName}: ${isNullable(value, key, fieldValue) ? option : type},`);
         }
         structs.push(`#[derive(Debug, Serialize, Deserialize)]\npub struct ${structName} {\n${fields.join('\n')}\n}`);
         return structName;
@@ -279,8 +279,8 @@ Structra.typeCodeGenerator = (() => {
       }
       if (value && typeof value === 'object') {
         const fields = [];
-        for (const [key, val] of Object.entries(value)) {
-          const type = walk(val, typeName(key));
+        for (const [key, fieldValue] of Object.entries(value)) {
+          const type = walk(fieldValue, typeName(key));
           const jName = noKeyword('java', lead(camelIdent(key)));
           fields.push((jName === key ? '' : '    @JsonProperty("' + escapeQuotes(key) + '")\n') + `    private ${type} ${jName};`);
         }

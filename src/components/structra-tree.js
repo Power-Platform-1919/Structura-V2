@@ -103,15 +103,15 @@ class StructraTree extends StructraComponent {
     // Render using V2 json-tree renderer
     Structra.jsonTreeRenderer.render(view, data, {
       onPathSelect: (path) => {
-        const p = Structra.dataPaths.canonical(path);
-        Structra.setState('currentPath', p);
-        Structra.events.emit('tree:node-selected', p);
+        const canonicalPath = Structra.dataPaths.canonical(path);
+        Structra.setState('currentPath', canonicalPath);
+        Structra.events.emit('tree:node-selected', canonicalPath);
       },
       onContextMenu: (x, y, path) => {
         // A right-click selects the line first, so the path bar and the expressions follow the menu
-        const p = Structra.dataPaths.canonical(path);
-        Structra.setState('currentPath', p);
-        this._showContextMenu(x, y, p);
+        const canonicalPath = Structra.dataPaths.canonical(path);
+        Structra.setState('currentPath', canonicalPath);
+        this._showContextMenu(x, y, canonicalPath);
       },
     });
 
@@ -161,7 +161,7 @@ class StructraTree extends StructraComponent {
     this._dismissCtxMenu();
     const data = Structra.state.jsonData;
     const value = this._resolve(data, path);
-    const isObj = value !== null && typeof value === 'object';
+    const isObject = value !== null && typeof value === 'object';
     const isArray = Array.isArray(value);
 
     const menu = document.createElement('div');
@@ -179,14 +179,14 @@ class StructraTree extends StructraComponent {
     ];
 
     const iconSpan = (name) => `<span class="tree-ctx-icon">${Structra.icons.svg(name, { size: 14 })}</span>`;
-    const scalar = value !== null && value !== undefined && !isObj;
+    const scalar = value !== null && value !== undefined && !isObject;
     // A text value that holds JSON (a flow run's Payload) can be opened and read as data
     let inner = null;
     if (typeof value === 'string' && /^\s*[\[{]/.test(value)) { try { const parsed = JSON.parse(value); if (parsed && typeof parsed === 'object') inner = parsed; } catch { /* just text */ } }
     menu.innerHTML = `
       <div class="tree-ctx-item" data-ctx="copy-path">${iconSpan('copy')} Copy path</div>
       <div class="tree-ctx-item" data-ctx="copy-value">${iconSpan('clipboard')} Copy value</div>
-      ${isObj ? `<div class="tree-ctx-item" data-ctx="copy-subtree">${iconSpan('braces')} Copy as JSON</div>` : ''}
+      ${isObject ? `<div class="tree-ctx-item" data-ctx="copy-subtree">${iconSpan('braces')} Copy as JSON</div>` : ''}
       <div class="tree-ctx-sep"></div>
       <div class="tree-ctx-item" data-ctx="copy-pa">${iconSpan('zap')} Copy Power Automate expression</div>
       <div class="tree-ctx-item" data-ctx="copy-fx">${iconSpan('zap')} Copy Power Fx formula</div>

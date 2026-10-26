@@ -287,7 +287,7 @@ Structra.powerPlatformExpressions = (() => {
   const isNoise = (key) => key.startsWith('@') || key === 'ItemInternalId' || key === 'odata.etag';
 
   /** How a Power Fx column is converted, from the values it really holds */
-  function fxConversion(values, ref) {
+  function fxConversion(values, reference) {
     const seen = new Set();
     let dates = true;
     let datetimes = true;
@@ -301,13 +301,13 @@ Structra.powerPlatformExpressions = (() => {
         if (!ISO_DATETIME.test(value)) datetimes = false;
       }
     }
-    if (seen.size !== 1) return { kind: seen.size ? 'mixed' : 'text', value: `Text(${ref})`, literal: '"value"' };
+    if (seen.size !== 1) return { kind: seen.size ? 'mixed' : 'text', value: `Text(${reference})`, literal: '"value"' };
     const firstType = [...seen][0];
-    if (firstType === 'number') return { kind: 'number', value: `Value(${ref})`, literal: '0' };
-    if (firstType === 'boolean') return { kind: 'boolean', value: `Boolean(${ref})`, literal: 'true' };
-    if (firstType === 'string' && strings && datetimes) return { kind: 'datetime', value: `DateTimeValue(${ref})`, literal: 'Now()' };
-    if (firstType === 'string' && strings && dates) return { kind: 'date', value: `DateValue(${ref})`, literal: 'Today()' };
-    return { kind: 'text', value: `Text(${ref})`, literal: '"value"' };
+    if (firstType === 'number') return { kind: 'number', value: `Value(${reference})`, literal: '0' };
+    if (firstType === 'boolean') return { kind: 'boolean', value: `Boolean(${reference})`, literal: 'true' };
+    if (firstType === 'string' && strings && datetimes) return { kind: 'datetime', value: `DateTimeValue(${reference})`, literal: 'Now()' };
+    if (firstType === 'string' && strings && dates) return { kind: 'date', value: `DateValue(${reference})`, literal: 'Today()' };
+    return { kind: 'text', value: `Text(${reference})`, literal: '"value"' };
   }
 
   const peek = (rows, parts) => rows.slice(0, 50).map((row) => {
@@ -400,8 +400,8 @@ Structra.powerPlatformExpressions = (() => {
         if (keys) {
           // Chosen columns, each converted by what it holds: numbers with Value, flags with Boolean, ISO dates with DateValue
           const columns = pickedColumns(Structra.dataPaths.strip(path), value).filter((column) => column.on);
-          const colExpr = (column) => `${fxName(column.name)}: ${column.value}`;
-          const typedAll = columns.length ? `ForAll(${expression}, {${columns.slice(0, 40).map(colExpr).join(', ')}})` : null;
+          const colExpression = (column) => `${fxName(column.name)}: ${column.value}`;
+          const typedAll = columns.length ? `ForAll(${expression}, {${columns.slice(0, 40).map(colExpression).join(', ')}})` : null;
           if (typedAll) {
             add('Typed table (chosen columns)', typedAll);
             add('Collect typed table', `ClearCollect(colData, ${typedAll})`);
@@ -409,7 +409,7 @@ Structra.powerPlatformExpressions = (() => {
           const first = columns[0];
           if (first) {
             const column = fxName(first.name);
-            const typed = `ForAll(${expression}, {${colExpr(first)}})`;
+            const typed = `ForAll(${expression}, {${colExpression(first)}})`;
             add(`[1] ${first.id}`, first.value.replace('ThisRecord', `Index(${expression}, 1)`));
             add('Gallery column', first.kind === 'text' ? `ThisItem.${first.parts.map(fxName).join('.')}` : `Text(ThisItem.${first.parts.map(fxName).join('.')})`);
             add('Filter (not blank)', `Filter(${typed}, !IsBlank(${column}))`);
@@ -423,7 +423,7 @@ Structra.powerPlatformExpressions = (() => {
             add('AddColumns', `AddColumns(${typed}, "Extra", "value")`);
           }
           if (columns.length >= 2) {
-            add('GroupBy', `GroupBy(ForAll(${expression}, {${colExpr(columns[0])}, ${colExpr(columns[1])}}), "${columns[0].name}", "Items")`);
+            add('GroupBy', `GroupBy(ForAll(${expression}, {${colExpression(columns[0])}, ${colExpression(columns[1])}}), "${columns[0].name}", "Items")`);
           }
         } else if (value.length && typeof value[0] === 'string') {
           const values = `ForAll(${expression}, {Value: Text(ThisRecord)})`;
@@ -595,8 +595,8 @@ Structra.powerPlatformExpressions = (() => {
    * returns something. They also follow the Source settings (action name, trigger, loop) like the other tabs.
    */
   function patternSections(data) {
-    const isObj = data && typeof data === 'object' && !Array.isArray(data);
-    const keys = isObj ? Object.keys(data).filter((key) => !key.startsWith('@')) : [];
+    const isObject = data && typeof data === 'object' && !Array.isArray(data);
+    const keys = isObject ? Object.keys(data).filter((key) => !key.startsWith('@')) : [];
     const keyPath = (key) => (/^[A-Za-z_$][\w$]*$/.test(key) ? `$.${key}` : `$['${key.replace(/'/g, "\\'")}']`);
     const scalarKey = keys.find((key) => data[key] === null || typeof data[key] !== 'object');
     const stringKey = keys.find((key) => typeof data[key] === 'string');

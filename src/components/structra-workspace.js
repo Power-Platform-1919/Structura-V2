@@ -44,10 +44,10 @@ class StructraWorkspace extends StructraDialog {
     this.addEventListener('click', (event) => {
       const action = event.target.closest('[data-action]');
       if (!action) return;
-      const a = action.dataset.action;
-      if (a === 'close') this.close();
-      else if (a === 'export') this._export();
-      else if (a === 'import') this._import();
+      const actionName = action.dataset.action;
+      if (actionName === 'close') this.close();
+      else if (actionName === 'export') this._export();
+      else if (actionName === 'import') this._import();
     });
   }
 
@@ -118,16 +118,16 @@ class StructraWorkspace extends StructraDialog {
       if (workspace.type !== 'structra-workspace') { Structra.toast('This is not a Structra workspace file', 'error'); return; }
 
       // Check the shape before anything is written: a damaged or hand-made file must not damage saved data
-      const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
+      const isObject = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
       if (workspace.tabs !== undefined && !Array.isArray(workspace.tabs)) { Structra.toast('This workspace file is damaged: its tabs are not a list.', 'error'); return; }
       const rawTabs = workspace.tabs || (workspace.data ? [{ label: workspace.fileName || 'Imported', fileName: workspace.fileName, data: workspace.data }] : []);
-      const tabs = rawTabs.filter((rawTab) => isObj(rawTab) && rawTab.data !== null && typeof rawTab.data === 'object');
+      const tabs = rawTabs.filter((rawTab) => isObject(rawTab) && rawTab.data !== null && typeof rawTab.data === 'object');
       const skipped = rawTabs.length - tabs.length;
       const okList = (value) => (Array.isArray(value) ? value : null);
-      const bookmarks = okList(workspace.bookmarks) ? workspace.bookmarks.filter((bookmark) => isObj(bookmark) && typeof bookmark.path === 'string') : null;
-      const snippets = okList(workspace.snippets) ? workspace.snippets.filter((x) => isObj(x) && typeof x.name === 'string' && typeof x.content === 'string') : null;
+      const bookmarks = okList(workspace.bookmarks) ? workspace.bookmarks.filter((bookmark) => isObject(bookmark) && typeof bookmark.path === 'string') : null;
+      const snippets = okList(workspace.snippets) ? workspace.snippets.filter((x) => isObject(x) && typeof x.name === 'string' && typeof x.content === 'string') : null;
       const history = okList(workspace.queryHistory);
-      const settings = isObj(workspace.settings) ? Object.fromEntries(Object.entries(workspace.settings).filter(([key, value]) => /^structra_setting_\w+$/.test(key) && typeof value === 'string' && value.length < 200)) : null;
+      const settings = isObject(workspace.settings) ? Object.fromEntries(Object.entries(workspace.settings).filter(([key, value]) => /^structra_setting_\w+$/.test(key) && typeof value === 'string' && value.length < 200)) : null;
       this.close();
       const panel = document.querySelector('structra-input-panel');
       let opened = 0;

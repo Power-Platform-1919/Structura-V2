@@ -106,38 +106,38 @@ class StructraQuery extends StructraComponent {
     this.on('state:jsonData', () => this._renderTransformPresets());
     this.on('engine:ingested', () => this._renderTransformPresets());
 
-    this.addEventListener('click', (e) => {
-      const tab = e.target.closest('[data-qtab]');
+    this.addEventListener('click', (exampleItem) => {
+      const tab = exampleItem.target.closest('[data-qtab]');
       if (tab) {
         this._switchTab(tab.dataset.qtab);
         return;
       }
-      const copy = e.target.closest('[data-copy-expr]');
+      const copy = exampleItem.target.closest('[data-copy-expr]');
       if (copy) {
-        e.stopPropagation();
+        exampleItem.stopPropagation();
         const path = copy.closest('.qp-result').dataset.path;
         const expression = copy.dataset.copyExpr === 'pa' ? Structra.dataPaths.powerAutomate(path) : Structra.dataPaths.powerFx(path);
         Structra.sharedHelpers.copyToClipboard(expression, copy.dataset.copyExpr === 'pa' ? 'Power Automate expression copied' : 'Power Fx expression copied');
         return;
       }
-      const match = e.target.closest('.qp-result[data-path]');
+      const match = exampleItem.target.closest('.qp-result[data-path]');
       if (match) { this._showMatch(match.dataset.path); return; }
-      if (e.target.closest('[data-action="openPivot"]')) { Structra.events.emit('pivot:open'); return; }
-      const preset = e.target.closest('[data-preset]');
+      if (exampleItem.target.closest('[data-action="openPivot"]')) { Structra.events.emit('pivot:open'); return; }
+      const preset = exampleItem.target.closest('[data-preset]');
       if (preset) {
         this.queryOne('#transformInput').value = preset.dataset.preset;
         this._runTransform();                       // a preset is a ready-made answer: it runs at once
         return;
       }
-      const example = e.target.closest('[data-sql-example]');
+      const example = exampleItem.target.closest('[data-sql-example]');
       if (example) {                                    // a ready-made query runs at once
         this._sqlSet(example.dataset.sqlExample);
         this._runQuery();
         return;
       }
-      const column = e.target.closest('[data-sql-col]');
+      const column = exampleItem.target.closest('[data-sql-col]');
       if (column) { this._insertAtCursor(column.dataset.sqlCol); return; }
-      const mode = e.target.closest('[data-mode]');
+      const mode = exampleItem.target.closest('[data-mode]');
       if (mode) {
         const changed = mode.dataset.mode !== this._mode;
         this._mode = mode.dataset.mode;
@@ -146,7 +146,7 @@ class StructraQuery extends StructraComponent {
         if (changed) this._resetResults();                 // the old result belongs to the mode that made it
         return;
       }
-      const action = e.target.closest('[data-action]');
+      const action = exampleItem.target.closest('[data-action]');
       if (!action) return;
       if (action.dataset.action === 'close') Structra.setState('queryPanelOpen', false);
       else if (action.dataset.action === 'run') this._runQuery();
@@ -203,17 +203,17 @@ class StructraQuery extends StructraComponent {
     const dataset = Structra.dataEngine.getActive();
     const data = dataset ? dataset.raw : Structra.state.jsonData;
     let rows = null;
-    let nav = '';
+    let navigation = '';
     if (Array.isArray(data)) rows = data;
     else if (data && typeof data === 'object') {
       const first = Structra.dataEngine.findFirstObjectArray ? Structra.dataEngine.findFirstObjectArray(data) : null;
       // Only a list reached through plain keys can be written as .a.b
       if (first && first.path && /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/.test(first.path.replace(/^\$\.?/, ''))) {
         rows = first.rows;
-        nav = '.' + first.path.replace(/^\$\.?/, '');
+        navigation = '.' + first.path.replace(/^\$\.?/, '');
       }
     }
-    const head = nav ? nav + ' | ' : '';
+    const head = navigation ? navigation + ' | ' : '';
     if (!rows || !rows.length || typeof rows[0] !== 'object' || rows[0] === null) {
       return { presets: [{ label: 'Count items', expr: 'length' }, { label: 'Keys', expr: 'keys()' }], example: 'keys() | slice(0, 5)' };
     }
@@ -416,9 +416,9 @@ class StructraQuery extends StructraComponent {
 
   /** Ready-made queries that use the file's real column names, so they run as they are */
   _sqlExamples(columns) {
-    const isNum = (type) => /^(U?(TINY|SMALL|BIG|HUGE)?INT|INTEGER|DOUBLE|FLOAT|REAL|DECIMAL)/i.test(type);
+    const isNumber = (type) => /^(U?(TINY|SMALL|BIG|HUGE)?INT|INTEGER|DOUBLE|FLOAT|REAL|DECIMAL)/i.test(type);
     const text = columns.find((column) => /^VARCHAR/i.test(column.type));
-    const number = columns.find((column) => isNum(column.type));
+    const number = columns.find((column) => isNumber(column.type));
     const list = [
       { label: 'First 100 rows', sql: 'SELECT *\nFROM data\nLIMIT 100' },
       { label: 'Count rows', sql: 'SELECT COUNT(*) AS rows\nFROM data' },
@@ -499,8 +499,8 @@ class StructraQuery extends StructraComponent {
     if (kind.name === 'time') {
       const micros = Number(value);
       const secs = Math.floor(micros / 1e6);
-      const frac = micros % 1e6;
-      return `${pad(Math.floor(secs / 3600))}:${pad(Math.floor(secs / 60) % 60)}:${pad(secs % 60)}${frac ? '.' + pad(frac, 6).replace(/0+$/, '') : ''}`;
+      const fraction = micros % 1e6;
+      return `${pad(Math.floor(secs / 3600))}:${pad(Math.floor(secs / 60) % 60)}:${pad(secs % 60)}${fraction ? '.' + pad(fraction, 6).replace(/0+$/, '') : ''}`;
     }
     if (kind.name === 'decimal') {                       // the engine gives the digits without the point: put it back
       let digits = String(value).replace('-', '');
@@ -664,18 +664,18 @@ class StructraQuery extends StructraComponent {
 
   _queryRegex(data, pattern) {
     const matches = [];
-    let re;
+    let expression;
     const source = pattern.replace(/^\/|\/[a-z]*$/g, '');
     if (Structra.sharedHelpers.isRiskyRegex(source)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
-    try { re = new RegExp(source, 'i'); }
+    try { expression = new RegExp(source, 'i'); }
     catch (error) { throw new Error('That is not a valid pattern: ' + error.message.replace(/^Invalid regular expression: /, '')); }
     const walk = (value, path) => {
-      if (typeof value === 'string' && re.test(value)) matches.push({ path, value: value });
+      if (typeof value === 'string' && expression.test(value)) matches.push({ path, value: value });
       if (value && typeof value === 'object') {
         const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
-        entries.forEach(([field, v]) => {
-          const p = Array.isArray(value) ? `${path}[${field}]` : (/^[A-Za-z_$][\w$]*$/.test(field) ? `${path}.${field}` : `${path}['${field}']`);
-          walk(v, p);
+        entries.forEach(([field, child]) => {
+          const childPath = Array.isArray(value) ? `${path}[${field}]` : (/^[A-Za-z_$][\w$]*$/.test(field) ? `${path}.${field}` : `${path}['${field}']`);
+          walk(child, childPath);
         });
       }
     };
@@ -699,7 +699,7 @@ class StructraQuery extends StructraComponent {
           if (budget.left-- <= 0 || !value || typeof value !== 'object') return;
           if (!where.has(value)) where.set(value, path);
           const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
-          for (const [field, v] of entries) walk(v, Array.isArray(value) ? `${path}[${field}]` : (/^[A-Za-z_$][\w$]*$/.test(field) ? `${path}.${field}` : `${path}['${field}']`), budget);
+          for (const [field, child] of entries) walk(child, Array.isArray(value) ? `${path}[${field}]` : (/^[A-Za-z_$][\w$]*$/.test(field) ? `${path}.${field}` : `${path}['${field}']`), budget);
         };
         walk(data, '$', { left: 200000 });
       }

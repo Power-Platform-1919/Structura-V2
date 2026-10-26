@@ -88,16 +88,16 @@ Structra.imageCapture = (() => {
   const MODERN = /(color-mix|color|oklch|oklab|lch|lab|hwb)\((?:[^()]|\([^()]*\))*\)/g;
 
   function colorResolver() {
-    const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-    ctx.canvas.width = ctx.canvas.height = 1;
+    const context = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    context.canvas.width = context.canvas.height = 1;
     const cache = new Map();
     return (css) => {
       if (cache.has(css)) return cache.get(css);
-      ctx.clearRect(0, 0, 1, 1);
-      ctx.fillStyle = '#000';
-      ctx.fillStyle = css;                       // the browser parses any colour it supports
-      ctx.fillRect(0, 0, 1, 1);
-      const [red, green, blue, alpha] = ctx.getImageData(0, 0, 1, 1).data;
+      context.clearRect(0, 0, 1, 1);
+      context.fillStyle = '#000';
+      context.fillStyle = css;                       // the browser parses any colour it supports
+      context.fillRect(0, 0, 1, 1);
+      const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
       const out = alpha === 255 ? `rgb(${red}, ${green}, ${blue})` : `rgba(${red}, ${green}, ${blue}, ${+(alpha / 255).toFixed(3)})`;
       cache.set(css, out);
       return out;

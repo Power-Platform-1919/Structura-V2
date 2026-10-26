@@ -55,9 +55,9 @@ class StructraDrawerStats extends StructraComponent {
 
     const analysis = await Structra.dataEngine.getAnalysis();
     if (!analysis) return;
-    const { stats: stats, firstArr, profile, gaps } = analysis;
+    const { stats: stats, firstArr: firstArray, profile, gaps } = analysis;
     const quality = profile ? profile.quality : null;
-    const rows = firstArr ? firstArr.rows.length : 0;
+    const rows = firstArray ? firstArray.rows.length : 0;
 
     let html = '';
 
@@ -121,8 +121,8 @@ class StructraDrawerStats extends StructraComponent {
         Structra.setState('activeView', 'overview');
         // Scroll to profiler section after view switch
         requestAnimationFrame(() => {
-          const prof = document.querySelector('.profiler-table');
-          if (prof) prof.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const profile = document.querySelector('.profiler-table');
+          if (profile) profile.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       }
     });

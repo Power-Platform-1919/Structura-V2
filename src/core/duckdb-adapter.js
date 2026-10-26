@@ -30,7 +30,7 @@ window.Structra = window.Structra || {};
 
 Structra.duckdbAdapter = (() => {
   let _db = null;
-  let _conn = null;
+  let _connection = null;
   let _initPromise = null;
   let _ready = false;
 
@@ -73,7 +73,7 @@ Structra.duckdbAdapter = (() => {
       Structra.log.info('DuckDB', 'Opened in-memory');
 
       // Create connection
-      _conn = await _db.connect();
+      _connection = await _db.connect();
       _ready = true;
 
       const duration = performance.now() - startTime;
@@ -92,10 +92,10 @@ Structra.duckdbAdapter = (() => {
 
   /* --- Query --- */
   async function query(sql) {
-    if (!_ready || !_conn) {
+    if (!_ready || !_connection) {
       throw new Error('DuckDB not initialized');
     }
-    const result = await _conn.query(sql);
+    const result = await _connection.query(sql);
     // Convert Arrow table to array of objects
     return arrowToObjects(result);
   }
@@ -120,7 +120,7 @@ Structra.duckdbAdapter = (() => {
 
   /* --- Register Dataset as DuckDB Table --- */
   async function registerDataset(dataset) {
-    if (!_ready || !_conn) return;
+    if (!_ready || !_connection) return;
     const { raw, duckTable, meta } = dataset;
 
     // Skip empty / primitive data - nothing meaningful to query via SQL
@@ -130,7 +130,7 @@ Structra.duckdbAdapter = (() => {
     const tableName = duckTable.replace(/[^a-z0-9_]/gi, '_');
 
     // Drop existing table if any
-    await _conn.query(`DROP TABLE IF EXISTS "${tableName}"`);
+    await _connection.query(`DROP TABLE IF EXISTS "${tableName}"`);
 
     try {
       // Prepare data for read_json_auto:
@@ -140,7 +140,7 @@ Structra.duckdbAdapter = (() => {
       const jsonText = JSON.stringify(dataToRegister);
 
       await _db.registerFileText(`${tableName}.json`, jsonText);
-      await _conn.query(
+      await _connection.query(
         `CREATE TABLE "${tableName}" AS SELECT * FROM read_json_auto('${tableName}.json', maximum_depth=-1)`
       );
 
@@ -161,10 +161,10 @@ Structra.duckdbAdapter = (() => {
    * Returns [{name, type, nested}] where nested=true for STRUCT/LIST/MAP columns.
    */
   async function getTableColumns(tableName) {
-    if (!_ready || !_conn) return [];
+    if (!_ready || !_connection) return [];
     const safeName = tableName.replace(/[^a-z0-9_]/gi, '_');
     try {
-      const result = await _conn.query(
+      const result = await _connection.query(
         `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${safeName}' ORDER BY ordinal_position`
       );
       const columns = arrowToObjects(result);
@@ -180,15 +180,15 @@ Structra.duckdbAdapter = (() => {
 
   /* --- Drop Table --- */
   async function dropTable(name) {
-    if (!_ready || !_conn) return;
+    if (!_ready || !_connection) return;
     const tableName = name.replace(/[^a-z0-9_]/gi, '_');
-    await _conn.query(`DROP TABLE IF EXISTS "${tableName}"`);
+    await _connection.query(`DROP TABLE IF EXISTS "${tableName}"`);
     Structra.log.info('DuckDB', `Dropped table "${tableName}"`);
   }
 
   /* --- Close --- */
   async function close() {
-    if (_conn) { await _conn.close(); _conn = null; }
+    if (_connection) { await _connection.close(); _connection = null; }
     if (_db) { await _db.terminate(); _db = null; }
     _ready = false;
     Structra.log.info('DuckDB', 'Closed');

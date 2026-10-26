@@ -129,10 +129,10 @@ Structra.virtualList = (() => {
 
       // Build chunk content
       const content = buildChunk(start, end, total);
-      const chunkEl = wrapChunk(content, start, end);
+      const chunkElement = wrapChunk(content, start, end);
 
       // Insert before sentinel
-      sentinel.parentNode.insertBefore(chunkEl, sentinel);
+      sentinel.parentNode.insertBefore(chunkElement, sentinel);
 
       // Update or remove sentinel
       if (end < total) {
@@ -150,10 +150,10 @@ Structra.virtualList = (() => {
 
       // Observe for recycling if total > chunkSize
       if (_recycleObserver && total > chunkSize) {
-        _recycleObserver.observe(chunkEl);
+        _recycleObserver.observe(chunkElement);
       }
 
-      if (onChunkLoaded) onChunkLoaded(chunkEl, start, end);
+      if (onChunkLoaded) onChunkLoaded(chunkElement, start, end);
     }
 
     /* --- Setup Observers --- */
@@ -194,9 +194,9 @@ Structra.virtualList = (() => {
       // Render first chunk inline
       const firstEnd = Math.min(_total, chunkSize);
       const content = buildChunk(0, firstEnd, _total);
-      const chunkEl = wrapChunk(content, 0, firstEnd);
-      container.appendChild(chunkEl);
-      if (onChunkLoaded) onChunkLoaded(chunkEl, 0, firstEnd);
+      const chunkElement = wrapChunk(content, 0, firstEnd);
+      container.appendChild(chunkElement);
+      if (onChunkLoaded) onChunkLoaded(chunkElement, 0, firstEnd);
 
       // Add sentinel for remaining items
       if (_total > chunkSize) {

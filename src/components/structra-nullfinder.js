@@ -40,11 +40,11 @@ class StructraNullfinder extends StructraDialog {
       if (item) { this._goToPath(item.dataset.nfPath); return; }
       const action = event.target.closest('[data-action]');
       if (!action) return;
-      const a = action.dataset.action;
-      if (a === 'close') this.close();
-      else if (a === 'scan') this._scan();
-      else if (a === 'prev') this._navigate(-1);
-      else if (a === 'next') this._navigate(1);
+      const actionName = action.dataset.action;
+      if (actionName === 'close') this.close();
+      else if (actionName === 'scan') this._scan();
+      else if (actionName === 'prev') this._navigate(-1);
+      else if (actionName === 'next') this._navigate(1);
 
     });
   }
@@ -93,12 +93,12 @@ class StructraNullfinder extends StructraDialog {
           records.forEach((record) => Object.keys(record).forEach((key) => all.add(key)));
           value.forEach((record, i) => {
             if (!record || typeof record !== 'object' || Array.isArray(record)) return;
-            for (const k of all) if (!(k in record)) results.push({ path: key(`${path}[${i}]`, k), type: 'missing' });
+            for (const columnKey of all) if (!(columnKey in record)) results.push({ path: key(`${path}[${i}]`, columnKey), type: 'missing' });
           });
         }
         value.forEach((child, i) => walk(child, `${path}[${i}]`));
       } else {
-        for (const k of Object.keys(value)) walk(value[k], key(path, k));
+        for (const columnKey of Object.keys(value)) walk(value[columnKey], key(path, columnKey));
       }
     };
     walk(data, '$');
@@ -107,14 +107,14 @@ class StructraNullfinder extends StructraDialog {
 
   _renderResults() {
     const container = this.queryOne('#nfResults');
-    const nav = this.queryOne('#nfNav');
+    const navigation = this.queryOne('#nfNav');
     if (this._results.length === 0) {
       container.innerHTML = '<div class="nf-placeholder">None found. Nothing is null, empty or missing with these options.</div>';
-      nav.style.display = 'none';
+      navigation.style.display = 'none';
       return;
     }
 
-    nav.style.display = '';
+    navigation.style.display = '';
     this.queryOne('#nfNavCount').textContent = `${this._results.length.toLocaleString()} found`;
 
     // One line per field (value[*].Notes), with how many of each kind, so a column that is mostly empty stands out

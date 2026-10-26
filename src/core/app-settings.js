@@ -51,9 +51,9 @@ Structra.appSettings = (() => {
     const raw = localStorage.getItem(PREFIX + key);
     if (raw === null) return DEFAULTS[key];
     // Parse typed values
-    const def = DEFAULTS[key];
-    if (typeof def === 'number') return Number(raw) || def;
-    if (typeof def === 'boolean') return raw === 'true';
+    const definition = DEFAULTS[key];
+    if (typeof definition === 'number') return Number(raw) || definition;
+    if (typeof definition === 'boolean') return raw === 'true';
     return raw;
   }
 

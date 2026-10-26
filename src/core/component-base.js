@@ -30,14 +30,14 @@ class StructraComponent extends HTMLElement {
   }
 
   /** Called when an observed attribute changes - updates props and re-renders */
-  attributeChangedCallback(name, oldVal, newVal) {
-    if (oldVal === newVal) return;
-    this.props[this._camel(name)] = newVal;
-    if (this._mounted) this.update(name, oldVal, newVal);
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue === newValue) return;
+    this.props[this._camel(name)] = newValue;
+    if (this._mounted) this.update(name, oldValue, newValue);
   }
 
   /** Override for targeted prop-change handling (default: full re-render) */
-  update(name, oldVal, newVal) {
+  update(name, oldValue, newValue) {
     this.render();
   }
 

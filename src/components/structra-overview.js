@@ -81,7 +81,7 @@ class StructraOverview extends StructraComponent {
 
     const analysis = await Structra.dataEngine.getAnalysis();
     if (!analysis) return;
-    const { stats: stats, firstArr, profile } = analysis;
+    const { stats: stats, firstArr: firstArray, profile } = analysis;
     let html = '';
 
     this._insights = Structra.overviewInsights.build({
@@ -94,11 +94,11 @@ class StructraOverview extends StructraComponent {
     html += '<h2 class="ovw-details-title">Details</h2>';
     html += this._renderTypes(stats);
 
-    if (firstArr) {
-      this._currentArr = firstArr;
+    if (firstArray) {
+      this._currentArr = firstArray;
       if (profile) html += this._renderQuality(profile.quality);
       html += this._renderArraysFound(stats.arraysDetail);
-      html += this._renderKeyCoverage(firstArr.path, firstArr.rows, [], profile ? profile.coverage : null);
+      html += this._renderKeyCoverage(firstArray.path, firstArray.rows, [], profile ? profile.coverage : null);
       if (profile) html += this._renderProfiler(profile);
       if (profile) html += this._renderDistribution(profile);
     } else {
@@ -356,14 +356,14 @@ class StructraOverview extends StructraComponent {
     const render = () => {
       const scrollTop = wrap.scrollTop;
       const viewH = wrap.clientHeight;
-      const startIdx = Math.max(0, Math.floor(scrollTop / ROW_H) - BUFFER);
-      const endIdx = Math.min(data.length, Math.ceil((scrollTop + viewH) / ROW_H) + BUFFER);
+      const startIndex = Math.max(0, Math.floor(scrollTop / ROW_H) - BUFFER);
+      const endIndex = Math.min(data.length, Math.ceil((scrollTop + viewH) / ROW_H) + BUFFER);
 
-      const topPad = startIdx * ROW_H;
-      const botPad = Math.max(0, (data.length - endIdx) * ROW_H);
+      const topPad = startIndex * ROW_H;
+      const botPad = Math.max(0, (data.length - endIndex) * ROW_H);
 
       let rows = '';
-      for (let i = startIdx; i < endIdx; i++) {
+      for (let i = startIndex; i < endIndex; i++) {
         const item = data[i];
         const isPrim = item.sample !== 'object';
         const className = isPrim ? 'arr-path arr-prim' : 'arr-path';
@@ -404,11 +404,11 @@ class StructraOverview extends StructraComponent {
     const coverage = precomputed || Structra.dataEngine.analyzeKeys(rows);
     if (coverage.length === 0) return '';
 
-    const backBtn = drillStack.length > 0
+    const backButton = drillStack.length > 0
       ? ` <span class="stat-drill-back" data-action="drill-back" title="Go back">↑ Back</span>`
       : '';
 
-    let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage: ${Structra.sharedHelpers.escapeHtml(path)} (${rows.length} rows)${backBtn}</div>`;
+    let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage: ${Structra.sharedHelpers.escapeHtml(path)} (${rows.length} rows)${backButton}</div>`;
     html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th title="Rows where the key is there and not empty">Has a value</th><th></th></tr></thead><tbody>';
 
     const sorted = [...coverage].sort((list, bin) => bin.missing - list.missing || bin.empty - list.empty || list.key.localeCompare(bin.key));
@@ -470,7 +470,7 @@ class StructraOverview extends StructraComponent {
     html += '</tr></thead><tbody>';
 
     for (const finding of profileData.fields) {
-      const topStr = finding.topValues ? finding.topValues.map(topValue => `${Structra.sharedHelpers.escapeHtml(topValue.val)} (${topValue.cnt})`).join(', ') : '-';
+      const topText = finding.topValues ? finding.topValues.map(topValue => `${Structra.sharedHelpers.escapeHtml(topValue.val)} (${topValue.cnt})`).join(', ') : '-';
       html += `<tr>
         <td class="pf-key">${Structra.sharedHelpers.escapeHtml(finding.key)}</td>
         <td><span class="pf-type pf-type-${finding.primaryType}">${finding.primaryType}</span></td>
@@ -480,7 +480,7 @@ class StructraOverview extends StructraComponent {
         <td>${finding.min != null ? finding.min : '-'}</td>
         <td>${finding.max != null ? finding.max : '-'}</td>
         <td>${finding.avg != null ? finding.avg : '-'}</td>`;
-      html += `<td class="pf-top">${topStr}</td>
+      html += `<td class="pf-top">${topText}</td>
       </tr>`;
     }
     html += '</tbody></table></div></div>';
@@ -513,13 +513,13 @@ class StructraOverview extends StructraComponent {
         }
         html += '</div>';
       } else {
-        const maxVal = Math.max(...finding.distTop.map((entry) => entry.count), 1);
+        const maxValue = Math.max(...finding.distTop.map((entry) => entry.count), 1);
         html += '<div class="dist-categorical">';
-        for (const tv of finding.distTop) {
+        for (const topEntry of finding.distTop) {
           html += `<div class="dist-cat-row">
-            <span class="dist-cat-label" title="${Structra.sharedHelpers.escapeHtml(String(tv.value))}">${Structra.sharedHelpers.escapeHtml(String(tv.value).slice(0, 24))}</span>
-            <div class="dist-cat-bar"><div class="dist-cat-fill" style="width:${Math.round(tv.count / maxVal * 100)}%"></div></div>
-            <span class="dist-cat-count">${tv.count}</span>
+            <span class="dist-cat-label" title="${Structra.sharedHelpers.escapeHtml(String(topEntry.value))}">${Structra.sharedHelpers.escapeHtml(String(topEntry.value).slice(0, 24))}</span>
+            <div class="dist-cat-bar"><div class="dist-cat-fill" style="width:${Math.round(topEntry.count / maxValue * 100)}%"></div></div>
+            <span class="dist-cat-count">${topEntry.count}</span>
           </div>`;
         }
         if (finding.distUnique > finding.distTop.length) html += `<div class="dist-cat-more">+${finding.distUnique - finding.distTop.length} more unique values</div>`;
@@ -537,9 +537,9 @@ class StructraOverview extends StructraComponent {
   _onClick(event) {
     const action = event.target.closest('[data-action]');
     if (!action) return;
-    const act = action.dataset.action;
+    const actionName = action.dataset.action;
 
-    switch (act) {
+    switch (actionName) {
       case 'go': {
         const finding = this._insights && this._insights.findings[Number(action.dataset.i)];
         if (finding) this._goToFinding(finding.go);
@@ -661,9 +661,9 @@ class StructraOverview extends StructraComponent {
   _refreshCoverage() {
     const section = this.queryOne('#covSection');
     if (!section || !this._currentArr) return;
-    const frag = document.createElement('div');
-    frag.innerHTML = this._renderKeyCoverage(this._currentArr.path, this._currentArr.rows, this._drillStack);
-    section.replaceWith(frag.firstElementChild);
+    const fragment = document.createElement('div');
+    fragment.innerHTML = this._renderKeyCoverage(this._currentArr.path, this._currentArr.rows, this._drillStack);
+    section.replaceWith(fragment.firstElementChild);
   }
 
   /** Show indices popup near an anchor element */

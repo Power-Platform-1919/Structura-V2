@@ -142,9 +142,9 @@
     if (event.shiftKey) key.push('shift');
     if (event.altKey) key.push('alt');
 
-    const k = event.key.toLowerCase();
-    if (k !== 'control' && k !== 'shift' && k !== 'alt' && k !== 'meta') {
-      key.push(k);
+    const pressedKey = event.key.toLowerCase();
+    if (pressedKey !== 'control' && pressedKey !== 'shift' && pressedKey !== 'alt' && pressedKey !== 'meta') {
+      key.push(pressedKey);
     }
     const combo = key.join('+');
     const action = Structra.constants.SHORTCUTS[combo];

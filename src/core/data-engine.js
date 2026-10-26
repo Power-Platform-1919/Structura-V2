@@ -265,13 +265,13 @@ Structra.dataEngine = (() => {
       if (firstValue == null && secondValue == null) return 0;
       if (firstValue == null) return 1;
       if (secondValue == null) return -1;
-      const cmp = Structra.sharedHelpers.compareValues(firstValue, secondValue);
-      return direction === 'asc' ? cmp : -cmp;
+      const compare = Structra.sharedHelpers.compareValues(firstValue, secondValue);
+      return direction === 'asc' ? compare : -compare;
     });
 
-    const sortObj = { key, dir: direction, refs };
-    dataset.indexes.sorted = sortObj;
-    cacheSet(dataset, cacheKey, sortObj);
+    const sortObject = { key, dir: direction, refs };
+    dataset.indexes.sorted = sortObject;
+    cacheSet(dataset, cacheKey, sortObject);
   }
 
   /* --- Search --- */
@@ -294,18 +294,18 @@ Structra.dataEngine = (() => {
         const entries = Array.isArray(value)
           ? value.map((item, i) => [i, item])
           : Object.entries(value);
-        for (const [key, v] of entries) {
+        for (const [key, item] of entries) {
           const childPath = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
           // Check match based on mode
           if (mode === 'keys' && regex.test(String(key))) {
             matched.push(childPath);
-          } else if (mode === 'values' && v !== null && typeof v !== 'object' && regex.test(String(v))) {
+          } else if (mode === 'values' && item !== null && typeof item !== 'object' && regex.test(String(item))) {
             matched.push(childPath);
           } else if (mode === 'paths' && regex.test(childPath)) {
             matched.push(childPath);
           }
-          if (v && typeof v === 'object') {
-            stack.push({ val: v, path: childPath, depth: depth + 1 });
+          if (item && typeof item === 'object') {
+            stack.push({ val: item, path: childPath, depth: depth + 1 });
           }
         }
       }
@@ -378,8 +378,8 @@ Structra.dataEngine = (() => {
     }
     if (typeof value === 'object') {
       const properties = {};
-      for (const [key, v] of Object.entries(value)) {
-        properties[key] = inferSchema(v, path + '.' + key, depth + 1);
+      for (const [key, item] of Object.entries(value)) {
+        properties[key] = inferSchema(item, path + '.' + key, depth + 1);
       }
       return { type: 'object', path, properties };
     }
@@ -753,8 +753,8 @@ Structra.dataEngine = (() => {
   }
 
   /** Build SQL WHERE clause from structured conditions */
-  function _conditionsToSql(conditions, validCols) {
-    const colSet = new Set(validCols);
+  function _conditionsToSql(conditions, validColumns) {
+    const colSet = new Set(validColumns);
     const parts = [];
 
     for (let i = 0; i < conditions.length; i++) {
@@ -1143,7 +1143,7 @@ Structra.dataEngine = (() => {
 
     const pathOf = (frame) => {
       const parts = [];
-      for (let f = frame; f && f.parent; f = f.parent) parts.push(f.key);
+      for (let ancestor = frame; ancestor && ancestor.parent; ancestor = ancestor.parent) parts.push(ancestor.key);
       let out = '';
       for (let i = parts.length - 1; i >= 0; i--) {
         const part = parts[i];
@@ -1172,14 +1172,14 @@ Structra.dataEngine = (() => {
 
       if (Array.isArray(value)) {
         statistics.arrays++;
-        const n = value.length;
-        if (n > statistics.longestArray) statistics.longestArray = n;
+        const length = value.length;
+        if (length > statistics.longestArray) statistics.longestArray = length;
         statistics.arraysDetail.push({
           path: pathOf(frame),
-          count: n,
-          sample: n > 0 ? (typeof value[0] === 'object' && value[0] !== null ? 'object' : typeof value[0]) : 'empty',
+          count: length,
+          sample: length > 0 ? (typeof value[0] === 'object' && value[0] !== null ? 'object' : typeof value[0]) : 'empty',
         });
-        for (let i = n - 1; i >= 0; i--) {
+        for (let i = length - 1; i >= 0; i--) {
           const child = value[i];
           if (child !== null && typeof child === 'object') {
             stack.push({ val: child, parent: frame, key: i, depth: depth + 1 });
@@ -1649,10 +1649,10 @@ Structra.dataEngine = (() => {
         const startTime = performance.now();
         await _tick();                          // let the page paint first
         const stats = await _analyze(dataset.raw);
-        const firstArr = findFirstObjectArray(dataset.raw);
-        const profile = firstArr ? await _profileRows(firstArr.rows) : null;
+        const firstArray = findFirstObjectArray(dataset.raw);
+        const profile = firstArray ? await _profileRows(firstArray.rows) : null;
         Structra.log.perf('Engine', 'analysis', performance.now() - startTime);
-        return { stats, firstArr, profile, gaps: profile ? profile.gaps : 0 };
+        return { stats, firstArr: firstArray, profile, gaps: profile ? profile.gaps : 0 };
       })();
     }
     return dataset._analysis;
@@ -1823,10 +1823,10 @@ Structra.dataEngine = (() => {
       const { val: value, path } = stack.pop();
       if (!value || typeof value !== 'object') continue;
       const entries = Array.isArray(value) ? value.map((item, i) => [i, item]) : Object.entries(value);
-      for (const [key, v] of entries) {
+      for (const [key, item] of entries) {
         const child = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
-        if (v !== null && typeof v === 'object') stack.push({ val: v, path: child });
-        else if (v !== null && v !== undefined && typeof v !== 'boolean' && matches(v)) matched.push(child);
+        if (item !== null && typeof item === 'object') stack.push({ val: item, path: child });
+        else if (item !== null && item !== undefined && typeof item !== 'boolean' && matches(item)) matched.push(child);
       }
     }
     near.clear();
@@ -1863,8 +1863,8 @@ Structra.dataEngine = (() => {
     const dataset = getActive();
     if (!dataset) return { total: 0, matchedPaths: [] };
     if (Structra.sharedHelpers.isRiskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
-    const re = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
-    return _findInMemory(dataset, pattern, re);
+    const expression = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
+    return _findInMemory(dataset, pattern, expression);
   }
 
   /** Store matched paths as the active find result */
@@ -1902,7 +1902,7 @@ Structra.dataEngine = (() => {
       if (!isPlain(row)) return { value: row };
       const out = {};
       for (const [key, value] of Object.entries(row)) {
-        if (isPlain(value)) { for (const [condition, cv] of Object.entries(value)) out[key + '.' + condition] = cv; }
+        if (isPlain(value)) { for (const [condition, nestedValue] of Object.entries(value)) out[key + '.' + condition] = nestedValue; }
         else out[key] = value;
       }
       return out;
@@ -1949,13 +1949,13 @@ Structra.dataEngine = (() => {
    * @param {string} aggFn - aggregate function (count, sum, avg, etc.)
    * @returns {Promise<Array>}
    */
-  async function pivotData(onCol, valueCol, aggFn = 'count') {
+  async function pivotData(onCol, valueCol, aggFunction = 'count') {
     const dataset = getActive();
     if (!dataset || !(await enableSql())) return [];
     const tableName = _tableOf(dataset);
     try {
       return await Structra.duckdbAdapter.query(
-        `PIVOT "${tableName}" ON "${onCol}" USING ${aggFn}("${valueCol}")`
+        `PIVOT "${tableName}" ON "${onCol}" USING ${aggFunction}("${valueCol}")`
       );
     } catch (error) {
       Structra.log.warn('Engine', `pivotData failed`, error.message);

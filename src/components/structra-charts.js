@@ -143,47 +143,47 @@ class StructraCharts extends StructraDialog {
   }
 
   _histogram(values, min, max) {
-    const width = 640, height = 170, padL = 8, padB = 22, padT = 8;
+    const width = 640, height = 170, paddingLeft = 8, paddingBottom = 22, paddingTop = 8;
     const bins = max === min ? 1 : StructraCharts.BINS;
     const counts = new Array(bins).fill(0);
     const span = (max - min) || 1;
     for (const value of values) counts[Math.min(bins - 1, Math.floor(((value - min) / span) * bins))]++;
     const peak = Math.max(...counts);
-    const barWidth = (width - padL * 2) / bins;
+    const barWidth = (width - paddingLeft * 2) / bins;
     const bars = counts.map((count, i) => {
-      const barHeight = peak ? (count / peak) * (height - padB - padT) : 0;
+      const barHeight = peak ? (count / peak) * (height - paddingBottom - paddingTop) : 0;
       const low = min + (span * i) / bins, high = min + (span * (i + 1)) / bins;
-      return `<rect class="ch-bar" x="${(padL + i * barWidth + 1).toFixed(1)}" y="${(height - padB - barHeight).toFixed(1)}" width="${Math.max(1, barWidth - 2).toFixed(1)}" height="${barHeight.toFixed(1)}"><title>${this._formatNumber(low)} to ${this._formatNumber(high)}: ${count.toLocaleString()}</title></rect>`;
+      return `<rect class="ch-bar" x="${(paddingLeft + i * barWidth + 1).toFixed(1)}" y="${(height - paddingBottom - barHeight).toFixed(1)}" width="${Math.max(1, barWidth - 2).toFixed(1)}" height="${barHeight.toFixed(1)}"><title>${this._formatNumber(low)} to ${this._formatNumber(high)}: ${count.toLocaleString()}</title></rect>`;
     }).join('');
     return `<svg class="ch-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Histogram from ${this._formatNumber(min)} to ${this._formatNumber(max)}, tallest bar ${peak.toLocaleString()} values">
       ${bars}
-      <line class="ch-axisline" x1="${padL}" y1="${height - padB}" x2="${width - padL}" y2="${height - padB}"/>
-      <text class="ch-axis" x="${padL}" y="${height - 6}">${this._formatNumber(min)}</text>
-      <text class="ch-axis" x="${width - padL}" y="${height - 6}" text-anchor="end">${this._formatNumber(max)}</text>
+      <line class="ch-axisline" x1="${paddingLeft}" y1="${height - paddingBottom}" x2="${width - paddingLeft}" y2="${height - paddingBottom}"/>
+      <text class="ch-axis" x="${paddingLeft}" y="${height - 6}">${this._formatNumber(min)}</text>
+      <text class="ch-axis" x="${width - paddingLeft}" y="${height - 6}" text-anchor="end">${this._formatNumber(max)}</text>
     </svg>
     <p class="ch-note">Each bar counts the values in one range, from ${this._formatNumber(min)} to ${this._formatNumber(max)}. The tallest bar holds ${peak.toLocaleString()} ${peak === 1 ? 'value' : 'values'}.</p>`;
   }
 
   _trend(values, min, max) {
-    const width = 640, height = 120, padL = 46, padR = 8, padT = 8, padB = 20;
+    const width = 640, height = 120, paddingLeft = 46, paddingRight = 8, paddingTop = 8, paddingBottom = 20;
     const target = StructraCharts.TREND_POINTS;
     const stride = Math.max(1, Math.ceil(values.length / target));
     const pts = [];
     for (let i = 0; i < values.length; i += stride) pts.push(values[i]);
     const span = (max - min) || 1;
     const pathData = pts.map((point, i) => {
-      const x = pts.length === 1 ? (padL + width - padR) / 2 : padL + (i / (pts.length - 1)) * (width - padL - padR);
-      const y = height - padB - ((point - min) / span) * (height - padT - padB);
+      const x = pts.length === 1 ? (paddingLeft + width - paddingRight) / 2 : paddingLeft + (i / (pts.length - 1)) * (width - paddingLeft - paddingRight);
+      const y = height - paddingBottom - ((point - min) / span) * (height - paddingTop - paddingBottom);
       return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
     }).join(' ');
     return `<svg class="ch-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Values in file order, ${values.length.toLocaleString()} values${stride > 1 ? ', every ' + stride + 'th shown' : ''}">
-      <line class="ch-axisline" x1="${padL}" y1="${padT}" x2="${padL}" y2="${height - padB}"/>
-      <line class="ch-axisline" x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}"/>
+      <line class="ch-axisline" x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${height - paddingBottom}"/>
+      <line class="ch-axisline" x1="${paddingLeft}" y1="${height - paddingBottom}" x2="${width - paddingRight}" y2="${height - paddingBottom}"/>
       <path class="ch-line" d="${pathData}"/>
-      <text class="ch-axis" x="${padL - 6}" y="${padT + 8}" text-anchor="end">${this._formatNumber(max)}</text>
-      <text class="ch-axis" x="${padL - 6}" y="${height - padB}" text-anchor="end">${this._formatNumber(min)}</text>
-      <text class="ch-axis" x="${padL}" y="${height - 5}">first row</text>
-      <text class="ch-axis" x="${width - padR}" y="${height - 5}" text-anchor="end">row ${values.length.toLocaleString()}</text>
+      <text class="ch-axis" x="${paddingLeft - 6}" y="${paddingTop + 8}" text-anchor="end">${this._formatNumber(max)}</text>
+      <text class="ch-axis" x="${paddingLeft - 6}" y="${height - paddingBottom}" text-anchor="end">${this._formatNumber(min)}</text>
+      <text class="ch-axis" x="${paddingLeft}" y="${height - 5}">first row</text>
+      <text class="ch-axis" x="${width - paddingRight}" y="${height - 5}" text-anchor="end">row ${values.length.toLocaleString()}</text>
     </svg>${stride > 1 ? `<p class="ch-note">Showing every ${stride}th value.</p>` : ''}`;
   }
 
