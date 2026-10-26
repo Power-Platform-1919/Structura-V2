@@ -1,0 +1,27 @@
+name: Mirror prod to main
+
+on:
+  push:
+    branches: [prod]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror-prod-to-main
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: prod
+          fetch-depth: 0
+
+      - name: Make main identical to prod
+        run: |
+          git push origin "refs/remotes/origin/prod:refs/heads/main" --force
+          echo "main -> $(git rev-parse origin/prod)" >> "$GITHUB_STEP_SUMMARY"
