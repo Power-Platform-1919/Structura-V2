@@ -1,6 +1,7 @@
 /* ============================================================
-   STRUCTRA V2 - Base Element Class
-   All custom elements extend this. ~30 lines, no magic.
+   STRUCTRA V2 - Component base class
+   StructraComponent: every custom element of the app extends this. Small, no magic.
+   Helpers: this.queryOne(selector) and this.queryAll(selector) search inside the element.
    ============================================================ */
 
 class StructraComponent extends HTMLElement {

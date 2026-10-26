@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUCTRA V2 - Overlay Base
+   STRUCTRA V2 - Dialog base class
    StructraDialog - one implementation of "a dialog on top of the app".
    Dialogs (validate, charts, theme, shortcuts, ...) extend this and only
    describe their content. The base owns:

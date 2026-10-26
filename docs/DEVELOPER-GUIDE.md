@@ -120,7 +120,18 @@ Matching list items is slow on long lists, so a list over 1,500 items makes the 
 - No em dashes. Use a full stop, a colon or a comma.
 - Buttons and titles use sentence case ("Open a file").
 
-## 8. Running and testing
+## 8. Naming
+
+A name should say what the thing is or does, so a reader never has to look it up.
+
+- **Files** are named for their job: `data-engine.js`, `json-repair-and-validation.js`. Components keep the `structra-` prefix and match their tag.
+- **What a file exposes** has the same name: `Structra.dataEngine`, `Structra.sharedHelpers`, `Structra.dataPaths`.
+- **Functions** start with a verb: `escapeHtml`, `loadLibrary`, `copyToClipboard`. Yes/no values start with `is`, `has` or `can`.
+- **Variables and parameters** are whole words: `event`, `row`, `button`, `options`, `startTime`. Do not shorten to `e`, `r`, `btn`, `opts`, `t0`. Only `i` and `j` (loop counters) and `x` and `y` (positions) stay short.
+- **Constants** are in capitals with the unit in the name: `ROW_HEIGHT`, `MAX_ARRAY`, `STORAGE_KEY`.
+- **Not renamed on purpose:** saved storage keys, event names (`'engine:ingested'`) and CSS classes, because saved data and styles depend on them.
+
+## 9. Running and testing
 
 ```bash
 npm install
@@ -135,6 +146,6 @@ npm run ui:audit         # UI audit across all themes and screen sizes
 - Set `PW_CHANNEL=msedge` to use installed Edge instead of downloading Chromium.
 - When you change text that a test checks, update the test in the same change.
 
-## 9. Branches and deployment
+## 10. Branches and deployment
 
 `dev` then `test` then `prod`. Pushing `prod` deploys GitHub Pages and resets `main` to match it. See the README.

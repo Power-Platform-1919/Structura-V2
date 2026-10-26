@@ -4,18 +4,23 @@
    Anything two components would otherwise each write for themselves lives here.
 
    API:
-     esc(value)                  → HTML-safe text (null becomes ''), safe for text and attribute values
-     typeOf(value)               → 'null' | 'array' | 'object' | 'string' | 'number' | 'boolean' | 'undefined'
+     escapeHtml(value)           → HTML-safe text (null becomes ''), safe for text and attribute values
+     jsonTypeOf(value)           → 'null' | 'array' | 'object' | 'string' | 'number' | 'boolean' | 'undefined'
      formatBytes(n)              → '1.4 MB'
      timeAgo(timestamp)          → 'just now', '5m ago', '3h ago', or a date
      clamp(n, min, max)
      debounce(fn, ms)            → function with .cancel()
-     nextTick()                  → Promise that resolves on the next turn of the event loop
+     waitForNextTick()          → Promise that resolves on the next turn of the event loop
      yieldToBrowser()            → Promise; lets the page paint and handle input (use inside long loops)
-     whenIdle(fn, timeout)       → run fn when the browser is idle
-     copy(text, message)         → Promise<boolean>; copies and shows a toast
-     download(content, name, mime) → save text or a Blob as a file
-     uid(prefix)                 → unique id string
+     runWhenIdle(fn, timeout)    → run fn when the browser is idle
+     copyToClipboard(text, message) → Promise<boolean>; copies and shows a toast
+     downloadFile(content, name, mime) → save text or a Blob as a file
+     uniqueId(prefix)            → unique id string
+     compareValues(first, second) → sort order for mixed values (numbers, text, booleans, the rest)
+     isRiskyRegex(pattern)       → true when a pattern could freeze the page (RISKY_REGEX_MESSAGE says why)
+     tryCodeInWorker(code, data) → run user code in a worker with a time limit
+     limitDepth(value, cap)      → how deep a value goes, stopping at cap
+     capitalize / camelCase / pascalCase / snakeCase(text)   → naming styles
    ============================================================ */
 
 window.Structra = window.Structra || {};
