@@ -33,6 +33,7 @@ class StructraQuery extends StructraElement {
 
   init() {
     this._mode = 'path';
+    this._tab = 'query';
     this.on('query:show-tab', (tab) => this._switchTab(tab));
     // Results and transform output belong to the document they were made from
     const clear = () => this._resetResults();
@@ -48,6 +49,7 @@ class StructraQuery extends StructraElement {
   _resetResults() {
     this._lastMatches = [];
     this._lastTransform = null;
+    this._lastSql = null;
     const results = this.$('#queryResults');
     if (results) results.innerHTML = '<div class="qp-summary">Type a query and press Run</div>';
   }
@@ -137,9 +139,11 @@ class StructraQuery extends StructraElement {
       if (col) { this._insertAtCursor(col.dataset.sqlCol); return; }
       const mode = e.target.closest('[data-mode]');
       if (mode) {
+        const changed = mode.dataset.mode !== this._mode;
         this._mode = mode.dataset.mode;
         this.$$('.seg-btn').forEach(m => m.classList.toggle('active', m.dataset.mode === this._mode));
         this._showModeHelp();
+        if (changed) this._resetResults();                 // the old result belongs to the mode that made it
         return;
       }
       const action = e.target.closest('[data-action]');
@@ -181,6 +185,7 @@ class StructraQuery extends StructraElement {
   }
 
   _switchTab(tab) {
+    if (this._tab !== tab) this._resetResults();      // Query and Transform share the result area
     this._tab = tab;
     const title = this.$('.panel-title');
     if (title) title.textContent = tab === 'transform' ? 'Transform' : 'Query and Transform';

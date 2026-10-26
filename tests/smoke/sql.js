@@ -214,6 +214,15 @@ function serve() {
     const opened = await page.evaluate(() => JSON.stringify(Structra.state.jsonData));
     if (opened !== JSON.stringify(rows.map((x) => ({ id: x.id, name: x.name })))) failures.push('the new tab should hold the result rows: ' + opened);
 
+    // ---- A result belongs to the mode that made it: another mode does not show it ----
+    await run('SELECT id FROM data');
+    if (!(await page.evaluate(() => !!document.querySelector('#queryResults .qp-sql-grid')))) failures.push('the SQL result should be showing before the mode changes');
+    await page.locator('.seg-btn[data-mode="path"]').click();
+    const other = await page.evaluate(() => ({ grid: !!document.querySelector('#queryResults .qp-sql-grid'), text: document.querySelector('#queryResults').textContent.trim() }));
+    if (other.grid || !/Type a query/.test(other.text)) failures.push('a SQL result should not stay when another mode is chosen: ' + JSON.stringify(other));
+    await page.locator('.seg-btn[data-mode="sql"]').click();
+    if (await page.evaluate(() => !!document.querySelector('#queryResults .qp-sql-grid'))) failures.push('the old SQL result should not come back when SQL is chosen again');
+
     // ---- Other modes are unchanged ----
     await page.locator('.seg-btn[data-mode="path"]').click();
     const gone = await page.evaluate(() => ({ s: document.querySelector('#sqlSchema').hidden, e: document.querySelector('#sqlExamples').hidden, h: document.querySelector('#sqlHistory').hidden }));
