@@ -1,12 +1,12 @@
-# Structra V2 — CSS System Reference
+# Structra V2 - CSS System Reference
 
 ## File Structure
-- `src/css/variables.css` — Single source of truth for ALL design tokens
-- `src/css/layout.css` — Grid shell (header, tab-bar, workspace, status)
-- `src/css/components.css` — Shared UI component styles
+- `src/css/variables.css` - Single source of truth for ALL design tokens
+- `src/css/layout.css` - Grid shell (header, tab-bar, workspace, status)
+- `src/css/components.css` - Shared UI component styles
 
 ## Rule: Zero Hardcoded Values
-- **No hex colors** in layout.css or components.css — use `--var` from variables.css
+- **No hex colors** in layout.css or components.css - use `--var` from variables.css
 - **No px sizes** (except `1px` borders, `2px` indicators, `@media` breakpoints)
 - All font sizes use `--fs-xxs` to `--fs-xl` scale
 - All icon sizes use `--icon-xs` to `--icon-xl` scale

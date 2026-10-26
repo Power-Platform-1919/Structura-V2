@@ -1,15 +1,15 @@
 # V2 Data Utilities Analysis
 
-## traverse.js — Traversal Engine
+## traverse.js - Traversal Engine
 **Stack-based, maxDepth=20 by default**
-- `walk(obj, visitor, opts)` — Core iterative DFS
-- `collectPaths(obj)` — Schema paths with type info
-- `findArrays(obj)` — All arrays with metadata
-- `findAllArrays(obj)` — Deep discovery with cycle detection
-- `findArrayOfObjects(obj)` — First meaningful array
-- `searchValues(obj, regex, signal)` — Async value search (fast path for root arrays)
-- `searchKeys(obj, keyName, signal)` — Exact key search
-- `countPathMatches(obj, regex, signal)` — Path regex counter
+- `walk(obj, visitor, opts)` - Core iterative DFS
+- `collectPaths(obj)` - Schema paths with type info
+- `findArrays(obj)` - All arrays with metadata
+- `findAllArrays(obj)` - Deep discovery with cycle detection
+- `findArrayOfObjects(obj)` - First meaningful array
+- `searchValues(obj, regex, signal)` - Async value search (fast path for root arrays)
+- `searchKeys(obj, keyName, signal)` - Exact key search
+- `countPathMatches(obj, regex, signal)` - Path regex counter
 
 **Optimizations:**
 - Fast path: direct property scan for root array of objects
@@ -17,7 +17,7 @@
 - Reused counter object (_leafCounter) to avoid allocations
 - Async yield every 10000 ops
 
-## stats.js — Analysis & Stats UI
+## stats.js - Analysis & Stats UI
 **Main entry: renderStats(jsonData, evaluatePath)**
 - Mini-grid: rows, keys, gaps
 - Arrays table (all discovered arrays)
@@ -31,16 +31,16 @@
 - showMissingObjects/showEmptyObjects - shows indices
 - showIndicesPopup - generic renderer (limited to 50 items)
 
-## data-profiler.js — Field Statistics
+## data-profiler.js - Field Statistics
 **profile(arr)** → quality score + field metadata
 - Per-field: count, coverage%, nullPct, types, min/max/avg/sum, unique, topValues
 - Quality: completeness (40%) + consistency (35%) + uniqueness (25%)
 - Issue detection: null saturation, mixed types, low uniqueness
 
-## state.js — Global State Management
-- `Structra.state` — global state object
-- `Structra.set/get` — state helpers with event emission
-- `Structra.events` — event bus (on/off/emit)
+## state.js - Global State Management
+- `Structra.state` - global state object
+- `Structra.set/get` - state helpers with event emission
+- `Structra.events` - event bus (on/off/emit)
 - Theme persisted to localStorage
 - Tab state management
 

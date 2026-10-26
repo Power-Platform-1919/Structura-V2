@@ -8,15 +8,15 @@ Build a **pluggable Data Engine** (`Structra.engine`) with a unified query API. 
 ## Addressing Your Concerns
 
 ### 1. Portability (VS Code ext, web app, GitHub Pages)
-The engine API is **environment-agnostic** — same interface everywhere:
-- **GitHub Pages (primary deployment)**: Full power — DuckDB WASM + CDN libraries
+The engine API is **environment-agnostic** - same interface everywhere:
+- **GitHub Pages (primary deployment)**: Full power - DuckDB WASM + CDN libraries
 - **VS Code extension webview**: Same as above (proper origin)
-- **Local dev**: Open HTML via localhost (e.g., `npx serve`) — DuckDB WASM works fine
-- **Offline**: Low priority — can add Service Worker to cache CDN assets later (acceptable tradeoff: first load needs internet)
+- **Local dev**: Open HTML via localhost (e.g., `npx serve`) - DuckDB WASM works fine
+- **Offline**: Low priority - can add Service Worker to cache CDN assets later (acceptable tradeoff: first load needs internet)
 
-**Internet OK** — libraries loaded from CDN (jsdelivr), cached by browser after first load.
-**Data stays local** — never sent to any external API. All processing in-browser WASM sandbox.
-**Large files OK** — DuckDB WASM (~3MB) downloaded once, browser-cached indefinitely.
+**Internet OK** - libraries loaded from CDN (jsdelivr), cached by browser after first load.
+**Data stays local** - never sent to any external API. All processing in-browser WASM sandbox.
+**Large files OK** - DuckDB WASM (~3MB) downloaded once, browser-cached indefinitely.
 
 The engine auto-selects the best available backend (DuckDB primary, JS Core while WASM loads).
 
@@ -83,7 +83,7 @@ Dataset = {
 └─────────────────────┘ └─────────────────────┘
 ```
 
-**No AlaSQL needed** — DuckDB covers everything AlaSQL does and better.
+**No AlaSQL needed** - DuckDB covers everything AlaSQL does and better.
 **Routing**: While DuckDB loads (~3s), JS Core handles all ops. Once ready, SQL routes to DuckDB. Tree/path ops always use JS Core.
 **Internet**: Libraries loaded from CDN. **Data never leaves the browser.**
 └──────────────┘ └──────────────┘ └──────────────┘
@@ -116,11 +116,11 @@ Dataset = {
 
 ### Phase 1: Engine Foundation
 
-1. **Create `src/core/data-engine.js`** — unified engine singleton
+1. **Create `src/core/data-engine.js`** - unified engine singleton
    - `Structra.engine` on global namespace
    - `datasets` Map for multi-tab
    - `setActive(tabId)` / `getActive()` / `removeDataset(tabId)`
-   - `ingest(tabId, data, meta)` — store data, trigger indexing
+   - `ingest(tabId, data, meta)` - store data, trigger indexing
    - Emits: `engine:ready`, `engine:query-result`, `engine:error`
    *depends on: nothing*
 
@@ -177,9 +177,9 @@ Dataset = {
 ### Phase 3: Multi-Tab + Cross-Tab
 
 9. **Dataset lifecycle management**
-    - `engine.ingest(tabId, data, meta)` — creates/replaces dataset for tab
-    - `engine.removeDataset(tabId)` — cleanup on tab close (free memory, drop DuckDB table)
-    - `engine.setActive(tabId)` — switch context, rebuild active indexes if needed
+    - `engine.ingest(tabId, data, meta)` - creates/replaces dataset for tab
+    - `engine.removeDataset(tabId)` - cleanup on tab close (free memory, drop DuckDB table)
+    - `engine.setActive(tabId)` - switch context, rebuild active indexes if needed
     - Tab events: listen to `tabs:switched`, `tabs:closed` from existing tab system
     *depends on steps 1-3*
 
@@ -196,7 +196,7 @@ Dataset = {
     - On ingest: if rawText >500KB → store in IndexedDB (reuse `storage.js` IDB)
     - On page load: check for persisted datasets → offer "Restore session?"
     - Store: `{tabId, rawText, meta, timestamp}`
-    - Indexes are NOT persisted (rebuilt on load — faster than storing)
+    - Indexes are NOT persisted (rebuilt on load - faster than storing)
     *depends on steps 1, 11*
 
 14. **Query result caching (LRU)**
@@ -208,7 +208,7 @@ Dataset = {
 
 ### Phase 6: Worker Infrastructure
 
-15. **Create `src/workers/engine-worker.js`** — heavy ops worker
+15. **Create `src/workers/engine-worker.js`** - heavy ops worker
     - Self-registering IIFE (like json-parse-worker.js) for Blob URL on file://
     - Operations: buildPathIndex, search, filter, sort, aggregate
     - Receives: `{op, data, params}` → returns `{op, result}`
@@ -253,7 +253,7 @@ Dataset = {
     - JSONPath mode → `engine.pathQuery(expr)`
     - Regex mode → `engine.search(regex, {mode:'values'})`
     - JS mode → `engine.evaluate(expr)` (keep current new Function approach)
-    - SQL mode (NEW) → `engine.sql(query)` — add 'sql' to mode detection
+    - SQL mode (NEW) → `engine.sql(query)` - add 'sql' to mode detection
     - All modes return unified `QueryResult` → views subscribe to `engine:query-result`
     *depends on steps 4-5, 7*
 
@@ -269,42 +269,42 @@ Dataset = {
 ## Relevant Files
 
 ### Create
-- `src/core/data-engine.js` — engine singleton (~600-800 lines)
-- `src/workers/engine-worker.js` — heavy ops worker (~200 lines)
-- `src/libs/alasql.min.js` — bundled AlaSQL (200KB)
-- `src/core/duckdb-adapter.js` — optional DuckDB WASM adapter (~150 lines)
+- `src/core/data-engine.js` - engine singleton (~600-800 lines)
+- `src/workers/engine-worker.js` - heavy ops worker (~200 lines)
+- `src/libs/alasql.min.js` - bundled AlaSQL (200KB)
+- `src/core/duckdb-adapter.js` - optional DuckDB WASM adapter (~150 lines)
 
 ### Modify
-- `src/components/structra-input-panel.js` — `_loadSuccess` → `engine.ingest()`
-- `src/components/structra-table.js` — engine pagination
-- `src/components/structra-tree.js` — engine path index
-- `src/components/structra-stats.js` — `engine.getStats()`
-- `src/components/structra-schema.js` — `engine.getSchema()`
-- `src/components/structra-graph.js` — `engine.getChildren()`
-- `src/ui/universal-filter.js` — route through engine, add SQL mode
-- `src/utils/lib-loader.js` — add alasql, duckdb entries
-- `src/app.js` — init engine, tab↔dataset sync
-- `index.html` — script tags for new files
+- `src/components/structra-input-panel.js` - `_loadSuccess` → `engine.ingest()`
+- `src/components/structra-table.js` - engine pagination
+- `src/components/structra-tree.js` - engine path index
+- `src/components/structra-stats.js` - `engine.getStats()`
+- `src/components/structra-schema.js` - `engine.getSchema()`
+- `src/components/structra-graph.js` - `engine.getChildren()`
+- `src/ui/universal-filter.js` - route through engine, add SQL mode
+- `src/utils/lib-loader.js` - add alasql, duckdb entries
+- `src/app.js` - init engine, tab↔dataset sync
+- `index.html` - script tags for new files
 
 ### Reuse (patterns, don't rewrite)
-- `src/utils/traverse.js` — `walk()` → engine worker indexing
-- `src/utils/stats.js` — `analyzeArray()` → engine stats
-- `src/utils/path.js` — `resolvePath()` → engine path access
-- `src/core/worker-pool.js` — pool factory → engine worker
-- `src/utils/storage.js` — IDB → engine persistence
+- `src/utils/traverse.js` - `walk()` → engine worker indexing
+- `src/utils/stats.js` - `analyzeArray()` → engine stats
+- `src/utils/path.js` - `resolvePath()` → engine path access
+- `src/core/worker-pool.js` - pool factory → engine worker
+- `src/utils/storage.js` - IDB → engine persistence
 
 ---
 
 ## Verification
 
-1. `engine.ingest(1, largeArray, {name:'test'})` — 100K rows ingest <2s
-2. `engine.slice(0, 50)` — returns 50 rows in <10ms
-3. `engine.search(/alice/i)` — 100K rows in <1s (worker)
-4. `engine.sql('SELECT COUNT(*) FROM data WHERE age > 30')` — returns correct count
-5. `engine.sort('name', 'asc')` then `engine.slice(0, 50)` — sorted first page
-6. `engine.diff(tab1, tab2)` — produces structural diff
+1. `engine.ingest(1, largeArray, {name:'test'})` - 100K rows ingest <2s
+2. `engine.slice(0, 50)` - returns 50 rows in <10ms
+3. `engine.search(/alice/i)` - 100K rows in <1s (worker)
+4. `engine.sql('SELECT COUNT(*) FROM data WHERE age > 30')` - returns correct count
+5. `engine.sort('name', 'asc')` then `engine.slice(0, 50)` - sorted first page
+6. `engine.diff(tab1, tab2)` - produces structural diff
 7. Tab switch: `engine.setActive(2)` → queries now operate on tab 2's data
-8. DuckDB: 400K rows, `SELECT city, COUNT(*) GROUP BY city` — <500ms
+8. DuckDB: 400K rows, `SELECT city, COUNT(*) GROUP BY city` - <500ms
 9. Offline: If DuckDB CDN unreachable, JS Core handles all ops (with performance tradeoff for large SQL)
 10. Memory: load 400K rows, run queries, close tab → memory freed (no leaks)
 11. Universal Filter SQL mode: type `SELECT name FROM data LIMIT 10` → shows results
@@ -314,14 +314,14 @@ Dataset = {
 
 ## Decisions
 - **DuckDB WASM = primary SQL engine**, loaded from CDN, browser-cached after first load
-- **No AlaSQL** — DuckDB covers all SQL needs better; removes redundant dependency
-- **JS Core handles tree operations** — no SQL engine handles arbitrary JSON nesting well
+- **No AlaSQL** - DuckDB covers all SQL needs better; removes redundant dependency
+- **JS Core handles tree operations** - no SQL engine handles arbitrary JSON nesting well
 - **Internet required for first load** (CDN downloads), offline works after caching
 - **Local dev**: `npx serve` or `python -m http.server` (NOT file://)
 - **One dataset per tab**, cross-tab via explicit operations (diff, join)
 - **Backward compat**: `Structra.state.jsonData` remains as alias
 - **Worker threshold**: <10K sync, >10K worker, >50K DuckDB
-- **No data leaves the browser** — only library downloads from CDN
+- **No data leaves the browser** - only library downloads from CDN
 - **Service Worker** (future): cache all CDN assets for true offline support
 
 ## Open Questions (resolved)

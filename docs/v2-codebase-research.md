@@ -91,8 +91,8 @@ utils/
 - Event naming: `'state:KEY'` for state changes, `'view:switched'`, `'tree:node-selected'`, etc.
 
 **State Helpers:**
-- `Structra.set(key, value)` — sets state + emits `'state:KEY'` event
-- `Structra.get(key)` — reads state
+- `Structra.set(key, value)` - sets state + emits `'state:KEY'` event
+- `Structra.get(key)` - reads state
 - Theme persisted to localStorage
 - Toast quick access: `Structra.toast(msg)`
 

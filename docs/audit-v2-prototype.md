@@ -1,4 +1,4 @@
-# Structra V2 Prototype — Complete UI Catalog
+# Structra V2 Prototype - Complete UI Catalog
 
 ## 1. TOAST NOTIFICATION
 
@@ -8,7 +8,7 @@
 | Toast message | `#toastMsg` | Text content of the toast |
 | Toast checkmark SVG | inside `.toast` | Success indicator icon |
 
-**Behavior:** `showToast(msg)` — slides up from bottom, auto-hides after 2200ms. Uses `.show` class to animate in.
+**Behavior:** `showToast(msg)` - slides up from bottom, auto-hides after 2200ms. Uses `.show` class to animate in.
 
 ---
 
@@ -68,7 +68,7 @@
 | Rail badge | `.rail-badge` | Red dot notification badge (on Stats button) |
 | Rail spacer | `.rail-spacer` | Flex spacer pushing Settings to bottom |
 
-**Behavior:** `switchRail(btn, msg)` — toggles `.active` class on rail buttons with left-edge accent indicator.
+**Behavior:** `switchRail(btn, msg)` - toggles `.active` class on rail buttons with left-edge accent indicator.
 
 ---
 
@@ -107,7 +107,7 @@
 | Result items | `.qp-result-item` | Individual clickable result rows |
 | Result summary | `.qp-summary` | "N / M nodes matched" text |
 
-**Behavior:** `toggleQueryPanel()` — slides panel open/closed. `runQuery()` searches tree lines, highlights matches, populates result list.
+**Behavior:** `toggleQueryPanel()` - slides panel open/closed. `runQuery()` searches tree lines, highlights matches, populates result list.
 
 ### 5c. Canvas Header (View switching toolbar)
 
@@ -199,7 +199,7 @@ Each chip has: `.chip-dot` (colored circle), `.chip-val` (bold number).
 | Graph edge | `.graph-edge` | Horizontal connector line between nodes |
 | Hint text | `<p>` | "Click nodes to inspect" |
 
-**Static demo** — two rows of nodes: root -> users -> [0], and settings -> theme -> lang.
+**Static demo** - two rows of nodes: root -> users -> [0], and settings -> theme -> lang.
 
 ### 6d. Schema View
 
@@ -211,7 +211,7 @@ Each chip has: `.chip-dot` (colored circle), `.chip-val` (bold number).
 | Schema type | `.s-type` | Type annotation |
 | Required marker | `.s-req` | Red "required" label |
 
-**Behavior:** `renderSchema()` — generates indented type tree on first view. Lazy-rendered.
+**Behavior:** `renderSchema()` - generates indented type tree on first view. Lazy-rendered.
 
 ### 6e. Editor View
 
@@ -226,7 +226,7 @@ Each chip has: `.chip-dot` (colored circle), `.chip-val` (bold number).
 | Validation status | `#edStatus`, `.ed-status` | Shows "Valid JSON" or "Invalid" |
 | Editor textarea | `#editorArea`, `.editor-textarea` | Full-size monospace textarea |
 
-**Behavior:** `oninput="validateEditor()"` — live validation. `applyEdit()` parses and shows toast. `formatJSON()`/`minifyJSON()` reformats in-place.
+**Behavior:** `oninput="validateEditor()"` - live validation. `applyEdit()` parses and shows toast. `formatJSON()`/`minifyJSON()` reformats in-place.
 
 ### 6f. Stats View
 
@@ -280,13 +280,13 @@ Each chip has: `.chip-dot` (colored circle), `.chip-val` (bold number).
 
 **Size states:** `.drawer-sm` (34px, collapsed), `.drawer-md` (200px, default), `.drawer-lg` (320px, expanded). `cycleDrawer()` cycles sm->md->lg->sm.
 
-### Drawer Analyze Panel — Interactive Features
+### Drawer Analyze Panel - Interactive Features
 
 | Element | Class | Behavior |
 |---------|-------|----------|
-| Coverage key cell | `.cov-key` | `onclick="highlightKeyInTree('key')"` — scrolls to and highlights matching tree lines |
-| Missing count cell | (inline style) | `onclick="highlightMissing('key')"` — shows which array rows are missing the key |
-| Array selector | `<select>` `.analyze-arr-select` | `onchange="switchAnalyzeArray(path)"` — switches coverage analysis to a different array |
+| Coverage key cell | `.cov-key` | `onclick="highlightKeyInTree('key')"` - scrolls to and highlights matching tree lines |
+| Missing count cell | (inline style) | `onclick="highlightMissing('key')"` - shows which array rows are missing the key |
+| Array selector | `<select>` `.analyze-arr-select` | `onchange="switchAnalyzeArray(path)"` - switches coverage analysis to a different array |
 
 ### Expression Cards (generated dynamically)
 
@@ -358,12 +358,12 @@ Each `.expr-card` has `onclick="copyText(...)"` and a `.copy-hint` "Click to cop
 | Editor | `editor` | `switchView('editor')` | `Ctrl+E` |
 | Stats & Analysis | `stats` | `switchView('stats')` | `Ctrl+5` |
 | Export as CSV | `export-csv` | Toast "Exported 2 rows as CSV" | `Ctrl+Shift+E` |
-| Flatten (dot notation) | `flatten` | Toast "JSON flattened to dot notation" | — |
-| Sort Keys A->Z | `sort` | Toast "Keys sorted A->Z" | — |
-| Generate TypeScript Types | `types` | Toast "TypeScript interfaces generated!" | — |
-| Mask Sensitive Data | `mask` | Toast "2 emails masked" | — |
-| Compare / Diff JSON | `compare` | Toast "Paste second JSON to compare..." | — |
-| Validate Schema | `validate` | Toast "Schema validation passed" | — |
+| Flatten (dot notation) | `flatten` | Toast "JSON flattened to dot notation" | - |
+| Sort Keys A->Z | `sort` | Toast "Keys sorted A->Z" | - |
+| Generate TypeScript Types | `types` | Toast "TypeScript interfaces generated!" | - |
+| Mask Sensitive Data | `mask` | Toast "2 emails masked" | - |
+| Compare / Diff JSON | `compare` | Toast "Paste second JSON to compare..." | - |
+| Validate Schema | `validate` | Toast "Schema validation passed" | - |
 
 **Behavior:** `toggleCmd()` opens/closes. `filterCmds(q)` filters by text. Click item -> executes command. Click backdrop -> closes.
 
@@ -378,7 +378,7 @@ Each `.expr-card` has `onclick="copyText(...)"` and a `.copy-hint` "Click to cop
 | Title | `.iz-title` | "Load JSON" heading |
 | Hint | `.iz-hint` | "Drop a file, paste from clipboard, or type below" |
 | Textarea | `#izTextarea`, `.iz-textarea` | Dashed-border input area for pasting JSON |
-| Parse JSON button | `.iz-btn.iz-btn-primary` `onclick="loadFromInput()"` | Primary action — parses and loads JSON |
+| Parse JSON button | `.iz-btn.iz-btn-primary` `onclick="loadFromInput()"` | Primary action - parses and loads JSON |
 | Load Sample button | `.iz-btn` `onclick="loadSampleData()"` | Loads built-in sample data |
 | Shortcuts hints | `.iz-shortcuts` | Shows `Ctrl+V` Paste, `Ctrl+T` New Tab |
 
@@ -474,7 +474,7 @@ Each `.expr-card` has `onclick="copyText(...)"` and a `.copy-hint` "Click to cop
 
 - **Light mode:** Default (`:root` variables)
 - **Dark mode:** `[data-theme="dark"]` attribute on `<body>`
-- Toggled via `toggleTheme()` — swaps all CSS custom properties
+- Toggled via `toggleTheme()` - swaps all CSS custom properties
 - Dark-mode overrides for: `.j-key`, `.j-str`, `.j-num`, `.j-bool`, `.s-key`, `.s-type`, `.bool-false`, `.tree-line.find-hl`, `.toolbar-btn kbd`
 
 ---

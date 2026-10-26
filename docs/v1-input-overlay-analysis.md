@@ -1,8 +1,8 @@
-# V1 Input Overlay / Landing Page — Complete Analysis
+# V1 Input Overlay / Landing Page - Complete Analysis
 
 ## Architecture Overview
 
-The input overlay is a **full-screen landing page** (`z-index: 200`) that covers the entire app on load. It acts as the single entry point for all data ingestion. The JS logic lives in `window.App.inputHandler` — an IIFE module exposing `{ init, loadFromHash, readFile }`. It receives three callbacks at init time: `parseJsonAsync`, `onJsonLoaded(data, text, name)`, and internally creates `readFileFn`. All five input methods funnel through `onJsonLoaded()` as the unified exit point.
+The input overlay is a **full-screen landing page** (`z-index: 200`) that covers the entire app on load. It acts as the single entry point for all data ingestion. The JS logic lives in `window.App.inputHandler` - an IIFE module exposing `{ init, loadFromHash, readFile }`. It receives three callbacks at init time: `parseJsonAsync`, `onJsonLoaded(data, text, name)`, and internally creates `readFileFn`. All five input methods funnel through `onJsonLoaded()` as the unified exit point.
 
 **Data flow:**
 ```
@@ -19,10 +19,10 @@ User Input → Tab Handler → Parse/Convert → onJsonLoaded(data, text, name) 
 |---------|-----|-------|----|-------|
 | Overlay root | `div` | `.input-overlay` | `#inputOverlay` | `position:fixed; inset:0; z-index:200` |
 | Theme toggle | `button` | `.overlay-theme-toggle` | `#overlayThemeToggle` | Absolute top-right corner |
-| Content card | `div` | `.input-box` | — | `width:560px`, centered, 12px border-radius |
-| Title | `h2` | — | — | Contains inline SVG brand icon + "Structra" |
-| Subtitle | `div` | `.sub` | — | "Explore your JSON data, navigate paths, and generate code" |
-| Tab strip | `div` | `.input-tabs` | — | Flex row, no gap, pill-group shape |
+| Content card | `div` | `.input-box` | - | `width:560px`, centered, 12px border-radius |
+| Title | `h2` | - | - | Contains inline SVG brand icon + "Structra" |
+| Subtitle | `div` | `.sub` | - | "Explore your JSON data, navigate paths, and generate code" |
+| Tab strip | `div` | `.input-tabs` | - | Flex row, no gap, pill-group shape |
 | Error bar | `div` | `.input-error` | `#inputError` | Hidden by default, shown via `.show` class |
 
 ### Tab Buttons (5 total)
@@ -39,7 +39,7 @@ All share class `.input-tab-btn`. Active state via `.active` class → primary c
 
 ---
 
-## Tab Panels — Complete Structure
+## Tab Panels - Complete Structure
 
 ### 1. Upload File (`#ip-file`)
 
@@ -62,8 +62,8 @@ div.input-panel#ip-text
 ```
 
 **Behavior:** Two click handlers on `#btnGo`:
-1. **YAML auto-detect** (capture phase, `stopImmediatePropagation` if YAML) — calls `App.formatConvert.yamlToJson()`
-2. **Standard JSON parse** — calls `loadText()` → `parseJsonAsync()`
+1. **YAML auto-detect** (capture phase, `stopImmediatePropagation` if YAML) - calls `App.formatConvert.yamlToJson()`
+2. **Standard JSON parse** - calls `loadText()` → `parseJsonAsync()`
 
 ### 3. Import CSV (`#ip-csv`)
 
@@ -75,7 +75,7 @@ div.input-panel#ip-csv
 
 **Behavior:** Lazy-loads PapaParse via `App.libLoader.require('papaparse')`. Parses with `{ header: true, skipEmptyLines: true, dynamicTyping: true }`. Converts CSV rows to JSON array.
 
-### 4. Load URL (`#ip-url`) — Landing API Client
+### 4. Load URL (`#ip-url`) - Landing API Client
 
 ```
 div.input-panel#ip-url
@@ -131,7 +131,7 @@ div.recent-list#recentList
 
 ---
 
-## URL/API Modal (Toolbar Version — `#urlModal`)
+## URL/API Modal (Toolbar Version - `#urlModal`)
 
 Opened from toolbar button `#btnUrl`. Identical API client structure as landing, but with `modal` prefix IDs:
 
@@ -159,7 +159,7 @@ Key difference: `cfg.onSuccess` callback closes the modal on successful load.
 
 Both landing and modal API clients use the **same `setupApiPanel(cfg)` function** with a config object that maps element IDs. The sub-tab switching uses `data-ap` (landing) / `data-mp` (modal) attributes.
 
-### Auth Tab — Dynamic Rendering (`renderAuthFields()`)
+### Auth Tab - Dynamic Rendering (`renderAuthFields()`)
 
 | Auth Type | Fields Rendered | Notes |
 |-----------|----------------|-------|
@@ -184,7 +184,7 @@ Both landing and modal API clients use the **same `setupApiPanel(cfg)` function*
 
 ## JWT Decoder Detail
 
-Activated from Bearer Auth panel's "Decode Token" button. Inline — no external library.
+Activated from Bearer Auth panel's "Decode Token" button. Inline - no external library.
 
 **Process:**
 1. Strips `Bearer ` prefix (case-insensitive)
@@ -224,7 +224,7 @@ div.api-jwt-claims
 
 ## Clipboard Auto-Detect Detail
 
-Runs on **window focus** events. Passive — no user action required.
+Runs on **window focus** events. Passive - no user action required.
 
 **Flow:**
 1. Queries `navigator.permissions` for `clipboard-read`
@@ -307,7 +307,7 @@ Runs on **window focus** events. Passive — no user action required.
 | V1 Feature | V2 Component | Status |
 |------------|-------------|--------|
 | Input overlay | `<structra-input-overlay>` | ✅ Complete |
-| Input zone (in-canvas) | `<structra-input-zone>` | ✅ Complete — mirrors overlay tabs |
+| Input zone (in-canvas) | `<structra-input-zone>` | ✅ Complete - mirrors overlay tabs |
 | URL modal (toolbar) | Part of overlay | Merged into single component |
 | Clipboard banner | Built into overlay | ✅ Complete |
 | Recent files | Built into overlay | ✅ Complete (localStorage) |

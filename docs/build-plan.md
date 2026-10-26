@@ -1,4 +1,4 @@
-# Structra V2 — Component Build Plan
+# Structra V2 - Component Build Plan
 
 ## Element Audit Summary
 - V1: 460+ UI elements across 12 major sections + 11 modals/overlays + 40 script files
@@ -8,41 +8,41 @@
 ## Custom Element Component Map
 
 ### Phase 1: Shell (app renders, no functionality)
-1. `structra-header` — brand, search/path bar, theme toggle, cmd palette trigger
-2. `structra-tabs` — doc tab bar (multi-tab: add/close/rename/drag/switch)
-3. `structra-rail` — left icon sidebar (explorer/query/pp/stats/transform/settings)
-4. `structra-status` — bottom status bar (ready dot, filename, path)
-5. `structra-toast` — floating notification
+1. `structra-header` - brand, search/path bar, theme toggle, cmd palette trigger
+2. `structra-tabs` - doc tab bar (multi-tab: add/close/rename/drag/switch)
+3. `structra-rail` - left icon sidebar (explorer/query/pp/stats/transform/settings)
+4. `structra-status` - bottom status bar (ready dot, filename, path)
+5. `structra-toast` - floating notification
 
 ### Phase 2: Canvas Core (main content area works)
-6. `structra-canvas` — canvas shell (header + insight strip + view container + drawer host)
-7. `structra-tree` — tree view (lines, collapse, select, highlight, syntax colors)
-8. `structra-input-zone` — empty tab landing (paste/load/sample)
-9. `structra-find` — floating find bar (search + replace)
+6. `structra-canvas` - canvas shell (header + insight strip + view container + drawer host)
+7. `structra-tree` - tree view (lines, collapse, select, highlight, syntax colors)
+8. `structra-input-zone` - empty tab landing (paste/load/sample)
+9. `structra-find` - floating find bar (search + replace)
 
 ### Phase 3: Alternate Views
-10. `structra-table` — tabular data view (sortable, selectable rows)
-11. `structra-graph` — node graph visualization
-12. `structra-schema` — JSON schema display
-13. `structra-editor` — raw JSON editor (format/minify/validate/apply)
-14. `structra-stats` — stats dashboard (hero cards, type pills, coverage, arrays)
+10. `structra-table` - tabular data view (sortable, selectable rows)
+11. `structra-graph` - node graph visualization
+12. `structra-schema` - JSON schema display
+13. `structra-editor` - raw JSON editor (format/minify/validate/apply)
+14. `structra-stats` - stats dashboard (hero cards, type pills, coverage, arrays)
 
 ### Phase 4: Panels
-15. `structra-query` — query/filter panel (path/jsonpath/regex/js modes)
-16. `structra-context` — right detail panel (value, meta, actions)
-17. `structra-drawer` — bottom drawer (analyze/expressions/schema-gen tabs)
+15. `structra-query` - query/filter panel (path/jsonpath/regex/js modes)
+16. `structra-context` - right detail panel (value, meta, actions)
+17. `structra-drawer` - bottom drawer (analyze/expressions/schema-gen tabs)
 
 ### Phase 5: Overlays
-18. `structra-command` — command palette (search, command list, keyboard nav)
-19. `structra-loading` — full-screen loading spinner
+18. `structra-command` - command palette (search, command list, keyboard nav)
+19. `structra-loading` - full-screen loading spinner
 
 ### Phase 6: V1 Feature Ports
-20. `structra-input-overlay` — full landing screen (file upload/paste/csv/url-api/recent)
-21. `structra-diff` — JSON diff/compare overlay
-22. `structra-convert` — YAML/XML format conversion modal
-23. `structra-typegen` — type definition generator (TS/C#/Go/Python/Rust/SQL/PowerFx)
-24. `structra-url-modal` — API request modal (method/url/auth/headers/body)
-25. `structra-context-menu` — right-click menu (copy path/value/subtree, copy-as, bookmark, mock)
+20. `structra-input-overlay` - full landing screen (file upload/paste/csv/url-api/recent)
+21. `structra-diff` - JSON diff/compare overlay
+22. `structra-convert` - YAML/XML format conversion modal
+23. `structra-typegen` - type definition generator (TS/C#/Go/Python/Rust/SQL/PowerFx)
+24. `structra-url-modal` - API request modal (method/url/auth/headers/body)
+25. `structra-context-menu` - right-click menu (copy path/value/subtree, copy-as, bookmark, mock)
 
 ## V1 Features → V2 Mapping
 
@@ -144,13 +144,13 @@
 ```
 
 ## Script Load Order Dependencies
-1. base.js (defines StructraElement) — FIRST
-2. state.js (defines Structra global) — needs base.js
-3. constants.js — standalone
-4. structra-toast.js — standalone (others show toasts)
-5. Shell components (header, tabs, rail, status) — need state
-6. Canvas + views — need state + shell
-7. Panels (query, context, drawer) — need state
-8. Overlays (find, command, loading) — need state
-9. V1 utils — standalone
-10. app.js — LAST, initializes everything
+1. base.js (defines StructraElement) - FIRST
+2. state.js (defines Structra global) - needs base.js
+3. constants.js - standalone
+4. structra-toast.js - standalone (others show toasts)
+5. Shell components (header, tabs, rail, status) - need state
+6. Canvas + views - need state + shell
+7. Panels (query, context, drawer) - need state
+8. Overlays (find, command, loading) - need state
+9. V1 utils - standalone
+10. app.js - LAST, initializes everything

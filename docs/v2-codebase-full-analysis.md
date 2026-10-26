@@ -66,7 +66,7 @@ JsonAnalyzerV2/
 │   │   ├── variables.css
 │   │   ├── layout.css
 │   │   └── components.css
-│   ├── expressions/           (Reference only — NOT loaded in index.html)
+│   ├── expressions/           (Reference only - NOT loaded in index.html)
 │   │   ├── helpers.js
 │   │   ├── power-platform.js
 │   │   └── schema-gen.js
@@ -74,8 +74,8 @@ JsonAnalyzerV2/
 │   │   ├── papaparse.min.js
 │   │   ├── js-yaml.min.js
 │   │   └── toml.min.js
-│   ├── ui/                    (Reference only — NOT loaded in index.html)
-│   │   ├── json-view.js       (Core tree renderer — virtualized, chunked)
+│   ├── ui/                    (Reference only - NOT loaded in index.html)
+│   │   ├── json-view.js       (Core tree renderer - virtualized, chunked)
 │   │   ├── autocomplete.js
 │   │   ├── command-palette.js
 │   │   ├── command-registry.js
@@ -136,18 +136,18 @@ JsonAnalyzerV2/
 ### **2. SCRIPT LOADING ORDER FROM index.html**
 
 **Phase 0: Foundation (Core)**
-1. `src/core/logger.js` — Centralized logging
-2. `src/core/base.js` — StructraElement base class
-3. `src/core/state.js` — Global state + event bus
-4. `src/workers/json-parse-worker.js` — JSON parser worker
-5. `src/workers/xml-parse-worker.js` — XML parser worker
-6. `src/libs/papaparse.min.js` — CSV parsing library
-7. `src/libs/js-yaml.min.js` — YAML parsing library
-8. `src/libs/toml.min.js` — TOML parsing library
-9. `src/core/worker-pool.js` — Generic worker pool factory
-10. `src/core/dom-shim.js` — DOM compatibility layer
-11. `src/utils/path.js` — Path utilities
-12. `src/core/constants.js` — Config & constants
+1. `src/core/logger.js` - Centralized logging
+2. `src/core/base.js` - StructraElement base class
+3. `src/core/state.js` - Global state + event bus
+4. `src/workers/json-parse-worker.js` - JSON parser worker
+5. `src/workers/xml-parse-worker.js` - XML parser worker
+6. `src/libs/papaparse.min.js` - CSV parsing library
+7. `src/libs/js-yaml.min.js` - YAML parsing library
+8. `src/libs/toml.min.js` - TOML parsing library
+9. `src/core/worker-pool.js` - Generic worker pool factory
+10. `src/core/dom-shim.js` - DOM compatibility layer
+11. `src/utils/path.js` - Path utilities
+12. `src/core/constants.js` - Config & constants
 
 **Phase 1: Shell Components** (UI frame)
 13. `src/components/structra-toast.js`
@@ -161,8 +161,8 @@ JsonAnalyzerV2/
 19. `src/components/structra-insight-strip.js`
 20. `src/components/structra-view-switcher.js`
 21. `src/components/structra-drawer.js`
-22. `src/ui/json-view.js` — **Core tree renderer (v1 code)**
-23. `src/components/structra-tree.js` — Tree view component (delegates to json-view)
+22. `src/ui/json-view.js` - **Core tree renderer (v1 code)**
+23. `src/components/structra-tree.js` - Tree view component (delegates to json-view)
 24. `src/components/structra-input-panel.js`
 25. `src/components/structra-find.js`
 
@@ -186,7 +186,7 @@ JsonAnalyzerV2/
 
 ---
 
-### **3. ACTIVELY LOADED FILES — DETAILED BREAKDOWN**
+### **3. ACTIVELY LOADED FILES - DETAILED BREAKDOWN**
 
 #### **CORE FOUNDATION (Phase 0)**
 
@@ -223,8 +223,8 @@ JsonAnalyzerV2/
 | `structra-insight-strip.js` | Stats chips (file size, node count, depth, types) below canvas header |
 | `structra-view-switcher.js` | Manages 6 view panels, switches between them |
 | `structra-drawer.js` | Bottom drawer with tabs (Stats, Expressions, Schema Gen) - 3 states: collapsed/medium/expanded |
-| **`src/ui/json-view.js`** | **Core tree renderer** — virtualized, chunked (100 items/chunk), lazy-loading, DOM recycling for 200k+ arrays |
-| `structra-tree.js` | Tree view component wrapper — delegates to json-view, handles expand/collapse |
+| **`src/ui/json-view.js`** | **Core tree renderer** - virtualized, chunked (100 items/chunk), lazy-loading, DOM recycling for 200k+ arrays |
+| `structra-tree.js` | Tree view component wrapper - delegates to json-view, handles expand/collapse |
 | `structra-input-panel.js` | Shared input card (5 tabs: Upload File, Paste JSON, Import CSV, Load URL, Recent) |
 | `structra-find.js` | Floating find bar (search + replace, find prev/next, match counter) |
 
@@ -265,65 +265,65 @@ JsonAnalyzerV2/
 These exist in the workspace but are **NOT** loaded via script tags. They're likely for future integration, V1 legacy, or alternative implementations.
 
 #### **src/expressions/** (3 files)
-- `helpers.js` — Helper functions for expressions
-- `power-platform.js` — Power Platform-specific expression builders
-- `schema-gen.js` — Schema generation from expressions
+- `helpers.js` - Helper functions for expressions
+- `power-platform.js` - Power Platform-specific expression builders
+- `schema-gen.js` - Schema generation from expressions
 
 #### **src/ui/** (31 files)
 **Actively loaded:**
 - `json-view.js` ✓ (loaded in Phase 2)
 
 **Not loaded (reference only):**
-- `autocomplete.js` — Autocomplete UI
-- `command-palette.js` — Command palette (separate from structra-command.js)
-- `command-registry.js` — Command registry
-- `content-preview.js` — Content preview panel
-- `data-profiler.js` — Data profiling utility
-- `data-viz.js` — Data visualization helpers
-- `graph-view.js` — Graph view alternative implementation
-- `help-modal.js` — Help modal dialog
-- `input-handler.js` — Input event handling
-- `json-editor.js` — JSON editor (separate from structra-editor)
-- `minimap.js` — Minimap for large trees
-- `multi-tab.js` — Multi-tab management (separate from structra-tabs)
-- `null-finder.js` — Null value finder
-- `panel-resizer.js` — Panel resizing utilities
-- `pivot-table.js` — Pivot table view
-- `search.js` — Search utilities
-- `shortcuts-handler.js` — Keyboard shortcut handling
-- `shortcuts-overlay.js` — Shortcuts help overlay
-- `simple-table.js` — Simple table implementation
-- `snippet-library.js` — Code snippet library
-- `stats-panel.js` — Stats panel (separate from structra-stats)
-- `table-filter.js` — Table filtering
-- `toolbar-actions.js` — Toolbar action handlers
-- `toolbar-pin.js` — Pin/unpin toolbar buttons
-- `transform-panel.js` — Transform panel
-- `type-def-modal.js` — TypeScript type definition modal
-- `universal-filter.js` — Universal filter UI
-- `validator.js` — Data validation
-- `views.js` — View management utilities
-- `workspace-export.js` — Export utilities
-- `zoom.js` — Zoom/scroll utilities
+- `autocomplete.js` - Autocomplete UI
+- `command-palette.js` - Command palette (separate from structra-command.js)
+- `command-registry.js` - Command registry
+- `content-preview.js` - Content preview panel
+- `data-profiler.js` - Data profiling utility
+- `data-viz.js` - Data visualization helpers
+- `graph-view.js` - Graph view alternative implementation
+- `help-modal.js` - Help modal dialog
+- `input-handler.js` - Input event handling
+- `json-editor.js` - JSON editor (separate from structra-editor)
+- `minimap.js` - Minimap for large trees
+- `multi-tab.js` - Multi-tab management (separate from structra-tabs)
+- `null-finder.js` - Null value finder
+- `panel-resizer.js` - Panel resizing utilities
+- `pivot-table.js` - Pivot table view
+- `search.js` - Search utilities
+- `shortcuts-handler.js` - Keyboard shortcut handling
+- `shortcuts-overlay.js` - Shortcuts help overlay
+- `simple-table.js` - Simple table implementation
+- `snippet-library.js` - Code snippet library
+- `stats-panel.js` - Stats panel (separate from structra-stats)
+- `table-filter.js` - Table filtering
+- `toolbar-actions.js` - Toolbar action handlers
+- `toolbar-pin.js` - Pin/unpin toolbar buttons
+- `transform-panel.js` - Transform panel
+- `type-def-modal.js` - TypeScript type definition modal
+- `universal-filter.js` - Universal filter UI
+- `validator.js` - Data validation
+- `views.js` - View management utilities
+- `workspace-export.js` - Export utilities
+- `zoom.js` - Zoom/scroll utilities
 
 #### **src/utils/** (14 files)
 **Actively loaded:**
 - `path.js` ✓ (loaded in Phase 0)
 
 **Not loaded (reference only):**
-- `code-gen.js` — Code generation utilities
-- `data-mask.js` — Data masking
-- `dom.js` — DOM utilities
-- `format-convert.js` — Format conversion
-- `json-utils.js` — JSON utilities
-- `lib-loader.js` — Library loader
-- `mock-gen.js` — Mock data generation
-- `primitives.js` — Primitive type utilities
-- `stats.js` — Statistics computation
-- `storage.js` — Local storage utilities
-- `transform-ops.js` — Data transformation operations
-- `traverse.js` — JSON traversal
-- `undo-stack.js` — Undo/redo stack
+- `code-gen.js` - Code generation utilities
+- `data-mask.js` - Data masking
+- `dom.js` - DOM utilities
+- `format-convert.js` - Format conversion
+- `json-utils.js` - JSON utilities
+- `lib-loader.js` - Library loader
+- `mock-gen.js` - Mock data generation
+- `primitives.js` - Primitive type utilities
+- `stats.js` - Statistics computation
+- `storage.js` - Local storage utilities
+- `transform-ops.js` - Data transformation operations
+- `traverse.js` - JSON traversal
+- `undo-stack.js` - Undo/redo stack
 
 #### **src/workers/** (5 files)
 **Actively loaded:**
@@ -331,9 +331,9 @@ These exist in the workspace but are **NOT** loaded via script tags. They're lik
 - `xml-parse-worker.js` ✓
 
 **Not loaded (reference only):**
-- `csv-parse-worker.js` — CSV parsing worker (CSV handled via PapaParse lib instead)
-- `toml-parse-worker.js` — TOML parsing worker (TOML handled via lib instead)
-- `yaml-parse-worker.js` — YAML parsing worker (YAML handled via lib instead)
+- `csv-parse-worker.js` - CSV parsing worker (CSV handled via PapaParse lib instead)
+- `toml-parse-worker.js` - TOML parsing worker (TOML handled via lib instead)
+- `yaml-parse-worker.js` - YAML parsing worker (YAML handled via lib instead)
 
 ---
 

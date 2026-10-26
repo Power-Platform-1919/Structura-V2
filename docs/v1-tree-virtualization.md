@@ -5,20 +5,20 @@
 ## Strategy: Chunked Lazy-Loading + DOM Recycling (NOT virtual scroll)
 
 V1 does NOT use traditional fixed-row-height virtual scrolling. Instead it uses:
-1. **Chunked rendering** — arrays render first 100 items, rest load on demand
-2. **IntersectionObserver-based loading** — sentinel elements trigger loading when near viewport
-3. **DOM recycling** — offscreen chunks are emptied to free memory, replaced with height placeholders
-4. **Re-hydration** — recycled chunks re-render from raw data when scrolled back into view
+1. **Chunked rendering** - arrays render first 100 items, rest load on demand
+2. **IntersectionObserver-based loading** - sentinel elements trigger loading when near viewport
+3. **DOM recycling** - offscreen chunks are emptied to free memory, replaced with height placeholders
+4. **Re-hydration** - recycled chunks re-render from raw data when scrolled back into view
 
 ## Constants
-- `CHUNK_SIZE = 100` — items per chunk
-- `OFFSCREEN_MARGIN = 3000` — px distance from viewport before recycling occurs
+- `CHUNK_SIZE = 100` - items per chunk
+- `OFFSCREEN_MARGIN = 3000` - px distance from viewport before recycling occurs
 
 ## Two IntersectionObservers
-1. `loadObserver` — root: view container, rootMargin: '400px'
+1. `loadObserver` - root: view container, rootMargin: '400px'
    - Watches `.j-lazy-sentinel` elements
    - When sentinel enters viewport (+400px margin), loads next CHUNK_SIZE items
-2. `recycleObserver` — root: view container, rootMargin: `3000px`
+2. `recycleObserver` - root: view container, rootMargin: `3000px`
    - Watches `.j-chunk` containers (only for arrays > CHUNK_SIZE)
    - When chunk leaves viewport (+3000px margin): calls recycleChunk()
    - When chunk re-enters viewport (+3000px margin): calls rehydrateChunk()
@@ -68,7 +68,7 @@ V1 does NOT use traditional fixed-row-height virtual scrolling. Instead it uses:
   - _fillViewport() ensures viewport is populated after filter apply
 
 ## CSS
-- `.j-chunk { display: block }` — block container for chunk
-- `.j-lazy-sentinel { display: block; padding: 2px 4px }` — sentinel placeholder
-- `.j-line { display: block; padding: 0 4px }` — each tree line
-- `.j-line.filter-hidden { display: none !important }` — filtered out lines
+- `.j-chunk { display: block }` - block container for chunk
+- `.j-lazy-sentinel { display: block; padding: 2px 4px }` - sentinel placeholder
+- `.j-line { display: block; padding: 0 4px }` - each tree line
+- `.j-line.filter-hidden { display: none !important }` - filtered out lines

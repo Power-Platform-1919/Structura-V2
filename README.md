@@ -27,14 +27,57 @@ Files are read and processed in the browser. Nothing leaves the page. Some libra
 
 ## Run it locally
 
-No build step. The app is plain HTML, CSS and JavaScript.
+The app is plain HTML, CSS and JavaScript. There is no build step, so you only need to clone the repo and serve the folder.
+
+### 1. Get the code
+
+You need [Git](https://git-scm.com/downloads). To run the tests you also need [Node.js](https://nodejs.org) 18 or newer.
 
 ```bash
-npm install        # only needed for the tests
-npm run serve      # serves the folder at http://localhost:8765
+git clone https://github.com/Power-Platform-1919/Structura-V2.git
+cd Structura-V2
 ```
 
-Then open http://localhost:8765/index.html.
+### 2. Serve it
+
+Open the app through a small local web server. Opening `index.html` directly from the disk works only partly, because browsers block some features on `file://` pages.
+
+Pick one of these. All of them serve the current folder.
+
+```bash
+# Option A: Python (already installed on most computers)
+python -m http.server 8765
+
+# Option B: the same thing through npm (it runs the Python command above)
+npm run serve
+
+# Option C: Node, nothing to install first
+npx serve -l 8765 .
+```
+
+Now open http://localhost:8765/index.html in your browser. Press `Ctrl+C` in the terminal to stop the server.
+
+If port 8765 is busy, use another number, for example `python -m http.server 9000`, and open that port instead.
+
+### 3. Try it
+
+1. The welcome dialog opens the first time. Choose **Open the sample** to see the app with example data, or **Open a file** to use your own.
+2. Drag a file onto the page, or press `Ctrl+V` to paste data.
+3. After you change a file in your editor, refresh the page. If the browser shows an old version, do a hard refresh with `Ctrl+Shift+R`.
+
+### 4. Make a change and share it
+
+```bash
+git checkout dev                    # new work starts on dev
+git checkout -b my-change           # optional: a branch for your change
+# edit files, refresh the browser to see the result
+npm install                         # first time only: installs the test tools
+npm test                            # quick checks
+git add -A
+git commit -m "Describe your change"
+```
+
+Then open a pull request into `dev`. See [Branches and deployment](#branches-and-deployment) for how changes reach the live site, and `docs/DEVELOPER-GUIDE.md` for how the code is organised.
 
 ## Tests
 

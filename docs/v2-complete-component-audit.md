@@ -1,4 +1,4 @@
-# STRUCTRA V2 — Complete Component & View Type Audit
+# STRUCTRA V2 - Complete Component & View Type Audit
 
 **Date**: June 2026  
 **Scope**: `c:\Users\228295\Downloads\C_Temp\Personal Experiments\JsonAnalyzerV2\`
@@ -180,7 +180,7 @@
 - **Purpose**: Unified data input UI (shown in overlay + inline in tree)
 - **Features**:
   - **5 tabs**:
-    1. Upload File (drag-drop, file browser) — supports JSON, CSV, XML, YAML, TOML
+    1. Upload File (drag-drop, file browser) - supports JSON, CSV, XML, YAML, TOML
     2. Paste Data (format auto-detect or manual select)
     3. Load URL (GET/POST/PUT/PATCH/DELETE, auth, headers, body)
     4. Recent (recent files list)
@@ -280,7 +280,7 @@
 - **Features**:
   - Full JSON.stringify display (guards against very large files >10MB)
   - **Toolbar**:
-    - Apply (parse + set as jsonData) — re-renders all views
+    - Apply (parse + set as jsonData) - re-renders all views
     - Format (pretty-print with indent 2)
     - Minify (single-line JSON)
   - **Status indicator**: "✓ Valid JSON" | "✗ Invalid" (real-time validation)
@@ -389,7 +389,7 @@
 
 ## CORE API MODULES
 
-### **Structra.engine** — Data Ingestion & Querying Engine
+### **Structra.engine** - Data Ingestion & Querying Engine
 **File**: `src/core/engine.js`
 
 #### Dataset Management
@@ -434,7 +434,7 @@
 - `_datasets` Map (tabId → Dataset)
 - `_activeFilter` (query result cache)
 
-### **Structra.state** — Application State (Reactive)
+### **Structra.state** - Application State (Reactive)
 **File**: `src/core/state.js`
 
 #### State Object
@@ -463,7 +463,7 @@ Structra.state = {
 #### Events
 - `state:${key}` → { key, value, old }
 
-### **Structra.events** — Event Bus (Pub/Sub)
+### **Structra.events** - Event Bus (Pub/Sub)
 **File**: `src/core/state.js`
 
 #### API
@@ -472,13 +472,13 @@ Structra.state = {
 - `emit(event, data)` → fire event to all listeners
 - `once(event, fn)` → subscribe for one-time execution
 
-### **Structra.log** — Centralized Logging
+### **Structra.log** - Centralized Logging
 **File**: `src/core/logger.js`
 
 #### Modes
-- `'dev'` — all logs (debug, info, warn, error, perf)
-- `'normal'` — main logs (info, warn, error)
-- `'off'` — errors only
+- `'dev'` - all logs (debug, info, warn, error, perf)
+- `'normal'` - main logs (info, warn, error)
+- `'off'` - errors only
 
 #### API
 - `log.info(tag, msg, data?)`
@@ -495,7 +495,7 @@ Structra.state = {
 - Core: App, State, EventBus, WorkerPool
 - Components: Tree, Table, Stats, Schema, Graph, Editor, etc.
 
-### **Structra.duckdb** — DuckDB WASM Adapter
+### **Structra.duckdb** - DuckDB WASM Adapter
 **File**: `src/core/duckdb.js`
 
 #### Capabilities
@@ -518,7 +518,7 @@ Structra.state = {
 - `engine:duckdb-ready` → {}
 - `engine:duckdb-failed` → {} (if WASM load fails)
 
-### **Structra.jsonTree** — Virtualized JSON Renderer
+### **Structra.jsonTree** - Virtualized JSON Renderer
 **File**: `src/core/json-tree.js`
 
 #### Chunking Strategy
@@ -551,7 +551,7 @@ Structra.state = {
 - Line numbers + depth indentation
 - Inline value display
 
-### **Structra.virtualList** — Generic Virtual Scrolling
+### **Structra.virtualList** - Generic Virtual Scrolling
 **File**: `src/core/virtual-list.js`
 
 #### Use Cases
@@ -577,14 +577,14 @@ Structra.state = {
 ```
 
 #### Controller Methods
-- `loadAll()` — force-load all remaining chunks
-- `destroy()` — cleanup
-- `getChunk(index)` — get chunk element
-- `scrollToItem(idx)` — scroll to item
-- `applyToChunks(fn)` — iterate chunks
-- `reset(totalItems)` — reset total count
+- `loadAll()` - force-load all remaining chunks
+- `destroy()` - cleanup
+- `getChunk(index)` - get chunk element
+- `scrollToItem(idx)` - scroll to item
+- `applyToChunks(fn)` - iterate chunks
+- `reset(totalItems)` - reset total count
 
-### **Structra.constants** — Shared Configuration
+### **Structra.constants** - Shared Configuration
 **File**: `src/core/constants.js`
 
 #### Key Constants
@@ -638,12 +638,12 @@ SHORTCUTS: {
 
 ### **src/css/components.css**
 - Reusable component classes:
-  - `.brand` — branding element
-  - `.search-bar` — path input
-  - `.btn`, `.btn-primary` — buttons
-  - `.toolbar-btn` — icon buttons
-  - `.chip` — stat badges
-  - `.card` — card containers
+  - `.brand` - branding element
+  - `.search-bar` - path input
+  - `.btn`, `.btn-primary` - buttons
+  - `.toolbar-btn` - icon buttons
+  - `.chip` - stat badges
+  - `.card` - card containers
   - Input/select/textarea styles
   - Drawer, table, tree display styles
 
@@ -651,15 +651,15 @@ SHORTCUTS: {
 
 ## INITIALIZATION ORDER (index.html)
 
-1. **Phase 0: Polyfills** — settings.js, logger.js
-2. **Phase 1: Core** — base.js, state.js, worker-pool.js, constants.js
-3. **Phase 2: Data layer** — json-tree.js, virtual-list.js, persistence.js, engine.js, duckdb.js
-4. **Phase 3: Shell** — Toast, Header, Tabs, Rail, Status
-5. **Phase 4: Canvas** — Canvas-header, Insight-strip, View-switcher, Drawer, Tree, Input-panel, Find, Filter
-6. **Phase 5: Views** — Table, Graph, Schema, Editor, Stats
-7. **Phase 6: Panels** — Query, Context
-8. **Phase 7: Overlays** — Command, Loading
-9. **Phase 8: Bootstrap** — app.js
+1. **Phase 0: Polyfills** - settings.js, logger.js
+2. **Phase 1: Core** - base.js, state.js, worker-pool.js, constants.js
+3. **Phase 2: Data layer** - json-tree.js, virtual-list.js, persistence.js, engine.js, duckdb.js
+4. **Phase 3: Shell** - Toast, Header, Tabs, Rail, Status
+5. **Phase 4: Canvas** - Canvas-header, Insight-strip, View-switcher, Drawer, Tree, Input-panel, Find, Filter
+6. **Phase 5: Views** - Table, Graph, Schema, Editor, Stats
+7. **Phase 6: Panels** - Query, Context
+8. **Phase 7: Overlays** - Command, Loading
+9. **Phase 8: Bootstrap** - app.js
 
 ---
 
@@ -760,12 +760,12 @@ structra-context updates with value/meta
 ## TESTING CONSIDERATIONS
 
 ### **Views to Test**
-1. Tree — large nested objects, arrays, mixed types, 200k+ nodes
-2. Table — pagination, sorting, virtual scroll, filtered results
-3. Graph — zoom/pan, node expansion, depth limiting
-4. Schema — recursive structures, nullable detection, array items
-5. Editor — format/minify round-trip, invalid JSON recovery
-6. Stats — quality scoring, field profiling, drill-down navigation
+1. Tree - large nested objects, arrays, mixed types, 200k+ nodes
+2. Table - pagination, sorting, virtual scroll, filtered results
+3. Graph - zoom/pan, node expansion, depth limiting
+4. Schema - recursive structures, nullable detection, array items
+5. Editor - format/minify round-trip, invalid JSON recovery
+6. Stats - quality scoring, field profiling, drill-down navigation
 
 ### **Interactions to Test**
 1. Multi-tab workflow (create, switch, close, rename)

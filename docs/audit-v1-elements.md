@@ -1,12 +1,12 @@
-# Structra V1 — Complete UI Element Catalog
+# Structra V1 - Complete UI Element Catalog
 
-## 1. `<head>` — Metadata & Resources
+## 1. `<head>` - Metadata & Resources
 
 | Element | ID/Class | Purpose |
 |---|---|---|
-| `<link>` favicon | — | SVG icon at `icons/icon.svg?v=2` |
+| `<link>` favicon | - | SVG icon at `icons/icon.svg?v=2` |
 | `<link>` stylesheet | `id="mainCSS"` | Loads `src/css/styles.css` |
-| Inline `<script>` | — | Cache-busts the CSS with `Date.now()` |
+| Inline `<script>` | - | Cache-busts the CSS with `Date.now()` |
 
 ---
 
@@ -17,9 +17,9 @@
 | Element | ID / Class | Purpose | Section |
 |---|---|---|---|
 | Theme toggle button | `id="overlayThemeToggle"`, `class="overlay-theme-toggle"` | Toggle dark/light theme on landing page | Overlay top-right |
-| Lucide icon inside toggle | `data-lucide="moon"` | Moon icon | — |
-| Brand heading `<h2>` | — | SVG brand icon + "Structra" text | Overlay header |
-| Sub-heading `<div class="sub">` | — | Tagline: "Explore your JSON data…" | Overlay header |
+| Lucide icon inside toggle | `data-lucide="moon"` | Moon icon | - |
+| Brand heading `<h2>` | - | SVG brand icon + "Structra" text | Overlay header |
+| Sub-heading `<div class="sub">` | - | Tagline: "Explore your JSON data…" | Overlay header |
 
 ### 2a. Input Tabs
 
@@ -33,36 +33,36 @@
 | `class="input-tab-btn"` | `url` | Load URL | Switch to URL/API panel |
 | `class="input-tab-btn"` | `recent` | Recent | Switch to recent files panel |
 
-### 2b. Input Panel — File Upload (`id="ip-file"`)
+### 2b. Input Panel - File Upload (`id="ip-file"`)
 
 | Element | ID / Class | Purpose |
 |---|---|---|
 | Drop area | `id="dropArea"`, `class="drop-area"` | Drag-and-drop target for JSON files |
 | Icon inside drop area | `<div class="icon">` | File emoji (📄) |
-| Paragraph | — | "Drop JSON file here or click to browse" |
+| Paragraph | - | "Drop JSON file here or click to browse" |
 | Hidden file input | `id="fileInput"` | `<input type="file" accept=".json,.txt">` |
 
-### 2c. Input Panel — Paste JSON (`id="ip-text"`)
+### 2c. Input Panel - Paste JSON (`id="ip-text"`)
 
 | Element | ID / Class | Purpose |
 |---|---|---|
 | Textarea | `id="pasteInput"`, `class="paste-input"` | Manual JSON paste area |
-| Load button | `id="btnGo"`, `class="btn-go"` | "▶ Load & Explore" — parse pasted JSON |
+| Load button | `id="btnGo"`, `class="btn-go"` | "▶ Load & Explore" - parse pasted JSON |
 
-### 2d. Input Panel — CSV Import (`id="ip-csv"`)
+### 2d. Input Panel - CSV Import (`id="ip-csv"`)
 
 | Element | ID / Class | Purpose |
 |---|---|---|
 | Textarea | `id="csvInput"`, `class="paste-input"` | Paste CSV/TSV data |
 | Parse button | `id="btnCsvGo"`, `class="btn-go"` | "▶ Parse CSV & Load" |
 
-### 2e. Input Panel — Load URL / API (`id="ip-url"`)
+### 2e. Input Panel - Load URL / API (`id="ip-url"`)
 
 | Element | ID / Class | Purpose |
 |---|---|---|
 | HTTP method dropdown | `id="apiMethod"`, `class="api-method"` | GET/POST/PUT/PATCH/DELETE selector |
 | URL text input | `id="apiUrlInput"`, `class="api-url"` | URL endpoint field |
-| Send button | `id="btnApiSend"`, `class="btn-go api-send"` | "▶ Send" — fire API request |
+| Send button | `id="btnApiSend"`, `class="btn-go api-send"` | "▶ Send" - fire API request |
 
 **API Options sub-tabs** (`<div class="api-option-tabs">`):
 
@@ -86,7 +86,7 @@
 | Header key-value list | `id="apiHeadersList"`, `class="api-kv-list"` | List of header rows |
 | Header key input | `class="api-kv-key"` | Header name input |
 | Header value input | `class="api-kv-val"` | Header value input |
-| Remove row button | `class="api-kv-remove"` | ✕ — remove header row |
+| Remove row button | `class="api-kv-remove"` | ✕ - remove header row |
 | Add header button | `id="apiAddHeader"`, `class="api-add-row"` | "+ Add Header" |
 
 **Body panel** (`id="ap-body"`):
@@ -103,7 +103,7 @@
 | API status | `id="apiStatus"`, `class="api-status"` | Shows response status |
 | URL error | `id="urlLandingError"`, `class="url-error"` | Error message display |
 
-### 2f. Input Panel — Recent (`id="ip-recent"`)
+### 2f. Input Panel - Recent (`id="ip-recent"`)
 
 | Element | ID / Class | Purpose |
 |---|---|---|
@@ -124,29 +124,29 @@
 
 | Element | ID / Class | Purpose | Keyboard Shortcut |
 |---|---|---|---|
-| Brand label | `class="brand"` | SVG icon + "Structra" text | — |
-| Separator | `class="sep"` | Visual divider | — |
+| Brand label | `class="brand"` | SVG icon + "Structra" text | - |
+| Separator | `class="sep"` | Visual divider | - |
 | Back button | `id="btnBack"` | Navigate back in path history | `Alt+Left` |
 | Forward button | `id="btnForward"` | Navigate forward in path history | `Alt+Right` |
-| Path label | `<span class="label">` | "Path" label | — |
-| Path input | `id="pathInput"`, `class="path-input"` | Type/display JSON path | — |
-| Copy path button | `id="btnCopy"`, `class="toolbar-btn"` | Copy current path to clipboard | — |
+| Path label | `<span class="label">` | "Path" label | - |
+| Path input | `id="pathInput"`, `class="path-input"` | Type/display JSON path | - |
+| Copy path button | `id="btnCopy"`, `class="toolbar-btn"` | Copy current path to clipboard | - |
 | Bookmark button | `id="btnBookmark"`, `class="toolbar-btn"` | Bookmark current path | `Ctrl+B` |
-| Separator | `class="sep"` | Visual divider | — |
+| Separator | `class="sep"` | Visual divider | - |
 | Search button | `id="btnSearch"`, `class="toolbar-btn"` | Open search bar | `Ctrl+F` |
 | Advanced filter button | `id="btnTreeFilter"`, `class="toolbar-btn"` | Open advanced tree filter | `Ctrl+Shift+F` |
 | Table view button | `id="btnTable"`, `class="toolbar-btn"` | Switch to table view | `Ctrl+2` |
 
 ### 3a. Views Dropdown Group
 
-**Trigger:** `class="toolbar-btn toolbar-group-trigger"` — Eye icon + chevron-down
+**Trigger:** `class="toolbar-btn toolbar-group-trigger"` - Eye icon + chevron-down
 
 | Menu Item | ID | Icon | Label | Shortcut |
 |---|---|---|---|---|
-| Graph View | `id="btnGraph"` | `git-fork` | Graph View | — |
+| Graph View | `id="btnGraph"` | `git-fork` | Graph View | - |
 | Schema Preview | `id="btnSchema"` | `file-json` | Schema Preview | `Ctrl+3` |
-| Generate Types | `id="btnTypeDef"` | `file-type` | Generate Types | — |
-| Compare JSON | `id="btnDiff"` | `columns-2` | Compare JSON | — |
+| Generate Types | `id="btnTypeDef"` | `file-type` | Generate Types | - |
+| Compare JSON | `id="btnDiff"` | `columns-2` | Compare JSON | - |
 
 ### 3b. Transform Button
 
@@ -166,7 +166,7 @@
 | Share URL | `id="btnShare"` | `external-link` | Share URL |
 | Save/Load Workspace | `id="btnWorkspaceExport"` | `hard-drive-download` | Save or Load Workspace |
 
-**Hidden:** `<input type="file" id="workspaceImportInput" accept=".json" style="display:none">` — for workspace import
+**Hidden:** `<input type="file" id="workspaceImportInput" accept=".json" style="display:none">` - for workspace import
 
 ### 3d. Analyze Dropdown Group
 
@@ -224,7 +224,7 @@
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Title span | — | "JSON Document" |
+| Title span | - | "JSON Document" |
 | Doc metadata | `id="docMeta"`, `class="meta"` | Shows document stats (size, etc.) |
 
 **Panel Header Buttons** (`<div class="panel-btns">`):
@@ -245,9 +245,9 @@
 | Element | ID | Purpose | Shortcut |
 |---|---|---|---|
 | Zoom Out | `id="btnZoomOut"` | Decrease zoom | `Ctrl+-` |
-| Zoom Select | `id="zoomSelect"`, `class="zoom-select"` | Dropdown: 50%–200% | — |
+| Zoom Select | `id="zoomSelect"`, `class="zoom-select"` | Dropdown: 50%–200% | - |
 | Zoom In | `id="btnZoomIn"` | Increase zoom | `Ctrl+=` |
-| Zoom Fit | `id="btnZoomFit"` | Auto-fit zoom | — |
+| Zoom Fit | `id="btnZoomFit"` | Auto-fit zoom | - |
 
 **Zoom Select Options:** 50%, 75%, 80%, 90%, 100% (default), 110%, 125%, 150%, 175%, 200%
 
@@ -259,7 +259,7 @@
 | Run button | `id="ufRun"`, `class="uf-run"` | Execute filter (hidden by default) |
 | Filter info | `id="treeFilterInfo"`, `class="tree-filter-info"` | Match count/info |
 | Help link | `id="ufHelpBtn"`, `class="uf-help-link"` | "?" syntax help |
-| Clear button | `id="treeFilterClear"` | ✕ — clear filter |
+| Clear button | `id="treeFilterClear"` | ✕ - clear filter |
 
 #### Universal Filter Results (`id="ufResults"`, hidden)
 
@@ -305,22 +305,22 @@
 | Button | ID | Title | Shortcut |
 |---|---|---|---|
 | Zoom to Fit | `id="gzFit"` | Zoom to fit | `Ctrl+Shift+1` |
-| Separator | `class="gz-sep"` | — | — |
+| Separator | `class="gz-sep"` | - | - |
 | Zoom Out | `id="gzOut"` | Zoom out | `Ctrl+-` |
-| Zoom Level | `id="gzLevel"`, `class="gz-level"` | "100%" display | — |
+| Zoom Level | `id="gzLevel"`, `class="gz-level"` | "100%" display | - |
 | Zoom In | `id="gzIn"` | Zoom in | `Ctrl+=` |
-| Separator | `class="gz-sep"` | — | — |
-| Reset | `id="gzReset"` | Reset to 100% | — |
+| Separator | `class="gz-sep"` | - | - |
+| Reset | `id="gzReset"` | Reset to 100% | - |
 
 #### JSON Editor Toolbar (`class="je-toolbar"`)
 
 | Element | ID / Class | Purpose | Shortcut |
 |---|---|---|---|
 | Apply button | `id="jeApply"`, `class="je-btn je-btn-primary"` | "▶ Apply" changes | `Ctrl+Enter` |
-| Format button | `id="jeFormat"`, `class="je-btn"` | Pretty-print | — |
-| Minify button | `id="jeMinify"`, `class="je-btn"` | Minify JSON | — |
+| Format button | `id="jeFormat"`, `class="je-btn"` | Pretty-print | - |
+| Minify button | `id="jeMinify"`, `class="je-btn"` | Minify JSON | - |
 | Undo button | `id="jeUndo"`, `class="je-btn"` | Undo edit | `Ctrl+Z` |
-| Status span | `id="jeStatus"`, `class="je-status"` | Edit status display | — |
+| Status span | `id="jeStatus"`, `class="je-status"` | Edit status display | - |
 
 **Editor Body** (`class="je-body"`):
 
@@ -344,7 +344,7 @@ All right-panel sections are **accordions** with `class="accordion"` (some with 
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header | — | Icon (`bar-chart-3`) + "Stats" |
+| Header | - | Icon (`bar-chart-3`) + "Stats" |
 | Chevron | `class="chevron"` | ▶ expand/collapse indicator |
 | Body | `id="statsBody"`, `class="acc-inner"` | Stats content |
 | Empty state | `class="no-result"` | "Load JSON to see stats" |
@@ -353,7 +353,7 @@ All right-panel sections are **accordions** with `class="accordion"` (some with 
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header | — | Icon (`bookmark`) + "Bookmarks" |
+| Header | - | Icon (`bookmark`) + "Bookmarks" |
 | Body | `id="bookmarksBody"`, `class="acc-inner"` | Bookmarks list |
 | Empty state | `class="no-result"` | "No bookmarks yet" |
 
@@ -361,7 +361,7 @@ All right-panel sections are **accordions** with `class="accordion"` (some with 
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header | — | Icon (`file-text`) + "Path Result" |
+| Header | - | Icon (`file-text`) + "Path Result" |
 | Badge | `id="resultBadge"`, `class="acc-badge"` | Result count badge |
 | Body | `id="resultBody"`, `class="acc-inner"` | Path result content |
 | Empty state | `class="no-result"` | "Click any element…" |
@@ -370,7 +370,7 @@ All right-panel sections are **accordions** with `class="accordion"` (some with 
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header | — | Icon (`zap`) + "Power Platform Expressions" |
+| Header | - | Icon (`zap`) + "Power Platform Expressions" |
 | Body | `id="exprBody"`, `class="acc-inner"` | Expression content |
 
 **Expression Sub-tabs** (`class="expr-subtabs"`):
@@ -389,7 +389,7 @@ All right-panel sections are **accordions** with `class="accordion"` (some with 
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header | — | Icon (`wrench`) + "Power Platform Helpers" |
+| Header | - | Icon (`wrench`) + "Power Platform Helpers" |
 | Body | `id="helpersBody"`, `class="acc-inner"` | Helper utilities |
 | Empty state | `class="no-result"` | "Load JSON for utilities" |
 
@@ -397,7 +397,7 @@ All right-panel sections are **accordions** with `class="accordion"` (some with 
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header | — | Icon (`file-code`) + "Parse JSON Schema" |
+| Header | - | Icon (`file-code`) + "Parse JSON Schema" |
 | Body | `id="schemaGenBody"`, `class="acc-inner"` | Schema gen content |
 | Empty state | `class="no-result"` | "Load JSON to generate schema" |
 | Schema content wrapper | `id="schemaGenContent"`, `class="schema-gen-content"` | Holds toolbar + output |
@@ -436,7 +436,7 @@ All right-panel sections are **accordions** with `class="accordion"` (some with 
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header title | — | "JSON Diff" |
+| Header title | - | "JSON Diff" |
 | Show All button | `id="diffShowAll"` | Toggle unchanged lines visibility |
 | Close button | `id="diffClose"` | Close diff overlay |
 | Tab select dropdown | `id="diffTabSelect"`, `class="diff-tab-select"` | Load JSON from another tab |
@@ -452,7 +452,7 @@ All right-panel sections are **accordions** with `class="accordion"` (some with 
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header title | — | "Convert Format" |
+| Header title | - | "Convert Format" |
 | Close button | `id="convertClose"` | Close modal |
 | YAML tab | `data-cv="yaml"` (active) | Switch to YAML output |
 | XML tab | `data-cv="xml"` | Switch to XML output |
@@ -467,7 +467,7 @@ Mirrors the landing-page API panel but in a modal context:
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header title | — | "Load JSON from API" |
+| Header title | - | "Load JSON from API" |
 | Close button | `id="urlClose"` | Close modal |
 | HTTP method | `id="modalApiMethod"` | GET/POST/PUT/PATCH/DELETE |
 | URL input | `id="modalApiUrl"` | API endpoint |
@@ -492,7 +492,7 @@ Mirrors the landing-page API panel but in a modal context:
 
 | Element | ID / Class | Purpose |
 |---|---|---|
-| Header title | — | "Type Definitions" |
+| Header title | - | "Type Definitions" |
 | Close button | `id="typeDefClose"` | Close modal |
 | Body | `id="typeDefBody"`, `class="modal-body"` | Generated type definitions |
 | Copy button | `id="typeDefCopy"`, `class="primary"` | "Copy to Clipboard" |
@@ -502,12 +502,12 @@ Mirrors the landing-page API panel but in a modal context:
 | Tab | `data-td` | Label |
 |---|---|---|
 | Active | `ts` | TypeScript |
-| — | `csharp` | C# |
-| — | `powerfx` | Power Fx Type |
-| — | `go` | Go |
-| — | `python` | Python |
-| — | `rust` | Rust |
-| — | `sql` | SQL DDL |
+| - | `csharp` | C# |
+| - | `powerfx` | Power Fx Type |
+| - | `go` | Go |
+| - | `python` | Python |
+| - | `rust` | Rust |
+| - | `sql` | SQL DDL |
 
 ---
 
@@ -547,8 +547,8 @@ Mirrors the landing-page API panel but in a modal context:
 ## 13. Script Tags (load order)
 
 **External CDN:**
-- `https://unpkg.com/lucide@latest/dist/umd/lucide.min.js` — Lucide icon library
-- Inline: `lucide.createIcons(...)` — initializes all `data-lucide` icons (14×14, stroke-width 1.5)
+- `https://unpkg.com/lucide@latest/dist/umd/lucide.min.js` - Lucide icon library
+- Inline: `lucide.createIcons(...)` - initializes all `data-lucide` icons (14×14, stroke-width 1.5)
 
 **Application Scripts** (loaded via dynamic `document.write`, cache-busted with `Date.now()`):
 
