@@ -429,10 +429,10 @@ class StructraInputPanel extends StructraComponent {
   /** Open text from somewhere other than the file picker (used by session restore) */
   /** Said once, after the first document: where the Power Platform tools are */
   _tipOnce() {
-    const KEY = 'structra.tipExpressions';
+    const TIP_STORAGE_KEY = 'structra.tipExpressions';
     try {
-      if (localStorage.getItem(KEY)) return;
-      localStorage.setItem(KEY, '1');
+      if (localStorage.getItem(TIP_STORAGE_KEY)) return;
+      localStorage.setItem(TIP_STORAGE_KEY, '1');
     } catch { return; }
     setTimeout(() => Structra.toast('Tip: select a value in the Tree for its expression', { duration: 3500 }), 1500);
   }

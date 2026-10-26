@@ -831,10 +831,10 @@ Structra.dataEngine = (() => {
     });
 
     const columns = collectKeys(main.rows);
-    const OPS = { eq: '=', neq: '≠', gt: '>', lt: '<', gte: '≥', lte: '≤', contains: 'contains', notcontains: 'does not contain', startswith: 'starts with', endswith: 'ends with', isnull: 'is empty', notnull: 'has a value' };
+    const OPERATOR_SYMBOLS = { eq: '=', neq: '≠', gt: '>', lt: '<', gte: '≥', lte: '≤', contains: 'contains', notcontains: 'does not contain', startswith: 'starts with', endswith: 'ends with', isnull: 'is empty', notnull: 'has a value' };
     const result = {
       source: 'filter',
-      query: conditions.map((condition, i) => `${i ? (condition.logic || 'AND').toLowerCase() + ' ' : ''}${condition.field} ${OPS[condition.op] || condition.op}${condition.op === 'isnull' || condition.op === 'notnull' ? '' : ' ' + (condition.value || '')}`).join(' '),
+      query: conditions.map((condition, i) => `${i ? (condition.logic || 'AND').toLowerCase() + ' ' : ''}${condition.field} ${OPERATOR_SYMBOLS[condition.op] || condition.op}${condition.op === 'isnull' || condition.op === 'notnull' ? '' : ' ' + (condition.value || '')}`).join(' '),
       conditions,
       rows,
       matchedPaths: null,

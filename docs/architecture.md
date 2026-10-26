@@ -15,8 +15,8 @@
 
 ## File Structure
 - index.html - thin shell (~50 lines of tags + script refs)
-- src/core/base.js - StructraElement base class
-- src/core/state.js - Structra global state + event bus
+- src/core/component-base.js - StructraComponent base class
+- src/core/app-state-and-events.js - Structra global state + event bus
 - src/core/constants.js - MAX_TABS, shortcuts map
 - src/components/structra-*.js - one per UI panel
 - src/css/variables.css, layout.css, components.css

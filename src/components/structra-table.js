@@ -550,11 +550,11 @@ class StructraTable extends StructraComponent {
    */
   _formatNested(value) {
     const escapeHtml = Structra.sharedHelpers.escapeHtml;
-    const FRIENDLY = ['Value', 'DisplayName', 'Title', 'Name', 'Email', 'value', 'displayName', 'title', 'name', 'label', 'text'];
+    const FRIENDLY_LABEL_KEYS = ['Value', 'DisplayName', 'Title', 'Name', 'Email', 'value', 'displayName', 'title', 'name', 'label', 'text'];
     const brief = (object) => {
       if (object === null || object === undefined) return 'null';
       if (typeof object !== 'object') return String(object);
-      const field = FRIENDLY.find((field) => object[field] !== undefined && object[field] !== null && typeof object[field] !== 'object');
+      const field = FRIENDLY_LABEL_KEYS.find((field) => object[field] !== undefined && object[field] !== null && typeof object[field] !== 'object');
       return field === undefined ? null : String(object[field]);
     };
     const full = escapeHtml(JSON.stringify(value).slice(0, 300));

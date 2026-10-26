@@ -93,13 +93,13 @@ Structra.browserDatabase = (() => {
    * and last 256 KB are hashed, which avoids reading tens of MB just to make a key.
    */
   async function hashBlob(blob) {
-    const EDGE = 262144;
+    const HASH_SAMPLE_BYTES = 262144;
     const parts = [new TextEncoder().encode(String(blob.size) + ':')];
-    if (blob.size <= EDGE * 4) {
+    if (blob.size <= HASH_SAMPLE_BYTES * 4) {
       parts.push(new Uint8Array(await blob.arrayBuffer()));
     } else {
-      parts.push(new Uint8Array(await blob.slice(0, EDGE).arrayBuffer()));
-      parts.push(new Uint8Array(await blob.slice(blob.size - EDGE).arrayBuffer()));
+      parts.push(new Uint8Array(await blob.slice(0, HASH_SAMPLE_BYTES).arrayBuffer()));
+      parts.push(new Uint8Array(await blob.slice(blob.size - HASH_SAMPLE_BYTES).arrayBuffer()));
     }
     const all = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
     let at = 0;

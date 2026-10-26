@@ -25,11 +25,11 @@
 window.Structra = window.Structra || {};
 
 Structra.bookmarks = (() => {
-  const KEY = 'structra_bookmarks';
+  const STORAGE_KEY = 'structra_bookmarks';
 
   function load() {
     try {
-      const parsed = JSON.parse(localStorage.getItem(KEY) || '[]');
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       Structra.log.warn('Bookmarks', 'Stored bookmarks unreadable, starting empty', error.message);
@@ -39,7 +39,7 @@ Structra.bookmarks = (() => {
 
   function save(all) {
     try {
-      localStorage.setItem(KEY, JSON.stringify(all));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     } catch (error) {
       Structra.log.warn('Bookmarks', 'Could not save bookmarks', error.message);
     }

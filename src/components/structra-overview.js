@@ -325,16 +325,16 @@ class StructraOverview extends StructraComponent {
 
   /** All Instances tab - virtual-scrolled table */
   _renderArraysAll(arraysDetail) {
-    const ROW_H = 32;
-    const VISIBLE_H = 400;
-    const totalH = arraysDetail.length * ROW_H;
+    const ROW_HEIGHT = 32;
+    const VISIBLE_HEIGHT = 400;
+    const totalH = arraysDetail.length * ROW_HEIGHT;
 
-    return `<div class="arr-virtual-wrap" id="arrVirtualWrap" style="max-height:${VISIBLE_H}px;overflow-y:auto;position:relative">
+    return `<div class="arr-virtual-wrap" id="arrVirtualWrap" style="max-height:${VISIBLE_HEIGHT}px;overflow-y:auto;position:relative">
       <table class="arr-table arr-virtual-table">
         <thead style="position:sticky;top:0;z-index:1"><tr><th>Path</th><th>Items</th><th>Element Type</th></tr></thead>
         <tbody id="arrVirtualBody">
           <tr class="arr-vpad-top"><td colspan="3" style="height:0;padding:0;border:0"></td></tr>
-          <tr class="arr-vpad-bot"><td colspan="3" style="height:${Math.max(0, totalH - VISIBLE_H)}px;padding:0;border:0"></td></tr>
+          <tr class="arr-vpad-bot"><td colspan="3" style="height:${Math.max(0, totalH - VISIBLE_HEIGHT)}px;padding:0;border:0"></td></tr>
         </tbody>
       </table>
     </div>
@@ -349,18 +349,18 @@ class StructraOverview extends StructraComponent {
     if (!wrap || !this._arraysDetail) return;
 
     const data = this._arraysDetail;
-    const ROW_H = 32;
-    const BUFFER = 10;
+    const ROW_HEIGHT = 32;
+    const EXTRA_ROWS = 10;
     const self = this;
 
     const render = () => {
       const scrollTop = wrap.scrollTop;
       const viewH = wrap.clientHeight;
-      const startIndex = Math.max(0, Math.floor(scrollTop / ROW_H) - BUFFER);
-      const endIndex = Math.min(data.length, Math.ceil((scrollTop + viewH) / ROW_H) + BUFFER);
+      const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - EXTRA_ROWS);
+      const endIndex = Math.min(data.length, Math.ceil((scrollTop + viewH) / ROW_HEIGHT) + EXTRA_ROWS);
 
-      const topPad = startIndex * ROW_H;
-      const botPad = Math.max(0, (data.length - endIndex) * ROW_H);
+      const topPad = startIndex * ROW_HEIGHT;
+      const botPad = Math.max(0, (data.length - endIndex) * ROW_HEIGHT);
 
       let rows = '';
       for (let i = startIndex; i < endIndex; i++) {

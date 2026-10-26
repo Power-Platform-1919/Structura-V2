@@ -28,7 +28,7 @@
 window.Structra = window.Structra || {};
 
 Structra.appSettings = (() => {
-  const PREFIX = 'structra.';
+  const STORAGE_PREFIX = 'structra.';
 
   /* --- Defaults --- */
   const DEFAULTS = {
@@ -48,7 +48,7 @@ Structra.appSettings = (() => {
 
   /* --- Read --- */
   function get(key) {
-    const raw = localStorage.getItem(PREFIX + key);
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
     if (raw === null) return DEFAULTS[key];
     // Parse typed values
     const definition = DEFAULTS[key];
@@ -65,7 +65,7 @@ Structra.appSettings = (() => {
     }
     const old = get(key);
     if (old === value) return;
-    localStorage.setItem(PREFIX + key, String(value));
+    localStorage.setItem(STORAGE_PREFIX + key, String(value));
     // Emit change event if event bus exists (may not during early boot)
     if (Structra.events) {
       Structra.events.emit('settings:changed', { key, value, old });
@@ -83,7 +83,7 @@ Structra.appSettings = (() => {
 
   function reset() {
     for (const key of Object.keys(DEFAULTS)) {
-      localStorage.removeItem(PREFIX + key);
+      localStorage.removeItem(STORAGE_PREFIX + key);
     }
     if (Structra.events) {
       Structra.events.emit('settings:reset');

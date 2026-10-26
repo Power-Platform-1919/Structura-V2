@@ -18,18 +18,18 @@
 window.Structra = window.Structra || {};
 
 Structra.panelResizer = (() => {
-  const KEY = (name) => 'structra.panelWidth.' + name;
-  const STEP = 16;
+  const storageKey = (name) => 'structra.panelWidth.' + name;
+  const KEYBOARD_STEP_PIXELS = 16;
 
   function readSaved(name) {
     try {
-      const saved = parseInt(localStorage.getItem(KEY(name)), 10);
+      const saved = parseInt(localStorage.getItem(storageKey(name)), 10);
       return Number.isFinite(saved) ? saved : null;
     } catch { return null; }
   }
 
   function save(name, pixels) {
-    try { localStorage.setItem(KEY(name), String(pixels)); } catch { /* storage unavailable */ }
+    try { localStorage.setItem(storageKey(name), String(pixels)); } catch { /* storage unavailable */ }
   }
 
   function attach(panel, options) {
@@ -75,14 +75,14 @@ Structra.panelResizer = (() => {
       if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
       event.preventDefault();
       const grow = (event.key === 'ArrowRight') === (edge === 'right');
-      const next = clamp(panel.getBoundingClientRect().width + (grow ? STEP : -STEP));
+      const next = clamp(panel.getBoundingClientRect().width + (grow ? KEYBOARD_STEP_PIXELS : -KEYBOARD_STEP_PIXELS));
       apply(next);
       save(name, next);
     });
 
     handle.addEventListener('dblclick', () => {
       document.documentElement.style.removeProperty(cssVar);
-      try { localStorage.removeItem(KEY(name)); } catch { /* storage unavailable */ }
+      try { localStorage.removeItem(storageKey(name)); } catch { /* storage unavailable */ }
     });
   }
 

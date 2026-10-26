@@ -34,7 +34,7 @@ A local JSON analyzer for everyone, with a built-in Power Platform add-on for ma
 
 ## 4. Architecture
 
-- `StructraComponent` (`core/component-base.js`): `init`, `render`, `on/emit`, `$`, `$$`. `StructraDialog` (`core/dialog-base.js`) extends it for every dialog: `mount({ title, body, foot, head, size })`, `open`, `close`, Escape, backdrop, focus trap. Sizes `sm md lg xl`; add `flush` for edge-to-edge content.
+- `StructraComponent` (`core/component-base.js`): `init`, `render`, `on/emit`, `queryOne`, `queryAll`. `StructraDialog` (`core/dialog-base.js`) extends it for every dialog: `mount({ title, body, foot, head, size })`, `open`, `close`, Escape, backdrop, focus trap. Sizes `sm md lg xl`; add `flush` for edge-to-edge content.
 - State and events (`core/app-state-and-events.js`): `Structra.setState(key, value)` emits `state:<key>`. Views: `overview tree table graph schema editor` (`constants.VIEWS`; Ctrl+1 to Ctrl+5 map to tree, table, graph, schema, overview).
 - Paths in `currentPath` have no leading `$`. `Structra.dataPaths` accepts both.
 - Shared helpers: `Structra.sharedHelpers` (esc, typeOf, naming styles, formatBytes, timeAgo, debounce, yieldToBrowser, whenIdle, copy, download, uid). Write general logic there once.

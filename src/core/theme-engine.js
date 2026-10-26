@@ -38,7 +38,7 @@ window.Structra = window.Structra || {};
 
 Structra.themeEngine = (() => {
   const STORE_KEY = 'structra.theme';
-  const FORMAT = 'structra-theme';
+  const THEME_FILE_FORMAT = 'structra-theme';
 
   const BASE_KEYS = ['bg', 'surface', 'surfaceAlt', 'border', 'text', 'textSec', 'textMuted', 'accent',
     'success', 'warning', 'danger', 'info', 'synKey', 'synString', 'synNumber', 'synBoolean', 'synNull'];
@@ -119,7 +119,7 @@ Structra.themeEngine = (() => {
 
   /* ---------- colour helpers ---------- */
 
-  const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+  const HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
   function toRgb(hex) {
     let digits = hex.replace('#', '');
@@ -236,7 +236,7 @@ Structra.themeEngine = (() => {
   function sanitize(input) {
     const errors = [];
     if (!input || typeof input !== 'object') throw new Error('The file is not a theme.');
-    if (input.format !== FORMAT) errors.push('This is not a Structra theme file.');
+    if (input.format !== THEME_FILE_FORMAT) errors.push('This is not a Structra theme file.');
     const name = String(input.name || '').trim().slice(0, 60);
     if (!name) errors.push('The theme needs a name.');
     if (input.mode !== 'light' && input.mode !== 'dark') errors.push('Mode must be "light" or "dark".');
@@ -246,7 +246,7 @@ Structra.themeEngine = (() => {
     for (const key of BASE_KEYS) {
       const color = input.colors && input.colors[key];
       if (color === undefined) { colors[key] = base.colors[key]; continue; }     // missing colours fall back to the built-in of that mode
-      if (typeof color !== 'string' || !HEX.test(color)) errors.push('"' + key + '" must be a hex colour such as #3b5bdb.');
+      if (typeof color !== 'string' || !HEX_COLOR.test(color)) errors.push('"' + key + '" must be a hex colour such as #3b5bdb.');
       else colors[key] = color.toLowerCase();
     }
 
@@ -273,7 +273,7 @@ Structra.themeEngine = (() => {
 
   /** Save a custom theme (new, or an update when it already has a custom id) */
   function saveCustom(input) {
-    const clean = sanitize({ format: FORMAT, ...input });
+    const clean = sanitize({ format: THEME_FILE_FORMAT, ...input });
     const settings = load();
     const existing = input.id && settings.custom.find((theme) => theme.id === input.id);
     if (existing) {
@@ -302,7 +302,7 @@ Structra.themeEngine = (() => {
   function exportJson(id) {
     const theme = get(id);
     if (!theme) throw new Error('Theme not found');
-    const out = { format: FORMAT, version: 1, name: theme.name, mode: theme.mode, colors: { ...theme.colors } };
+    const out = { format: THEME_FILE_FORMAT, version: 1, name: theme.name, mode: theme.mode, colors: { ...theme.colors } };
     if (theme.fonts) out.fonts = { ...theme.fonts };
     return JSON.stringify(out, null, 2);
   }
@@ -338,7 +338,7 @@ Structra.themeEngine = (() => {
       if (['light', 'dark', 'system'].includes(snap.mode)) settings.mode = snap.mode;
       if (Array.isArray(snap.custom)) {
         for (const theme of snap.custom) {
-          try { if (!get(theme.id)) settings.custom.push({ id: String(theme.id), ...sanitize({ format: FORMAT, ...theme }) }); } catch { /* skip an invalid theme */ }
+          try { if (!get(theme.id)) settings.custom.push({ id: String(theme.id), ...sanitize({ format: THEME_FILE_FORMAT, ...theme }) }); } catch { /* skip an invalid theme */ }
         }
       }
       if (get(snap.light)) settings.light = snap.light;

@@ -62,8 +62,8 @@ class StructraSchema extends StructraComponent {
     const lines = [];
     this._collect(schema, 'root', 0, false, lines);
 
-    const MAX = 3000;
-    const shown = lines.slice(0, MAX);
+    const MAX_LINES = 3000;
+    const shown = lines.slice(0, MAX_LINES);
     container.innerHTML = shown.map((line) => {
       const nullable = line.types.includes('null');
       const types = line.types.map((type) => `<span class="s-type${type === 'null' ? ' s-null' : ''}">${Structra.sharedHelpers.escapeHtml(type)}</span>`).join('<span class="s-or"> | </span>');
@@ -72,7 +72,7 @@ class StructraSchema extends StructraComponent {
         (line.required ? ' <span class="s-req" title="This field is in every record">required</span>' : '') +
         (nullable ? '' : '') +
         `</div>`;
-    }).join('') + (lines.length > MAX ? `<div class="s-more">${(lines.length - MAX).toLocaleString()} more fields are not shown. Copy the schema from the Schema Gen tab to get all of it.</div>` : '');
+    }).join('') + (lines.length > MAX_LINES ? `<div class="s-more">${(lines.length - MAX_LINES).toLocaleString()} more fields are not shown. Copy the schema from the Schema Gen tab to get all of it.</div>` : '');
     Structra.log.perf('Schema', 'render', performance.now() - startTime);
   }
 

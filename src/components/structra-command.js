@@ -162,8 +162,8 @@ class StructraCommand extends StructraComponent {
   /** Commands that need a document, or the Tree, or something to undo, are left out when that is not the case */
   _available(command) {
     const hasData = !!Structra.state.jsonData;
-    const ALWAYS = ['new-tab', 'load-url', 'welcome', 'shortcuts', 'appearance', 'theme', 'toolbar-reset', 'zoom-in', 'zoom-out', 'zoom-reset', 'zoom-fit', 'snippets', 'workspace', 'back', 'forward'];
-    if (ALWAYS.includes(command.id)) return true;
+    const ALWAYS_AVAILABLE_COMMANDS = ['new-tab', 'load-url', 'welcome', 'shortcuts', 'appearance', 'theme', 'toolbar-reset', 'zoom-in', 'zoom-out', 'zoom-reset', 'zoom-fit', 'snippets', 'workspace', 'back', 'forward'];
+    if (ALWAYS_AVAILABLE_COMMANDS.includes(command.id)) return true;
     if (!hasData) return false;
     if (['expand-all', 'collapse-all', 'depth-3', 'wrap'].includes(command.id)) return Structra.state.activeView === 'tree';
     if (command.id === 'undo') return Structra.undoStack.canUndo();
