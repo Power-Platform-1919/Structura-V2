@@ -13,9 +13,10 @@
 }
 
 /* ===== JSON VIEW (Virtualised V1 renderer) ===== */
-.json-view { flex: 1; overflow: auto; padding: var(--sp-2); font-family: var(--font-mono); font-size: var(--fs-sm); line-height: 1.7; white-space: pre; background: var(--surface); contain: style; }
+.json-view { flex: 1; overflow: auto; padding: var(--sp-2) 0; font-family: var(--font-mono); font-size: var(--fs-sm); line-height: 1.7; white-space: pre; background: var(--surface); contain: style; }
 .json-view > * { display: block; width: max-content; min-width: 100%; }
-.json-view .j-line::before { content: attr(data-ln) / ""; position: sticky; left: 0; display: inline-block; min-width: 3.5em; margin-right: var(--sp-3); padding-right: var(--sp-2); text-align: right; color: var(--text-muted); opacity: 0.85; user-select: none; border-right: 1px solid var(--border); font-size: var(--fs-xs); background: var(--surface); z-index: 1; }
+/* The line numbers form a margin, drawn the same way as the margin of the Editor view (see codeview.css): a slightly different background, a thin divider and small muted numbers. Each line draws its own part of the margin, so it reaches the top and bottom of the view and stays in place when the text scrolls sideways. */
+.json-view .j-line::before { content: attr(data-ln) / ""; position: sticky; left: 0; display: inline-block; min-width: 3.5em; box-sizing: border-box; margin-right: var(--sp-3); padding: 0 var(--sp-2) 0 var(--sp-3); text-align: right; color: var(--text-muted); user-select: none; border-right: 1px solid var(--border-subtle); font-size: var(--fs-xs); background: var(--surface-alt); z-index: 1; }
 .json-view.wrap-mode { white-space: pre-wrap; word-break: break-word; }
 .json-view.wrap-mode > * { width: auto; min-width: 0; }
 .json-view.wrap-mode .j-line { padding-left: 5em; text-indent: -5em; }
