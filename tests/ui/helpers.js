@@ -66,7 +66,7 @@ async function inject(page) {
 }
 
 async function view(page, name) {
-  await page.evaluate((v) => Structra.set('activeView', v), name);
+  await page.evaluate((v) => Structra.setState('activeView', v), name);
   await page.waitForTimeout(450);
 }
 

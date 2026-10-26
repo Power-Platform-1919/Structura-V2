@@ -1,6 +1,6 @@
 const { load, test, eq, truthy } = require('./harness');
-load(['transform-ops']);
-const T = Structra.transformOps;
+load(['transform-step-operations']);
+const T = Structra.transformStepOperations;
 
 console.log('transform steps');
 

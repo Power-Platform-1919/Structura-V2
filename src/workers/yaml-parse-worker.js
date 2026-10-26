@@ -7,8 +7,8 @@
  */
 importScripts('../libs/js-yaml.min.js');
 
-self.addEventListener('message', function(e) {
-  var id = e.data.id, text = e.data.text;
+self.addEventListener('message', function(event) {
+  var id = event.data.id, text = event.data.text;
 
   if (id == null) {
     self.postMessage({ id: null, success: false, error: 'Missing request id' });
@@ -21,14 +21,14 @@ self.addEventListener('message', function(e) {
   }
 
   try {
-    var t0 = performance.now();
+    var startTime = performance.now();
     var data = jsyaml.load(text);
-    var elapsed = (performance.now() - t0).toFixed(1);
+    var elapsed = (performance.now() - startTime).toFixed(1);
     console.log('[Worker:YAML] #' + id + ' Parse OK in ' + elapsed + 'ms');
     self.postMessage({ id: id, success: true, data: data });
-  } catch (err) {
-    var msg = err.message || 'Unknown YAML error';
-    if (err.mark) msg += ' (line ' + (err.mark.line + 1) + ', col ' + (err.mark.column + 1) + ')';
-    self.postMessage({ id: id, success: false, error: 'YAML parse error: ' + msg });
+  } catch (error) {
+    var message = error.message || 'Unknown YAML error';
+    if (error.mark) message += ' (line ' + (error.mark.line + 1) + ', col ' + (error.mark.column + 1) + ')';
+    self.postMessage({ id: id, success: false, error: 'YAML parse error: ' + message });
   }
 });

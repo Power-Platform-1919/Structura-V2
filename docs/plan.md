@@ -306,7 +306,7 @@ Structra.settings = {
 ### Phase 5: Persistence (localStorage + OPFS + IndexedDB)
 
 12. **Settings manager (localStorage)**
-    - Create `src/core/settings.js` - `Structra.settings` singleton
+    - Create `src/core/app-settings.js` - `Structra.settings` singleton
     - Keys: `structra.theme`, `structra.logMode`, `structra.fontSize`, `structra.pageSize`, `structra.defaultFmt`, `structra.autoDetect`, `structra.animations`, `structra.confirmClose`, `structra.sidebarW`, `structra.sqlHistory`
     - API: `get(key)`, `set(key, value)`, `getAll()`, `reset()`, `defaults`
     - On `set()`: persist to localStorage + emit `settings:changed` event
@@ -314,7 +314,7 @@ Structra.settings = {
     - Apply theme class to `<html>` element before first paint (in `<head>` or top of app.js)
     - Apply log mode to `Structra.log` configuration
     - Export/import: `settings.export()` → JSON string, `settings.import(json)` → restore
-    - Must load BEFORE components (first script after base.js)
+    - Must load BEFORE components (first script after component-base.js)
     *depends on: nothing*
 
 13. **OPFS persistence for DuckDB**
@@ -412,8 +412,8 @@ Structra.settings = {
 ### Create
 - `src/core/data-engine.js` - engine singleton (~600-800 lines)
 - `src/core/duckdb-adapter.js` - DuckDB WASM adapter with OPFS persistence (~200 lines)
-- `src/core/persistence.js` - OPFS + IndexedDB dual persistence manager (~250 lines)
-- `src/core/settings.js` - localStorage settings manager (~80 lines)
+- `src/core/browser-database.js` - OPFS + IndexedDB dual persistence manager (~250 lines)
+- `src/core/app-settings.js` - localStorage settings manager (~80 lines)
 - `src/workers/engine-worker.js` - heavy ops worker (~200 lines)
 
 ### Modify

@@ -10,7 +10,7 @@
      Sets state: queryPanelOpen, drawerState, activeView
    ============================================================ */
 
-class StructraRail extends StructraElement {
+class StructraRail extends StructraComponent {
   static get observedAttributes() { return ['active']; }
 
   render() {
@@ -38,15 +38,15 @@ class StructraRail extends StructraElement {
         ${Structra.icons.svg('settings')}<span class="rail-label">Settings</span>
       </button>`;
 
-    this.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-rail]');
-      if (!btn) return;
-      const action = btn.dataset.rail;
+    this.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-rail]');
+      if (!button) return;
+      const action = button.dataset.rail;
       Structra.events.emit('rail:action', action);
 
       switch (action) {
         case 'explorer': {    // the Open screen: reuse a tab that is still empty instead of piling up new ones
-          const empty = Structra.tabs.list.find((t) => !t.data && !t.hash);
+          const empty = Structra.tabs.list.find((tab) => !tab.data && !tab.hash);
           if (empty && empty.id !== Structra.tabs.activeId) {
             Structra.tabs.activeId = empty.id;
             Structra.events.emit('tabs:changed');
@@ -58,19 +58,19 @@ class StructraRail extends StructraElement {
           break;
         }
         case 'query':
-          Structra.set('queryPanelOpen', !Structra.state.queryPanelOpen);
+          Structra.setState('queryPanelOpen', !Structra.state.queryPanelOpen);
           break;
         case 'power': {        // the Power Platform tools: expressions for the selected value; a second click folds them away
           const showing = Structra.state.drawerState !== 'collapsed' && !!document.querySelector('structra-drawer .drawer-tabs .tab.active[data-tab="expressions"]');
-          if (showing) Structra.set('drawerState', 'collapsed');
+          if (showing) Structra.setState('drawerState', 'collapsed');
           else Structra.events.emit('drawer:show', 'expressions');
           break;
         }
         case 'overview':
-          Structra.set('activeView', 'overview');
+          Structra.setState('activeView', 'overview');
           break;
         case 'transform':
-          Structra.set('queryPanelOpen', true);
+          Structra.setState('queryPanelOpen', true);
           Structra.events.emit('query:show-tab', 'transform');
           break;
         case 'themes':
@@ -89,22 +89,22 @@ class StructraRail extends StructraElement {
     const sync = () => {
       const panel = !!Structra.state.queryPanelOpen;
       const drawerOpen = Structra.state.drawerState !== 'collapsed';
-      const lit = {
+      const litButtons = {
         explorer: !Structra.state.jsonData,
         query: panel && qTab === 'query',
         transform: panel && qTab === 'transform',
         power: drawerOpen && drawerTab === 'expressions' && !!Structra.state.jsonData,
         overview: Structra.state.activeView === 'overview' && !!Structra.state.jsonData,
       };
-      this.$$('.rail-btn').forEach((b) => b.classList.toggle('active', !!lit[b.dataset.rail]));
+      this.queryAll('.rail-btn').forEach((button) => button.classList.toggle('active', !!litButtons[button.dataset.rail]));
     };
     this.on('state:activeView', sync);
     this.on('state:queryPanelOpen', sync);
     this.on('state:jsonData', sync);
     this.on('state:drawerState', sync);
     this.on('tabs:switched', sync);
-    this.on('query:tab-switched', (t) => { qTab = t; sync(); });
-    this.on('drawer:tab-switched', (t) => { drawerTab = t; sync(); });
+    this.on('query:tab-switched', (payload) => { qTab = payload; sync(); });
+    this.on('drawer:tab-switched', (payload) => { drawerTab = payload; sync(); });
     sync();
   }
 }

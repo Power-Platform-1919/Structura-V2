@@ -10,7 +10,7 @@ const globals = require('globals');
 
 const appGlobals = {
   Structra: 'writable',
-  // Libraries loaded by <script> tags or on demand (src/libs, src/core/libs.js)
+  // Libraries loaded by <script> tags or on demand (src/libs, src/core/library-loader.js)
   CodeMirror: 'readonly',
   Papa: 'readonly',
   jsyaml: 'readonly',
@@ -20,9 +20,9 @@ const appGlobals = {
   html2canvas: 'readonly',
   csvRetype: 'readonly',                 // src/libs/csv-typing.js
   lucide: 'readonly',
-  // Classes every component and dialog extends (core/base.js, core/overlay.js)
-  StructraElement: 'readonly',
-  StructraOverlay: 'readonly',
+  // Classes every component and dialog extends (core/component-base.js, core/dialog-base.js)
+  StructraComponent: 'readonly',
+  StructraDialog: 'readonly',
 };
 
 module.exports = [
@@ -59,7 +59,7 @@ module.exports = [
   },
   {
     // These two files declare the classes that the global list above names
-    files: ['src/core/base.js', 'src/core/overlay.js'],
+    files: ['src/core/component-base.js', 'src/core/dialog-base.js'],
     rules: { 'no-redeclare': 'off', 'no-unused-vars': 'off' },
   },
   {

@@ -1,6 +1,6 @@
 const { load, test, eq, truthy } = require('./harness');
-load(['util', 'paths', 'expressions']);
-const E = Structra.expressions;
+load(['shared-helpers', 'data-paths', 'power-platform-expressions']);
+const E = Structra.powerPlatformExpressions;
 
 console.log('expressions and paths');
 
@@ -17,7 +17,7 @@ const code = (list, label) => (list.find((r) => r.label === label) || {}).code;
 test('Power Automate path is null-safe at every step', () => {
   Structra.state.jsonData = null;
   E.setSource({ kind: 'action', name: 'Parse_JSON', fullOutput: 'auto' });
-  eq(Structra.paths.powerAutomate('$.a[2].b'), "body('Parse_JSON')?['a']?[2]?['b']");
+  eq(Structra.dataPaths.powerAutomate('$.a[2].b'), "body('Parse_JSON')?['a']?[2]?['b']");
 });
 test('a whole action output does not repeat body', () => {
   Structra.state.jsonData = fullOutput;
@@ -53,10 +53,10 @@ test('list rows use null-safe indexes', () => {
 
 test('Power Fx reads from the variable and counts rows from 1', () => {
   E.setSource({ fxVar: 'jsonText' });
-  eq(Structra.paths.powerFx('$.a[0].b', { variable: 'jsonText' }), 'Index(ParseJSON(jsonText).a, 1).b');
+  eq(Structra.dataPaths.powerFx('$.a[0].b', { variable: 'jsonText' }), 'Index(ParseJSON(jsonText).a, 1).b');
 });
 test('Power Fx quotes names that are not plain identifiers', () => {
-  eq(Structra.paths.powerFx('$.child-field', { variable: 'v' }), "ParseJSON(v).'child-field'");
+  eq(Structra.dataPaths.powerFx('$.child-field', { variable: 'v' }), "ParseJSON(v).'child-field'");
 });
 test('Power Fx variable is configurable', () => {
   E.setSource({ fxVar: 'respText' });
@@ -133,9 +133,9 @@ test('the first rows do not repeat the same expression for a plain value', () =>
   eq(new Set(codes).size, codes.length, 'every row should be different');
 });
 test('Power Fx inside a record reads ThisRecord', () => {
-  eq(Structra.paths.powerFxInRecord('value[0].Requester.Email').expr, 'ThisRecord.Requester.Email');
-  eq(Structra.paths.powerFxInRecord('value[0].Title', 'ThisItem').expr, 'ThisItem.Title');
-  eq(Structra.paths.powerFxInRecord('value'), null);
+  eq(Structra.dataPaths.powerFxInRecord('value[0].Requester.Email').expr, 'ThisRecord.Requester.Email');
+  eq(Structra.dataPaths.powerFxInRecord('value[0].Title', 'ThisItem').expr, 'ThisItem.Title');
+  eq(Structra.dataPaths.powerFxInRecord('value'), null);
 });
 test('the quick set gives Power Automate and Power Fx for the Node panel', () => {
   useSource({});
@@ -208,7 +208,7 @@ test('flow actions for a field of a list item include Apply to each, Filter arra
 });
 test('helpers: a list inside a list uses the second loop name', () => {
   useSource({});
-  Structra.engine = { findAllArrays: () => [{ path: 'value' }, { path: 'value[*].Tags' }] };
+  Structra.dataEngine = { findAllArrays: () => [{ path: 'value' }, { path: 'value[*].Tags' }] };
   const sections = E.helpers(spNested);
   const rows = sections.find((s) => s.title.startsWith('Apply to each')).rows;
   const codes = rows.map((r) => r.code);
@@ -218,7 +218,7 @@ test('helpers: a list inside a list uses the second loop name', () => {
 });
 test('helpers use real keys from the document, not placeholder names', () => {
   useSource({});
-  Structra.engine = { findAllArrays: () => [] };
+  Structra.dataEngine = { findAllArrays: () => [] };
   const all = E.helpers({ name: 'Ann', items: [1, 2], age: 3 }).flatMap((s) => s.rows).map((r) => r.code).join('\n');
   truthy(all.includes("?['name']") && all.includes("?['items']"), all.slice(0, 300));
   truthy(!all.includes("?['keyName']") && !all.includes("?['arrayName']"), 'placeholder names are still there');

@@ -1,25 +1,25 @@
 /* ============================================================
    STRUCTRA V2 - JSON Tools
-   Structra.jsonTools - repair, duplicate keys, JSON Patch, schema validation.
+   Structra.jsonRepairAndValidation - repair, duplicate keys, JSON Patch, schema validation.
 
    API:
-     await Structra.jsonTools.repair(text)            → repaired JSON text
-     await Structra.jsonTools.findDuplicateKeys(text) → [{ key, path, line }]
-     Structra.jsonTools.patch(from, to)               → RFC 6902 operations
-     await Structra.jsonTools.validate(data, schema)  → { valid, errors: [{ path, message, keyword }] }
+     await Structra.jsonRepairAndValidation.repair(text)            → repaired JSON text
+     await Structra.jsonRepairAndValidation.findDuplicateKeys(text) → [{ key, path, line }]
+     Structra.jsonRepairAndValidation.patch(from, to)               → RFC 6902 operations
+     await Structra.jsonRepairAndValidation.validate(data, schema)  → { valid, errors: [{ path, message, keyword }] }
    ============================================================ */
 
 window.Structra = window.Structra || {};
 
-Structra.jsonTools = (() => {
+Structra.jsonRepairAndValidation = (() => {
   /* ---------- repair ---------- */
 
   async function repair(text) {
-    await Structra.libs.require('jsonrepair');
-    const lib = window.JSONRepair || window.jsonrepair;
-    const fn = lib && (lib.jsonrepair || lib);
-    if (typeof fn !== 'function') throw new Error('jsonrepair did not load');
-    return fn(text);
+    await Structra.libraryLoader.loadLibrary('jsonrepair');
+    const library = window.JSONRepair || window.jsonrepair;
+    const callback = library && (library.jsonrepair || library);
+    if (typeof callback !== 'function') throw new Error('jsonrepair did not load');
+    return callback(text);
   }
 
   /* ---------- duplicate keys ---------- */
@@ -45,10 +45,10 @@ Structra.jsonTools = (() => {
     };
 
     for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      if (ch === '\n') { line++; continue; }
+      const character = text[i];
+      if (character === '\n') { line++; continue; }
 
-      if (ch === '"') {
+      if (character === '"') {
         let j = i + 1;
         while (j < text.length && text[j] !== '"') j += text[j] === '\\' ? 2 : 1;
         const top = stack[stack.length - 1];
@@ -60,20 +60,20 @@ Structra.jsonTools = (() => {
           else top.keys.add(key);
         }
         i = j;
-      } else if (ch === '{') {
+      } else if (character === '{') {
         stack.push({ isObject: true, keys: new Set(), path: childPath(), expectKey: true, pendingKey: '' });
-      } else if (ch === '[') {
+      } else if (character === '[') {
         stack.push({ isObject: false, path: childPath(), index: 0 });
-      } else if (ch === '}' || ch === ']') {
+      } else if (character === '}' || character === ']') {
         stack.pop();
-      } else if (ch === ',') {
+      } else if (character === ',') {
         const top = stack[stack.length - 1];
         if (top) { if (top.isObject) top.expectKey = true; else top.index++; }
       }
 
       // Large files: give the page a turn about every 12 ms
       if ((i & 0xFFFF) === 0xFFFF && performance.now() - lastYield > 12) {
-        await Structra.util.yieldToBrowser();
+        await Structra.sharedHelpers.yieldToBrowser();
         lastYield = performance.now();
       }
     }
@@ -83,40 +83,40 @@ Structra.jsonTools = (() => {
   /* ---------- JSON Patch (RFC 6902) ---------- */
 
   const pointer = (key) => String(key).replace(/~/g, '~0').replace(/\//g, '~1');
-  const isContainer = (v) => v !== null && typeof v === 'object';
+  const isContainer = (value) => value !== null && typeof value === 'object';
 
-  function patch(from, to, base = '', ops = []) {
-    if (from === to) return ops;
+  function patch(from, to, base = '', operations = []) {
+    if (from === to) return operations;
     if (!isContainer(from) || !isContainer(to) || Array.isArray(from) !== Array.isArray(to)) {
-      ops.push({ op: 'replace', path: base, value: to });
-      return ops;
+      operations.push({ op: 'replace', path: base, value: to });
+      return operations;
     }
 
     if (Array.isArray(from)) {
       const common = Math.min(from.length, to.length);
-      for (let i = 0; i < common; i++) patch(from[i], to[i], `${base}/${i}`, ops);
-      for (let i = common; i < to.length; i++) ops.push({ op: 'add', path: `${base}/${i}`, value: to[i] });
-      for (let i = from.length - 1; i >= common; i--) ops.push({ op: 'remove', path: `${base}/${i}` });
-      return ops;
+      for (let i = 0; i < common; i++) patch(from[i], to[i], `${base}/${i}`, operations);
+      for (let i = common; i < to.length; i++) operations.push({ op: 'add', path: `${base}/${i}`, value: to[i] });
+      for (let i = from.length - 1; i >= common; i--) operations.push({ op: 'remove', path: `${base}/${i}` });
+      return operations;
     }
 
     for (const key of Object.keys(from)) {
-      if (!(key in to)) ops.push({ op: 'remove', path: `${base}/${pointer(key)}` });
+      if (!(key in to)) operations.push({ op: 'remove', path: `${base}/${pointer(key)}` });
     }
     for (const key of Object.keys(to)) {
-      if (!(key in from)) ops.push({ op: 'add', path: `${base}/${pointer(key)}`, value: to[key] });
-      else patch(from[key], to[key], `${base}/${pointer(key)}`, ops);
+      if (!(key in from)) operations.push({ op: 'add', path: `${base}/${pointer(key)}`, value: to[key] });
+      else patch(from[key], to[key], `${base}/${pointer(key)}`, operations);
     }
-    return ops;
+    return operations;
   }
 
   /* ---------- schema validation ---------- */
 
   /** "/body/value/0/name" → "body.value[0].name" */
-  function pointerToPath(ptr) {
-    if (!ptr) return '';
+  function pointerToPath(pointer) {
+    if (!pointer) return '';
     let out = '';
-    for (const raw of ptr.split('/').slice(1)) {
+    for (const raw of pointer.split('/').slice(1)) {
       const seg = raw.replace(/~1/g, '/').replace(/~0/g, '~');
       out = /^\d+$/.test(seg) ? `${out}[${seg}]` : keyPath(out, seg);
     }
@@ -124,15 +124,15 @@ Structra.jsonTools = (() => {
   }
 
   async function validate(data, schema) {
-    await Structra.libs.require('ajv');
+    await Structra.libraryLoader.loadLibrary('ajv');
     const ajv = new window.Ajv({ allErrors: true, jsonPointers: true });
     const check = ajv.compile(schema);          // throws on an invalid schema
     const valid = check(data);
-    const errors = (check.errors || []).map((e) => ({
-      path: pointerToPath(e.dataPath),
+    const errors = (check.errors || []).map((error) => ({
+      path: pointerToPath(error.dataPath),
       // An enum says which values are allowed, not only that the value is not one of them
-      message: e.keyword === 'enum' && e.params && e.params.allowedValues ? 'should be one of: ' + e.params.allowedValues.map((v) => JSON.stringify(v)).join(', ') : e.message,
-      keyword: e.keyword,
+      message: error.keyword === 'enum' && error.params && error.params.allowedValues ? 'should be one of: ' + error.params.allowedValues.map((value) => JSON.stringify(value)).join(', ') : error.message,
+      keyword: error.keyword,
     }));
     return { valid: !!valid, errors };
   }

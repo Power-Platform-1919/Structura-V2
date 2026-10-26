@@ -129,7 +129,7 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(200);
 
-    await page.evaluate(() => Structra.set('activeView', 'editor'));
+    await page.evaluate(() => Structra.setState('activeView', 'editor'));
     await page.waitForTimeout(300);
     // The editor handles its own keys (undo is its own, and ? is a character). The app must not take them over:
     // the app announces a shortcut it acts on, so none must be announced for these two keys.
@@ -147,7 +147,7 @@ function serve() {
     });
     if (kept.announced.length) failures.push('Ctrl+Z inside the Editor is taken over by the app (' + kept.announced.join(',') + '), so the editor cannot undo its own typing');
     if (kept.shortcutListOpened) failures.push('typing ? in the editor opens the shortcut list instead of typing');
-    await page.evaluate(() => Structra.set('activeView', 'tree'));
+    await page.evaluate(() => Structra.setState('activeView', 'tree'));
 
     // ---- Rail follows what is open ----
     await page.locator('structra-rail [data-rail="transform"]').click();

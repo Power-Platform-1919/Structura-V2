@@ -8,7 +8,7 @@
      Emits: theme:open, shortcuts:open, bookmarks:changed
    ============================================================ */
 
-class StructraSettings extends StructraOverlay {
+class StructraSettings extends StructraDialog {
   init() {
     super.init();
     this._confirming = null;
@@ -47,27 +47,27 @@ class StructraSettings extends StructraOverlay {
         </section>`,
       foot: '<button class="btn btn-primary" type="button" data-ov-close>Done</button>',
     });
-    this.root.addEventListener('click', (e) => this._onClick(e));
-    this.$('#setKeep').addEventListener('change', (e) => {
-      Structra.settings.set('keepRecentContent', e.target.checked);
-      Structra.toast(e.target.checked ? 'Recent keeps file contents' : 'Recent keeps only names and sizes from now on. Clear the list to remove contents already kept.');
+    this.root.addEventListener('click', (event) => this._onClick(event));
+    this.queryOne('#setKeep').addEventListener('change', (event) => {
+      Structra.appSettings.set('keepRecentContent', event.target.checked);
+      Structra.toast(event.target.checked ? 'Recent keeps file contents' : 'Recent keeps only names and sizes from now on. Clear the list to remove contents already kept.');
     });
   }
 
-  onOpen() { this.$('#setKeep').checked = Structra.settings.get('keepRecentContent') !== false; this._confirming = null; this._renderSql(); this._renderSaved(); }
+  onOpen() { this.queryOne('#setKeep').checked = Structra.appSettings.get('keepRecentContent') !== false; this._confirming = null; this._renderSql(); this._renderSaved(); }
 
-  _read(key) { try { const v = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } }
+  _read(key) { try { const list = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(list) ? list : []; } catch { return []; } }
 
   _renderSql() {
-    const hint = this.$('#setSqlHint');
-    const btn = this.$('#setSqlBtn');
-    const ready = Structra.engine.duckReady;
+    const hint = this.queryOne('#setSqlHint');
+    const button = this.queryOne('#setSqlBtn');
+    const ready = Structra.dataEngine.duckReady;
     hint.textContent = ready
       ? 'Running. SQL works on this computer only.'
-      : Structra.engine.duckFailed
+      : Structra.dataEngine.duckFailed
         ? 'It could not start in this browser. Everything else still works.'
         : 'Off until you need it (Find with SELECT, Query with SQL). It takes a few seconds to start.';
-    btn.hidden = !!ready || !!Structra.engine.duckFailed;
+    button.hidden = !!ready || !!Structra.dataEngine.duckFailed;
   }
 
   _renderSaved() {
@@ -77,10 +77,10 @@ class StructraSettings extends StructraOverlay {
       ['bookmarks', 'Bookmarks', this._read('structra_bookmarks').length, 'structra_bookmarks'],
       ['history', 'Query history', this._read('structra_query_history').length, 'structra_query_history'],
     ];
-    this.$('#setSaved').innerHTML = rows.map(([id, label, n, key]) => `
+    this.queryOne('#setSaved').innerHTML = rows.map(([id, label, row, key]) => `
       <div class="th-row set-row">
-        <div>${label} <span class="hint">${n} saved</span></div>
-        <button class="btn btn-sm" type="button" data-clear="${key}" ${n ? '' : 'disabled'}>${this._confirming === key ? 'Click again to clear' : 'Clear'}</button>
+        <div>${label} <span class="hint">${row} saved</span></div>
+        <button class="btn btn-sm" type="button" data-clear="${key}" ${row ? '' : 'disabled'}>${this._confirming === key ? 'Click again to clear' : 'Clear'}</button>
       </div>`).join('') + `
       <div class="th-row set-row">
         <div>Everything above, plus themes and settings</div>
@@ -88,28 +88,28 @@ class StructraSettings extends StructraOverlay {
       </div>`;
   }
 
-  _onClick(e) {
-    const act = e.target.closest('[data-set]');
-    if (act) {
-      const a = act.dataset.set;
-      if (a === 'appearance') { this.close(); Structra.events.emit('theme:open'); }
-      else if (a === 'shortcuts') { this.close(); Structra.events.emit('shortcuts:open'); }
-      else if (a === 'sql') {
-        act.disabled = true;
-        this.$('#setSqlHint').textContent = 'Starting. This takes a few seconds the first time.';
-        Promise.resolve(Structra.engine.enableSql()).finally(() => this._renderSql());
+  _onClick(event) {
+    const action = event.target.closest('[data-set]');
+    if (action) {
+      const setting = action.dataset.set;
+      if (setting === 'appearance') { this.close(); Structra.events.emit('theme:open'); }
+      else if (setting === 'shortcuts') { this.close(); Structra.events.emit('shortcuts:open'); }
+      else if (setting === 'sql') {
+        action.disabled = true;
+        this.queryOne('#setSqlHint').textContent = 'Starting. This takes a few seconds the first time.';
+        Promise.resolve(Structra.dataEngine.enableSql()).finally(() => this._renderSql());
       }
       return;
     }
-    const clr = e.target.closest('[data-clear]');
+    const clr = event.target.closest('[data-clear]');
     if (!clr) return;
     const key = clr.dataset.clear;
     if (this._confirming !== key) { this._confirming = key; this._renderSaved(); return; }
     this._confirming = null;
     if (key === '*') {
-      const mine = [];
-      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (/^structra[._]/.test(k) && k !== 'structra.welcomeSeen') mine.push(k); }
-      mine.forEach((k) => localStorage.removeItem(k));
+      const ownKeys = [];
+      for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (/^structra[._]/.test(key) && key !== 'structra.welcomeSeen') ownKeys.push(key); }
+      ownKeys.forEach((key) => localStorage.removeItem(key));
       Structra.events.emit('bookmarks:changed');
       Structra.toast('Everything saved in this browser was cleared. Reload to see the default theme.');
     } else {

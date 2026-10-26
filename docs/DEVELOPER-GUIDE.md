@@ -5,7 +5,7 @@ Everything you need to understand, change or rebuild the app. The files in `docs
 ## 1. The big picture
 
 - A static web app. No build step, no framework, no modules. `index.html` loads plain `<script>` tags in a fixed order.
-- Everything hangs off one global object, `window.Structra`. Core files add pieces to it (`Structra.engine`, `Structra.theme`, ...). Components are custom elements (`<structra-tree>`) that read and write it.
+- Everything hangs off one global object, `window.Structra`. Core files add pieces to it (`Structra.dataEngine`, `Structra.themeEngine`, ...). Components are custom elements (`<structra-tree>`) that read and write it.
 - All data is processed in the browser. Nothing is uploaded.
 - The only dev dependency is `playwright`, used by the tests.
 
@@ -33,14 +33,14 @@ Everything you need to understand, change or rebuild the app. The files in `docs
 
 ## 4. The three building blocks
 
-**State** (`core/state.js`). `Structra.state` holds the app state (active view, current path, open panels, the open data). Change it with `Structra.set('key', value)`. That emits `state:<key>` with `{ key, value, old }`.
+**State** (`core/app-state-and-events.js`). `Structra.state` holds the app state (active view, current path, open panels, the open data). Change it with `Structra.setState('key', value)`. That emits `state:<key>` with `{ key, value, old }`.
 
 **Events** (`Structra.events.on / emit`). Components talk to each other through named events, such as `settings:open` or `drawer:show`. A component never calls another component's methods directly. Each file's header lists the events it listens to and emits.
 
-**Components** (`core/base.js`). Extend `StructraElement`:
+**Components** (`core/component-base.js`). Extend `StructraComponent`:
 
 ```js
-class StructraThing extends StructraElement {
+class StructraThing extends StructraComponent {
   init()   { this.on('state:currentPath', () => this._update()); }  // subscribe once
   render() { this.innerHTML = `<div>...</div>`; }                   // build the markup once
 }
@@ -49,12 +49,12 @@ customElements.define('structra-thing', StructraThing);
 
 `this.on(...)` removes the listener when the element is removed. `this.$` and `this.$$` are shortcuts for `querySelector` and `querySelectorAll` inside the element. There is no Shadow DOM, so global CSS applies.
 
-Dialogs extend `StructraOverlay` (`core/overlay.js`), which provides the box, Escape, backdrop click and focus handling. See the example in that file's header.
+Dialogs extend `StructraDialog` (`core/dialog-base.js`), which provides the box, Escape, backdrop click and focus handling. See the example in that file's header.
 
 ## 5. Recipes
 
 **Add a dialog**
-1. Create `src/components/structra-thing.js` extending `StructraOverlay`.
+1. Create `src/components/structra-thing.js` extending `StructraDialog`.
 2. Add `<structra-thing></structra-thing>` to the overlays block in `index.html` and a `<script>` tag before `src/app.js`.
 3. Open it by emitting your own event, for example `Structra.events.emit('thing:open')`.
 
@@ -66,13 +66,13 @@ Dialogs extend `StructraOverlay` (`core/overlay.js`), which provides the box, Es
 **Add a view**
 1. Add its name to `Structra.constants.VIEWS`.
 2. Create the component and add it to `structra-view-switcher.js`.
-3. Add a tab in `structra-canvas-header.js` and, if wanted, a shortcut in `constants.js`.
+3. Add a tab in `structra-canvas-header.js` and, if wanted, a shortcut in `app-constants.js`.
 
 **Add a theme**
-Built-in themes live in `core/theme.js`. A theme is 17 base colours; the rest are derived with `color-mix()`. Users can also import and export themes as JSON.
+Built-in themes live in `core/theme-engine.js`. A theme is 17 base colours; the rest are derived with `color-mix()`. Users can also import and export themes as JSON.
 
 **Add a keyboard shortcut**
-Add the key and action name to the shortcut map in `core/constants.js`, then handle the action in `components/structra-command.js` (the same place the command palette runs its commands).
+Add the key and action name to the shortcut map in `core/app-constants.js`, then handle the action in `components/structra-command.js` (the same place the command palette runs its commands).
 
 **Show a message**
 `Structra.toast('Plain words', 'warning')`. Types are `info` (default), `warning` and `error`. Write for people who do not know the code: say what happened and what to do next.
@@ -120,7 +120,18 @@ Matching list items is slow on long lists, so a list over 1,500 items makes the 
 - No em dashes. Use a full stop, a colon or a comma.
 - Buttons and titles use sentence case ("Open a file").
 
-## 8. Running and testing
+## 8. Naming
+
+A name should say what the thing is or does, so a reader never has to look it up.
+
+- **Files** are named for their job: `data-engine.js`, `json-repair-and-validation.js`. Components keep the `structra-` prefix and match their tag.
+- **What a file exposes** has the same name: `Structra.dataEngine`, `Structra.sharedHelpers`, `Structra.dataPaths`.
+- **Functions** start with a verb: `escapeHtml`, `loadLibrary`, `copyToClipboard`. Yes/no values start with `is`, `has` or `can`.
+- **Variables and parameters** are whole words: `event`, `row`, `button`, `options`, `startTime`. Do not shorten to `e`, `r`, `btn`, `opts`, `t0`. Only `i` and `j` (loop counters) and `x` and `y` (positions) stay short.
+- **Constants** are in capitals with the unit in the name: `ROW_HEIGHT`, `MAX_ARRAY`, `STORAGE_KEY`.
+- **Not renamed on purpose:** saved storage keys, event names (`'engine:ingested'`) and CSS classes, because saved data and styles depend on them.
+
+## 9. Running and testing
 
 ```bash
 npm install
@@ -135,6 +146,6 @@ npm run ui:audit         # UI audit across all themes and screen sizes
 - Set `PW_CHANNEL=msedge` to use installed Edge instead of downloading Chromium.
 - When you change text that a test checks, update the test in the same change.
 
-## 9. Branches and deployment
+## 10. Branches and deployment
 
 `dev` then `test` then `prod`. Pushing `prod` deploys GitHub Pages and resets `main` to match it. See the README.

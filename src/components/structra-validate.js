@@ -9,7 +9,7 @@
      Sets state: activeView, currentPath
    ============================================================ */
 
-class StructraValidate extends StructraOverlay {
+class StructraValidate extends StructraDialog {
   static get MAX_SHOWN() { return 200; }
 
   init() {
@@ -34,13 +34,13 @@ class StructraValidate extends StructraOverlay {
         <div class="val-results" id="valResults"></div>`,
     });
 
-    this.root.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const a = btn.dataset.action;
-      if (a === 'infer') this._infer();
-      else if (a === 'validate') this._run();
-      else if (a === 'goto') this._goto(btn.dataset.path);
+    this.root.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.dataset.action;
+      if (action === 'infer') this._infer();
+      else if (action === 'validate') this._run();
+      else if (action === 'goto') this._goToPath(button.dataset.path);
     });
   }
 
@@ -52,61 +52,61 @@ class StructraValidate extends StructraOverlay {
   _infer() {
     const data = Structra.state.jsonData;
     if (!data) return;
-    this.$('#valSchema').value = JSON.stringify(Structra.schemaGen.smart(data), null, 2);
+    this.queryOne('#valSchema').value = JSON.stringify(Structra.parseJsonSchemaGenerator.smart(data), null, 2);
     this._summary('Inferred from the loaded data. Edit it, then validate.', '');
   }
 
   _summary(text, kind) {
-    const el = this.$('#valSummary');
-    el.textContent = text;
-    el.className = 'val-summary' + (kind ? ' ' + kind : '');
+    const element = this.queryOne('#valSummary');
+    element.textContent = text;
+    element.className = 'val-summary' + (kind ? ' ' + kind : '');
   }
 
   async _run() {
-    const results = this.$('#valResults');
+    const results = this.queryOne('#valResults');
     results.innerHTML = '';
     let schema;
     try {
-      schema = JSON.parse(this.$('#valSchema').value);
-    } catch (err) {
-      this._summary('The schema is not valid JSON: ' + err.message, 'bad');
+      schema = JSON.parse(this.queryOne('#valSchema').value);
+    } catch (error) {
+      this._summary('The schema is not valid JSON: ' + error.message, 'bad');
       return;
     }
 
     this._summary('Validating...', '');
     try {
-      const { valid, errors } = await Structra.jsonTools.validate(Structra.state.jsonData, schema);
+      const { valid, errors } = await Structra.jsonRepairAndValidation.validate(Structra.state.jsonData, schema);
       if (valid) { this._summary('Valid. The data matches the schema.', 'ok'); return; }
 
       // The same problem in thousands of rows is one line with a count and the first place it happens
-      const esc = Structra.util.esc;
+      const escapeHtml = Structra.sharedHelpers.escapeHtml;
       const groups = new Map();
-      for (const e of errors) {
-        const general = (e.path || 'root').replace(/\[\d+\]/g, '[*]');
-        const key = general + '\u0001' + e.message;
-        let g = groups.get(key);
-        if (!g) { g = { general, message: e.message, count: 0, first: e.path }; groups.set(key, g); }
-        g.count++;
+      for (const error of errors) {
+        const general = (error.path || 'root').replace(/\[\d+\]/g, '[*]');
+        const key = general + '\u0001' + error.message;
+        let group = groups.get(key);
+        if (!group) { group = { general, message: error.message, count: 0, first: error.path }; groups.set(key, group); }
+        group.count++;
       }
-      const list = [...groups.values()].sort((a, b) => b.count - a.count);
+      const list = [...groups.values()].sort((first, second) => second.count - first.count);
       const kinds = list.length;
       this._summary(`${errors.length.toLocaleString()} problem${errors.length === 1 ? '' : 's'} found, of ${kinds} kind${kinds === 1 ? '' : 's'}`, 'bad');
-      results.innerHTML = list.slice(0, StructraValidate.MAX_SHOWN).map((g) => `
+      results.innerHTML = list.slice(0, StructraValidate.MAX_SHOWN).map((group) => `
         <div class="val-err">
-          <button class="val-path" type="button" data-action="goto" data-path="${esc(g.first)}" title="Show the first one in the tree">${esc(g.general)}</button>
-          <span class="val-msg">${esc(g.message)}</span>
-          <span class="val-count">${g.count === 1 ? '1 place' : g.count.toLocaleString() + ' places'}</span>
+          <button class="val-path" type="button" data-action="goto" data-path="${escapeHtml(group.first)}" title="Show the first one in the tree">${escapeHtml(group.general)}</button>
+          <span class="val-msg">${escapeHtml(group.message)}</span>
+          <span class="val-count">${group.count === 1 ? '1 place' : group.count.toLocaleString() + ' places'}</span>
         </div>`).join('');
-    } catch (err) {
-      Structra.log.error('Validate', 'Validation failed', err);
-      this._summary('Could not validate: ' + err.message, 'bad');
+    } catch (error) {
+      Structra.log.error('Validate', 'Validation failed', error);
+      this._summary('Could not validate: ' + error.message, 'bad');
     }
   }
 
-  _goto(path) {
+  _goToPath(path) {
     this.close();
-    Structra.set('activeView', 'tree');
-    Structra.set('currentPath', path || '$');
+    Structra.setState('activeView', 'tree');
+    Structra.setState('currentPath', path || '$');
   }
 }
 

@@ -105,9 +105,9 @@
   <structra-loading></structra-loading>
 
   <!-- Core -->
-  <script src="src/core/base.js"></script>
-  <script src="src/core/state.js"></script>
-  <script src="src/core/constants.js"></script>
+  <script src="src/core/component-base.js"></script>
+  <script src="src/core/app-state-and-events.js"></script>
+  <script src="src/core/app-constants.js"></script>
 
   <!-- Components (order matters: shell → views → panels → overlays) -->
   <script src="src/components/structra-toast.js"></script>
@@ -144,8 +144,8 @@
 ```
 
 ## Script Load Order Dependencies
-1. base.js (defines StructraElement) - FIRST
-2. state.js (defines Structra global) - needs base.js
+1. component-base.js (defines StructraComponent) - FIRST
+2. app-state-and-events.js (defines Structra global) - needs component-base.js
 3. constants.js - standalone
 4. structra-toast.js - standalone (others show toasts)
 5. Shell components (header, tabs, rail, status) - need state

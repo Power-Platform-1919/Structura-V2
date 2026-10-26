@@ -32,14 +32,14 @@ Structra.createWorkerPool = function(config) {
     _blobUrl: null,                              // cached Blob URL (created once)
 
     _createWorker() {
-      var w;
+      var worker;
       try {
-        w = new Worker(this.workerUrl);
+        worker = new Worker(this.workerUrl);
         Structra.log.info('WorkerPool', this.name + ' worker #' + (this.workers.length + 1) + ' created (URL)');
-      } catch (urlErr) {
+      } catch (urlError) {
         // file:// origin blocks new Worker(url) - fall back to Blob URL
         if (!this.workerCode) {
-          Structra.log.error('WorkerPool', this.name + ' - Worker URL blocked and no inline code: ' + urlErr.message);
+          Structra.log.error('WorkerPool', this.name + ' - Worker URL blocked and no inline code: ' + urlError.message);
           return null;
         }
         try {
@@ -48,81 +48,81 @@ Structra.createWorkerPool = function(config) {
             this._blobUrl = URL.createObjectURL(blob);
             Structra.log.info('WorkerPool', this.name + ' Blob URL created for file:// fallback');
           }
-          w = new Worker(this._blobUrl);
+          worker = new Worker(this._blobUrl);
           Structra.log.info('WorkerPool', this.name + ' worker #' + (this.workers.length + 1) + ' created (Blob URL)');
-        } catch (blobErr) {
-          Structra.log.error('WorkerPool', this.name + ' - Blob URL worker also failed: ' + blobErr.message);
+        } catch (blobError) {
+          Structra.log.error('WorkerPool', this.name + ' - Blob URL worker also failed: ' + blobError.message);
           return null;
         }
       }
       try {
-        const entry = { worker: w, busy: false, _cb: null, taskCount: 0, _idleTimer: null };
-        w.addEventListener('message', (e) => {
-          const msg = e.data;
-          if (entry._cb && entry._cb.id === msg.id) {
-            const cb = entry._cb;
+        const entry = { worker: worker, busy: false, _cb: null, taskCount: 0, _idleTimer: null };
+        worker.addEventListener('message', (event) => {
+          const message = event.data;
+          if (entry._cb && entry._cb.id === message.id) {
+            const callback = entry._cb;
             entry._cb = null;
             entry.busy = false;
             entry.taskCount++;
-            if (cb._timer) { clearTimeout(cb._timer); cb._timer = null; }
-            if (msg.success) {
-              Structra.log.debug('WorkerPool', 'Task #' + msg.id + ' completed (worker tasks: ' + entry.taskCount + ')');
-              cb.resolve(msg);
+            if (callback._timer) { clearTimeout(callback._timer); callback._timer = null; }
+            if (message.success) {
+              Structra.log.debug('WorkerPool', 'Task #' + message.id + ' completed (worker tasks: ' + entry.taskCount + ')');
+              callback.resolve(message);
             } else {
-              Structra.log.error('WorkerPool', 'Task #' + msg.id + ' failed: ' + msg.error);
-              cb.reject(new Error(msg.error));
+              Structra.log.error('WorkerPool', 'Task #' + message.id + ' failed: ' + message.error);
+              callback.reject(new Error(message.error));
             }
             this._recycleIfNeeded(entry);
             this._startIdleTimer(entry);
             this._drain();
           }
         });
-        w.addEventListener('error', (e) => {
-          e.preventDefault();
-          const msg = e.message || 'Worker crashed';
-          Structra.log.error('WorkerPool', 'Worker error: ' + msg);
+        worker.addEventListener('error', (event) => {
+          event.preventDefault();
+          const message = event.message || 'Worker crashed';
+          Structra.log.error('WorkerPool', 'Worker error: ' + message);
           if (entry._cb) {
-            const cb = entry._cb;
+            const callback = entry._cb;
             entry._cb = null;
             entry.busy = false;
-            if (cb._timer) { clearTimeout(cb._timer); cb._timer = null; }
-            cb.reject(new Error(msg));
+            if (callback._timer) { clearTimeout(callback._timer); callback._timer = null; }
+            callback.reject(new Error(message));
           }
-          const idx = this.workers.indexOf(entry);
-          if (idx !== -1) this.workers.splice(idx, 1);
-          try { w.terminate(); } catch (_) {}
+          const index = this.workers.indexOf(entry);
+          if (index !== -1) this.workers.splice(index, 1);
+          try { worker.terminate(); } catch (_) {}
           this._drain();
         });
         this.workers.push(entry);
         return entry;
-      } catch (e) {
-        Structra.log.error('WorkerPool', 'Failed to create worker: ' + e.message, e);
+      } catch (error) {
+        Structra.log.error('WorkerPool', 'Failed to create worker: ' + error.message, error);
         return null;
       }
     },
 
     _drain() {
       if (this.queue.length === 0) return;
-      const idle = this.workers.find(e => !e.busy);
+      const idle = this.workers.find(entry => !entry.busy);
       if (!idle) return;
-      const req = this.queue.shift();
-      this._dispatch(idle, req);
+      const request = this.queue.shift();
+      this._dispatch(idle, request);
     },
 
-    _dispatch(entry, req) {
+    _dispatch(entry, request) {
       if (entry._idleTimer) { clearTimeout(entry._idleTimer); entry._idleTimer = null; }
       entry.busy = true;
-      entry._cb = req;
-      const payload = { id: req.id, text: req.text };
-      if (req.options) payload.options = req.options;
+      entry._cb = request;
+      const payload = { id: request.id, text: request.text };
+      if (request.options) payload.options = request.options;
 
       // Use Transferable ArrayBuffer for large strings if configured
-      if (this.transferThreshold > 0 && req.text.length > this.transferThreshold) {
-        Structra.log.debug('WorkerPool', 'Task #' + req.id + ' → Transferable (' + (req.text.length / 1048576).toFixed(1) + ' MB)');
-        const buffer = new TextEncoder().encode(req.text).buffer;
-        entry.worker.postMessage({ id: req.id, buffer, options: req.options }, [buffer]);
+      if (this.transferThreshold > 0 && request.text.length > this.transferThreshold) {
+        Structra.log.debug('WorkerPool', 'Task #' + request.id + ' → Transferable (' + (request.text.length / 1048576).toFixed(1) + ' MB)');
+        const buffer = new TextEncoder().encode(request.text).buffer;
+        entry.worker.postMessage({ id: request.id, buffer, options: request.options }, [buffer]);
       } else {
-        Structra.log.debug('WorkerPool', 'Task #' + req.id + ' → postMessage (' + (req.text.length / 1024).toFixed(1) + ' KB)');
+        Structra.log.debug('WorkerPool', 'Task #' + request.id + ' → postMessage (' + (request.text.length / 1024).toFixed(1) + ' KB)');
         entry.worker.postMessage(payload);
       }
     },
@@ -131,8 +131,8 @@ Structra.createWorkerPool = function(config) {
       while (this.workers.length < this.maxWorkers && this.queue.length > 0) {
         const fresh = this._createWorker();
         if (!fresh) break;
-        const req = this.queue.shift();
-        this._dispatch(fresh, req);
+        const request = this.queue.shift();
+        this._dispatch(fresh, request);
       }
     },
 
@@ -143,9 +143,9 @@ Structra.createWorkerPool = function(config) {
         if (this.workers.length <= this.minWorkers) return;
         // Don't kill if it picked up work in the meantime
         if (entry.busy) return;
-        var idx = this.workers.indexOf(entry);
-        if (idx !== -1) {
-          this.workers.splice(idx, 1);
+        var index = this.workers.indexOf(entry);
+        if (index !== -1) {
+          this.workers.splice(index, 1);
           try { entry.worker.terminate(); } catch (_) {}
           Structra.log.debug('WorkerPool', 'Idle worker terminated (pool: ' + this.workers.length + ')');
         }
@@ -154,35 +154,35 @@ Structra.createWorkerPool = function(config) {
 
     _recycleIfNeeded(entry) {
       if (this.maxTasksPerWorker > 0 && entry.taskCount >= this.maxTasksPerWorker) {
-        const idx = this.workers.indexOf(entry);
-        if (idx !== -1) this.workers.splice(idx, 1);
+        const index = this.workers.indexOf(entry);
+        if (index !== -1) this.workers.splice(index, 1);
         try { entry.worker.terminate(); } catch (_) {}
         // If queued tasks exist but no workers remain, spawn a fresh one
         if (this.queue.length > 0 && this.workers.length === 0) {
           const fresh = this._createWorker();
           if (fresh) {
-            const req = this.queue.shift();
-            this._dispatch(fresh, req);
+            const request = this.queue.shift();
+            this._dispatch(fresh, request);
           }
         }
       }
     },
 
     terminate() {
-      this.workers.forEach(e => {
-        if (e._idleTimer) clearTimeout(e._idleTimer);
-        try { e.worker.terminate(); } catch (_) {}
+      this.workers.forEach(entry => {
+        if (entry._idleTimer) clearTimeout(entry._idleTimer);
+        try { entry.worker.terminate(); } catch (_) {}
       });
       this.workers = [];
-      this.queue.forEach(r => r.reject(new Error('Pool terminated')));
+      this.queue.forEach(request => request.reject(new Error('Pool terminated')));
       this.queue = [];
     },
 
     stats() {
       return {
         totalWorkers: this.workers.length,
-        busyWorkers: this.workers.filter(e => e.busy).length,
-        idleWorkers: this.workers.filter(e => !e.busy).length,
+        busyWorkers: this.workers.filter(entry => entry.busy).length,
+        idleWorkers: this.workers.filter(entry => !entry.busy).length,
         pendingTasks: this.queue.length,
         maxQueueSize: this.maxQueueSize
       };
@@ -207,34 +207,34 @@ Structra.createWorkerPool = function(config) {
           }
         }
 
-        const req = { id: ++pool.reqId, text, options, resolve, reject, _timer: null };
+        const request = { id: ++pool.reqId, text, options, resolve, reject, _timer: null };
 
         // Task timeout: reject and terminate worker if it takes too long
         if (taskTimeout > 0) {
-          req._timer = setTimeout(() => {
-            const victim = pool.workers.find(e => e._cb === req);
+          request._timer = setTimeout(() => {
+            const victim = pool.workers.find(entry => entry._cb === request);
             if (victim) {
               victim._cb = null;
               victim.busy = false;
-              const idx = pool.workers.indexOf(victim);
-              if (idx !== -1) pool.workers.splice(idx, 1);
+              const index = pool.workers.indexOf(victim);
+              if (index !== -1) pool.workers.splice(index, 1);
               try { victim.worker.terminate(); } catch (_) {}
             }
             // Also remove from queue if still queued
-            const qi = pool.queue.indexOf(req);
-            if (qi !== -1) pool.queue.splice(qi, 1);
+            const queueIndex = pool.queue.indexOf(request);
+            if (queueIndex !== -1) pool.queue.splice(queueIndex, 1);
             reject(new Error('Worker task timed out (' + taskTimeout + 'ms)'));
             pool._drain();
           }, taskTimeout);
         }
 
-        const idle = pool.workers.find(e => !e.busy);
+        const idle = pool.workers.find(entry => !entry.busy);
         if (idle) {
-          pool._dispatch(idle, req);
+          pool._dispatch(idle, request);
           return;
         }
 
-        pool.queue.push(req);
+        pool.queue.push(request);
         if (pool.queue.length >= pool.poolThreshold) {
           pool._scaleUp();
         }
@@ -254,51 +254,51 @@ Structra.createWorkerPool = function(config) {
  * 12345678901234567000 and 1e400 becomes Infinity. Such a number is kept as text instead, so no digit is
  * lost when the data is copied, exported or edited. Returns the text to parse and how many were protected.
  */
-Structra.protectBigNumbers = function (src) {
-  if (!/\d{16}|\d[eE][+-]?\d{3}/.test(src)) return { text: src, count: 0 };
-  var out = [], last = 0, count = 0, i = 0, n = src.length;
-  while (i < n) {
-    var c = src.charCodeAt(i);
-    if (c === 34) {                                   // a string: skip it, numbers inside are text already
+Structra.protectBigNumbers = function (source) {
+  if (!/\d{16}|\d[eE][+-]?\d{3}/.test(source)) return { text: source, count: 0 };
+  var out = [], last = 0, count = 0, i = 0, length = source.length;
+  while (i < length) {
+    var code = source.charCodeAt(i);
+    if (code === 34) {                                   // a string: skip it, numbers inside are text already
       i++;
-      while (i < n) { var d = src.charCodeAt(i); if (d === 92) i += 2; else if (d === 34) { i++; break; } else i++; }
+      while (i < length) { var nextCode = source.charCodeAt(i); if (nextCode === 92) i += 2; else if (nextCode === 34) { i++; break; } else i++; }
       continue;
     }
-    if (c === 45 || (c >= 48 && c <= 57)) {
+    if (code === 45 || (code >= 48 && code <= 57)) {
       var j = i + 1;
-      while (j < n) { var e = src.charCodeAt(j); if ((e >= 48 && e <= 57) || e === 46 || e === 101 || e === 69 || e === 43 || e === 45) j++; else break; }
-      var tok = src.slice(i, j);
-      if (tok.length >= 16 || /[eE]/.test(tok)) {
-        var v = Number(tok), lossy = false;
-        if (!isFinite(v)) lossy = true;
-        else if (/^-?\d+$/.test(tok)) { try { lossy = BigInt(tok).toString() !== BigInt(v).toString(); } catch (err) { lossy = false; } }
-        else lossy = tok.replace(/^-/, '').replace(/[eE].*$/, '').replace(/\./, '').replace(/^0+/, '').length > 17;
-        if (lossy) { out.push(src.slice(last, i), '"' + tok + '"'); last = j; count++; }
+      while (j < length) { var digitCode = source.charCodeAt(j); if ((digitCode >= 48 && digitCode <= 57) || digitCode === 46 || digitCode === 101 || digitCode === 69 || digitCode === 43 || digitCode === 45) j++; else break; }
+      var token = source.slice(i, j);
+      if (token.length >= 16 || /[eE]/.test(token)) {
+        var number = Number(token), lossy = false;
+        if (!isFinite(number)) lossy = true;
+        else if (/^-?\d+$/.test(token)) { try { lossy = BigInt(token).toString() !== BigInt(number).toString(); } catch (error) { lossy = false; } }
+        else lossy = token.replace(/^-/, '').replace(/[eE].*$/, '').replace(/\./, '').replace(/^0+/, '').length > 17;
+        if (lossy) { out.push(source.slice(last, i), '"' + token + '"'); last = j; count++; }
       }
       i = j;
       continue;
     }
     i++;
   }
-  if (!count) return { text: src, count: 0 };
-  out.push(src.slice(last));
+  if (!count) return { text: source, count: 0 };
+  out.push(source.slice(last));
   return { text: out.join(''), count: count };
 };
 
 Structra.parseJsonAsync = async function (text) {
-  var t0 = performance.now();
-  await Structra.util.nextTick();   // let the loading message paint first
-  var src = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
-  var protectedText = Structra.protectBigNumbers(src);
+  var startTime = performance.now();
+  await Structra.sharedHelpers.waitForNextTick();   // let the loading message paint first
+  var source = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text;
+  var protectedText = Structra.protectBigNumbers(source);
   Structra.parseNotes = { bigNumbers: protectedText.count };
-  src = protectedText.text;
+  source = protectedText.text;
   try {
-    var data = JSON.parse(src);
-    Structra.log.perf('Parse', 'JSON.parse (' + (text.length / 1024).toFixed(0) + ' KB)', performance.now() - t0);
+    var data = JSON.parse(source);
+    Structra.log.perf('Parse', 'JSON.parse (' + (text.length / 1024).toFixed(0) + ' KB)', performance.now() - startTime);
     return data;
-  } catch (err) {
+  } catch (error) {
     var size = text.length > 1024 ? Math.round(text.length / 1024) + 'KB' : text.length + 'B';
-    throw new Error(err instanceof SyntaxError ? 'JSON parse error (' + size + '): ' + err.message : err.message);
+    throw new Error(error instanceof SyntaxError ? 'JSON parse error (' + size + '): ' + error.message : error.message);
   }
 };
 
@@ -315,21 +315,21 @@ Structra._csvWorkerPool = Structra.createWorkerPool({
 
 Structra.parseCsvAsync = function(text, options) {
   Structra.log.info('WorkerPool', 'parseCsvAsync (' + (text.length / 1024).toFixed(1) + ' KB)');
-  var t0 = performance.now();
-  return Structra._csvWorkerPool.enqueue(text, options).then(function(msg) {
-    Structra.log.perf('WorkerPool', 'CSV parse (' + (msg.data ? msg.data.length : 0) + ' rows)', performance.now() - t0);
-    return { data: msg.data, meta: msg.meta, errors: msg.errors || [] };
-  }).catch(function(err) {
-    if (typeof Papa !== 'undefined' && err.message && err.message.indexOf('Worker failed') !== -1) {
+  var startTime = performance.now();
+  return Structra._csvWorkerPool.enqueue(text, options).then(function(result) {
+    Structra.log.perf('WorkerPool', 'CSV parse (' + (result.data ? result.data.length : 0) + ' rows)', performance.now() - startTime);
+    return { data: result.data, meta: result.meta, errors: result.errors || [] };
+  }).catch(function(error) {
+    if (typeof Papa !== 'undefined' && error.message && error.message.indexOf('Worker failed') !== -1) {
       Structra.log.info('WorkerPool', 'CSV sync fallback');
       var config = Object.assign({ header: true, skipEmptyLines: true, dynamicTyping: false }, options || {});
       var result = Papa.parse(text, config);
       var typed = csvRetype(result.data, result.meta.fields);
       result.meta.decimals = typed.decimals; result.meta.mixed = typed.mixed;
-      Structra.log.perf('WorkerPool', 'CSV parse sync (' + result.data.length + ' rows)', performance.now() - t0);
+      Structra.log.perf('WorkerPool', 'CSV parse sync (' + result.data.length + ' rows)', performance.now() - startTime);
       return { data: result.data, meta: result.meta, errors: result.errors || [] };
     }
-    throw err;
+    throw error;
   });
 };
 
@@ -350,43 +350,43 @@ Structra._xmlWorkerPool = Structra.createWorkerPool({
  */
 Structra.parseXmlAsync = function(text) {
   Structra.log.info('WorkerPool', 'parseXmlAsync (' + (text.length / 1024).toFixed(1) + ' KB)');
-  var t0 = performance.now();
+  var startTime = performance.now();
   return new Promise(function(resolve, reject) {
     if (!text || typeof text !== 'string') { reject(new Error('No XML input')); return; }
-    var doc = new DOMParser().parseFromString(text, 'application/xml');
-    var bad = doc.querySelector('parsererror');
-    if (bad) { reject(new Error('XML parse error: ' + bad.textContent.replace(/\s+/g, ' ').trim().substring(0, 200))); return; }
-    var domToObj = function(node) {
+    var xmlDocument = new DOMParser().parseFromString(text, 'application/xml');
+    var parserError = xmlDocument.querySelector('parsererror');
+    if (parserError) { reject(new Error('XML parse error: ' + parserError.textContent.replace(/\s+/g, ' ').trim().substring(0, 200))); return; }
+    var domToObject = function(node) {
       if (node.nodeType === 3) return node.textContent.trim() || null;
       if (node.nodeType !== 1) return null;
-      var obj = {};
+      var object = {};
       if (node.attributes && node.attributes.length > 0) {
-        obj['@attributes'] = {};
-        for (var i = 0; i < node.attributes.length; i++) obj['@attributes'][node.attributes[i].name] = node.attributes[i].value;
+        object['@attributes'] = {};
+        for (var i = 0; i < node.attributes.length; i++) object['@attributes'][node.attributes[i].name] = node.attributes[i].value;
       }
       var hasElements = false;
-      for (var c = 0; c < node.childNodes.length; c++) {
-        var child = node.childNodes[c];
+      for (var index = 0; index < node.childNodes.length; index++) {
+        var child = node.childNodes[index];
         if (child.nodeType !== 1) continue;
         hasElements = true;
         var tag = child.nodeName;
-        var val = domToObj(child);
-        if (Object.prototype.hasOwnProperty.call(obj, tag)) {
-          if (!Array.isArray(obj[tag])) obj[tag] = [obj[tag]];
-          obj[tag].push(val);
+        var value = domToObject(child);
+        if (Object.prototype.hasOwnProperty.call(object, tag)) {
+          if (!Array.isArray(object[tag])) object[tag] = [object[tag]];
+          object[tag].push(value);
         } else {
-          obj[tag] = val;
+          object[tag] = value;
         }
       }
       if (!hasElements) {
         var text2 = node.textContent.trim();
-        if (obj['@attributes']) { if (text2) obj['#text'] = text2; } else { return text2 || null; }
+        if (object['@attributes']) { if (text2) object['#text'] = text2; } else { return text2 || null; }
       }
-      return obj;
+      return object;
     };
     var result = {};
-    result[doc.documentElement.nodeName] = domToObj(doc.documentElement);
-    Structra.log.perf('WorkerPool', 'XML parse', performance.now() - t0);
+    result[xmlDocument.documentElement.nodeName] = domToObject(xmlDocument.documentElement);
+    Structra.log.perf('WorkerPool', 'XML parse', performance.now() - startTime);
     resolve(result);
   });
 };
@@ -404,18 +404,18 @@ Structra._yamlWorkerPool = Structra.createWorkerPool({
 
 Structra.parseYamlAsync = function(text) {
   Structra.log.info('WorkerPool', 'parseYamlAsync (' + (text.length / 1024).toFixed(1) + ' KB)');
-  var t0 = performance.now();
-  return Structra._yamlWorkerPool.enqueue(text).then(function(msg) {
-    Structra.log.perf('WorkerPool', 'YAML parse', performance.now() - t0);
-    return msg.data;
-  }).catch(function(err) {
-    if (typeof jsyaml !== 'undefined' && err.message && err.message.indexOf('Worker failed') !== -1) {
+  var startTime = performance.now();
+  return Structra._yamlWorkerPool.enqueue(text).then(function(result) {
+    Structra.log.perf('WorkerPool', 'YAML parse', performance.now() - startTime);
+    return result.data;
+  }).catch(function(error) {
+    if (typeof jsyaml !== 'undefined' && error.message && error.message.indexOf('Worker failed') !== -1) {
       Structra.log.info('WorkerPool', 'YAML sync fallback');
       var data = jsyaml.load(text);
-      Structra.log.perf('WorkerPool', 'YAML parse sync', performance.now() - t0);
+      Structra.log.perf('WorkerPool', 'YAML parse sync', performance.now() - startTime);
       return data;
     }
-    throw err;
+    throw error;
   });
 };
 
@@ -432,17 +432,17 @@ Structra._tomlWorkerPool = Structra.createWorkerPool({
 
 Structra.parseTomlAsync = function(text) {
   Structra.log.info('WorkerPool', 'parseTomlAsync (' + (text.length / 1024).toFixed(1) + ' KB)');
-  var t0 = performance.now();
-  return Structra._tomlWorkerPool.enqueue(text).then(function(msg) {
-    Structra.log.perf('WorkerPool', 'TOML parse', performance.now() - t0);
-    return msg.data;
-  }).catch(function(err) {
-    if (typeof TOML !== 'undefined' && err.message && err.message.indexOf('Worker failed') !== -1) {
+  var startTime = performance.now();
+  return Structra._tomlWorkerPool.enqueue(text).then(function(result) {
+    Structra.log.perf('WorkerPool', 'TOML parse', performance.now() - startTime);
+    return result.data;
+  }).catch(function(error) {
+    if (typeof TOML !== 'undefined' && error.message && error.message.indexOf('Worker failed') !== -1) {
       Structra.log.info('WorkerPool', 'TOML sync fallback');
       var data = TOML.parse(text);
-      Structra.log.perf('WorkerPool', 'TOML parse sync', performance.now() - t0);
+      Structra.log.perf('WorkerPool', 'TOML parse sync', performance.now() - startTime);
       return data;
     }
-    throw err;
+    throw error;
   });
 };

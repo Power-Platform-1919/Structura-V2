@@ -18,28 +18,28 @@
     const stack = [{ val: data, path: '$', depth: 0 }];
 
     while (stack.length > 0) {
-      const { val, path, depth } = stack.pop();
+      const { val: value, path, depth } = stack.pop();
       if (depth > maxDepth) continue;
 
-      const type = val === null ? 'null'
-        : Array.isArray(val) ? 'array'
-        : typeof val;
+      const type = value === null ? 'null'
+        : Array.isArray(value) ? 'array'
+        : typeof value;
 
       index.set(path, {
         type,
         depth,
-        childCount: (type === 'object') ? Object.keys(val).length
-          : (type === 'array') ? val.length : 0,
+        childCount: (type === 'object') ? Object.keys(value).length
+          : (type === 'array') ? value.length : 0,
       });
 
-      if (val && typeof val === 'object') {
-        const entries = Array.isArray(val)
-          ? val.map((v, i) => [i, v])
-          : Object.entries(val);
+      if (value && typeof value === 'object') {
+        const entries = Array.isArray(value)
+          ? value.map((item, i) => [i, item])
+          : Object.entries(value);
         for (let i = entries.length - 1; i >= 0; i--) {
-          const [k, v] = entries[i];
-          const childPath = Array.isArray(val) ? `${path}[${k}]` : `${path}.${k}`;
-          stack.push({ val: v, path: childPath, depth: depth + 1 });
+          const [key, entryValue] = entries[i];
+          const childPath = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
+          stack.push({ val: entryValue, path: childPath, depth: depth + 1 });
         }
       }
     }
@@ -55,24 +55,24 @@
     const stack = [{ val: data, path: '$', depth: 0 }];
 
     while (stack.length > 0) {
-      const { val, path, depth } = stack.pop();
+      const { val: value, path, depth } = stack.pop();
       if (depth > maxDepth) continue;
 
-      if (val && typeof val === 'object') {
-        const entries = Array.isArray(val)
-          ? val.map((v, i) => [i, v])
-          : Object.entries(val);
-        for (const [k, v] of entries) {
-          const childPath = Array.isArray(val) ? `${path}[${k}]` : `${path}.${k}`;
-          if (mode === 'keys' && regex.test(String(k))) {
+      if (value && typeof value === 'object') {
+        const entries = Array.isArray(value)
+          ? value.map((item, i) => [i, item])
+          : Object.entries(value);
+        for (const [key, item] of entries) {
+          const childPath = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
+          if (mode === 'keys' && regex.test(String(key))) {
             matched.push(childPath);
-          } else if (mode === 'values' && v !== null && typeof v !== 'object' && regex.test(String(v))) {
+          } else if (mode === 'values' && item !== null && typeof item !== 'object' && regex.test(String(item))) {
             matched.push(childPath);
           } else if (mode === 'paths' && regex.test(childPath)) {
             matched.push(childPath);
           }
-          if (v && typeof v === 'object') {
-            stack.push({ val: v, path: childPath, depth: depth + 1 });
+          if (item && typeof item === 'object') {
+            stack.push({ val: item, path: childPath, depth: depth + 1 });
           }
         }
       }
@@ -82,15 +82,15 @@
   }
 
   /* --- Sort --- */
-  function sortArray(data, key, dir) {
-    return [...data].sort((a, b) => {
-      const av = a && a[key];
-      const bv = b && b[key];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      if (av < bv) return dir === 'asc' ? -1 : 1;
-      if (av > bv) return dir === 'asc' ? 1 : -1;
+  function sortArray(data, key, direction) {
+    return [...data].sort((first, second) => {
+      const firstValue = first && first[key];
+      const secondValue = second && second[key];
+      if (firstValue == null && secondValue == null) return 0;
+      if (firstValue == null) return 1;
+      if (secondValue == null) return -1;
+      if (firstValue < secondValue) return direction === 'asc' ? -1 : 1;
+      if (firstValue > secondValue) return direction === 'asc' ? 1 : -1;
       return 0;
     });
   }
@@ -99,28 +99,28 @@
   function filterArray(data, predicateSource) {
     // predicateSource is a string like "row => row.age > 30"
     // Safe in worker context - isolated from main thread DOM
-    const fn = new Function('row', 'return ' + predicateSource);
+    const callback = new Function('row', 'return ' + predicateSource);
     return data.filter(row => {
-      try { return fn(row); }
+      try { return callback(row); }
       catch { return false; }
     });
   }
 
   /* --- Aggregate --- */
-  function aggregate(data, key, fn) {
+  function aggregate(data, key, callback) {
     const values = data
       .map(row => row && row[key])
-      .filter(v => v !== null && v !== undefined);
+      .filter(item => item !== null && item !== undefined);
 
-    switch (fn) {
+    switch (callback) {
       case 'count': return values.length;
-      case 'sum': return values.reduce((a, b) => a + (Number(b) || 0), 0);
+      case 'sum': return values.reduce((total, value) => total + (Number(value) || 0), 0);
       case 'avg': {
-        const nums = values.filter(v => typeof v === 'number');
-        return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
+        const numbers = values.filter(item => typeof item === 'number');
+        return numbers.length ? numbers.reduce((total, number) => total + number, 0) / numbers.length : null;
       }
-      case 'min': return values.length ? Math.min(...values.filter(v => typeof v === 'number')) : null;
-      case 'max': return values.length ? Math.max(...values.filter(v => typeof v === 'number')) : null;
+      case 'min': return values.length ? Math.min(...values.filter(item => typeof item === 'number')) : null;
+      case 'max': return values.length ? Math.max(...values.filter(item => typeof item === 'number')) : null;
       case 'distinct': return [...new Set(values)];
       case 'countDistinct': return new Set(values).size;
       default: return null;
@@ -128,13 +128,13 @@
   }
 
   /* --- Message Handler --- */
-  self.onmessage = function (e) {
-    const { op, data, params, id } = e.data;
-    const t0 = performance.now();
+  self.onmessage = function (event) {
+    const { op: operation, data, params, id } = event.data;
+    const startTime = performance.now();
     let result;
 
     try {
-      switch (op) {
+      switch (operation) {
         case 'buildPathIndex':
           result = buildPathIndex(data, params.maxDepth || 20);
           break;
@@ -151,13 +151,13 @@
           result = aggregate(data, params.key, params.fn);
           break;
         default:
-          result = { error: 'Unknown op: ' + op };
+          result = { error: 'Unknown op: ' + operation };
       }
-    } catch (err) {
-      result = { error: err.message };
+    } catch (error) {
+      result = { error: error.message };
     }
 
-    const duration = performance.now() - t0;
-    self.postMessage({ op, result, id, duration });
+    const duration = performance.now() - startTime;
+    self.postMessage({ op: operation, result, id, duration });
   };
 })();

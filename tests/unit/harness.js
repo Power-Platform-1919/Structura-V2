@@ -2,7 +2,7 @@
    so they can be tested without a browser.
 
    const { load, test, eq, run } = require('./harness');
-   load(['util', 'paths', 'expressions']);
+   load(['shared-helpers', 'data-paths', 'power-platform-expressions']);
    test('name', () => { eq(actual, expected); });
 */
 const fs = require('fs');

@@ -39,8 +39,8 @@ function serve() {
 
 /** What the page shows right now, and what the engine thinks is open */
 const snapshot = (page) => page.evaluate(async () => {
-  const ds = Structra.engine.getActive();
-  const analysis = await Structra.engine.getAnalysis();
+  const ds = Structra.dataEngine.getActive();
+  const analysis = await Structra.dataEngine.getAnalysis();
   const nodes = (n) => (n && n.stats ? (n.stats.totalNodes ?? n.stats.nodes ?? n.stats.total) : null);
   return {
     tabId: Structra.tabs.activeId,

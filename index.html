@@ -98,16 +98,16 @@
   <!-- Scripts: core first, then components -->
   <script src="src/core/safe-storage.js"></script>
   <script src="src/core/logger.js"></script>
-  <script src="src/core/util.js"></script>
+  <script src="src/core/shared-helpers.js"></script>
   <!-- Lucide icons: CDN first, bundled copy if the CDN is unreachable. Only icon artwork is fetched; data never leaves the page. -->
   <script src="src/vendor/lucide.min.js"></script>
   <script>window.lucide || document.write('<script src="src/vendor/lucide.min.js"><\/script>');</script>
   <script src="src/core/icons.js"></script>
-  <script src="src/core/settings.js"></script>
-  <script src="src/core/theme.js"></script>
-  <script src="src/core/base.js"></script>
-  <script src="src/core/overlay.js"></script>
-  <script src="src/core/state.js"></script>
+  <script src="src/core/app-settings.js"></script>
+  <script src="src/core/theme-engine.js"></script>
+  <script src="src/core/component-base.js"></script>
+  <script src="src/core/dialog-base.js"></script>
+  <script src="src/core/app-state-and-events.js"></script>
   <!-- Worker sources registered for Blob URL fallback on file:// -->
   <script src="src/workers/xml-parse-worker.js"></script>
   <script src="src/workers/engine-worker.js"></script>
@@ -117,36 +117,36 @@
   <script src="src/libs/js-yaml.min.js"></script>
   <script src="src/libs/toml.min.js"></script>
   <script src="src/core/worker-pool.js"></script>
-  <script src="src/core/libs.js"></script>
+  <script src="src/core/library-loader.js"></script>
   <script src="src/core/code-view.js"></script>
-  <script src="src/core/resizer.js"></script>
-  <script src="src/core/paths.js"></script>
-  <script src="src/core/constants.js"></script>
+  <script src="src/core/panel-resizer.js"></script>
+  <script src="src/core/data-paths.js"></script>
+  <script src="src/core/app-constants.js"></script>
   <!-- Virtualization + JSON tree renderer -->
   <script src="src/core/virtual-list.js"></script>
-  <script src="src/core/json-tree.js"></script>
+  <script src="src/core/json-tree-renderer.js"></script>
   <!-- Data engine layer -->
-  <script src="src/core/persistence.js"></script>
-  <script src="src/core/engine.js"></script>
-  <script src="src/core/duckdb.js"></script>
+  <script src="src/core/browser-database.js"></script>
+  <script src="src/core/data-engine.js"></script>
+  <script src="src/core/duckdb-adapter.js"></script>
   <!-- Paths and Power Platform expression generators -->
-  <script src="src/core/json-tools.js"></script>
+  <script src="src/core/json-repair-and-validation.js"></script>
   <script src="src/core/json-diff.js"></script>
-  <script src="src/core/insights.js"></script>
-  <script src="src/core/share.js"></script>
-  <script src="src/core/expressions.js"></script>
-  <script src="src/core/schema-gen.js"></script>
-  <script src="src/core/navigation.js"></script>
+  <script src="src/core/overview-insights.js"></script>
+  <script src="src/core/share-and-capture.js"></script>
+  <script src="src/core/power-platform-expressions.js"></script>
+  <script src="src/core/parse-json-schema-generator.js"></script>
+  <script src="src/core/path-history.js"></script>
   <script src="src/core/bookmarks.js"></script>
 
   <!-- Utility modules -->
-  <script src="src/core/transform-ops.js"></script>
-  <script src="src/core/data-mask.js"></script>
-  <script src="src/core/mock-gen.js"></script>
+  <script src="src/core/transform-step-operations.js"></script>
+  <script src="src/core/personal-data-masker.js"></script>
+  <script src="src/core/mock-data-generator.js"></script>
   <script src="src/core/undo-stack.js"></script>
-  <script src="src/core/jsonpath.js"></script>
-  <script src="src/core/code-gen.js"></script>
-  <script src="src/core/format-convert.js"></script>
+  <script src="src/core/jsonpath-query.js"></script>
+  <script src="src/core/type-code-generator.js"></script>
+  <script src="src/core/format-conversion.js"></script>
 
   <!-- Phase 1: Shell components -->
   <script src="src/components/structra-toast.js"></script>

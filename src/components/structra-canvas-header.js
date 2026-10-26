@@ -9,7 +9,7 @@
      Sets state: activeView, findBarOpen, filterBarOpen
    ============================================================ */
 
-class StructraCanvasHeader extends StructraElement {
+class StructraCanvasHeader extends StructraComponent {
   static get observedAttributes() { return ['active-view']; }
 
   /** Buttons a person may hide. View tabs and Find always stay. */
@@ -17,22 +17,22 @@ class StructraCanvasHeader extends StructraElement {
   static HIDDEN_KEY = 'structra.toolbarHidden';
 
   init() {
-    this.on('tree:wrap-state', (on) => { const b = this.$('[data-action="wrap"]'); if (b) { b.classList.toggle('active', !!on); b.setAttribute('aria-pressed', String(!!on)); } });
+    this.on('tree:wrap-state', (payload) => { const button = this.queryOne('[data-action="wrap"]'); if (button) { button.classList.toggle('active', !!payload); button.setAttribute('aria-pressed', String(!!payload)); } });
     this.on('toolbar:reset', () => { this._setHidden([]); Structra.toast('All toolbar buttons are visible'); });
-    this.on('state:activeView', (d) => {
-      this.props.activeView = d.value;
+    this.on('state:activeView', (change) => {
+      this.props.activeView = change.value;
       this._updateTabs();
     });
-    this.on('state:findBarOpen', (d) => this.$('[data-action="find"]')?.classList.toggle('active', !!d.value));
-    this.on('state:filterBarOpen', (d) => this.$('[data-action="filter"]')?.classList.toggle('active', !!d.value));
+    this.on('state:findBarOpen', (change) => this.queryOne('[data-action="find"]')?.classList.toggle('active', !!change.value));
+    this.on('state:filterBarOpen', (change) => this.queryOne('[data-action="filter"]')?.classList.toggle('active', !!change.value));
   }
 
   render() {
     const views = Structra.constants.VIEWS;
     const active = this.props.activeView || Structra.state.activeView || 'tree';
 
-    const viewTabs = views.map(v =>
-      `<button class="view-tab ${v === active ? 'active' : ''}" data-view="${v}">${v.charAt(0).toUpperCase() + v.slice(1)}</button>`
+    const viewTabs = views.map(view =>
+      `<button class="view-tab ${view === active ? 'active' : ''}" data-view="${view}">${view.charAt(0).toUpperCase() + view.slice(1)}</button>`
     ).join('');
 
     this.innerHTML = `
@@ -76,18 +76,18 @@ class StructraCanvasHeader extends StructraElement {
       </div>`;
 
     this._applyHidden();
-    this.addEventListener('contextmenu', (e) => this._onContextMenu(e));
+    this.addEventListener('contextmenu', (event) => this._onContextMenu(event));
 
-    this.addEventListener('click', (e) => {
-      const viewBtn = e.target.closest('[data-view]');
-      if (viewBtn) {
-        Structra.set('activeView', viewBtn.dataset.view);
+    this.addEventListener('click', (event) => {
+      const viewButton = event.target.closest('[data-view]');
+      if (viewButton) {
+        Structra.setState('activeView', viewButton.dataset.view);
         return;
       }
 
-      const actionBtn = e.target.closest('[data-action]');
-      if (!actionBtn) return;
-      const action = actionBtn.dataset.action;
+      const actionButton = event.target.closest('[data-action]');
+      if (!actionButton) return;
+      const action = actionButton.dataset.action;
 
       switch (action) {
         case 'expand-all':   Structra.log.info('CanvasHeader', 'Action: expand-all'); Structra.events.emit('tree:expand-all'); break;
@@ -97,9 +97,9 @@ class StructraCanvasHeader extends StructraElement {
         case 'depth-3':      Structra.log.info('CanvasHeader', 'Action: depth-3'); Structra.events.emit('tree:collapse-depth', 3); break;
         case 'wrap':         Structra.log.info('CanvasHeader', 'Action: wrap'); Structra.events.emit('tree:toggle-wrap'); break;
         case 'copy-json':    Structra.log.info('CanvasHeader', 'Action: copy-json'); this._copyJson(); break;
-        case 'more':         this._showMoreMenu(actionBtn); break;
-        case 'find':         Structra.set('findBarOpen', true); break;
-        case 'filter':       Structra.set('filterBarOpen', !Structra.state.filterBarOpen); break;
+        case 'more':         this._showMoreMenu(actionButton); break;
+        case 'find':         Structra.setState('findBarOpen', true); break;
+        case 'filter':       Structra.setState('filterBarOpen', !Structra.state.filterBarOpen); break;
       }
     });
   }
@@ -118,37 +118,37 @@ class StructraCanvasHeader extends StructraElement {
   _applyHidden() {
     const hidden = this._getHidden();
     StructraCanvasHeader.HIDEABLE.forEach((id) => {
-      const btn = this.$(`[data-action="${id}"]`);
-      if (btn) btn.hidden = hidden.includes(id);
+      const button = this.queryOne(`[data-action="${id}"]`);
+      if (button) button.hidden = hidden.includes(id);
     });
-    const more = this.$('[data-action="more"]');
+    const more = this.queryOne('[data-action="more"]');
     if (more) more.hidden = !hidden.length;
     // A group with every button hidden should not leave a stray divider
-    this.$$('.toolbar-group').forEach((g) => { g.hidden = !g.querySelector('.toolbar-btn:not([hidden])'); });
+    this.queryAll('.toolbar-group').forEach((group) => { group.hidden = !group.querySelector('.toolbar-btn:not([hidden])'); });
   }
 
-  _label(btn) { return (btn.getAttribute('title') || btn.textContent).replace(/\s*\(.*\)$/, '').trim(); }
+  _label(button) { return (button.getAttribute('title') || button.textContent).replace(/\s*\(.*\)$/, '').trim(); }
 
   _openMenu(x, y, items) {
     this._closeMenu();
     const menu = document.createElement('div');
     menu.className = 'menu';
     menu.setAttribute('role', 'menu');
-    menu.innerHTML = items.map((it) => it === '-'
+    menu.innerHTML = items.map((item) => item === '-'
       ? '<div class="menu-sep"></div>'
-      : `<button class="menu-item" type="button" role="menuitem" data-i="${items.indexOf(it)}">${Structra.util.esc(it.label)}</button>`).join('');
+      : `<button class="menu-item" type="button" role="menuitem" data-i="${items.indexOf(item)}">${Structra.sharedHelpers.escapeHtml(item.label)}</button>`).join('');
     document.body.appendChild(menu);
-    const r = menu.getBoundingClientRect();
-    menu.style.left = Math.max(8, Math.min(x, window.innerWidth - r.width - 8)) + 'px';
-    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - r.height - 8)) + 'px';
-    menu.addEventListener('click', (e) => {
-      const item = e.target.closest('[data-i]');
+    const rect = menu.getBoundingClientRect();
+    menu.style.left = Math.max(8, Math.min(x, window.innerWidth - rect.width - 8)) + 'px';
+    menu.style.top = Math.max(8, Math.min(y, window.innerHeight - rect.height - 8)) + 'px';
+    menu.addEventListener('click', (event) => {
+      const item = event.target.closest('[data-i]');
       if (item) items[Number(item.dataset.i)].run();
       this._closeMenu();
     });
     this._menu = menu;
     setTimeout(() => {
-      this._off = (e) => { if (e.type === 'keydown' && e.key !== 'Escape') return; if (e.type === 'click' && menu.contains(e.target)) return; this._closeMenu(); };
+      this._off = (event) => { if (event.type === 'keydown' && event.key !== 'Escape') return; if (event.type === 'click' && menu.contains(event.target)) return; this._closeMenu(); };
       document.addEventListener('click', this._off); document.addEventListener('keydown', this._off); window.addEventListener('blur', this._off);
     }, 0);
   }
@@ -158,43 +158,43 @@ class StructraCanvasHeader extends StructraElement {
     if (this._off) { document.removeEventListener('click', this._off); document.removeEventListener('keydown', this._off); window.removeEventListener('blur', this._off); this._off = null; }
   }
 
-  _onContextMenu(e) {
-    const btn = e.target.closest('.toolbar-btn[data-action]');
-    if (!btn || !StructraCanvasHeader.HIDEABLE.includes(btn.dataset.action)) return;
-    e.preventDefault();
-    const id = btn.dataset.action;
-    const items = [{ label: `Hide "${this._label(btn)}" from the toolbar`, run: () => this._setHidden([...this._getHidden(), id]) }];
+  _onContextMenu(event) {
+    const button = event.target.closest('.toolbar-btn[data-action]');
+    if (!button || !StructraCanvasHeader.HIDEABLE.includes(button.dataset.action)) return;
+    event.preventDefault();
+    const id = button.dataset.action;
+    const items = [{ label: `Hide "${this._label(button)}" from the toolbar`, run: () => this._setHidden([...this._getHidden(), id]) }];
     if (this._getHidden().length) items.push('-', { label: 'Show all buttons', run: () => this._setHidden([]) });
-    this._openMenu(e.clientX, e.clientY, items);
+    this._openMenu(event.clientX, event.clientY, items);
   }
 
   _showMoreMenu(anchor) {
     const hidden = this._getHidden();
-    const r = anchor.getBoundingClientRect();
+    const rect = anchor.getBoundingClientRect();
     const items = hidden.map((id) => {
-      const btn = this.$(`[data-action="${id}"]`);
-      return btn && { label: this._label(btn), run: () => btn.click() };
+      const button = this.queryOne(`[data-action="${id}"]`);
+      return button && { label: this._label(button), run: () => button.click() };
     }).filter(Boolean);
     items.push('-', { label: 'Show all buttons', run: () => this._setHidden([]) });
-    this._openMenu(r.left, r.bottom + 4, items);
+    this._openMenu(rect.left, rect.bottom + 4, items);
   }
 
   _updateTabs() {
     const active = this.props.activeView || 'tree';
-    this.$$('.view-tab').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.view === active);
+    this.queryAll('.view-tab').forEach(button => {
+      button.classList.toggle('active', button.dataset.view === active);
     });
     // Expand, Collapse, levels and Wrap act on the Tree only; elsewhere they would be buttons that do nothing
     this.classList.toggle('not-tree', active !== 'tree');
     // When the tab row is cut short by a narrow window, keep the open view's tab in sight
-    this.$('.view-tab.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    this.queryOne('.view-tab.active')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }
 
   _copyJson() {
     const data = Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first'); return; }
     const text = JSON.stringify(data, null, 2);
-    Structra.util.copy(text, 'JSON copied');
+    Structra.sharedHelpers.copyToClipboard(text, 'JSON copied');
   }
 }
 

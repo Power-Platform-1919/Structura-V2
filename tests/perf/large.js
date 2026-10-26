@@ -48,7 +48,7 @@ function serve() {
   let toOverview = null;
   if (view === 'overview') {
     const t1 = Date.now();
-    await page.evaluate(() => Structra.set('activeView', 'overview'));
+    await page.evaluate(() => Structra.setState('activeView', 'overview'));
     await page.waitForSelector('.ovw-headline', { timeout: 300000 });
     toOverview = Date.now() - t1;
   }

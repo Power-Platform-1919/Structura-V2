@@ -8,39 +8,39 @@
      Sets state: currentPath
    ============================================================ */
 
-class StructraBreadcrumb extends StructraElement {
+class StructraBreadcrumb extends StructraComponent {
   init() {
     this.on('state:currentPath', () => this._update());
     this.on('state:jsonData', () => this._update());
   }
 
   render() {
-    this.addEventListener('click', (e) => {
-      const seg = e.target.closest('[data-path]');
+    this.addEventListener('click', (event) => {
+      const seg = event.target.closest('[data-path]');
       if (!seg) return;
-      Structra.set('currentPath', seg.dataset.path);
+      Structra.setState('currentPath', seg.dataset.path);
     });
     this._update();
   }
 
   _update() {
     if (!this._mounted) return;
-    const tokens = Structra.paths.tokenize(Structra.state.currentPath);
+    const tokens = Structra.dataPaths.tokenize(Structra.state.currentPath);
     if (!tokens.length || !Structra.state.jsonData) {
       this.innerHTML = '';
       this.classList.remove('show');
       return;
     }
 
-    const esc = Structra.util.esc;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     let running = '';
     const parts = [`<button class="bc-seg" data-path="$">root</button>`];
-    tokens.forEach((t, i) => {
-      if (t.type === 'key') running += (running ? '.' : '') + t.value;
-      else running += `[${t.value}]`;
-      const label = t.type === 'key' ? t.value : `[${t.value}]`;
+    tokens.forEach((token, i) => {
+      if (token.type === 'key') running += (running ? '.' : '') + token.value;
+      else running += `[${token.value}]`;
+      const label = token.type === 'key' ? token.value : `[${token.value}]`;
       const last = i === tokens.length - 1;
-      parts.push(`<span class="bc-sep">›</span><button class="bc-seg${last ? ' bc-current' : ''}" data-path="${esc(running)}">${esc(label)}</button>`);
+      parts.push(`<span class="bc-sep">›</span><button class="bc-seg${last ? ' bc-current' : ''}" data-path="${escapeHtml(running)}">${escapeHtml(label)}</button>`);
     });
     this.innerHTML = parts.join('');
     this.classList.add('show');
