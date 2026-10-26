@@ -3,14 +3,14 @@
    <structra-welcome> - shown once, the first time the app is opened.
    Says what the app is for, lets the person pick light or dark, and offers
    the two ways to start (a sample or their own file). Reopen it from the
-   command palette ("Welcome"). Built on StructraOverlay.
+   command palette ("Welcome"). Built on StructraDialog.
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: welcome:open
      Emits: theme:open
    ============================================================ */
 
-class StructraWelcome extends StructraOverlay {
+class StructraWelcome extends StructraDialog {
   static SEEN_KEY = 'structra.welcomeSeen';
 
   init() {
@@ -19,7 +19,7 @@ class StructraWelcome extends StructraOverlay {
   }
 
   render() {
-    const mode = Structra.theme.mode();
+    const mode = Structra.themeEngine.mode();
     this.mount({
       title: 'Welcome to Structra',
       size: 'lg',
@@ -68,7 +68,7 @@ class StructraWelcome extends StructraOverlay {
         <div class="wl-theme">
           <span id="wlThemeLabel">Appearance <button class="io-link" type="button" data-act="themes">More themes</button></span>
           <div class="seg" role="group" aria-labelledby="wlThemeLabel" id="wlMode">
-            ${['light', 'dark', 'system'].map((m) => `<button class="seg-btn ${m === mode ? 'active' : ''}" type="button" data-mode="${m}">${m[0].toUpperCase() + m.slice(1)}</button>`).join('')}
+            ${['light', 'dark', 'system'].map((modeName) => `<button class="seg-btn ${modeName === mode ? 'active' : ''}" type="button" data-mode="${modeName}">${modeName[0].toUpperCase() + modeName.slice(1)}</button>`).join('')}
           </div>
         </div>`,
       foot: `
@@ -77,19 +77,19 @@ class StructraWelcome extends StructraOverlay {
         <button class="btn btn-primary" type="button" data-act="sample" autofocus>Open the sample</button>`,
     });
 
-    this.root.addEventListener('click', (e) => {
-      const mode = e.target.closest('[data-mode]');
+    this.root.addEventListener('click', (event) => {
+      const mode = event.target.closest('[data-mode]');
       if (mode) {
-        Structra.theme.setMode(mode.dataset.mode);
-        this.$$('#wlMode .seg-btn').forEach((b) => b.classList.toggle('active', b === mode));
+        Structra.themeEngine.setMode(mode.dataset.mode);
+        this.queryAll('#wlMode .seg-btn').forEach((button) => button.classList.toggle('active', button === mode));
         return;
       }
-      const act = e.target.closest('[data-act]');
-      if (!act) return;
+      const action = event.target.closest('[data-act]');
+      if (!action) return;
       this.close();
-      if (act.dataset.act === 'themes') Structra.events.emit('theme:open');
-      else if (act.dataset.act === 'sample') this._startSample();
-      else if (act.dataset.act === 'file') this._openFilePicker();
+      if (action.dataset.act === 'themes') Structra.events.emit('theme:open');
+      else if (action.dataset.act === 'sample') this._startSample();
+      else if (action.dataset.act === 'file') this._openFilePicker();
     });
 
     if (!StructraWelcome._seen()) setTimeout(() => this._maybeShowFirstRun(), 600);

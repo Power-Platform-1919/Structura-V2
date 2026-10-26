@@ -58,7 +58,7 @@ function serve() {
       for (const d of list) {
         let json;
         try { json = JSON.parse(d.text); } catch { continue; }
-        const xml = Structra.convert.jsonToXml(json);
+        const xml = Structra.formatConversion.jsonToXml(json);
         const doc = new DOMParser().parseFromString(xml, 'application/xml');
         const err = doc.querySelector('parsererror');
         if (err) out.push(d.name + ': ' + err.textContent.split('\n')[0].slice(0, 120));
@@ -70,17 +70,17 @@ function serve() {
     // ---- Image export in every view, light and dark ----
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(FIXTURES, 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => { window.__saved = []; const d = Structra.util.download; Structra.util.download = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); }; });
+    await page.evaluate(() => { window.__saved = []; const d = Structra.sharedHelpers.downloadFile; Structra.sharedHelpers.downloadFile = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); }; });
     // SHARD=0/2 or 1/2 (set by the parallel runner) takes only some of the modes, so the slow part is split across processes
     const [shard, shards] = (process.env.SHARD || '0/1').split('/').map(Number);
     for (const mode of ['light', 'dark'].filter((_, i) => i % shards === shard)) {
-      await page.evaluate((m) => Structra.theme && Structra.theme.setMode ? Structra.theme.setMode(m) : document.documentElement.setAttribute('data-theme', m), mode);
+      await page.evaluate((m) => Structra.themeEngine && Structra.themeEngine.setMode ? Structra.themeEngine.setMode(m) : document.documentElement.setAttribute('data-theme', m), mode);
       for (const view of ['tree', 'table', 'graph', 'schema', 'overview']) {
-        await page.evaluate((v) => Structra.set('activeView', v), view);
+        await page.evaluate((v) => Structra.setState('activeView', v), view);
         await page.waitForTimeout(500);
         const result = await page.evaluate(async (v) => {
           try {
-            await Structra.capture.png(document.querySelector('.view-panel.active'), 'test-' + v + '.png');
+            await Structra.imageCapture.png(document.querySelector('.view-panel.active'), 'test-' + v + '.png');
             return { ok: true };
           } catch (e) { return { error: e.message }; }
         }, view);

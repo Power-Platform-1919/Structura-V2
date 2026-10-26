@@ -37,7 +37,7 @@
 - Quality: completeness (40%) + consistency (35%) + uniqueness (25%)
 - Issue detection: null saturation, mixed types, low uniqueness
 
-## state.js - Global State Management
+## app-state-and-events.js - Global State Management
 - `Structra.state` - global state object
 - `Structra.set/get` - state helpers with event emission
 - `Structra.events` - event bus (on/off/emit)

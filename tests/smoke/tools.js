@@ -56,12 +56,12 @@ function serve() {
 
   /** Run a command like the palette does, then wait for the document to settle */
   const run = async (cmd) => {
-    await page.evaluate((c) => document.querySelector('structra-command')._exec(c), cmd);
+    await page.evaluate((c) => document.querySelector('structra-command')._runCommand(c), cmd);
     await page.waitForTimeout(700);
   };
   const shown = () => page.evaluate(() => ({
     state: JSON.stringify(Structra.state.jsonData),
-    engine: JSON.stringify(Structra.engine.getActive().raw),
+    engine: JSON.stringify(Structra.dataEngine.getActive().raw),
     tabs: Structra.tabs.list.length,
     tabId: Structra.tabs.activeId,
     // the last message that is not the one-time tip (a tip may appear a moment after a result)

@@ -64,8 +64,8 @@ function serve() {
     const mk = (n) => `<img src=x onerror="window.__xss.push('${n}')">`;
     const hostile = [{ id: 1, [mk('key')]: 'v', name: mk('value'), tags: [mk('array')], status: 'Open' }, { id: 2, name: mk('value2'), status: mk('status') }];
     await load(mk('tab') + '.json', JSON.stringify(hostile));
-    for (const v of ['overview', 'tree', 'table', 'graph', 'schema', 'editor']) { await page.evaluate((x) => Structra.set('activeView', x), v); await page.waitForTimeout(500); }
-    await page.evaluate(() => { Structra.set('activeView', 'table'); Structra.set('filterBarOpen', true); Structra.set('findBarOpen', true); });
+    for (const v of ['overview', 'tree', 'table', 'graph', 'schema', 'editor']) { await page.evaluate((x) => Structra.setState('activeView', x), v); await page.waitForTimeout(500); }
+    await page.evaluate(() => { Structra.setState('activeView', 'table'); Structra.setState('filterBarOpen', true); Structra.setState('findBarOpen', true); });
     await page.waitForTimeout(400);
     for (const ev of ['pivot:open', 'nullfinder:open', 'charts:open', 'typedef:open', 'diff:open', 'settings:open', 'snippets:open', 'workspace:open']) {
       await page.evaluate((e) => Structra.events.emit(e), ev);
@@ -76,7 +76,7 @@ function serve() {
     if (ran.length) failures.push('markup in a name, key or value ran as script: ' + ran.join(', '));
 
     // a share link carrying a hostile name
-    const link = await page.evaluate(async () => (await Structra.share.createUrl({ a: 1 }, '<img src=x onerror="window.__xss.push(\'share\')">')).url);
+    const link = await page.evaluate(async () => (await Structra.shareLink.createUrl({ a: 1 }, '<img src=x onerror="window.__xss.push(\'share\')">')).url);
     await page.goto('about:blank');
     await page.goto(link);
     await page.waitForTimeout(2500);
@@ -98,7 +98,7 @@ function serve() {
       await load('k-' + key, JSON.stringify([{ [key]: 1, id: 1 }, { [key]: 2, id: 2 }]));
       const ok = await page.evaluate((k) => Structra.state.jsonData && Structra.state.jsonData.length === 2 && Object.prototype.hasOwnProperty.call(Structra.state.jsonData[0], k), key);
       if (!ok) failures.push('a document with a column named ' + key + ' did not open');
-      await page.evaluate(() => Structra.set('activeView', 'table'));
+      await page.evaluate(() => Structra.setState('activeView', 'table'));
       await page.waitForTimeout(400);
       await closeAll();
     }
@@ -115,7 +115,7 @@ function serve() {
     // ---- every Filter tab works ----
     await closeAll();
     await load('rows.json', JSON.stringify(Array.from({ length: 50 }, (_, i) => ({ id: i, v: i % 5, name: 'n' + i }))));
-    await page.evaluate(() => { Structra.set('activeView', 'table'); Structra.set('filterBarOpen', true); });
+    await page.evaluate(() => { Structra.setState('activeView', 'table'); Structra.setState('filterBarOpen', true); });
     await page.waitForTimeout(400);
     const tryTab = async (label, text) => {
       await page.locator('structra-filter button', { hasText: new RegExp('^' + label + '$') }).first().click();
@@ -131,20 +131,20 @@ function serve() {
     if (!/^\d+ rows? match$/.test(r.count) || r.count === '50 rows match') failures.push('the Expression filter did not filter: ' + JSON.stringify(r));
     r = await tryTab('Formula', 'row.v ===');
     if (!/could not be read/.test(r.toast)) failures.push('a broken expression should say it could not be read: ' + r.toast);
-    await page.evaluate(() => Structra.set('filterBarOpen', false));
+    await page.evaluate(() => Structra.setState('filterBarOpen', false));
 
     // ---- palette Find and Filter open their bars ----
-    await page.evaluate(() => { Structra.set('findBarOpen', false); Structra.set('filterBarOpen', false); Structra.events.emit('command:run', 'find'); });
+    await page.evaluate(() => { Structra.setState('findBarOpen', false); Structra.setState('filterBarOpen', false); Structra.events.emit('command:run', 'find'); });
     await page.waitForTimeout(300);
     if (!(await page.evaluate(() => Structra.state.findBarOpen))) failures.push('the palette command Find in JSON did not open the Find bar');
-    await page.evaluate(() => { Structra.set('findBarOpen', false); Structra.events.emit('command:run', 'filter'); });
+    await page.evaluate(() => { Structra.setState('findBarOpen', false); Structra.events.emit('command:run', 'filter'); });
     await page.waitForTimeout(300);
     if (!(await page.evaluate(() => Structra.state.filterBarOpen))) failures.push('the palette command Filter Data did not open the Filter bar');
 
     // ---- CSV export writes rows for a list that is not at the top ----
     await closeAll();
     await load('orders.json', JSON.stringify({ orders: [{ id: 1, customer: 'Ann', status: { Value: 'Open' }, items: [{ sku: 'A' }] }, { id: 2, customer: 'Bo', status: { Value: 'Closed' }, items: [] }] }));
-    const csv = await page.evaluate(() => Structra.engine.exportData('csv'));
+    const csv = await page.evaluate(() => Structra.dataEngine.exportData('csv'));
     const head = (csv || '').split('\n')[0];
     if (head !== 'id,customer,status.Value,items' || !/^1,Ann,Open,/.test((csv || '').split('\n')[1] || '')) failures.push('Export as CSV should write the rows of the list, got: ' + JSON.stringify((csv || '').slice(0, 120)));
 

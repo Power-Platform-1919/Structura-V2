@@ -3,7 +3,7 @@
    The building blocks several screens reuse. Write a pattern here once;
    do not redefine it inside a component.
 
-     .ov / .ov-box      dialog on top of the app (see core/overlay.js)
+     .ov / .ov-box      dialog on top of the app (see core/dialog-base.js)
      .seg               segmented control (Light | Dark | System)
      .tabs / .tab       underline tabs
      .field             label + control row

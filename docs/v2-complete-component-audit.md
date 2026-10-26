@@ -390,7 +390,7 @@
 ## CORE API MODULES
 
 ### **Structra.engine** - Data Ingestion & Querying Engine
-**File**: `src/core/engine.js`
+**File**: `src/core/data-engine.js`
 
 #### Dataset Management
 - `ingest(tabId, data, meta={})` → indexes + stores dataset
@@ -435,7 +435,7 @@
 - `_activeFilter` (query result cache)
 
 ### **Structra.state** - Application State (Reactive)
-**File**: `src/core/state.js`
+**File**: `src/core/app-state-and-events.js`
 
 #### State Object
 ```javascript
@@ -464,7 +464,7 @@ Structra.state = {
 - `state:${key}` → { key, value, old }
 
 ### **Structra.events** - Event Bus (Pub/Sub)
-**File**: `src/core/state.js`
+**File**: `src/core/app-state-and-events.js`
 
 #### API
 - `on(event, fn)` → subscribe to event
@@ -496,7 +496,7 @@ Structra.state = {
 - Components: Tree, Table, Stats, Schema, Graph, Editor, etc.
 
 ### **Structra.duckdb** - DuckDB WASM Adapter
-**File**: `src/core/duckdb.js`
+**File**: `src/core/duckdb-adapter.js`
 
 #### Capabilities
 - Non-blocking async initialization (loads in background)
@@ -519,7 +519,7 @@ Structra.state = {
 - `engine:duckdb-failed` → {} (if WASM load fails)
 
 ### **Structra.jsonTree** - Virtualized JSON Renderer
-**File**: `src/core/json-tree.js`
+**File**: `src/core/json-tree-renderer.js`
 
 #### Chunking Strategy
 - CHUNK_SIZE: 100 items per chunk
@@ -585,7 +585,7 @@ Structra.state = {
 - `reset(totalItems)` - reset total count
 
 ### **Structra.constants** - Shared Configuration
-**File**: `src/core/constants.js`
+**File**: `src/core/app-constants.js`
 
 #### Key Constants
 ```javascript

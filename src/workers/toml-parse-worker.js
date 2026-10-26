@@ -7,8 +7,8 @@
  */
 importScripts('../libs/toml.min.js');
 
-self.addEventListener('message', function(e) {
-  var id = e.data.id, text = e.data.text;
+self.addEventListener('message', function(event) {
+  var id = event.data.id, text = event.data.text;
 
   if (id == null) {
     self.postMessage({ id: null, success: false, error: 'Missing request id' });
@@ -21,13 +21,13 @@ self.addEventListener('message', function(e) {
   }
 
   try {
-    var t0 = performance.now();
+    var startTime = performance.now();
     var data = TOML.parse(text);
-    var elapsed = (performance.now() - t0).toFixed(1);
+    var elapsed = (performance.now() - startTime).toFixed(1);
     console.log('[Worker:TOML] #' + id + ' Parse OK in ' + elapsed + 'ms');
     self.postMessage({ id: id, success: true, data: data });
-  } catch (err) {
-    var msg = err.message || 'Unknown TOML error';
-    self.postMessage({ id: id, success: false, error: 'TOML parse error: ' + msg });
+  } catch (error) {
+    var message = error.message || 'Unknown TOML error';
+    self.postMessage({ id: id, success: false, error: 'TOML parse error: ' + message });
   }
 });

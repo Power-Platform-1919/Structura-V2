@@ -52,7 +52,7 @@ function serve() {
     out.openFileS = +((Date.now() - t) / 1000).toFixed(1);
 
     t = Date.now();
-    await page.evaluate(() => Structra.set('activeView', 'editor'));
+    await page.evaluate(() => Structra.setState('activeView', 'editor'));
     await page.waitForFunction(() => {
       const host = document.querySelector('structra-editor .cv');
       return host && host.codeView && host.codeView.lineCount() > 5 && !document.querySelector('structra-loading.show, structra-loading[open], .loading-overlay.show');

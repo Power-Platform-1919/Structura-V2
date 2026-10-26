@@ -80,7 +80,7 @@ main('03-network-walk', async ({ browser, base, rep }) => {
     const ext = external().filter((l) => l.step === 'command ' + c);
     for (const l of ext) rep.add('privacy', 'high', `command "${c}" contacted ${l.url.slice(0, 100)}`, c);
     for (let i = 0; i < 3; i++) await page.keyboard.press('Escape');
-    await page.evaluate(() => { Structra.set('findBarOpen', false); Structra.set('filterBarOpen', false); Structra.set('queryPanelOpen', false); });
+    await page.evaluate(() => { Structra.setState('findBarOpen', false); Structra.setState('filterBarOpen', false); Structra.setState('queryPanelOpen', false); });
     await page.waitForTimeout(150);
   }
   await view(page, 'tree');

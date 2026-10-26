@@ -1,13 +1,13 @@
 /* ============================================================
    STRUCTRA V2 - Path Navigation History
-   Structra.nav - back / forward through the paths you visited.
+   Structra.pathHistory - back / forward through the paths you visited.
    One history per tab.
 
    API:
-     Structra.nav.back()       → go to the previous path
-     Structra.nav.forward()    → go to the next path
-     Structra.nav.canBack()    → boolean
-     Structra.nav.canForward() → boolean
+     Structra.pathHistory.back()       → go to the previous path
+     Structra.pathHistory.forward()    → go to the next path
+     Structra.pathHistory.canBack()    → boolean
+     Structra.pathHistory.canForward() → boolean
 
    Events:
      'nav:changed' → emitted whenever history or the active tab changes
@@ -20,7 +20,7 @@
 
 window.Structra = window.Structra || {};
 
-Structra.nav = (() => {
+Structra.pathHistory = (() => {
   const MAX_ENTRIES = 100;
   const stacks = new Map();     // tabId → { items: string[], index: number }
   let replaying = false;        // true while back/forward sets the path itself
@@ -33,35 +33,35 @@ Structra.nav = (() => {
 
   function record(path) {
     if (replaying || !path) return;
-    const s = current();
-    if (s.items[s.index] === path) return;
-    s.items = s.items.slice(0, s.index + 1);   // a new visit drops the forward history
-    s.items.push(path);
-    if (s.items.length > MAX_ENTRIES) s.items.shift();
-    s.index = s.items.length - 1;
+    const timeline = current();
+    if (timeline.items[timeline.index] === path) return;
+    timeline.items = timeline.items.slice(0, timeline.index + 1);   // a new visit drops the forward history
+    timeline.items.push(path);
+    if (timeline.items.length > MAX_ENTRIES) timeline.items.shift();
+    timeline.index = timeline.items.length - 1;
     Structra.events.emit('nav:changed');
   }
 
-  function go(step) {
-    const s = current();
-    const next = s.index + step;
-    if (next < 0 || next >= s.items.length) return;
-    s.index = next;
+  function moveBy(step) {
+    const timeline = current();
+    const next = timeline.index + step;
+    if (next < 0 || next >= timeline.items.length) return;
+    timeline.index = next;
     replaying = true;
     try {
-      Structra.set('currentPath', s.items[next]);
+      Structra.setState('currentPath', timeline.items[next]);
     } finally {
       replaying = false;
     }
     Structra.events.emit('nav:changed');
   }
 
-  const back = () => go(-1);
-  const forward = () => go(1);
+  const back = () => moveBy(-1);
+  const forward = () => moveBy(1);
   const canBack = () => current().index > 0;
-  const canForward = () => { const s = current(); return s.index < s.items.length - 1; };
+  const canForward = () => { const timeline = current(); return timeline.index < timeline.items.length - 1; };
 
-  Structra.events.on('state:currentPath', (d) => record(d.value));
+  Structra.events.on('state:currentPath', (change) => record(change.value));
 
   // New data in a tab starts a fresh history
   Structra.events.on('state:jsonData', () => {

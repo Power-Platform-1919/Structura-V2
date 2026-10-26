@@ -49,7 +49,7 @@ function serve() {
     await page.keyboard.press('Escape');
     await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.waitForTimeout(1500);
-    await page.evaluate(() => Structra.set('activeView', 'table'));
+    await page.evaluate(() => Structra.setState('activeView', 'table'));
     await page.waitForTimeout(800);
 
     const t = await page.evaluate(() => {

@@ -34,19 +34,19 @@ A local JSON analyzer for everyone, with a built-in Power Platform add-on for ma
 
 ## 4. Architecture
 
-- `StructraElement` (`core/base.js`): `init`, `render`, `on/emit`, `$`, `$$`. `StructraOverlay` (`core/overlay.js`) extends it for every dialog: `mount({ title, body, foot, head, size })`, `open`, `close`, Escape, backdrop, focus trap. Sizes `sm md lg xl`; add `flush` for edge-to-edge content.
-- State and events (`core/state.js`): `Structra.set(key, value)` emits `state:<key>`. Views: `overview tree table graph schema editor` (`constants.VIEWS`; Ctrl+1 to Ctrl+5 map to tree, table, graph, schema, overview).
-- Paths in `currentPath` have no leading `$`. `Structra.paths` accepts both.
-- Shared helpers: `Structra.util` (esc, typeOf, naming styles, formatBytes, timeAgo, debounce, yieldToBrowser, whenIdle, copy, download, uid). Write general logic there once.
+- `StructraComponent` (`core/component-base.js`): `init`, `render`, `on/emit`, `queryOne`, `queryAll`. `StructraDialog` (`core/dialog-base.js`) extends it for every dialog: `mount({ title, body, foot, head, size })`, `open`, `close`, Escape, backdrop, focus trap. Sizes `sm md lg xl`; add `flush` for edge-to-edge content.
+- State and events (`core/app-state-and-events.js`): `Structra.setState(key, value)` emits `state:<key>`. Views: `overview tree table graph schema editor` (`constants.VIEWS`; Ctrl+1 to Ctrl+5 map to tree, table, graph, schema, overview).
+- Paths in `currentPath` have no leading `$`. `Structra.dataPaths` accepts both.
+- Shared helpers: `Structra.sharedHelpers` (escapeHtml, jsonTypeOf, naming styles, formatBytes, timeAgo, debounce, yieldToBrowser, runWhenIdle, copyToClipboard, downloadFile, uniqueId). Write general logic there once.
 - Icons: `Structra.icons.svg(name, { size, cls, color, stroke })` wraps the Lucide library (CDN with `src/vendor/lucide.min.js` fallback). `color` takes a theme token name (accent, success, warning, danger, info, muted, syn-*) or any CSS colour. `<i data-icon="name">` placeholders in HTML are filled on load.
-- Theme (`core/theme.js`): 17 base colours, the rest derived with `color-mix()`. Modes light, dark, system. 8 built-in themes, custom themes saved in localStorage `structra.theme`, JSON format `{ format: 'structra-theme', version: 1, name, mode, colors, fonts? }`. Appearance dialog: `structra-theme`.
-- Engine (`core/engine.js`): per-tab datasets. Analysis is computed once per dataset (`getAnalysis`), time-sliced. DuckDB WASM is optional and loads on demand (`enableSql`); the JavaScript path is the fallback by design. `_tableOf(ds)` gives the DuckDB table name.
-- Insights (`core/insights.js`): pure logic that turns an analysis into the Overview: headline sentence, key figures, findings with a place to jump to, biggest lists (grouped by pattern).
+- Theme (`core/theme-engine.js`): 17 base colours, the rest derived with `color-mix()`. Modes light, dark, system. 8 built-in themes, custom themes saved in localStorage `structra.theme`, JSON format `{ format: 'structra-theme', version: 1, name, mode, colors, fonts? }`. Appearance dialog: `structra-theme`.
+- Engine (`core/data-engine.js`): per-tab datasets. Analysis is computed once per dataset (`getAnalysis`), time-sliced. DuckDB WASM is optional and loads on demand (`enableSql`); the JavaScript path is the fallback by design. `_tableOf(ds)` gives the DuckDB table name.
+- Insights (`core/overview-insights.js`): pure logic that turns an analysis into the Overview: headline sentence, key figures, findings with a place to jump to, biggest lists (grouped by pattern).
 - Session: tabs, view, path and the stored original are saved to IndexedDB and restored on load. The original is stored once the page is idle, so a reload within a few seconds of opening a file restores an empty tab.
 
-## 5. Power Platform (`core/expressions.js`, `core/schema-gen.js`, `core/paths.js`)
+## 5. Power Platform (`core/power-platform-expressions.js`, `core/parse-json-schema-generator.js`, `core/data-paths.js`)
 
-- Source model: `Structra.expressions.getSource()/setSource()` (kind action, trigger, item or custom; name; Power Fx variable; whole-output detection). Saved in localStorage `structra.ppSource`. Emits `expressions:source-changed`.
+- Source model: `Structra.powerPlatformExpressions.getSource()/setSource()` (kind action, trigger, item or custom; name; Power Fx variable; whole-output detection). Saved in localStorage `structra.ppSource`. Emits `expressions:source-changed`.
 - Power Automate paths are null-safe at every step (`?['key']`, `?[0]`). A whole action output (`statusCode`, `headers`, `body`) is detected so `body` is not repeated.
 - Power Fx: reads `ParseJSON(variable)`; typed tables convert each column by its real type (Value, Boolean, DateValue, DateTimeValue, Text); nested columns are left out; names that are not plain identifiers are single-quoted. Syntax checked against Microsoft Learn.
 - Flow actions (`flowActions(path, value)`): Select, Filter array (Query), Apply to each (Foreach), Compose, Condition (If) as paste-ready action JSON. `empty()` is only used on text, lists and objects; numbers and flags are checked against null.

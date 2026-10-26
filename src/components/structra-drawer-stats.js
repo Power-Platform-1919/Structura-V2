@@ -11,7 +11,7 @@
      Sets state: activeView
    ============================================================ */
 
-class StructraDrawerStats extends StructraElement {
+class StructraDrawerStats extends StructraComponent {
   init() {
     this._stale = true;
     this._renderTimer = null;
@@ -43,61 +43,61 @@ class StructraDrawerStats extends StructraElement {
 
   async _renderContent() {
     this._stale = false;
-    const root = this.$('#dsRoot');
+    const root = this.queryOne('#dsRoot');
     if (!root) return;
 
-    const dataset = Structra.engine.getActive();
+    const dataset = Structra.dataEngine.getActive();
     const data = dataset ? dataset.raw : Structra.state.jsonData;
     if (!data) {
       root.innerHTML = '<p class="ds-empty">Load data to see analysis</p>';
       return;
     }
 
-    const analysis = await Structra.engine.getAnalysis();
+    const analysis = await Structra.dataEngine.getAnalysis();
     if (!analysis) return;
-    const { stats: s, firstArr, profile, gaps } = analysis;
-    const q = profile ? profile.quality : null;
-    const rows = firstArr ? firstArr.rows.length : 0;
+    const { stats, firstArr: firstArray, profile, gaps } = analysis;
+    const quality = profile ? profile.quality : null;
+    const rows = firstArray ? firstArray.rows.length : 0;
 
     let html = '';
 
     // Mini grid
     html += `<div class="ds-mini-grid">
-      <div class="ds-mini"><span class="ds-mini-val">${s.totalNodes.toLocaleString()}</span><span class="ds-mini-label">Nodes</span></div>
-      <div class="ds-mini"><span class="ds-mini-val">${s.keys.toLocaleString()}</span><span class="ds-mini-label">Keys</span></div>
+      <div class="ds-mini"><span class="ds-mini-val">${stats.totalNodes.toLocaleString()}</span><span class="ds-mini-label">Nodes</span></div>
+      <div class="ds-mini"><span class="ds-mini-val">${stats.keys.toLocaleString()}</span><span class="ds-mini-label">Keys</span></div>
       <div class="ds-mini"><span class="ds-mini-val">${rows}</span><span class="ds-mini-label">Rows</span></div>
       <div class="ds-mini"><span class="ds-mini-val">${gaps}</span><span class="ds-mini-label">Gaps</span></div>
-      <div class="ds-mini"><span class="ds-mini-val">${s.nulls}</span><span class="ds-mini-label">Nulls</span></div>
-      <div class="ds-mini"><span class="ds-mini-val">${s.depth}</span><span class="ds-mini-label">Depth</span></div>
+      <div class="ds-mini"><span class="ds-mini-val">${stats.nulls}</span><span class="ds-mini-label">Nulls</span></div>
+      <div class="ds-mini"><span class="ds-mini-val">${stats.depth}</span><span class="ds-mini-label">Depth</span></div>
     </div>`;
 
     // Quality bar (if available)
-    if (q) {
-      const color = q.overall >= 80 ? 'var(--success-ink)' : q.overall >= 50 ? 'var(--warning-ink)' : 'var(--danger-ink)';       // readable on the panel in every theme
+    if (quality) {
+      const color = quality.overall >= 80 ? 'var(--success-ink)' : quality.overall >= 50 ? 'var(--warning-ink)' : 'var(--danger-ink)';       // readable on the panel in every theme
       html += `<div class="ds-quality">
-        <div class="ds-q-header"><span>Data Quality</span><span class="ds-q-score" style="color:${color}">${q.overall}%</span></div>
-        <div class="ds-q-track"><div class="ds-q-fill" style="width:${q.overall}%;background:${color}"></div></div>
+        <div class="ds-q-header"><span>Data Quality</span><span class="ds-q-score" style="color:${color}">${quality.overall}%</span></div>
+        <div class="ds-q-track"><div class="ds-q-fill" style="width:${quality.overall}%;background:${color}"></div></div>
         <div class="ds-q-detail">
-          <span>Completeness ${q.completeness}%</span>
-          <span>Consistency ${q.consistency}%</span>
-          <span>Uniqueness ${q.uniqueness}%</span>
+          <span>Completeness ${quality.completeness}%</span>
+          <span>Consistency ${quality.consistency}%</span>
+          <span>Uniqueness ${quality.uniqueness}%</span>
         </div>
       </div>`;
     }
 
     // Type summary (compact)
     const types = [
-      { l: 'str', c: s.strings, cl: 'var(--syn-string)' },
-      { l: 'num', c: s.numbers, cl: 'var(--syn-number)' },
-      { l: 'bool', c: s.booleans, cl: 'var(--syn-boolean)' },
-      { l: 'null', c: s.nulls, cl: 'var(--syn-null)' },
-      { l: 'obj', c: s.objects, cl: 'var(--syn-key)' },
-      { l: 'arr', c: s.arrays, cl: 'var(--accent)' },
-    ].filter(t => t.c > 0);
+      { l: 'str', c: stats.strings, cl: 'var(--syn-string)' },
+      { l: 'num', c: stats.numbers, cl: 'var(--syn-number)' },
+      { l: 'bool', c: stats.booleans, cl: 'var(--syn-boolean)' },
+      { l: 'null', c: stats.nulls, cl: 'var(--syn-null)' },
+      { l: 'obj', c: stats.objects, cl: 'var(--syn-key)' },
+      { l: 'arr', c: stats.arrays, cl: 'var(--accent)' },
+    ].filter(tile => tile.c > 0);
     if (types.length > 0) {
       html += '<div class="ds-types">';
-      for (const t of types) {
-        html += `<span class="ds-type-tag" style="border-color:${t.cl}"><span style="color:${t.cl}">${t.c}</span> ${t.l}</span>`;
+      for (const tile of types) {
+        html += `<span class="ds-type-tag" style="border-color:${tile.cl}"><span style="color:${tile.cl}">${tile.c}</span> ${tile.l}</span>`;
       }
       html += '</div>';
     }
@@ -112,17 +112,17 @@ class StructraDrawerStats extends StructraElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      if (btn.dataset.action === 'open-overview') {
-        Structra.set('activeView', 'overview');
-      } else if (btn.dataset.action === 'open-profiler') {
-        Structra.set('activeView', 'overview');
+    this.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      if (button.dataset.action === 'open-overview') {
+        Structra.setState('activeView', 'overview');
+      } else if (button.dataset.action === 'open-profiler') {
+        Structra.setState('activeView', 'overview');
         // Scroll to profiler section after view switch
         requestAnimationFrame(() => {
-          const prof = document.querySelector('.profiler-table');
-          if (prof) prof.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const profile = document.querySelector('.profiler-table');
+          if (profile) profile.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       }
     });

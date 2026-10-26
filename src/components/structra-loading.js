@@ -7,11 +7,11 @@
      Listens to: loading:show, loading:hide
    ============================================================ */
 
-class StructraLoading extends StructraElement {
+class StructraLoading extends StructraComponent {
   static get observedAttributes() { return ['active', 'message']; }
 
   init() {
-    this.on('loading:show', (msg) => this.show(msg));
+    this.on('loading:show', (payload) => this.show(payload));
     this.on('loading:hide', () => this.hide());
   }
 
@@ -25,17 +25,17 @@ class StructraLoading extends StructraElement {
       </div>`;
   }
 
-  show(msg) {
-    Structra.log.info('Loading', 'show: ' + (msg || 'Loading…'));
-    const overlay = this.$('#loadingOverlay');
-    const msgEl = this.$('#loadingMsg');
-    if (msgEl) msgEl.textContent = msg || 'Loading…';
+  show(message) {
+    Structra.log.info('Loading', 'show: ' + (message || 'Loading…'));
+    const overlay = this.queryOne('#loadingOverlay');
+    const msgElement = this.queryOne('#loadingMsg');
+    if (msgElement) msgElement.textContent = message || 'Loading…';
     if (overlay) overlay.classList.add('show');
   }
 
   hide() {
     Structra.log.info('Loading', 'hide');
-    const overlay = this.$('#loadingOverlay');
+    const overlay = this.queryOne('#loadingOverlay');
     if (overlay) overlay.classList.remove('show');
   }
 
@@ -45,8 +45,8 @@ class StructraLoading extends StructraElement {
       isActive ? this.show(this.props.message) : this.hide();
     }
     if (name === 'message') {
-      const msgEl = this.$('#loadingMsg');
-      if (msgEl) msgEl.textContent = this.props.message || 'Loading…';
+      const msgElement = this.queryOne('#loadingMsg');
+      if (msgElement) msgElement.textContent = this.props.message || 'Loading…';
     }
   }
 }

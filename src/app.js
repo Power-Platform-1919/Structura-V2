@@ -38,41 +38,41 @@
     Structra.log.info('App', 'Tab switched: ' + tab.label + ' (id=' + tab.id + ')');
     // The engine must point at this tab before any view reacts to the new state below.
     // Views read the active dataset (analysis, columns, SQL table) while they render.
-    Structra.engine.setActive(tab.id);
+    Structra.dataEngine.setActive(tab.id);
     // Clear active query so stale results don't bleed into new tab
-    Structra.engine.clearQuery();
-    Structra.set('jsonData', tab.data || null);
-    Structra.set('fileName', tab.fileName || '');
-    Structra.set('fileSize', tab.fileSize || 0);
-    Structra.set('currentPath', tab.path || '$');
-    Structra.set('activeView', Structra.constants.VIEWS.includes(tab.view) ? tab.view : 'tree');
+    Structra.dataEngine.clearQuery();
+    Structra.setState('jsonData', tab.data || null);
+    Structra.setState('fileName', tab.fileName || '');
+    Structra.setState('fileSize', tab.fileSize || 0);
+    Structra.setState('currentPath', tab.path || '$');
+    Structra.setState('activeView', Structra.constants.VIEWS.includes(tab.view) ? tab.view : 'tree');
     if (!tab.data && tab.hash) openSavedTab(tab);
   });
 
   // Mirror global state changes back to the active tab object
-  Structra.events.on('state:currentPath', (d) => {
-    const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
-    if (tab) tab.path = d.value;
+  Structra.events.on('state:currentPath', (change) => {
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
+    if (tab) tab.path = change.value;
   });
-  Structra.events.on('state:activeView', (d) => {
-    const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
-    if (tab) tab.view = d.value;
+  Structra.events.on('state:activeView', (change) => {
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
+    if (tab) tab.view = change.value;
   });
-  Structra.events.on('state:jsonData', (d) => {
-    const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
-    if (tab) tab.data = d.value;
+  Structra.events.on('state:jsonData', (change) => {
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
+    if (tab) tab.data = change.value;
   });
-  Structra.events.on('state:fileName', (d) => {
-    const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
+  Structra.events.on('state:fileName', (change) => {
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
     if (tab) {
-      tab.fileName = d.value;
-      if (d.value && !tab.customLabel) tab.label = d.value;       // a name the user typed is kept
+      tab.fileName = change.value;
+      if (change.value && !tab.customLabel) tab.label = change.value;       // a name the user typed is kept
       Structra.events.emit('tabs:changed');
     }
   });
-  Structra.events.on('state:fileSize', (d) => {
-    const tab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
-    if (tab) tab.fileSize = d.value;
+  Structra.events.on('state:fileSize', (change) => {
+    const tab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
+    if (tab) tab.fileSize = change.value;
   });
 
 
@@ -87,8 +87,8 @@
   }
   _updateCanvasVisibility(false); // start hidden
 
-  Structra.events.on('state:jsonData', (d) => {
-    _updateCanvasVisibility(!!d.value);
+  Structra.events.on('state:jsonData', (change) => {
+    _updateCanvasVisibility(!!change.value);
   });
 
   // Place view components inside view-switcher panels
@@ -111,47 +111,47 @@
   }
 
   // Drag handles on the side panels (width is remembered)
-  Structra.resizer.attach(document.getElementById('queryPanel'),
+  Structra.panelResizer.attach(document.getElementById('queryPanel'),
     { name: 'query', edge: 'right', cssVar: '--query-panel-w', min: 200, max: 560 });
-  Structra.resizer.attach(document.getElementById('contextPanel'),
+  Structra.panelResizer.attach(document.getElementById('contextPanel'),
     { name: 'context', edge: 'left', cssVar: '--context-panel-w', min: 220, max: 560 });
 
   // Panel toggling is handled by the components themselves via state events
 
   // Edits (Mask, Sort, Editor changes...) live in the open tab only. A reload brings back the file as it was opened,
   // so ask before leaving with changes that would be lost.
-  window.addEventListener('beforeunload', (e) => {
-    if (Structra.tabs.list.some((t) => t.modified)) { e.preventDefault(); e.returnValue = ''; }
+  window.addEventListener('beforeunload', (event) => {
+    if (Structra.tabs.list.some((tab) => tab.modified)) { event.preventDefault(); event.returnValue = ''; }
   });
 
   // Saving is blocked in this browser: say so once, because nothing will be remembered next time
   if (window.__storageBlocked) setTimeout(() => Structra.toast('This browser is not allowing the page to save anything, so your settings, recent files and bookmarks will be gone when you close it.', { duration: 9000 }), 1500);
 
   // Global keyboard shortcuts
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', (event) => {
     // While typing in a box, keys belong to the box (its own undo, and "?" is a character)
-    const t = e.target;
-    const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
-    if (e.key === '?' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      e.preventDefault();
+    const target = event.target;
+    const typing = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
+    if (event.key === '?' && !typing && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
       Structra.events.emit('command:run', 'shortcuts');
       return;
     }
     const key = [];
-    if (e.ctrlKey || e.metaKey) key.push('ctrl');
-    if (e.shiftKey) key.push('shift');
-    if (e.altKey) key.push('alt');
+    if (event.ctrlKey || event.metaKey) key.push('ctrl');
+    if (event.shiftKey) key.push('shift');
+    if (event.altKey) key.push('alt');
 
-    const k = e.key.toLowerCase();
-    if (k !== 'control' && k !== 'shift' && k !== 'alt' && k !== 'meta') {
-      key.push(k);
+    const pressedKey = event.key.toLowerCase();
+    if (pressedKey !== 'control' && pressedKey !== 'shift' && pressedKey !== 'alt' && pressedKey !== 'meta') {
+      key.push(pressedKey);
     }
     const combo = key.join('+');
     const action = Structra.constants.SHORTCUTS[combo];
     if (!action) return;
     if ((action === 'undo' || action === 'redo') && typing) return;
 
-    e.preventDefault();
+    event.preventDefault();
     Structra.events.emit('shortcut', action);
 
     switch (action) {
@@ -159,15 +159,15 @@
         Structra.events.emit('command-palette:toggle');
         break;
       case 'find':
-        Structra.set('findBarOpen', true);
+        Structra.setState('findBarOpen', true);
         break;
       case 'find-replace':
-        Structra.set('findBarOpen', true);
+        Structra.setState('findBarOpen', true);
         // Toggle replace row open
         setTimeout(() => Structra.events.emit('find:toggle-replace'), 50);
         break;
       case 'filter':
-        Structra.set('filterBarOpen', !Structra.state.filterBarOpen);
+        Structra.setState('filterBarOpen', !Structra.state.filterBarOpen);
         break;
       case 'focus-path':
         document.getElementById('pathInput')?.focus();
@@ -187,15 +187,15 @@
         Structra.toast(Structra.bookmarks.toggle(path) ? 'Bookmarked ' + path : 'Bookmark removed');
         break;
       }
-      case 'nav-back':    Structra.nav.back(); break;
-      case 'nav-forward': Structra.nav.forward(); break;
+      case 'nav-back':    Structra.pathHistory.back(); break;
+      case 'nav-forward': Structra.pathHistory.forward(); break;
       // View shortcuts
-      case 'view-tree':   Structra.set('activeView', 'tree'); break;
-      case 'view-table':  Structra.set('activeView', 'table'); break;
-      case 'view-graph':  Structra.set('activeView', 'graph'); break;
-      case 'view-schema': Structra.set('activeView', 'schema'); break;
-      case 'view-overview':  Structra.set('activeView', 'overview'); break;
-      case 'view-editor': Structra.set('activeView', 'editor'); break;
+      case 'view-tree':   Structra.setState('activeView', 'tree'); break;
+      case 'view-table':  Structra.setState('activeView', 'table'); break;
+      case 'view-graph':  Structra.setState('activeView', 'graph'); break;
+      case 'view-schema': Structra.setState('activeView', 'schema'); break;
+      case 'view-overview':  Structra.setState('activeView', 'overview'); break;
+      case 'view-editor': Structra.setState('activeView', 'editor'); break;
       // Tool shortcuts → delegate to command palette exec
       case 'sort':
       case 'export-csv':
@@ -212,25 +212,25 @@
   });
 
   // File drop support
-  document.addEventListener('dragover', (e) => e.preventDefault());
-  document.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const file = e.dataTransfer.files[0];
+  document.addEventListener('dragover', (event) => event.preventDefault());
+  document.addEventListener('drop', (event) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
     if (!file) return;
 
-    const ext = file.name.split('.').pop().toLowerCase();
-    if (!['json', 'txt', 'csv', 'tsv'].includes(ext)) {
-      Structra.log.warn('App', 'Dropped file ignored (unsupported extension): ' + ext);
+    const extension = file.name.split('.').pop().toLowerCase();
+    if (!['json', 'txt', 'csv', 'tsv'].includes(extension)) {
+      Structra.log.warn('App', 'Dropped file ignored (unsupported extension): ' + extension);
       return;
     }
 
-    Structra.log.info('App', 'File dropped: ' + file.name + ' (' + (file.size / 1048576).toFixed(2) + ' MB, ext=' + ext + ')');
+    Structra.log.info('App', 'File dropped: ' + file.name + ' (' + (file.size / 1048576).toFixed(2) + ' MB, ext=' + extension + ')');
 
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         let data;
-        if (ext === 'csv' || ext === 'tsv') {
+        if (extension === 'csv' || extension === 'tsv') {
           Structra.log.info('App', 'Parsing dropped CSV/TSV...');
           const result = await Structra.parseCsvAsync(reader.result);
           if (result.data.length === 0) { Structra.toast('The CSV has no rows of data'); return; }
@@ -246,14 +246,14 @@
         const unopenable = Structra.describeUnopenable(data);
         if (unopenable) { Structra.toast(file.name + ' contains only ' + unopenable + ', so there is nothing to explore'); return; }
         Structra.log.info('App', 'Drop parse success - setting state');
-        Structra.set('jsonData', data);
-        Structra.set('fileName', file.name);
-        Structra.set('fileSize', file.size);
-        Structra.set('currentPath', '$');
+        Structra.setState('jsonData', data);
+        Structra.setState('fileName', file.name);
+        Structra.setState('fileSize', file.size);
+        Structra.setState('currentPath', '$');
         Structra.toast('Loaded ' + file.name);
-      } catch (err) {
-        Structra.log.error('App', 'Drop parse failed: ' + err.message, err);
-        Structra.toast(ext === 'csv' || ext === 'tsv' ? 'Could not read the CSV: ' + err.message : 'This file is not valid JSON');
+      } catch (error) {
+        Structra.log.error('App', 'Drop parse failed: ' + error.message, error);
+        Structra.toast(extension === 'csv' || extension === 'tsv' ? 'Could not read the CSV: ' + error.message : 'This file is not valid JSON');
       }
     };
     reader.onerror = () => {
@@ -266,19 +266,19 @@
 
   // Wire tab close to engine (the engine follows tab switches in the handler above)
   Structra.events.on('tabs:closed', (tabId) => {
-    Structra.engine.remove(tabId);
+    Structra.dataEngine.remove(tabId);
   });
 
   // When jsonData is set from sources other than input panel (e.g., file drop),
   // ingest into engine if not already ingested
-  Structra.events.on('state:jsonData', async (d) => {
-    if (!d.value) return;
-    const activeTab = Structra.tabs.list.find(t => t.id === Structra.tabs.activeId);
+  Structra.events.on('state:jsonData', async (change) => {
+    if (!change.value) return;
+    const activeTab = Structra.tabs.list.find(candidate => candidate.id === Structra.tabs.activeId);
     if (!activeTab) return;
     // Skip if engine already has this dataset (input-panel already ingested)
-    const existing = Structra.engine.getActive();
-    if (existing && existing.id === activeTab.id && existing.raw === d.value) return;
-    await Structra.engine.ingest(activeTab.id, d.value, {
+    const existing = Structra.dataEngine.getActive();
+    if (existing && existing.id === activeTab.id && existing.raw === change.value) return;
+    await Structra.dataEngine.ingest(activeTab.id, change.value, {
       fileName: activeTab.fileName || 'untitled',
       fileSize: activeTab.fileSize || 0,
     });
@@ -297,76 +297,76 @@
   })();
 
   // Open a document shared through the URL hash (#share=...)
-  Structra.share.readHash().then((shared) => {
+  Structra.shareLink.readHash().then((shared) => {
     if (!shared) return;
     if (Structra.describeUnopenable(shared.data)) { Structra.toast('This share link holds an empty document'); return; }
     // Through the same door as any file, so every view and tool works on it
     const name = String(shared.name || 'Shared JSON').slice(0, 80);
     return document.querySelector('structra-input-panel')._loadSuccess(shared.data, JSON.stringify(shared.data), name);
     // The link stays in the address bar, so refreshing the page opens the same document again
-  }).catch((err) => {
-    Structra.log.warn('App', 'Share link could not be read', err.message);
-    Structra.toast(/^This share link/.test(err.message) ? err.message : 'This share link could not be read');
+  }).catch((error) => {
+    Structra.log.warn('App', 'Share link could not be read', error.message);
+    Structra.toast(/^This share link/.test(error.message) ? error.message : 'This share link could not be read');
   });
 
   /* --- Session: tabs, their view and path, and the stored original of each document --- */
 
   let _sessionTimer = null;
   function saveSession() {
-    const tabs = Structra.tabs.list.map((t) => {
-      const ds = Structra.engine.getDataset(t.id);
+    const tabs = Structra.tabs.list.map((tab) => {
+      const dataset = Structra.dataEngine.getDataset(tab.id);
       return {
-        id: t.id, label: t.label, fileName: t.fileName, fileSize: t.fileSize,
-        path: t.path, view: t.view, hash: (ds && ds.meta.hash) || t.hash || null,
+        id: tab.id, label: tab.label, fileName: tab.fileName, fileSize: tab.fileSize,
+        path: tab.path, view: tab.view, hash: (dataset && dataset.meta.hash) || tab.hash || null,
       };
     });
-    Structra.persistence.session.save({
+    Structra.browserDatabase.session.save({
       tabs, activeId: Structra.tabs.activeId, nextId: Structra.tabs.nextId, timestamp: Date.now(),
-    }).catch((err) => Structra.log.warn('App', 'Session save failed', err.message));
+    }).catch((error) => Structra.log.warn('App', 'Session save failed', error.message));
   }
   const scheduleSessionSave = () => {
     clearTimeout(_sessionTimer);
     _sessionTimer = setTimeout(saveSession, 1500);
   };
   ['tabs:changed', 'tabs:closed', 'state:currentPath', 'state:activeView', 'engine:persisted']
-    .forEach((ev) => Structra.events.on(ev, scheduleSessionSave));
+    .forEach((event) => Structra.events.on(event, scheduleSessionSave));
   window.addEventListener('pagehide', saveSession);                 // best effort on the way out
 
   /** Load the stored original of a restored tab */
   async function openSavedTab(tab) {
     try {
-      const text = await Structra.persistence.raw.getText(tab.hash);
+      const text = await Structra.browserDatabase.raw.getText(tab.hash);
       if (!text) throw new Error('the stored copy is missing');
       const panel = document.querySelector('structra-input-panel');
       await panel.loadText(text, tab.fileName || tab.label);
-      Structra.set('currentPath', tab.path || '$');
-      Structra.set('activeView', tab.view || 'tree');
-    } catch (err) {
-      Structra.log.warn('App', 'Could not restore ' + tab.label, err.message);
+      Structra.setState('currentPath', tab.path || '$');
+      Structra.setState('activeView', tab.view || 'tree');
+    } catch (error) {
+      Structra.log.warn('App', 'Could not restore ' + tab.label, error.message);
       Structra.toast('Could not restore ' + tab.label);
     }
   }
 
   async function restoreSession() {
     if (/^#share=/.test(location.hash)) return;                     // an explicit link wins
-    const session = await Structra.persistence.session.load();
-    if (!session || !Array.isArray(session.tabs) || !session.tabs.some((t) => t.hash)) return;
+    const session = await Structra.browserDatabase.session.load();
+    if (!session || !Array.isArray(session.tabs) || !session.tabs.some((tab) => tab.hash)) return;
 
     Structra.tabs.list.length = 0;
-    for (const t of session.tabs) {
+    for (const savedTab of session.tabs) {
       Structra.tabs.list.push({
-        id: t.id, label: t.label, data: null, fileName: t.fileName, fileSize: t.fileSize,
-        path: t.path || '$', view: t.view || 'tree', modified: false, hash: t.hash,
+        id: savedTab.id, label: savedTab.label, data: null, fileName: savedTab.fileName, fileSize: savedTab.fileSize,
+        path: savedTab.path || '$', view: savedTab.view || 'tree', modified: false, hash: savedTab.hash,
       });
     }
-    Structra.tabs.nextId = session.nextId || Math.max(...session.tabs.map((t) => t.id)) + 1;
-    const active = Structra.tabs.list.find((t) => t.id === session.activeId) || Structra.tabs.list[0];
+    Structra.tabs.nextId = session.nextId || Math.max(...session.tabs.map((savedTab) => savedTab.id)) + 1;
+    const active = Structra.tabs.list.find((tab) => tab.id === session.activeId) || Structra.tabs.list[0];
     Structra.tabs.activeId = active.id;
     Structra.events.emit('tabs:changed');
     Structra.events.emit('tabs:switched', active);                  // loads the active tab's document
     Structra.log.info('App', 'Session restored (' + session.tabs.length + ' tab(s))');
   }
-  restoreSession().catch((err) => Structra.log.warn('App', 'Session restore failed', err.message));
+  restoreSession().catch((error) => Structra.log.warn('App', 'Session restore failed', error.message));
 
   Structra.log.info('App', '=== Bootstrap complete ===');
 })();

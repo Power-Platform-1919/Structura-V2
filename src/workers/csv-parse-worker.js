@@ -8,8 +8,8 @@
  */
 importScripts('../libs/papaparse.min.js', '../libs/csv-typing.js');
 
-self.addEventListener('message', function(e) {
-  var id = e.data.id, text = e.data.text, options = e.data.options;
+self.addEventListener('message', function(event) {
+  var id = event.data.id, text = event.data.text, options = event.data.options;
 
   if (id == null) {
     console.warn('[Worker:CSV] Missing request id');
@@ -37,10 +37,10 @@ self.addEventListener('message', function(e) {
       dynamicTyping: false          // typed afterwards by csvRetype, which reads "1,200.00" and keeps decimals
     }, options || {});
 
-    var t0 = performance.now();
+    var startTime = performance.now();
     var result = Papa.parse(text, config);
     var typed = csvRetype(result.data, result.meta.fields);
-    var elapsed = (performance.now() - t0).toFixed(1);
+    var elapsed = (performance.now() - startTime).toFixed(1);
 
     if (result.errors.length > 0 && result.data.length === 0) {
       console.error('[Worker:CSV] #' + id + ' Parse failed: ' + result.errors[0].message);
@@ -65,13 +65,13 @@ self.addEventListener('message', function(e) {
       },
       errors: result.errors.length > 0 ? result.errors.slice(0, 10) : []
     });
-  } catch (err) {
-    console.error('[Worker:CSV] #' + id + ' Exception: ' + (err.message || err));
-    self.postMessage({ id: id, success: false, error: 'CSV parse failed: ' + (err.message || 'Unknown error') });
+  } catch (error) {
+    console.error('[Worker:CSV] #' + id + ' Exception: ' + (error.message || error));
+    self.postMessage({ id: id, success: false, error: 'CSV parse failed: ' + (error.message || 'Unknown error') });
   }
 });
 
-self.addEventListener('unhandledrejection', function(e) {
-  e.preventDefault();
-  self.postMessage({ id: null, success: false, error: 'Unhandled rejection: ' + (e.reason && e.reason.message || e.reason || 'unknown') });
+self.addEventListener('unhandledrejection', function(event) {
+  event.preventDefault();
+  self.postMessage({ id: null, success: false, error: 'Unhandled rejection: ' + (event.reason && event.reason.message || event.reason || 'unknown') });
 });

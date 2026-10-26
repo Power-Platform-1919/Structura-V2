@@ -7,31 +7,31 @@
      Emits: view:switched
    ============================================================ */
 
-class StructraViewSwitcher extends StructraElement {
+class StructraViewSwitcher extends StructraComponent {
   static get observedAttributes() { return ['active']; }
 
   init() {
-    this.on('state:activeView', (d) => this._switch(d.value));
+    this.on('state:activeView', (change) => this._switch(change.value));
   }
 
   render() {
     const views = Structra.constants.VIEWS;
-    this.innerHTML = views.map(v =>
-      `<div class="view-panel ${v === 'tree' ? 'active' : ''}" data-view="${v}" id="view-${v}"></div>`
+    this.innerHTML = views.map(view =>
+      `<div class="view-panel ${view === 'tree' ? 'active' : ''}" data-view="${view}" id="view-${view}"></div>`
     ).join('');
   }
 
   _switch(view) {
     Structra.log.info('ViewSwitcher', 'Switching to: ' + view);
-    this.$$('.view-panel').forEach(el => {
-      el.classList.toggle('active', el.dataset.view === view);
+    this.queryAll('.view-panel').forEach(element => {
+      element.classList.toggle('active', element.dataset.view === view);
     });
     Structra.events.emit('view:switched', view);
   }
 
   /** Get the active view panel element */
   getPanel(view) {
-    return this.$(`[data-view="${view}"]`);
+    return this.queryOne(`[data-view="${view}"]`);
   }
 }
 

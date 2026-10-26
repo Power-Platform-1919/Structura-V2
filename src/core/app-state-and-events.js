@@ -15,14 +15,14 @@ Structra.events = (() => {
   const listeners = {};
 
   return {
-    on(event, fn) {
-      (listeners[event] = listeners[event] || []).push(fn);
+    on(event, callback) {
+      (listeners[event] = listeners[event] || []).push(callback);
       Structra.log.debug('EventBus', 'on("' + event + '") - ' + (listeners[event].length) + ' listener(s)');
     },
 
-    off(event, fn) {
+    off(event, callback) {
       const list = listeners[event];
-      if (list) listeners[event] = list.filter(f => f !== fn);
+      if (list) listeners[event] = list.filter(listener => listener !== callback);
       Structra.log.debug('EventBus', 'off("' + event + '")');
     },
 
@@ -31,21 +31,21 @@ Structra.events = (() => {
       const count = list ? list.length : 0;
       Structra.log.debug('EventBus', 'emit("' + event + '") → ' + count + ' listener(s)', data);
       if (list) {
-        list.forEach(fn => {
+        list.forEach(callback => {
           try {
-            fn(data);
-          } catch (err) {
-            Structra.log.error('EventBus', 'Listener threw on "' + event + '":', err);
-            throw err;
+            callback(data);
+          } catch (error) {
+            Structra.log.error('EventBus', 'Listener threw on "' + event + '":', error);
+            throw error;
           }
         });
       }
     },
 
-    once(event, fn) {
+    once(event, callback) {
       const wrapper = (data) => {
         this.off(event, wrapper);
-        fn(data);
+        callback(data);
       };
       this.on(event, wrapper);
     }
@@ -80,7 +80,7 @@ Structra.describeUnopenable = (data) => {
   return null;
 };
 
-Structra.set = (key, value) => {
+Structra.setState = (key, value) => {
   const old = Structra.state[key];
   if (old === value) return;
   Structra.state[key] = value;
@@ -92,10 +92,10 @@ Structra.set = (key, value) => {
   Structra.events.emit('state:' + key, { key, value, old });
 };
 
-Structra.get = (key) => Structra.state[key];
+Structra.getState = (key) => Structra.state[key];
 
 /* ===== THEME ===== */
-Structra.events.on('theme:toggle', () => Structra.theme.toggle());
+Structra.events.on('theme:toggle', () => Structra.themeEngine.toggle());
 
 /* ===== TOAST (quick access) ===== */
 /**
@@ -103,9 +103,9 @@ Structra.events.on('theme:toggle', () => Structra.theme.toggle());
  * Structra.toast('Closed x', { action: { label: 'Reopen', run } })   with a button
  * (A second argument that is a text or a number, from older calls, is ignored.)
  */
-Structra.toast = (msg, options) => {
-  Structra.log.info('App', 'Toast: ' + msg);
-  Structra.events.emit('toast', { msg, ...(options && typeof options === 'object' ? options : {}) });
+Structra.toast = (message, options) => {
+  Structra.log.info('App', 'Toast: ' + message);
+  Structra.events.emit('toast', { msg: message, ...(options && typeof options === 'object' ? options : {}) });
 };
 
 /* ===== TAB STATE ===== */

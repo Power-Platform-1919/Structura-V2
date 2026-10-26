@@ -6,23 +6,23 @@
    ============================================================ */
 (function () {
   function working(name) {
-    try { var s = window[name]; var k = '__structra_probe'; s.setItem(k, '1'); s.removeItem(k); return true; }
-    catch (e) { return false; }
+    try { var storage = window[name]; var key = '__structra_probe'; storage.setItem(key, '1'); storage.removeItem(key); return true; }
+    catch (error) { return false; }
   }
   function memoryStore() {
-    var mem = {};
+    var memory = {};
     return {
-      getItem: function (k) { return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; },
-      setItem: function (k, v) { mem[String(k)] = String(v); },
-      removeItem: function (k) { delete mem[k]; },
-      clear: function () { mem = {}; },
-      key: function (i) { return Object.keys(mem)[i] === undefined ? null : Object.keys(mem)[i]; },
-      get length() { return Object.keys(mem).length; }
+      getItem: function (key) { return Object.prototype.hasOwnProperty.call(memory, key) ? memory[key] : null; },
+      setItem: function (key, value) { memory[String(key)] = String(value); },
+      removeItem: function (key) { delete memory[key]; },
+      clear: function () { memory = {}; },
+      key: function (i) { return Object.keys(memory)[i] === undefined ? null : Object.keys(memory)[i]; },
+      get length() { return Object.keys(memory).length; }
     };
   }
   ['localStorage', 'sessionStorage'].forEach(function (name) {
     if (working(name)) return;
-    try { Object.defineProperty(window, name, { value: memoryStore(), configurable: true }); } catch (e) { /* cannot replace it */ }
+    try { Object.defineProperty(window, name, { value: memoryStore(), configurable: true }); } catch (error) { /* cannot replace it */ }
     window.__storageBlocked = true;
   });
 })();

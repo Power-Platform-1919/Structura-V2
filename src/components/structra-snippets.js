@@ -7,12 +7,12 @@
      Listens to: snippets:open, snippets:save
    ============================================================ */
 
-class StructraSnippets extends StructraOverlay {
+class StructraSnippets extends StructraDialog {
   init() {
     super.init();
     this._snippets = this._load();
     this.on('snippets:open', () => this.open());
-    this.on('snippets:save', (d) => this._saveFromEvent(d));
+    this.on('snippets:save', (draft) => this._saveFromEvent(draft));
   }
 
   render() {
@@ -32,20 +32,20 @@ class StructraSnippets extends StructraOverlay {
 
     this._renderList();
 
-    this.addEventListener('click', (e) => {
-      const action = e.target.closest('[data-action]');
+    this.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-action]');
       if (!action) return;
-      const a = action.dataset.action;
-      if (a === 'close') this.close();
-      else if (a === 'save-current') this._showSaveForm();
-      else if (a === 'confirm-save') this._confirmSave();
-      else if (a === 'cancel-save') this._hideSaveForm();
-      else if (a === 'use-snippet') this._useSnippet(action.dataset.idx);
-      else if (a === 'delete-snippet') this._deleteSnippet(action.dataset.idx);
-      else if (a === 'copy-snippet') this._copySnippet(action.dataset.idx);
+      const actionName = action.dataset.action;
+      if (actionName === 'close') this.close();
+      else if (actionName === 'save-current') this._showSaveForm();
+      else if (actionName === 'confirm-save') this._confirmSave();
+      else if (actionName === 'cancel-save') this._hideSaveForm();
+      else if (actionName === 'use-snippet') this._useSnippet(action.dataset.idx);
+      else if (actionName === 'delete-snippet') this._deleteSnippet(action.dataset.idx);
+      else if (actionName === 'copy-snippet') this._copySnippet(action.dataset.idx);
     });
 
-    this.$('#snipSearch').addEventListener('input', (e) => this._filterList(e.target.value));
+    this.queryOne('#snipSearch').addEventListener('input', (event) => this._filterList(event.target.value));
   }
 
   onOpen() { this._renderList(); }
@@ -63,40 +63,40 @@ class StructraSnippets extends StructraOverlay {
   }
 
   _showSaveForm() {
-    const form = this.$('#snipSaveForm');
+    const form = this.queryOne('#snipSaveForm');
     form.style.display = '';
     const path = Structra.state.currentPath || '$';
     const data = Structra.state.jsonData;
     // Pre-fill with current selection
     if (data && path !== '$') {
-      const val = Structra.paths.resolve(data, path);
-      this.$('#snipContent').value = JSON.stringify(val, null, 2);
+      const value = Structra.dataPaths.resolve(data, path);
+      this.queryOne('#snipContent').value = JSON.stringify(value, null, 2);
     } else if (data) {
-      this.$('#snipContent').value = JSON.stringify(data, null, 2).slice(0, 2000);
+      this.queryOne('#snipContent').value = JSON.stringify(data, null, 2).slice(0, 2000);
     }
-    this.$('#snipName').focus();
+    this.queryOne('#snipName').focus();
   }
 
-  _hideSaveForm() { this.$('#snipSaveForm').style.display = 'none'; }
+  _hideSaveForm() { this.queryOne('#snipSaveForm').style.display = 'none'; }
 
   _confirmSave() {
-    const name = this.$('#snipName').value.trim();
-    const content = this.$('#snipContent').value.trim();
-    const problem = (field, msg) => {
-      const el = this.$(field);
-      el.setAttribute('aria-invalid', 'true');
-      el.classList.add('snip-invalid');
-      el.focus();
-      let note = this.$('#snipError');
-      if (!note) { note = document.createElement('div'); note.id = 'snipError'; note.className = 'snip-error'; note.setAttribute('role', 'alert'); this.$('.snip-form-actions').before(note); }
-      note.textContent = msg;
+    const name = this.queryOne('#snipName').value.trim();
+    const content = this.queryOne('#snipContent').value.trim();
+    const problem = (field, message) => {
+      const element = this.queryOne(field);
+      element.setAttribute('aria-invalid', 'true');
+      element.classList.add('snip-invalid');
+      element.focus();
+      let note = this.queryOne('#snipError');
+      if (!note) { note = document.createElement('div'); note.id = 'snipError'; note.className = 'snip-error'; note.setAttribute('role', 'alert'); this.queryOne('.snip-form-actions').before(note); }
+      note.textContent = message;
     };
-    this.$$('#snipSaveForm [aria-invalid]').forEach((el) => { el.removeAttribute('aria-invalid'); el.classList.remove('snip-invalid'); });
-    const old = this.$('#snipError');
+    this.queryAll('#snipSaveForm [aria-invalid]').forEach((element) => { element.removeAttribute('aria-invalid'); element.classList.remove('snip-invalid'); });
+    const old = this.queryOne('#snipError');
     if (old) old.remove();
     if (!name) { problem('#snipName', 'Give the snippet a name so you can find it again.'); return; }
     if (!content) { problem('#snipContent', 'Add the JSON to save.'); return; }
-    try { JSON.parse(content); } catch (e) { problem('#snipContent', 'This is not valid JSON: ' + e.message); return; }
+    try { JSON.parse(content); } catch (error) { problem('#snipContent', 'This is not valid JSON: ' + error.message); return; }
 
     this._snippets.unshift({ name, content, created: Date.now(), size: content.length });
     this._save();
@@ -105,53 +105,53 @@ class StructraSnippets extends StructraOverlay {
     Structra.toast(`Snippet "${name}" saved`);
   }
 
-  _saveFromEvent(d) {
-    if (!d || !d.name || !d.content) return;
-    this._snippets.unshift({ name: d.name, content: d.content, created: Date.now(), size: d.content.length });
+  _saveFromEvent(draft) {
+    if (!draft || !draft.name || !draft.content) return;
+    this._snippets.unshift({ name: draft.name, content: draft.content, created: Date.now(), size: draft.content.length });
     this._save();
-    Structra.toast(`Snippet "${d.name}" saved`);
+    Structra.toast(`Snippet "${draft.name}" saved`);
   }
 
-  async _useSnippet(idx) {
-    const snip = this._snippets[idx];
-    if (!snip) return;
+  async _useSnippet(index) {
+    const snippet = this._snippets[index];
+    if (!snippet) return;
     let data;
-    try { data = JSON.parse(snip.content); } catch (e) { Structra.toast('This snippet is not valid JSON: ' + e.message, 'error'); return; }
+    try { data = JSON.parse(snippet.content); } catch (error) { Structra.toast('This snippet is not valid JSON: ' + error.message, 'error'); return; }
     // A snippet opens in its own tab, so the document you are working on stays as it is
-    const cmd = document.querySelector('structra-command');
-    const opened = cmd && cmd._openInNewTab ? await cmd._openInNewTab(data, snip.name) : false;
+    const command = document.querySelector('structra-command');
+    const opened = command && command._openInNewTab ? await command._openInNewTab(data, snippet.name) : false;
     if (!opened) { Structra.toast('Close a tab first: the limit of open tabs is reached.', 'warning'); return; }
     this.close();
-    Structra.toast(`Opened snippet "${snip.name}" in a new tab`);
+    Structra.toast(`Opened snippet "${snippet.name}" in a new tab`);
   }
 
-  _deleteSnippet(idx) {
-    const snip = this._snippets[idx];
-    this._snippets.splice(idx, 1);
+  _deleteSnippet(index) {
+    const snippet = this._snippets[index];
+    this._snippets.splice(index, 1);
     this._save();
     this._renderList();
-    Structra.toast(`Deleted: ${snip?.name || 'snippet'}`);
+    Structra.toast(`Deleted: ${snippet?.name || 'snippet'}`);
   }
 
-  _copySnippet(idx) {
-    const snip = this._snippets[idx];
-    if (snip) Structra.util.copy(snip.content, 'Copied');
+  _copySnippet(index) {
+    const snippet = this._snippets[index];
+    if (snippet) Structra.sharedHelpers.copyToClipboard(snippet.content, 'Copied');
   }
 
   _renderList() {
-    const container = this.$('#snipList');
+    const container = this.queryOne('#snipList');
     if (!container) return;
     if (this._snippets.length === 0) {
       container.innerHTML = '<div class="snip-empty">No snippets saved yet</div>';
       return;
     }
-    container.innerHTML = this._snippets.map((s, i) => `
+    container.innerHTML = this._snippets.map((snippet, i) => `
       <div class="snip-item" data-snip-idx="${i}">
         <div class="snip-item-top">
-          <span class="snip-item-name">${Structra.util.esc(s.name)}</span>
-          <span class="snip-item-size">${Structra.util.formatBytes(s.size)}</span>
+          <span class="snip-item-name">${Structra.sharedHelpers.escapeHtml(snippet.name)}</span>
+          <span class="snip-item-size">${Structra.sharedHelpers.formatBytes(snippet.size)}</span>
         </div>
-        <div class="snip-item-preview">${Structra.util.esc(s.content.slice(0, 80))}</div>
+        <div class="snip-item-preview">${Structra.sharedHelpers.escapeHtml(snippet.content.slice(0, 80))}</div>
         <div class="snip-item-actions">
           <button class="snip-act" data-action="use-snippet" data-idx="${i}">Load</button>
           <button class="snip-act" data-action="copy-snippet" data-idx="${i}">Copy</button>
@@ -161,10 +161,10 @@ class StructraSnippets extends StructraOverlay {
   }
 
   _filterList(query) {
-    const q = query.toLowerCase();
-    this.querySelectorAll('.snip-item').forEach(el => {
-      const name = el.querySelector('.snip-item-name')?.textContent.toLowerCase() || '';
-      el.style.display = name.includes(q) ? '' : 'none';
+    const searchText = query.toLowerCase();
+    this.querySelectorAll('.snip-item').forEach(element => {
+      const name = element.querySelector('.snip-item-name')?.textContent.toLowerCase() || '';
+      element.style.display = name.includes(searchText) ? '' : 'none';
     });
   }
 
