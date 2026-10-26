@@ -1,4 +1,4 @@
-/* How the code box (Structra.codeView, CodeMirror 5) copes with big documents.
+/* How the code box (Structra.codeView, CodeMirror 6) copes with big documents.
    Opens a JSON file, pretty-prints it, puts it in a box, then times: opening, the first screen, a jump to the middle,
    one keystroke in the middle, and memory. Use it to pick the size limits in core/code-view.js.
 
@@ -62,7 +62,6 @@ async function measure(file, mode) {
       document.body.appendChild(host);
       t = performance.now();
       const box = await Structra.codeView.create(host, { mode: 'json', value: '', readOnly: mode === 'view', label: 'bench' });
-      host.querySelector('.CodeMirror').style.height = '700px';
       out.createMs = Math.round(performance.now() - t);
       t = performance.now();
       box.setValue(pretty);
@@ -70,29 +69,25 @@ async function measure(file, mode) {
       t = performance.now();
       await frame();
       out.firstPaintMs = Math.round(performance.now() - t);
-      out.lines = box.cm.lineCount();
-      out.foldOn = !!box.cm.getOption('foldGutter');
+      out.lines = box.lineCount();
+      out.foldOn = !!host.querySelector('.cm-foldGutter');
 
-      const scroller = box.cm.getScrollerElement();
+      const scroller = box.view.scrollDOM;
       t = performance.now();
-      box.cm.scrollTo(0, scroller.scrollHeight / 2);
+      box.scrollTo(0, scroller.scrollHeight / 2);
       await frame();
       out.jumpToMiddleMs = Math.round(performance.now() - t);
 
       if (mode !== 'view') {
-        const mid = box.cm.getCursor();
-        box.cm.setCursor({ line: Math.floor(out.lines / 2), ch: 0 });
+        box.setCursor(Math.floor(out.lines / 2), 0);
+        await frame();
         t = performance.now();
-        box.cm.replaceSelection('x', 'end');
+        box.view.dispatch(box.view.state.replaceSelection('x'));
         await frame();
         out.keystrokeMs = Math.round(performance.now() - t);
-        t = performance.now();
-        box.cm.undo();
-        await frame();
-        out.undoMs = Math.round(performance.now() - t);
       }
       t = performance.now();
-      box.cm.scrollTo(0, scroller.scrollHeight);
+      box.scrollTo(0, scroller.scrollHeight);
       await frame();
       out.jumpToEndMs = Math.round(performance.now() - t);
 

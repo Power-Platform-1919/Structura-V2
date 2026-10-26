@@ -153,7 +153,7 @@ function serve() {
     // Editor: an error in plain words
     await page.evaluate(() => Structra.set('activeView', 'editor'));
     await page.waitForTimeout(400);
-    await page.evaluate(() => { document.querySelector('structra-editor .CodeMirror').CodeMirror.setValue("{ 'a': 1 }"); });
+    await page.evaluate(() => { document.querySelector('structra-editor .cv').codeView.replaceAll("{ 'a': 1 }"); });
     await page.waitForTimeout(500);
     const est = await page.evaluate(() => document.querySelector('#edStatus').textContent.trim());
     if (!/double quotes/.test(est) || /Unexpected token/.test(est)) failures.push('the Editor error should say in plain words that text needs double quotes: ' + est);

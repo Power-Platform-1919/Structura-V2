@@ -1,73 +1,78 @@
 /* ============================================================
    STRUCTRA V2 - Code boxes
-   Colours and sizes for every code box made by Structra.codeView (core/code-view.js): the SQL editor, the JSON editor
-   and the read-only code viewers. CodeMirror brings its own layout (src/libs/codemirror/*.css); these rules give it this
-   app's colours, which follow the theme, so every theme and High Contrast work without more code.
-   A code box lives in a host element that has the class .cv.
+   Colours and sizes for every code box made by Structra.codeView (core/code-view.js): the SQL editor, the JSON editor,
+   the Compare panes and the read-only code viewers. The editor library (CodeMirror 6) brings its own plain light styles;
+   these rules give it this app's colours, which follow the theme, so every theme and High Contrast work without more code.
+
+   A code box lives in a host element that has the class .cv. The library's own styles are written with a class chosen at
+   run time, so each rule here starts with .cv .cm-editor to be stronger than them.
    ============================================================ */
 
-.cv .CodeMirror {
+/* ----- the box ----- */
+.cv .cm-editor {
   height: 100%;                       /* fills its host. Only the lines on screen are drawn, however long the text is */
   background: var(--surface); color: var(--text);     /* the Tree uses --surface too: the syntax colours are chosen to be readable on it in every theme */
   border: 1px solid var(--border); border-radius: var(--radius);
   font-family: var(--font-mono); font-size: var(--fs-sm); line-height: var(--lh-normal);
 }
-/* A short box that grows with its text draws all of it, so it is only for small text such as a SQL query */
-.cv-grow .CodeMirror { height: auto; }
-.cv .CodeMirror-focused { border-color: var(--accent); box-shadow: var(--focus-ring); }
-.cv .CodeMirror-lines { padding: var(--sp-2) 0; }
-.cv .CodeMirror pre.CodeMirror-line, .cv .CodeMirror pre.CodeMirror-line-like { padding: 0 var(--sp-3); }
-.cv .CodeMirror-gutters { background: var(--surface-alt); border-right: 1px solid var(--border-subtle); }
-.cv .CodeMirror-linenumber { color: var(--text-muted); font-size: var(--fs-xs); padding: 0 var(--sp-2); }
-.cv .CodeMirror-foldgutter { width: 1.1em; }
-.cv .CodeMirror-foldgutter-open, .cv .CodeMirror-foldgutter-folded { color: var(--text-muted); cursor: pointer; }
-.cv .CodeMirror-foldgutter-open:hover, .cv .CodeMirror-foldgutter-folded:hover { color: var(--accent); }
-.cv .CodeMirror-foldmarker { color: var(--accent); background: var(--accent-soft); border-radius: 3px; padding: 0 4px; font-family: var(--font-mono); text-shadow: none; }
-.cv .CodeMirror-cursor { border-left: 2px solid var(--text); }
-.cv .CodeMirror-selected { background: color-mix(in srgb, var(--accent) 22%, transparent); }
-.cv .CodeMirror-focused .CodeMirror-selected { background: color-mix(in srgb, var(--accent) 32%, transparent); }
-.cv .CodeMirror-placeholder { color: var(--text-muted) !important; }
-.cv .CodeMirror-matchingbracket { color: var(--text) !important; background: var(--accent-soft); outline: 1px solid var(--accent); }
-.cv .CodeMirror-nonmatchingbracket { color: var(--danger) !important; }
+.cv .cm-editor.cm-focused { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.cv .cm-editor .cm-scroller { font-family: inherit; line-height: inherit; }
+.cv .cm-editor .cm-content { padding: var(--sp-2) 0; caret-color: var(--text); }
+.cv .cm-editor .cm-line { padding: 0 var(--sp-3); }
+.cv .cm-editor .cm-placeholder { color: var(--text-muted); }
 
-/* A mistake the editor points at (for example the place where JSON stops being valid) */
+/* A short box that grows with its text: only for small text such as a SQL query */
+.cv-grow .cm-editor { height: auto; }
+
+/* ----- the margin: line numbers and fold arrows ----- */
+.cv .cm-editor .cm-gutters { background: var(--surface-alt); color: var(--text-muted); border: 0; border-right: 1px solid var(--border-subtle); }
+.cv .cm-editor .cm-lineNumbers .cm-gutterElement { padding: 0 var(--sp-2) 0 var(--sp-3); font-size: var(--fs-xs); }
+.cv .cm-editor .cm-foldGutter .cm-gutterElement { padding: 0 4px; cursor: pointer; color: var(--text-muted); }
+.cv .cm-editor .cm-foldGutter .cm-gutterElement:hover { color: var(--accent); }
+.cv .cm-editor .cm-foldPlaceholder { color: var(--accent); background: var(--accent-soft); border: 0; border-radius: 3px; padding: 0 4px; }
+
+/* ----- caret, selection, brackets ----- */
+.cv .cm-editor .cm-cursor, .cv .cm-editor .cm-dropCursor { border-left: 2px solid var(--text); }
+.cv.cv-readonly .cm-editor .cm-cursorLayer { display: none; }
+.cv .cm-editor .cm-selectionBackground { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.cv .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+.cv .cm-editor .cm-matchingBracket, .cv .cm-editor.cm-focused .cm-matchingBracket { color: var(--text); background: var(--accent-soft); outline: 1px solid var(--accent); }
+.cv .cm-editor .cm-nonmatchingBracket, .cv .cm-editor.cm-focused .cm-nonmatchingBracket { color: var(--danger); background: transparent; }
+
+/* ----- a mistake the editor points at (for example the place where JSON stops being valid) ----- */
 .cv .cv-error { background: color-mix(in srgb, var(--danger) 25%, transparent); border-bottom: 2px solid var(--danger); }
 .cv .cv-error-line { background: color-mix(in srgb, var(--danger) 8%, transparent); }
 
-/* Colours of the text. These use the syntax colours the theme already defines for the Tree.
-   CodeMirror's own stylesheet loads after this one and sets light-theme colours with a rule such as
-   .cm-s-default .cm-string, so without stronger rules the text would be unreadable in dark themes.
-   That is why the editor rules start with .CodeMirror. The ".cv > .cm-" copies colour text made by
-   Structra.codeView.colorize(), which has no editor around it: its coloured parts sit directly inside the element. */
-.cv .CodeMirror .cm-keyword, .cv > .cm-keyword { color: var(--syn-key); font-weight: var(--fw-semibold); }
-.cv .CodeMirror .cm-builtin, .cv .CodeMirror .cm-atom, .cv .CodeMirror .cm-def, .cv > .cm-builtin, .cv > .cm-atom, .cv > .cm-def { color: var(--syn-boolean); }
-.cv .CodeMirror .cm-string, .cv .CodeMirror .cm-string-2, .cv > .cm-string, .cv > .cm-string-2 { color: var(--syn-string); }
-.cv .CodeMirror .cm-number, .cv > .cm-number { color: var(--syn-number); }
-.cv .CodeMirror .cm-null, .cv > .cm-null { color: var(--syn-null); }
-.cv .CodeMirror .cm-comment, .cv > .cm-comment { color: var(--text-muted); font-style: italic; }
-.cv .CodeMirror .cm-variable, .cv .CodeMirror .cm-variable-2, .cv .CodeMirror .cm-variable-3, .cv .CodeMirror .cm-type, .cv .CodeMirror .cm-property, .cv > .cm-variable, .cv > .cm-variable-2, .cv > .cm-variable-3, .cv > .cm-type, .cv > .cm-property { color: var(--text); }
-.cv .CodeMirror .cm-operator, .cv .CodeMirror .cm-punctuation, .cv .CodeMirror .cm-bracket, .cv .CodeMirror .cm-meta, .cv > .cm-operator, .cv > .cm-punctuation, .cv > .cm-bracket, .cv > .cm-meta { color: var(--syn-bracket); }
-.cv .CodeMirror .cm-tag, .cv > .cm-tag { color: var(--syn-key); }
-.cv .CodeMirror .cm-attribute, .cv > .cm-attribute { color: var(--syn-boolean); }
-.cv .CodeMirror .cm-error, .cv > .cm-error { color: var(--danger); }
-/* In JSON a key is a property in quotes; it uses the Tree's key colour, so the editor and the Tree read alike */
-.cv .CodeMirror .cm-property, .cv > .cm-property { color: var(--syn-key); }
+/* ----- shaded lines in the Compare panes: the same colours as the lists of changes ----- */
+.cv .cm-editor .cm-line.diff-add { background: var(--success-soft); }
+.cv .cm-editor .cm-line.diff-rm { background: var(--danger-soft); }
+.cv .cm-editor .cm-line.diff-chg { background: var(--warning-soft); }
 
-/* The suggestion list (CodeMirror's show-hint add-on). It is opened inside the code box, so these rules start with .cv to win over its own stylesheet. */
-.cv .CodeMirror-hints {
-  z-index: 60; max-height: 14rem; padding: 3px; background: var(--surface); color: var(--text);
-  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg);
-  font-family: var(--font-mono); font-size: var(--fs-xs);
+/* ----- colours of the text: the theme's syntax colours, the same ones the Tree uses ----- */
+.cv .tok-keyword { color: var(--syn-key); font-weight: var(--fw-semibold); }
+.cv .tok-bool { color: var(--syn-boolean); }
+.cv .tok-string { color: var(--syn-string); }
+.cv .tok-number { color: var(--syn-number); }
+.cv .tok-null { color: var(--syn-null); }
+.cv .tok-comment { color: var(--text-muted); font-style: italic; }
+.cv .tok-property { color: var(--syn-key); }
+.cv .tok-function { color: var(--syn-boolean); }
+.cv .tok-type { color: var(--text); }
+.cv .tok-variable { color: var(--text); }
+.cv .tok-punct { color: var(--syn-bracket); }
+.cv .tok-invalid { color: var(--danger); }
+
+/* ----- the suggestion list ----- */
+.cv .cm-editor .cm-tooltip {
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); font-family: var(--font-mono); font-size: var(--fs-xs);
 }
-.cv .CodeMirror-hint { color: var(--text); padding: 3px var(--sp-2); border-radius: var(--radius-sm); }
-.cv li.CodeMirror-hint-active { background: var(--accent-soft); color: var(--accent); }
+.cv .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul { font-family: var(--font-mono); max-height: 14rem; padding: 3px; }
+.cv .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li { color: var(--text); padding: 3px var(--sp-2); border-radius: var(--radius-sm); }
+.cv .cm-editor .cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--accent-soft); color: var(--accent); }
+.cv .cm-editor .cm-completionDetail { color: var(--text-muted); margin-left: var(--sp-3); font-style: normal; }
+.cv .cm-editor .cm-completionMatchedText { text-decoration: none; font-weight: var(--fw-semibold); color: var(--accent); }
 
-/* ===== Sizes of each box ===== */
-.qp-sql-host .CodeMirror { min-height: 9rem; }
-.qp-sql-host .CodeMirror-scroll { min-height: 9rem; max-height: 22rem; }
-.qp-sql-host .CodeMirror-lines { padding: var(--sp-2) 0; }
-
-/* Shaded lines in the Compare panes: the same colours as the lists of changes */
-.cv .CodeMirror-linebackground.diff-add { background: var(--success-soft); }
-.cv .CodeMirror-linebackground.diff-rm { background: var(--danger-soft); }
-.cv .CodeMirror-linebackground.diff-chg { background: var(--warning-soft); }
+/* ----- sizes of each box ----- */
+.qp-sql-host .cm-editor { min-height: 9rem; }
+.qp-sql-host .cm-editor .cm-scroller { min-height: 9rem; max-height: 22rem; }

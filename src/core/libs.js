@@ -25,29 +25,10 @@ Structra.libs = (() => {
     // jsondiffpatch (MIT): what is different between two documents. Plain ES modules, so no build step is needed.
     jsondiffpatch:            { type: 'module', urls: ['src/libs/jsondiffpatch/index.js'] },
     'jsondiffpatch-jsonpatch': { type: 'module', urls: ['src/libs/jsondiffpatch/formatters/jsonpatch.js'] },
-    // CodeMirror 5 (MIT) is the SQL editor: highlighting, brackets and the SQL suggestions come from it.
-    // A bundle loads its files one after another, because the add-ons need the core first.
-    codemirror:  { type: 'bundle', global: 'CodeMirror', files: [
-      'src/libs/codemirror/codemirror.min.css', 'src/libs/codemirror/show-hint.min.css',
-      'src/libs/codemirror/codemirror.min.js', 'src/libs/codemirror/sql.min.js', 'src/libs/codemirror/show-hint.min.js',
-      'src/libs/codemirror/sql-hint.min.js', 'src/libs/codemirror/matchbrackets.min.js', 'src/libs/codemirror/closebrackets.min.js',
-      'src/libs/codemirror/placeholder.min.js',
-    ] },
-    // Extra languages and code folding for CodeMirror. Each loads on first use, after the core above.
-    'cm-javascript': { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/mode-javascript.min.js'] },
-    'cm-xml':        { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/mode-xml.min.js'] },
-    'cm-yaml':       { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/mode-yaml.min.js'] },
-    'cm-toml':       { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/mode-toml.min.js'] },
-    'cm-python':     { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/mode-python.min.js'] },
-    'cm-clike':      { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/mode-clike.min.js'] },   // C# and Java
-    'cm-go':         { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/mode-go.min.js'] },
-    'cm-rust':       { type: 'bundle', needs: ['codemirror', 'cm-simple'], global: 'CodeMirror', files: ['src/libs/codemirror/mode-rust.min.js'] },
-    'cm-simple':     { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/addon-simple.min.js'] },     // for small custom languages
-    'cm-runmode':    { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: ['src/libs/codemirror/runmode.min.js'] },     // colours a piece of text without making an editor
-    'cm-fold':       { type: 'bundle', needs: 'codemirror', global: 'CodeMirror', files: [
-      'src/libs/codemirror/foldgutter.min.css', 'src/libs/codemirror/foldcode.min.js', 'src/libs/codemirror/foldgutter.min.js',
-      'src/libs/codemirror/brace-fold.min.js', 'src/libs/codemirror/indent-fold.min.js', 'src/libs/codemirror/xml-fold.min.js',
-    ] },
+    // CodeMirror 6 (MIT) makes every code box: the SQL and JSON editors, coloured code, the Compare panes.
+    // It is built by tools/build-editor.mjs (npm run build:editor) and committed, so nothing is built when the app runs.
+    // The languages inside are separate files that load when first used.
+    codemirror6: { type: 'module', urls: ['src/libs/codemirror6/editor.js'] },
   };
 
   const loaded = new Map();   // name → Promise
@@ -60,24 +41,6 @@ Structra.libs = (() => {
       s.onerror = () => { s.remove(); reject(new Error('Failed to load ' + url)); };
       document.head.appendChild(s);
     });
-  }
-
-  function injectStyle(url) {
-    return new Promise((resolve, reject) => {
-      const l = document.createElement('link');
-      l.rel = 'stylesheet';
-      l.href = url;
-      l.onload = () => resolve();
-      l.onerror = () => { l.remove(); reject(new Error('Failed to load ' + url)); };
-      document.head.appendChild(l);
-    });
-  }
-
-  /** Load the files of a bundle in order (styles and scripts), then hand back its global */
-  async function loadBundle(entry) {
-    for (const need of [].concat(entry.needs || [])) await require(need);          // add-ons and languages need the core (and sometimes another add-on) first
-    for (const file of entry.files) await (file.endsWith('.css') ? injectStyle(file) : injectScript(file));
-    return window[entry.global];
   }
 
   async function firstThatWorks(name, urls, load) {
@@ -97,12 +60,6 @@ Structra.libs = (() => {
     const entry = REGISTRY[name];
     if (!entry) return Promise.reject(new Error('Unknown library: ' + name));
     if (!loaded.has(name)) {
-      if (entry.type === 'bundle') {
-        const p = loadBundle(entry);
-        p.catch(() => loaded.delete(name));
-        loaded.set(name, p);
-        return p;
-      }
       const load = entry.type === 'module'
         ? (url) => import(/* webpackIgnore: true */ new URL(url, document.baseURI).href)
         : injectScript;

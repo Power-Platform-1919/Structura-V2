@@ -53,15 +53,10 @@ function serve() {
     await page.waitForTimeout(300);
   };
   const stats = () => page.evaluate(() => document.querySelector('#diffStats').textContent.replace(/\s+/g, ' ').trim());
+  // The shaded lines that are in view (the boxes draw only the lines on screen, and these documents are small)
   const shaded = (side, cls) => page.evaluate(([s, c]) => {
     const host = document.querySelector(s === 'left' ? '#diffLeftHost' : '#diffRightHost');
-    const cm = host.querySelector('.CodeMirror').CodeMirror;
-    const lines = [];
-    for (let i = 0; i < cm.lineCount(); i++) {
-      const info = cm.lineInfo(i);
-      if ((info.bgClass || '').split(' ').includes(c)) lines.push(cm.getLine(i).trim());
-    }
-    return lines;
+    return [...host.querySelectorAll('.cm-line.' + c)].map((line) => line.textContent.trim());
   }, [side, cls]);
 
   try {
@@ -105,7 +100,7 @@ function serve() {
     if (!(await page.evaluate(() => /removed/.test(document.querySelector('#diffList').textContent)))) failures.push('Structural should list the change');
     await page.locator('[data-diff-mode="side"]').click();
     await page.waitForTimeout(500);
-    if (!(await page.evaluate(() => document.querySelector('#diffLeftHost .CodeMirror').offsetHeight > 100))) failures.push('Side by Side should show the two code boxes again');
+    if (!(await page.evaluate(() => document.querySelector('#diffLeftHost .cm-editor').offsetHeight > 100))) failures.push('Side by Side should show the two code boxes again');
 
     // ---- JSON Patch ----
     await compare([1, 2, 3], [1, 2, 3, 4]);
@@ -119,18 +114,18 @@ function serve() {
     await compare(long, long.map((x) => (x.id === 1500 ? { ...x, name: 'changed' } : x)));
     if ((await stats()) !== '0 added 0 removed 1 changed') failures.push('one changed record in a long list: ' + (await stats()));
     const sync = await page.evaluate(async () => {
-      const l = document.querySelector('#diffLeftHost .CodeMirror').CodeMirror;
-      const r = document.querySelector('#diffRightHost .CodeMirror').CodeMirror;
+      const l = document.querySelector('#diffLeftHost').codeView;
+      const r = document.querySelector('#diffRightHost').codeView;
       l.scrollTo(0, 5000);
-      await new Promise((res) => setTimeout(res, 200));
-      return { left: Math.round(l.getScrollInfo().top), right: Math.round(r.getScrollInfo().top) };
+      await new Promise((res) => setTimeout(res, 300));
+      return { left: Math.round(l.getScroll().top), right: Math.round(r.getScroll().top) };
     });
     if (sync.left < 4000 || Math.abs(sync.left - sync.right) > 5) failures.push('scrolling one box should scroll the other: ' + JSON.stringify(sync));
 
     // ---- Long lists: no crash, a note, and only the visible lines are in the page ----
     const t0 = Date.now();
     await compare({ list: Array.from({ length: 300000 }, (_, i) => i) }, { list: Array.from({ length: 300000 }, (_, i) => i + 1) });
-    const big = await page.evaluate(() => ({ note: document.querySelector('#diffNote').textContent, hidden: document.querySelector('#diffNote').hidden, drawn: document.querySelectorAll('#diffLeftHost .CodeMirror-code pre').length }));
+    const big = await page.evaluate(() => ({ note: document.querySelector('#diffNote').textContent, hidden: document.querySelector('#diffNote').hidden, drawn: document.querySelectorAll('#diffLeftHost .cm-line').length }));
     if (big.hidden || !/compared by position/.test(big.note)) failures.push('long lists should say they are compared by position: ' + JSON.stringify(big));
     if (big.drawn > 300) failures.push('only the lines in view should be drawn, ' + big.drawn + ' were');
     if (!/300,000 changed/.test(await stats())) failures.push('300,000 changed values expected: ' + (await stats()));

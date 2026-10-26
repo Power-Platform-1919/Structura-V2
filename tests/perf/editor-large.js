@@ -54,19 +54,19 @@ function serve() {
     t = Date.now();
     await page.evaluate(() => Structra.set('activeView', 'editor'));
     await page.waitForFunction(() => {
-      const cm = document.querySelector('structra-editor .CodeMirror');
-      return cm && cm.CodeMirror.lineCount() > 5 && !document.querySelector('structra-loading.show, structra-loading[open], .loading-overlay.show');
+      const host = document.querySelector('structra-editor .cv');
+      return host && host.codeView && host.codeView.lineCount() > 5 && !document.querySelector('structra-loading.show, structra-loading[open], .loading-overlay.show');
     }, null, { timeout: 280000, polling: 200 });
     out.editorOpenS = +((Date.now() - t) / 1000).toFixed(1);
     out.status = await page.evaluate(() => document.querySelector('#edStatus').textContent.trim());
-    out.lines = await page.evaluate(() => document.querySelector('structra-editor .CodeMirror').CodeMirror.lineCount());
+    out.lines = await page.evaluate(() => document.querySelector('structra-editor .cv').codeView.lineCount());
 
     // One keystroke in the middle, then how long until the check says valid again
     const typed = await page.evaluate(async () => {
-      const cm = document.querySelector('structra-editor .CodeMirror').CodeMirror;
-      cm.setCursor({ line: Math.floor(cm.lineCount() / 2), ch: 0 });
+      const box = document.querySelector('structra-editor .cv').codeView;
+      box.setCursor(Math.floor(box.lineCount() / 2), 0);
       const t0 = performance.now();
-      cm.replaceSelection(' ', 'end');
+      box.view.dispatch(box.view.state.replaceSelection(' '));
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       return Math.round(performance.now() - t0);
     });

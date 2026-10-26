@@ -131,17 +131,22 @@ function serve() {
 
     await page.evaluate(() => Structra.set('activeView', 'editor'));
     await page.waitForTimeout(300);
+    // The editor handles its own keys (undo is its own, and ? is a character). The app must not take them over:
+    // the app announces a shortcut it acts on, so none must be announced for these two keys.
     const kept = await page.evaluate(() => {
-      const ta = document.querySelector('structra-editor textarea');
-      ta.focus();
-      const ev = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true });
-      ta.dispatchEvent(ev);
-      const q = new KeyboardEvent('keydown', { key: '?', bubbles: true, cancelable: true });
-      ta.dispatchEvent(q);
-      return { undoPrevented: ev.defaultPrevented, questionPrevented: q.defaultPrevented };
+      const box = document.querySelector('structra-editor .cm-content');
+      box.focus();
+      const announced = [];
+      const listener = (action) => announced.push(action);
+      Structra.events.on('shortcut', listener);
+      box.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true }));
+      const question = new KeyboardEvent('keydown', { key: '?', bubbles: true, cancelable: true });
+      box.dispatchEvent(question);
+      Structra.events.off('shortcut', listener);
+      return { announced, shortcutListOpened: !!document.querySelector('structra-shortcuts .ov.show') };
     });
-    if (kept.undoPrevented) failures.push('Ctrl+Z inside the Editor is taken over by the app, so the text box cannot undo its own typing');
-    if (kept.questionPrevented) failures.push('typing ? in a box opens the shortcut list instead of typing');
+    if (kept.announced.length) failures.push('Ctrl+Z inside the Editor is taken over by the app (' + kept.announced.join(',') + '), so the editor cannot undo its own typing');
+    if (kept.shortcutListOpened) failures.push('typing ? in the editor opens the shortcut list instead of typing');
     await page.evaluate(() => Structra.set('activeView', 'tree'));
 
     // ---- Rail follows what is open ----

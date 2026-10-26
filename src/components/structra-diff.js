@@ -228,7 +228,7 @@ class StructraDiff extends StructraOverlay {
     if (!this._boxes) {
       const make = (host, label) => Structra.codeView.create(host, { mode: 'json', readOnly: true, fold: false, label });
       this._boxes = await Promise.all([make(this.$('#diffLeftHost'), 'Left document'), make(this.$('#diffRightHost'), 'Right document')]);
-      this._syncScroll(this._boxes[0].cm, this._boxes[1].cm);
+      this._syncScroll(this._boxes[0], this._boxes[1]);
     }
     const [leftBox, rightBox] = this._boxes;
     leftBox.setValue(left.text);
@@ -242,12 +242,12 @@ class StructraDiff extends StructraOverlay {
   /** The two boxes scroll as one, so the same part of each document stays side by side */
   _syncScroll(a, b) {
     let busy = false;
-    const follow = (from, to) => from.on('scroll', () => {
+    const follow = (from, to) => from.onScroll(() => {
       if (busy) return;
       busy = true;
-      const info = from.getScrollInfo();
-      to.scrollTo(info.left, info.top);
-      busy = false;
+      const at = from.getScroll();
+      to.scrollTo(at.left, at.top);
+      requestAnimationFrame(() => { busy = false; });     // the other box answers with its own scroll event: ignore that one
     });
     follow(a, b);
     follow(b, a);

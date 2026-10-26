@@ -18,7 +18,7 @@ Open a JSON, CSV, XML, YAML or TOML file and see what is inside it: its shape, i
   - a Parse JSON schema
   - the Power Fx formula (`ParseJSON`)
   - paste-ready flow actions: Select, Filter array, Apply to each, Compose, Condition
-- **JSON editor**: the Editor view opens files of up to 100 MB (88 MB opens in about 15 seconds). It has colours, line numbers, folding, bracket matching, and says exactly where the JSON stops being valid. Apply, Format, Minify and Repair work on the text; text you typed but did not apply is kept for each tab.
+- **JSON editor**: the Editor view opens files of up to 100 MB (an 88 MB file opens in about 3 seconds). It has colours, line numbers, folding, bracket matching, and says exactly where the JSON stops being valid. Apply, Format, Minify and Repair work on the text; text you typed but did not apply is kept for each tab.
 - **Themes**: light, dark and system modes, 8 built-in themes, custom themes with JSON import and export. Use the **Themes** button on the left rail.
 - **Tabs and sessions**: open several files; tabs are saved and restored when you reopen the page.
 - **Command palette**: `Ctrl+K`; press `?` for every shortcut.
@@ -120,7 +120,7 @@ Everything is served from this repository, so the app works offline. Nothing is 
 
 | Library | Used for | Licence |
 |---|---|---|
-| [CodeMirror 5](https://codemirror.net/5/) (`src/libs/codemirror`) | SQL and JSON editors, coloured code, folding, suggestions | MIT (see `src/libs/codemirror/LICENSE`) |
+| [CodeMirror 6](https://codemirror.net/) (`src/libs/codemirror6`) | SQL and JSON editors, coloured code, folding, suggestions | MIT (see `src/libs/codemirror6/NOTICE.txt`) |
 | [jsondiffpatch](https://github.com/benjamine/jsondiffpatch) (`src/libs/jsondiffpatch`) | Compare: what is different between two documents | MIT (see `src/libs/jsondiffpatch/NOTICE.txt`) |
 | [DuckDB-Wasm](https://duckdb.org/docs/api/wasm/overview) (`src/libs/duckdb`) | SQL engine | MIT |
 | [Lucide](https://lucide.dev) (`src/vendor/lucide.min.js`) | Icons | ISC |

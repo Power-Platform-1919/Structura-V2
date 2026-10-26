@@ -17,7 +17,7 @@ main('01-themes-colors', async ({ browser, base, rep }) => {
     await pg.waitForSelector('#sqlColumns .qp-sql-col', { state: 'attached', timeout: 60000 });
     await pg.evaluate(() => {
       const text = ['-- how many open items', "SELECT COUNT(*) AS n, 'text' AS label, 42 AS num", 'FROM data WHERE amount > 1.5 AND name = "x"'].join('\n');
-      document.querySelector('.qp-sql-host .CodeMirror').CodeMirror.setValue(text);
+      document.querySelector('.qp-sql-host').codeView.replaceAll(text);
     });
     await pg.waitForTimeout(300);
   };

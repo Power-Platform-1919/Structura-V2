@@ -72,7 +72,7 @@ Workers: `src/workers` (csv, yaml, toml, xml parsers, engine worker). JSON itsel
 
 ## 7b. Code boxes (added later)
 
-SQL editor, JSON editor and the read-only code come from `Structra.codeView` (`core/code-view.js`) on CodeMirror 5 (`src/libs/codemirror`, MIT). See docs/DEVELOPER-GUIDE.md section 6 for the API and the rules for large text. Editor view: opens files up to 100 MB; text typed but not applied is kept per tab; the validity check waits longer for bigger text.
+SQL editor, JSON editor and the read-only code come from `Structra.codeView` (`core/code-view.js`) on CodeMirror 6 (`src/libs/codemirror6`, built by `npm run build:editor` from `tools/editor/entry.js`, MIT). See docs/DEVELOPER-GUIDE.md section 6 for the API and the rules for large text. Editor view: opens files up to 100 MB; text typed but not applied is kept per tab; the validity check waits longer for bigger text.
 
 ## 8. Measured performance (Edge, `tests/perf/large.js`)
 

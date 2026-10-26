@@ -79,29 +79,33 @@ Add the key and action name to the shortcut map in `core/constants.js`, then han
 
 ## 6. Code boxes
 
-Every box that shows or edits code (the SQL editor, the JSON editor, generated code, schemas, snippets) comes from one file, `src/core/code-view.js` (`Structra.codeView`). It is the only file that knows which editor library is behind them (CodeMirror 5 in `src/libs/codemirror`), so changing the library later means changing that file.
+Every box that shows or edits code (the SQL editor, the JSON editor, the two Compare panes, generated code, schemas, snippets) comes from one file, `src/core/code-view.js` (`Structra.codeView`). It is the only file that knows which editor library is behind them (CodeMirror 6, in `src/libs/codemirror6`), so changing the library later means changing that file.
 
 ```js
 // An editable box (SQL, JSON, ...). The host element needs a definite height; only the visible lines are drawn.
 const box = await Structra.codeView.create(host, { mode: 'json', value: text, label: 'JSON text' });
 box.getValue(); box.setValue(text); box.onChange(fn); box.markError(offset); box.gotoOffset(offset, { select: true });
+host.codeView === box;                        // a box can be found from its host element (the tests use this)
 
 // Colour text that is already on the page, with no editor (generated code, a schema, a snippet)
 Structra.codeView.colorize(preElement, text, 'typescript');
 ```
 
-Languages: `sql json javascript typescript xml yaml toml python csharp java go rust powerfx powerautomate text`. Each loads its file the first time it is used (`src/core/libs.js` lists them). Power Fx and Power Automate expressions are small modes written in `code-view.js`, because CodeMirror has none.
+Languages: `sql json javascript typescript xml yaml toml python csharp java go rust powerfx powerautomate text`. Each language is a separate file that loads the first time it is used. Power Fx and Power Automate expressions are small stream parsers written in `code-view.js`, because CodeMirror has neither.
 
-Rules that keep large documents fast (all measured with `node tests/perf/codeview.js <file>` and `node tests/perf/editor-large.js <file>`):
+**How the library gets into the app.** CodeMirror 6 is published as many small ES modules that import each other by package name, which a browser cannot load by itself. `tools/editor/entry.js` lists the pieces the app uses, and `npm run build:editor` joins them with esbuild into `src/libs/codemirror6/` (a core file, one file per language, and `NOTICE.txt` with every package and licence inside). That folder is committed, so running, testing and deploying the app needs no build. Only change `entry.js` and run the build when you upgrade the library or need another piece of it.
+
+Rules that keep large documents fast (measured with `node tests/perf/codeview.js <file>` and `node tests/perf/editor-large.js <file>`):
 - **Give the box a fixed height.** `growsWithText` draws every line, so use it only for a short query box. A box without it draws only the visible lines, whatever the text length.
-- **JSON uses our own line-by-line mode** (`jsonline`). CodeMirror's JSON mode remembers a state from line to line, so colouring line 900,000 means colouring the 899,999 before it. JSON strings never cross a line break, so each line can be coloured alone.
-- **Folding is left off above 1.5 MB**, because finding where each `{` ends would scan most of the document. The undo history is shortened above 4 MB.
+- **JSON is coloured by our own line-by-line plugin**, for the lines in view only. A JSON string never crosses a line break, so no earlier line is needed to colour a later one and nothing has to be parsed first.
+- **Folding is left off above 1.5 MB**, because finding where each `{` ends would scan most of the document. Other languages fold from their syntax tree.
 - **Do not read the whole text on every keystroke** (`getValue()` copies it). The Editor view checks the text after a pause that grows with its size.
+- **Replacing the text keeps undo only for small text.** `replaceAll` starts a fresh history for large text, because remembering the old text would cost as much memory again.
 - **One very long line cannot be shown smoothly.** Minify refuses to make a line over 2 MB.
 
-Colours are in `src/css/codeview.css` and use the theme's syntax colours. CodeMirror's own stylesheet loads later and sets light-theme colours, so the rules there start with `.CodeMirror` to win. If you add a language token colour, check it in the dark themes (`npm run ui:themes`).
+Colours are in `src/css/codeview.css`: the text classes are `tok-*` and use the theme's syntax colours (the same ones the Tree uses). The library writes its own light styles with a class chosen at run time, so each rule starts with `.cv .cm-editor` to be stronger. If you add a colour, check it in the dark themes (`npm run ui:themes`).
 
-Measured on this machine (Edge): a 37 MB file (49 MB of text, 2.2 million lines) opens in the Editor in about 3 seconds and a keystroke takes about 15 ms; an 88 MB file (134 MB of text, 6.9 million lines) opens in about 16 seconds, with keystrokes at about 50 ms and about 1.5 GB of memory. The Editor view opens files up to 100 MB (`MAX_EDIT_BYTES` in `structra-editor.js`).
+Measured on this machine (Edge) with the real Editor view: a 37 MB file (49 MB of text, 2.2 million lines) opens in about 1 second and uses about 440 MB; an 88 MB file (134 MB of text, 6.9 million lines) opens in about 3 seconds, a keystroke takes about 7 ms, and the page uses about 650 MB. CodeMirror 5 needed about 1.5 GB and 16 seconds for the same file, which is why the app moved to version 6. The Editor view opens files up to 100 MB (`MAX_EDIT_BYTES` in `structra-editor.js`).
 
 ### Comparing documents
 

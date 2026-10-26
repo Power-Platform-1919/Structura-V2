@@ -57,15 +57,15 @@ function serve() {
     // ---- Generated code is coloured in every language, and still copies as the same text ----
     for (const lang of ['typescript', 'python', 'csharp', 'go', 'rust', 'java', 'powerfx', 'sql']) {
       await page.evaluate((l) => Structra.events.emit('typedef:open', { lang: l, name: 'Root' }), lang);
-      await page.waitForFunction(() => document.querySelector('#typedefCode .cm-keyword, #typedefCode .cm-string, #typedefCode .cm-variable, #typedefCode .cm-builtin'), null, { timeout: 15000 }).catch(() => {});
+      await page.waitForFunction(() => document.querySelector('#typedefCode span[class^="tok-"]'), null, { timeout: 15000 }).catch(() => {});
       const r = await page.evaluate(() => {
         const el = document.querySelector('#typedefCode');
-        const kinds = new Set([...el.querySelectorAll('span[class^="cm-"]')].map((s) => s.className));
-        return { kinds: kinds.size, same: el.textContent.replace(/\s+/g, ' ') === document.querySelector('structra-typedef')._code.replace(/\s+/g, ' '), len: el.textContent.length };
+        const kinds = new Set([...el.querySelectorAll('span[class^="tok-"]')].map((s) => s.className));
+        return { kinds: kinds.size, same: el.textContent === document.querySelector('structra-typedef')._code, len: el.textContent.length };
       });
       if (!r.len) failures.push(lang + ': no code was generated');
       else if (!r.same) failures.push(lang + ': the coloured text is not the same as the generated code');
-      else if (lang !== 'powerfx' && r.kinds < 2) failures.push(lang + ': the code should have at least two kinds of colour, it has ' + r.kinds);
+      else if (r.kinds < 2) failures.push(lang + ': the code should have at least two kinds of colour, it has ' + r.kinds);
       await page.keyboard.press('Escape');
       await page.waitForTimeout(100);
     }
@@ -75,20 +75,27 @@ function serve() {
       document.body.appendChild(el);
       await Structra.codeView.colorize(el, 'ForAll(Items, Patch(Data, ThisRecord, { Name: "x", N: 1 })) // note', 'powerfx');
       const get = (c) => [...el.querySelectorAll('.' + c)].map((s) => s.textContent);
-      const out = { builtin: get('cm-builtin'), keyword: get('cm-keyword'), string: get('cm-string'), number: get('cm-number'), comment: get('cm-comment') };
+      const out = { builtin: get('tok-function'), keyword: get('tok-keyword'), string: get('tok-string'), number: get('tok-number'), comment: get('tok-comment') };
       el.remove();
       return out;
     });
     if (!fx.builtin.includes('ForAll') || !fx.builtin.includes('Patch')) failures.push('Power Fx functions should be coloured: ' + JSON.stringify(fx));
     if (!fx.string.includes('"x"') || !fx.number.includes('1') || !fx.comment.some((c) => c.includes('note'))) failures.push('Power Fx text, numbers and comments should be coloured: ' + JSON.stringify(fx));
 
-    // ---- The other languages: XML, YAML, TOML and Power Automate expressions ----
+    // ---- Every other language the app shows ----
     const langs = await page.evaluate(async () => {
       const samples = {
-        xml: ['<root id="1"><item>text</item></root>', ['cm-tag', 'cm-attribute', 'cm-string']],
-        yaml: ['name: Ann\nitems:\n  - 1\n  - true', ['cm-atom', 'cm-meta']],
-        toml: ['[server]\nport = 8080\nname = "x"', ['cm-number', 'cm-string']],
-        powerautomate: ["concat('a', items('Apply_to_each')?['name'], 5)", ['cm-builtin', 'cm-string', 'cm-number']],
+        xml: ['<root id="1"><item>text</item></root>', ['tok-keyword', 'tok-string']],
+        yaml: ['name: Ann\nitems:\n  - 1\n  - true', ['tok-property', 'tok-punct']],
+        toml: ['[server]\nport = 8080\nname = "x"', ['tok-number', 'tok-string']],
+        powerautomate: ["concat('a', items('Apply_to_each')?['name'], 5)", ['tok-function', 'tok-string', 'tok-number']],
+        python: ['def f(x):\n    return "a" + str(1)', ['tok-keyword', 'tok-string', 'tok-number']],
+        csharp: ['public class A { int n = 5; string s = "x"; }', ['tok-keyword', 'tok-number', 'tok-string']],
+        go: ['func main() { x := "a"; y := 1 }', ['tok-keyword', 'tok-string', 'tok-number']],
+        rust: ['fn main() { let x = "a"; let y = 1; }', ['tok-keyword', 'tok-string', 'tok-number']],
+        java: ['public class A { int n = 5; String s = "x"; }', ['tok-keyword', 'tok-number', 'tok-string']],
+        typescript: ['const x: number = 1; // note', ['tok-keyword', 'tok-number', 'tok-comment']],
+        json: ['{"a": [1, true, null, "x"]}', ['tok-property', 'tok-number', 'tok-bool', 'tok-null', 'tok-string']],
       };
       const out = {};
       for (const [mode, [text, want]] of Object.entries(samples)) {
@@ -105,13 +112,13 @@ function serve() {
     // ---- Schema and flow action snippets are coloured ----
     await page.evaluate(() => Structra.events.emit('drawer:show', 'schema-gen'));
     await page.waitForTimeout(800);
-    const sg = await page.evaluate(() => { const o = document.querySelector('#sgOutput'); return { len: o ? o.textContent.length : 0, coloured: o ? o.querySelectorAll('span[class^="cm-"]').length : 0 }; });
+    const sg = await page.evaluate(() => { const o = document.querySelector('#sgOutput'); return { len: o ? o.textContent.length : 0, coloured: o ? o.querySelectorAll('span[class^="tok-"]').length : 0 }; });
     if (!sg.len || !sg.coloured) failures.push('the Parse JSON schema should be coloured: ' + JSON.stringify(sg));
 
     // ---- The Node panel colours the value that is selected ----
     await page.evaluate(() => Structra.events.emit('tree:node-selected', '$[0]'));
     await page.waitForTimeout(500);
-    const node = await page.evaluate(() => { const v = document.querySelector('#ctxValue'); return { coloured: v.querySelectorAll('span[class^="cm-"]').length, text: v.textContent.length }; });
+    const node = await page.evaluate(() => { const v = document.querySelector('#ctxValue'); return { coloured: v.querySelectorAll('span[class^="tok-"]').length, text: v.textContent.length }; });
     if (!node.text || !node.coloured) failures.push('the Node panel should show the selected object in colour: ' + JSON.stringify(node));
     // The preview of a big value is cut short without turning the whole value into text first
     const preview = await page.evaluate(() => { const c = document.querySelector('structra-context'); const big = Array.from({ length: 2000000 }, (_, i) => ({ id: i })); const t0 = performance.now(); const text = c._previewJson(big); return { ms: Math.round(performance.now() - t0), len: text.length, more: /more/.test(text) }; });
@@ -119,20 +126,20 @@ function serve() {
 
     // ---- The JSON editor: folding, error marking ----
     await page.evaluate(() => Structra.set('activeView', 'editor'));
-    await page.waitForSelector('structra-editor .CodeMirror', { timeout: 20000 });
+    await page.waitForSelector('structra-editor .cm-editor', { timeout: 20000 });
     await page.waitForTimeout(500);
     const ed = await page.evaluate(() => {
-      const cm = document.querySelector('structra-editor .CodeMirror').CodeMirror;
-      return { fold: !!cm.getOption('foldGutter'), lines: cm.lineCount(), markers: document.querySelectorAll('structra-editor .CodeMirror-foldgutter-open').length };
+      const box = document.querySelector('structra-editor .cv').codeView;
+      return { lines: box.lineCount(), markers: document.querySelectorAll('structra-editor .cm-foldGutter .cm-gutterElement span').length };
     });
-    if (!ed.fold || ed.markers < 1) failures.push('a small JSON document should have fold markers: ' + JSON.stringify(ed));
-    const keys = await page.evaluate(() => [...document.querySelectorAll('structra-editor .cm-property')].length);
+    if (ed.markers < 1) failures.push('a small JSON document should have fold markers: ' + JSON.stringify(ed));
+    const keys = await page.evaluate(() => [...document.querySelectorAll('structra-editor .tok-property')].length);
     if (!keys) failures.push('JSON keys should be coloured as keys');
     // The fold arrow in the margin hides the block, as a person would click it
-    await page.locator('structra-editor .CodeMirror-foldgutter-open').first().click();
-    await page.waitForTimeout(200);
-    const folded = await page.evaluate(() => ({ marker: !!document.querySelector('structra-editor .CodeMirror-foldmarker'), closed: !!document.querySelector('structra-editor .CodeMirror-foldgutter-folded') }));
-    if (!folded.marker || !folded.closed) failures.push('clicking the fold arrow should fold the block: ' + JSON.stringify(folded));
+    await page.locator('structra-editor .cm-foldGutter .cm-gutterElement span').nth(1).click();
+    await page.waitForTimeout(300);
+    const folded = await page.evaluate(() => ({ placeholder: !!document.querySelector('structra-editor .cm-foldPlaceholder'), lines: document.querySelectorAll('structra-editor .cm-line').length }));
+    if (!folded.placeholder) failures.push('clicking the fold arrow should fold the block: ' + JSON.stringify(folded));
 
     // ---- Large text: folding is left off, and the editor still works ----
     const big = await page.evaluate(async () => {
@@ -145,13 +152,13 @@ function serve() {
       const box = await Structra.codeView.create(host, { mode: 'json', value: text, label: 'big' });
       const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       await frame();
-      box.cm.setCursor({ line: 100000, ch: 0 });
+      box.setCursor(100000, 0);
       await frame();
       const t0 = performance.now();
-      box.cm.replaceSelection('x', 'end');
+      box.view.dispatch(box.view.state.replaceSelection('x'));
       await frame();
       const typed = performance.now() - t0;
-      const out = { big: box.big, fold: !!box.cm.getOption('foldGutter'), lines: box.cm.lineCount(), typedMs: Math.round(typed), megabytes: +(text.length / 1048576).toFixed(1) };
+      const out = { big: box.big, fold: !!host.querySelector('.cm-foldGutter'), lines: box.lineCount(), typedMs: Math.round(typed), megabytes: +(text.length / 1048576).toFixed(1) };
       box.destroy();
       host.remove();
       return out;

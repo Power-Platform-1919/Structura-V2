@@ -527,11 +527,10 @@
 .ed-status.error:not(:disabled) { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .ed-status.checking { color: var(--text-muted); cursor: default; }
 .editor-body { flex: 1; min-height: 0; display: flex; }
-/* The code box fills the view. It is placed over the host so it always has a definite height to scroll inside. */
+/* The code box fills the view: the host is a flex item with a definite height, and the box takes all of it. */
 .editor-host { flex: 1; min-width: 0; position: relative; }
-.editor-host .CodeMirror { position: absolute; inset: 0; height: auto; border: 0; border-radius: 0; font-size: var(--fs-md); }
-.editor-host .CodeMirror-focused { box-shadow: none; }
-.editor-host .CodeMirror-gutters { background: var(--surface-alt); }
+.editor-host.cv .cm-editor { border: 0; border-radius: 0; font-size: var(--fs-md); }
+.editor-host.cv .cm-editor.cm-focused { box-shadow: none; }
 
 /* ===== VIEW PANELS ===== */
 .view-panel {
@@ -1555,7 +1554,8 @@ structra-overview {
 /* Side by side: two code boxes, each filling its half. The lists (Inline, Structural) take the place of both. */
 .diff-pane { flex: 1; min-width: 0; position: relative; overflow: hidden; }
 .diff-host { position: absolute; inset: 0; }
-.diff-host .CodeMirror { position: absolute; inset: 0; height: auto; border: 0; border-radius: 0; font-size: var(--fs-xs); }
+.diff-host.cv .cm-editor { border: 0; border-radius: 0; font-size: var(--fs-xs); }
+.diff-host.cv .cm-editor.cm-focused { box-shadow: none; }
 .diff-list { display: none; flex: 1; overflow: auto; padding: var(--sp-1); font-family: var(--font-mono); font-size: var(--fs-xs); }
 .diff-body.diff-list-mode .diff-pane { display: none; }
 .diff-body.diff-list-mode .diff-list { display: block; }

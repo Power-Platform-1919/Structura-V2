@@ -369,7 +369,7 @@ class StructraQuery extends StructraElement {
     if (!this._box) return;
     this._box.setValue(text);
     this._box.focus();
-    this._box.cm.setCursor(this._box.cm.lineCount(), 0);
+    this._box.moveToEnd();
   }
 
   /** Put text where the cursor is (or over the selection), like a SQL tool does when you click a column name */
@@ -400,6 +400,7 @@ class StructraQuery extends StructraElement {
     } catch { cols = []; }
     if (token !== this._schemaToken) return;           // the file changed while this was loading
     this._sqlCols = cols;                              // the editor suggests these names
+    if (this._box) this._box.updateSchema();
     if (!cols.length) {
       box.innerHTML = '<div class="qp-summary">SQL is not available for this file. It needs a list of records or an object.</div>';
       examples.innerHTML = '';

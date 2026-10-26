@@ -68,9 +68,9 @@ function serve() {
     const hidden = await page.evaluate(() => document.querySelector('#sqlSchema').hidden);
     if (hidden) failures.push('the table and its columns should be visible in SQL mode');
 
-    // The SQL editor is CodeMirror: read and write it through its own object, and type with the real keyboard
-    const setSql = (text) => page.evaluate((t) => { const cm = document.querySelector('.CodeMirror').CodeMirror; cm.setValue(t); cm.focus(); cm.setCursor({ line: cm.lastLine(), ch: 1e6 }); }, text);
-    const getSql = () => page.evaluate(() => document.querySelector('.CodeMirror').CodeMirror.getValue());
+    // The SQL editor is a code box (Structra.codeView): read and write it through its box, and type with the real keyboard
+    const setSql = (text) => page.evaluate((t) => { const box = document.querySelector('.qp-sql-host').codeView; box.setValue(t); box.focus(); box.moveToEnd(); }, text);
+    const getSql = () => page.evaluate(() => document.querySelector('.qp-sql-host').codeView.getValue());
     const run = async (text, keys = 'Control+Enter') => {
       await setSql(text);
       await page.keyboard.press(keys);
@@ -103,7 +103,7 @@ function serve() {
 
     // ---- Selecting part of the text runs only that part ----
     await setSql('SELECT 1 AS one;\nSELECT COUNT(*) AS n FROM data');
-    await page.evaluate(() => { const cm = document.querySelector('.CodeMirror').CodeMirror; cm.setSelection({ line: 1, ch: 0 }, { line: 1, ch: 1e6 }); });
+    await page.evaluate(() => { const box = document.querySelector('.qp-sql-host').codeView; const at = box.getValue().indexOf('SELECT COUNT'); box.focus(); box.view.dispatch({ selection: { anchor: at, head: box.view.state.doc.length } }); });
     await page.keyboard.press('Control+Enter');
     await page.waitForTimeout(600);
     const sel = await page.evaluate(() => [...document.querySelectorAll('#queryResults .qp-sql-grid tbody td:not(.qp-sql-n)')].map((t) => t.textContent));
@@ -111,7 +111,7 @@ function serve() {
 
     // ---- Clicking a column adds it to the query ----
     await setSql('SELECT  FROM data');
-    await page.evaluate(() => { const cm = document.querySelector('.CodeMirror').CodeMirror; cm.focus(); cm.setCursor({ line: 0, ch: 7 }); });
+    await page.evaluate(() => { const box = document.querySelector('.qp-sql-host').codeView; box.focus(); box.setCursor(0, 7); });
     await page.locator('#sqlSchema summary').click();                  // the column list starts folded
     await page.locator('#sqlColumns .qp-sql-col', { hasText: 'region' }).click();
     const filled = await getSql();
@@ -166,20 +166,20 @@ function serve() {
     const history = await page.evaluate(() => [...document.querySelectorAll('#sqlHistory option')].map((o) => o.textContent));
     if (history.length < 3 || !history.some((h) => /COUNT\(\*\) AS n, SUM/.test(h))) failures.push('earlier queries should be kept: ' + history.join(' | '));
 
-    // ---- Colours and suggestions come from CodeMirror ----
+    // ---- Colours and suggestions ----
     await setSql("SELECT region, COUNT(*) FROM data WHERE name = 'Ann' -- note");
     const colours = await page.evaluate(() => {
       const kinds = (cls) => [...document.querySelectorAll('.qp-sql-host .' + cls)].map((e) => e.textContent);
-      return { keyword: kinds('cm-keyword'), string: kinds('cm-string'), comment: kinds('cm-comment') };
+      return { keyword: kinds('tok-keyword'), string: kinds('tok-string'), comment: kinds('tok-comment') };
     });
     if (!colours.keyword.includes('SELECT') || !colours.keyword.includes('FROM')) failures.push('keywords should be coloured: ' + JSON.stringify(colours));
     if (!colours.string.some((t) => t.includes('Ann'))) failures.push('text in quotes should be coloured: ' + JSON.stringify(colours));
     if (!colours.comment.some((t) => t.includes('note'))) failures.push('a comment should be coloured: ' + JSON.stringify(colours));
-    const keywordColour = await page.evaluate(() => getComputedStyle(document.querySelector('.qp-sql-host .cm-keyword')).color);
-    const textColour = await page.evaluate(() => getComputedStyle(document.querySelector('.qp-sql-host .CodeMirror')).color);
+    const keywordColour = await page.evaluate(() => getComputedStyle(document.querySelector('.qp-sql-host .tok-keyword')).color);
+    const textColour = await page.evaluate(() => getComputedStyle(document.querySelector('.qp-sql-host .cm-editor')).color);
     if (keywordColour === textColour) failures.push('a keyword should not have the same colour as plain text');
 
-    const hints = () => page.evaluate(() => [...document.querySelectorAll('.CodeMirror-hints li')].map((li) => li.textContent));
+    const hints = () => page.evaluate(() => [...document.querySelectorAll('.qp-sql-host .cm-tooltip-autocomplete li .cm-completionLabel')].map((e) => e.textContent));
     const hintsShown = async () => (await hints()).length > 0;
     await setSql('');
     await page.keyboard.type('SELECT reg');
@@ -200,13 +200,13 @@ function serve() {
     await page.keyboard.press('Control+Space');
     await page.waitForTimeout(300);
     const dotted = await hints();
-    if (!dotted.includes('data.amount') || !dotted.includes('data.region')) failures.push('Ctrl+Space after data. should list the columns: ' + dotted.join(','));
+    if (!dotted.includes('amount') || !dotted.includes('region')) failures.push('Ctrl+Space after data. should list the columns: ' + dotted.join(','));
     await page.keyboard.press('ArrowDown');
-    const moved = await page.evaluate(() => document.querySelector('.CodeMirror-hint-active').textContent);
+    const moved = await page.evaluate(() => document.querySelector('.qp-sql-host .cm-tooltip-autocomplete li[aria-selected] .cm-completionLabel').textContent);
     if (moved === dotted[0]) failures.push('the arrow keys should move the choice');
     await page.keyboard.press('Escape');
     await page.waitForTimeout(150);
-    const afterEsc = await page.evaluate(() => ({ list: document.querySelectorAll('.CodeMirror-hints li').length, panel: !!Structra.state.queryPanelOpen }));
+    const afterEsc = await page.evaluate(() => ({ list: document.querySelectorAll('.qp-sql-host .cm-tooltip-autocomplete li').length, panel: !!Structra.state.queryPanelOpen }));
     if (afterEsc.list || !afterEsc.panel) failures.push('Escape should close the list and keep the panel open: ' + JSON.stringify(afterEsc));
 
     await setSql('');

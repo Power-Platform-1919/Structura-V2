@@ -63,6 +63,17 @@ module.exports = [
     rules: { 'no-redeclare': 'off', 'no-unused-vars': 'off' },
   },
   {
+    // The build script for the editor library runs in Node and is written as a module
+    files: ['tools/**/*.mjs'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.node } },
+    rules: { 'no-undef': 'error' },
+  },
+  {
+    // The entry file is only read by the build script
+    files: ['tools/editor/entry.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module' },
+  },
+  {
     // The tests run in Node (and drive a browser)
     files: ['tests/**/*.js', 'eslint.config.js'],
     languageOptions: {

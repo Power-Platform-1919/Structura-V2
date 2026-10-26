@@ -255,7 +255,7 @@ class StructraEditor extends StructraElement {
       let where = '';
       if (pos) {
         this._errorAt = Number(pos[1]);
-        const at = box.cm.posFromIndex(this._errorAt);
+        const at = box.offsetToPosition(this._errorAt);
         where = `Line ${at.line + 1}, column ${at.ch + 1}`;
         box.markError(this._errorAt);
       } else if (lc) {
