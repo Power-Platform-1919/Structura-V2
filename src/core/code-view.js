@@ -21,6 +21,7 @@
    box.getValue() / box.setValue(text)     the whole text (setValue also clears undo history)
    box.replaceAll(text)                    swap the whole text but keep undo (for small text; large text clears the history to save memory)
    box.lineCount() / box.setReadOnly(bool)
+   box.setLineClasses(map)                 shade lines: a Map of line number (from 0) -> CSS class; replaces the earlier shading
    box.getSelection()                      the selected text, '' when nothing is selected
    box.suggest(manual)                     show the suggestion list (SQL); it also opens by itself while typing
    box.insertAtCursor(text)                type text at the cursor, or over the selection
@@ -236,6 +237,7 @@ Structra.codeView = (() => {
     host.addEventListener('keydown', (e) => { if (e.key === 'Escape') listWasOpen = !!cm.state.completionActive; }, true);
     host.addEventListener('keydown', (e) => { if (e.key === 'Escape' && listWasOpen) { e.stopPropagation(); listWasOpen = false; } });
 
+    const shaded = new Map();        // line -> class added by setLineClasses
     let errorMark = null;
     let errorLine = null;
     const handlers = [];
@@ -259,6 +261,13 @@ Structra.codeView = (() => {
         cm.operation(() => cm.replaceRange(text, { line: 0, ch: 0 }, { line: cm.lastLine(), ch: cm.getLine(cm.lastLine()).length }));
       },
       lineCount: () => cm.lineCount(),
+      setLineClasses(map) {
+        cm.operation(() => {
+          shaded.forEach((cls, line) => { if (line < cm.lineCount()) cm.removeLineClass(line, 'background', cls); });
+          shaded.clear();
+          map.forEach((cls, line) => { if (line < cm.lineCount()) { cm.addLineClass(line, 'background', cls); shaded.set(line, cls); } });
+        });
+      },
       setReadOnly(on) { cm.setOption('readOnly', !!on); },
       getSelection: () => cm.getSelection(),
       insertAtCursor(text) { cm.replaceSelection(text, 'end'); cm.focus(); },

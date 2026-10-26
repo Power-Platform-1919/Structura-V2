@@ -3,6 +3,7 @@
   "private": true,
   "description": "Structra: a local JSON analyzer with built-in Power Platform tools",
   "scripts": {
+    "lint": "eslint .",
     "test": "node tests/unit/run.js",
     "test:unit": "node tests/unit/run.js",
     "test:smoke": "node tests/smoke/fixtures.js",
@@ -12,9 +13,10 @@
     "test:find": "node tests/smoke/find.js",
     "test:layout": "node tests/smoke/layout.js",
     "test:transform": "node tests/smoke/transform.js",
-    "test:all": "npm test && node tests/smoke/tabs.js && node tests/smoke/tools.js && node tests/smoke/find.js && node tests/smoke/layout.js && node tests/smoke/transform.js && node tests/smoke/exports.js && node tests/smoke/schema.js && node tests/smoke/table.js && node tests/smoke/query.js && node tests/smoke/sql.js && node tests/smoke/codeview.js && node tests/smoke/powerplatform.js && node tests/smoke/shell.js && node tests/smoke/overview.js && node tests/smoke/navigation.js && node tests/smoke/editor.js && node tests/smoke/tabsui.js && node tests/smoke/datatools.js && node tests/smoke/inputs.js && node tests/smoke/graph.js && node tests/smoke/hostile.js && node tests/smoke/offline.js && node tests/smoke/robust.js && node tests/smoke/stress.js && node tests/smoke/labels.js && node tests/smoke/treekeys.js && node tests/smoke/responsive.js",
+    "test:all": "npm test && node tests/smoke/tabs.js && node tests/smoke/tools.js && node tests/smoke/find.js && node tests/smoke/layout.js && node tests/smoke/transform.js && node tests/smoke/exports.js && node tests/smoke/schema.js && node tests/smoke/table.js && node tests/smoke/query.js && node tests/smoke/sql.js && node tests/smoke/codeview.js && node tests/smoke/diff.js && node tests/smoke/powerplatform.js && node tests/smoke/shell.js && node tests/smoke/overview.js && node tests/smoke/navigation.js && node tests/smoke/editor.js && node tests/smoke/tabsui.js && node tests/smoke/datatools.js && node tests/smoke/inputs.js && node tests/smoke/graph.js && node tests/smoke/hostile.js && node tests/smoke/offline.js && node tests/smoke/robust.js && node tests/smoke/stress.js && node tests/smoke/labels.js && node tests/smoke/treekeys.js && node tests/smoke/responsive.js",
     "test:sql": "node tests/smoke/sql.js",
     "test:codeview": "node tests/smoke/codeview.js",
+    "test:diff": "node tests/smoke/diff.js",
     "test:exports": "node tests/smoke/exports.js",
     "test:schema": "node tests/smoke/schema.js",
     "test:table": "node tests/smoke/table.js",
@@ -45,6 +47,8 @@
     "test:responsive": "node tests/smoke/responsive.js"
   },
   "devDependencies": {
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0",
     "playwright": "^1.64.1"
   }
 }

@@ -12,7 +12,7 @@ Open a JSON, CSV, XML, YAML or TOML file and see what is inside it: its shape, i
 - **Five views**: Tree, Table, Graph, Schema and Overview (`Ctrl+1` to `Ctrl+5`).
 - **Query and Transform**: search with a path, JSONPath, pattern, JavaScript or SQL; pick fields, sort, group and total.
 - **SQL mode**: the open file is a table named `data`, for example `SELECT region, COUNT(*) FROM data GROUP BY region`. It runs in your browser with DuckDB, only reads (it never changes your data), and shows a grid you can copy, download as CSV or open in a new tab. Column names, keywords and functions are suggested as you type (`Tab` or `Enter` picks one, `Ctrl+Space` asks for them). `Ctrl+Enter` runs, selecting text runs just that part, and earlier queries are kept.
-- **Filter, Find and Compare**: narrow the data, search inside it and diff two files.
+- **Filter, Find and Compare**: narrow the data, search inside it and compare two files or tabs. Compare matches the items of a list instead of comparing by position, so one item added at the start is one change. It shades the changed lines in two boxes that scroll together, and copies the changes as a JSON Patch.
 - **Power Platform tools**: click any value to get:
   - the Power Automate expression (null-safe at every step)
   - a Parse JSON schema
@@ -84,11 +84,14 @@ Then open a pull request into `dev`. See [Branches and deployment](#branches-and
 ## Tests
 
 ```bash
+npm run lint       # ESLint: names that do not exist, code that cannot run, unused variables
 npm test           # unit tests (Node)
 npm run test:smoke # opens every fixture in a real browser
 npm run test:all   # the full smoke suite
 npm run ui:audit   # UI audit: themes, layout, accessibility
 ```
+
+The same checks and tests run on GitHub for every pull request into `dev`, `test` and `prod` (`.github/workflows/ci.yml`).
 
 The browser tests use [Playwright](https://playwright.dev). Set `PW_CHANNEL=msedge` to use an installed Edge instead of downloading Chromium.
 
@@ -118,6 +121,7 @@ Everything is served from this repository, so the app works offline. Nothing is 
 | Library | Used for | Licence |
 |---|---|---|
 | [CodeMirror 5](https://codemirror.net/5/) (`src/libs/codemirror`) | SQL and JSON editors, coloured code, folding, suggestions | MIT (see `src/libs/codemirror/LICENSE`) |
+| [jsondiffpatch](https://github.com/benjamine/jsondiffpatch) (`src/libs/jsondiffpatch`) | Compare: what is different between two documents | MIT (see `src/libs/jsondiffpatch/NOTICE.txt`) |
 | [DuckDB-Wasm](https://duckdb.org/docs/api/wasm/overview) (`src/libs/duckdb`) | SQL engine | MIT |
 | [Lucide](https://lucide.dev) (`src/vendor/lucide.min.js`) | Icons | ISC |
 | PapaParse, js-yaml, toml, Ajv, jsonrepair, html2canvas (`src/libs`) | File formats, validation, repair, image export | MIT |

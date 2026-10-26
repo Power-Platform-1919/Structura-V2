@@ -22,6 +22,9 @@ Structra.libs = (() => {
     ajv:         { type: 'script', urls: ['src/libs/ajv.min.js'] },
     html2canvas: { type: 'script', urls: ['src/libs/html2canvas.min.js'] },
     duckdb:      { type: 'module', urls: ['src/libs/duckdb/duckdb-wasm.mjs'] },
+    // jsondiffpatch (MIT): what is different between two documents. Plain ES modules, so no build step is needed.
+    jsondiffpatch:            { type: 'module', urls: ['src/libs/jsondiffpatch/index.js'] },
+    'jsondiffpatch-jsonpatch': { type: 'module', urls: ['src/libs/jsondiffpatch/formatters/jsonpatch.js'] },
     // CodeMirror 5 (MIT) is the SQL editor: highlighting, brackets and the SQL suggestions come from it.
     // A bundle loads its files one after another, because the add-ons need the core first.
     codemirror:  { type: 'bundle', global: 'CodeMirror', files: [

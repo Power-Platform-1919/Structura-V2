@@ -205,7 +205,6 @@ Structra.jsonpath = (() => {
             stack.unshift(...children(n));
           }
         } else if (step.type === 'select') {
-          const kids = children(node);
           for (const item of step.items) {
             if (item.key !== undefined) {
               if (v && typeof v === 'object' && !Array.isArray(v) && Object.prototype.hasOwnProperty.call(v, item.key)) next.push({ path: childPath(node.path, item.key), value: v[item.key] });

@@ -66,5 +66,5 @@ test('Go, Rust, Java and Python give valid names and keep the JSON key', () => {
   const java = G.generate('java', odata);
   truthy(java.includes('@JsonProperty("@odata.context")') && java.includes('private String odataContext;'), java);
   const py = G.generate('python', odata);
-  truthy(py.includes('odata_context: str  # JSON key: "@odata.context"') && !/\n    @odata/.test(py), py);
+  truthy(py.includes('odata_context: str  # JSON key: "@odata.context"') && !/\n {4}@odata/.test(py), py);
 });

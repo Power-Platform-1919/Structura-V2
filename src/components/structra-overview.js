@@ -81,8 +81,7 @@ class StructraOverview extends StructraElement {
 
     const analysis = await Structra.engine.getAnalysis();
     if (!analysis) return;
-    const { stats: s, firstArr, profile, gaps } = analysis;
-    const fileSize = Structra.util.formatBytes(dataset ? dataset.meta.fileSize : Structra.state.fileSize);
+    const { stats: s, firstArr, profile } = analysis;
     let html = '';
 
     this._insights = Structra.insights.build({

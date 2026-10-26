@@ -114,7 +114,6 @@ class StructraStatus extends StructraElement {
 
   _updatePath() {
     const el = this.$('#statusPath');
-    const path = Structra.state.currentPath;
     if (el) el.textContent = '';        // the path is in the path bar and the Node panel: not a third time here
   }
 

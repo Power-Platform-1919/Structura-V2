@@ -1,0 +1,59 @@
+name: CI
+
+# Runs the checks and tests on every pull request into dev, test or prod, and on every push to dev and test.
+# Pushes to prod are not checked here: by then the same code has already passed on dev and test, and prod deploys the site.
+
+on:
+  pull_request:
+    branches: [dev, test, prod]
+  push:
+    branches: [dev, test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Code checks (ESLint)
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+
+  browser:
+    name: Browser tests and UI audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run test:all
+      - name: UI audit (colours in every theme, layout, accessibility)
+        run: npm run ui:audit
+      - name: Keep the audit screenshots when something fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-audit
+          path: .playwright-mcp/ui-audit
+          if-no-files-found: ignore

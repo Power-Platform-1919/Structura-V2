@@ -108,7 +108,6 @@ class StructraGraph extends StructraElement {
   }
 
   _buildTree(val, key, depth, maxDepth, path = '$') {
-    const C = StructraGraph;
     const node = { key, children: [], x: 0, y: 0, depth, sourceVal: val, path };
 
     if (val === null) {
@@ -175,7 +174,6 @@ class StructraGraph extends StructraElement {
 
   /* ---- Drawing ---- */
   _redraw() {
-    const C = StructraGraph;
     const container = this._containerEl;
     const old = container.querySelector('.graph-svg');
     if (old) old.remove();

@@ -1,8 +1,14 @@
 /* ============================================================
    STRUCTRA V2 - Diff Viewer Component
-   <structra-diff> - Two-pane JSON comparison with line-by-line
-   difference highlighting. Uses DuckDB for structural comparison
-   when both sides are tabular arrays.
+   <structra-diff> - compare two JSON documents.
+
+   What is different comes from Structra.jsonDiff (core/json-diff.js), which uses the jsondiffpatch library: it matches the
+   items of a list instead of comparing them by position, so an item added at the start is one change.
+   Three views of the same changes:
+     Side by Side  both documents as text in two read-only code boxes (core/code-view.js). Only the lines on screen are drawn,
+                   so big documents stay smooth. Changed lines are shaded, and the two boxes scroll together.
+     Inline        a list of the changes, one per line (the first MAX_ROWS)
+     Structural    the same changes grouped by where they are (the first MAX_ROWS)
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: diff:open
@@ -14,6 +20,8 @@ class StructraDiff extends StructraOverlay {
     this._left = null;
     this._right = null;
     this._diffs = [];
+    this._result = null;
+    this._mode = 'side';
 
     this.on('diff:open', (d) => this._open(d));
   }
@@ -50,9 +58,11 @@ class StructraDiff extends StructraOverlay {
           <textarea class="diff-paste-input" id="diffPasteInput" placeholder="Paste JSON to compare…"></textarea>
           <button class="btn btn-primary" data-action="load-paste">Compare</button>
         </div>
+        <div class="diff-note" id="diffNote" hidden></div>
         <div class="diff-body" id="diffBody">
-          <div class="diff-pane diff-left" id="diffLeft"></div>
-          <div class="diff-pane diff-right" id="diffRight"></div>
+          <div class="diff-pane diff-left" id="diffLeft"><div class="diff-host" id="diffLeftHost"></div></div>
+          <div class="diff-pane diff-right" id="diffRight"><div class="diff-host" id="diffRightHost"></div></div>
+          <div class="diff-list" id="diffList"></div>
         </div>` });
 
     this.addEventListener('click', (e) => {
@@ -68,7 +78,8 @@ class StructraDiff extends StructraOverlay {
       const mode = e.target.closest('[data-diff-mode]');
       if (mode) {
         this.querySelectorAll('[data-diff-mode]').forEach(b => b.classList.toggle('active', b === mode));
-        this._renderDiff(mode.dataset.diffMode);
+        this._mode = mode.dataset.diffMode;
+        this._renderDiff();
       }
     });
 
@@ -156,124 +167,154 @@ class StructraDiff extends StructraOverlay {
     this._computeAndRender();
   }
 
+  /** The most rows the Inline and Structural lists show: a longer list would only slow the page down */
+  static get MAX_ROWS() { return 2000; }
+
   async _computeAndRender() {
-    if (!this._left || !this._right) return;
-
-    // Try DuckDB structural diff for arrays
-    if (Array.isArray(this._left) && Array.isArray(this._right)) {
-      try {
-        const result = await Structra.engine.diff(this._left, this._right);
-        if (result) { this._diffs = result.changes || []; this._renderDiff('side'); this._updateStats(); return; }
-      } catch {}
+    if (this._left === undefined || this._right === undefined || this._left === null || this._right === null) return;
+    const token = (this._token = (this._token || 0) + 1);
+    this._showNote('Comparing…');
+    let result;
+    try {
+      result = await Structra.jsonDiff.compare(this._left, this._right);
+    } catch (err) {
+      Structra.log.error('Diff', 'Compare failed', err);
+      if (token === this._token) this._showNote('The two sides could not be compared: ' + err.message);
+      return;
     }
-
-    // Fallback: deep compare
-    this._diffs = this._deepDiff(this._left, this._right, '$');
-    this._renderDiff('side');
+    if (token !== this._token) return;                      // a newer compare has started
+    this._result = result;
+    this._diffs = result.changes;
+    this._showNote(result.note);
+    await this._renderDiff();
     this._updateStats();
   }
 
-  _updateStats() {
-    const added = this._diffs.filter(d => d.type === 'added').length;
-    const removed = this._diffs.filter(d => d.type === 'removed').length;
-    const changed = this._diffs.filter(d => d.type === 'changed').length;
-    this.$('#diffStats').innerHTML = added + removed + changed === 0
-      ? '<span>The two sides are identical</span>'
-      : `<span class="diff-stat-add" title="Values only on the right side">${added} added</span> <span class="diff-stat-rm" title="Values only on the left side">${removed} removed</span> <span class="diff-stat-chg" title="Values that differ">${changed} changed</span>`;
-    this.$('#diffStats').title = 'Green: only on the right. Red: only on the left. Orange: different.';
+  _showNote(text) {
+    const note = this.$('#diffNote');
+    if (!note) return;
+    note.textContent = text || '';
+    note.hidden = !text;
   }
 
-  _renderDiff(mode) {
-    const leftPane = this.$('#diffLeft');
-    const rightPane = this.$('#diffRight');
-    const body = this.$('#diffBody');
+  _updateStats() {
+    const count = (type) => this._diffs.filter((d) => d.type === type).length;
+    const added = count('added');
+    const removed = count('removed');
+    const changed = count('changed');
+    const moved = count('moved');
+    this.$('#diffStats').innerHTML = added + removed + changed + moved === 0
+      ? '<span>The two sides are identical</span>'
+      : `<span class="diff-stat-add" title="Values only on the right side">${added.toLocaleString()} added</span> <span class="diff-stat-rm" title="Values only on the left side">${removed.toLocaleString()} removed</span> <span class="diff-stat-chg" title="Values that differ">${changed.toLocaleString()} changed</span>` +
+        (moved ? ` <span class="diff-stat-chg" title="List items that are the same but sit at another place">${moved.toLocaleString()} moved</span>` : '');
+    this.$('#diffStats').title = 'Green: only on the right. Red: only on the left. Orange: different or moved.';
+  }
 
-    if (mode === 'inline') {
-      body.className = 'diff-body diff-inline-mode';
-      leftPane.innerHTML = this._renderInline();
-      rightPane.innerHTML = '';
-    } else if (mode === 'structural') {
-      body.className = 'diff-body diff-structural-mode';
-      leftPane.innerHTML = this._renderStructural();
-      rightPane.innerHTML = '';
-    } else {
-      body.className = 'diff-body';
-      const leftLines = this._lines(this._left);
-      const rightLines = this._lines(this._right);
-      leftPane.innerHTML = this._renderSidePane(leftLines, 'left');
-      rightPane.innerHTML = this._renderSidePane(rightLines, 'right');
+  async _renderDiff() {
+    const body = this.$('#diffBody');
+    if (this._mode === 'inline' || this._mode === 'structural') {
+      body.className = 'diff-body diff-list-mode';
+      this.$('#diffList').innerHTML = this._mode === 'inline' ? this._renderInline() : this._renderStructural();
+      return;
     }
+    body.className = 'diff-body';
+    await this._renderSides();
+  }
+
+  /** Both documents as text in two code boxes. Only the lines in view are drawn, however long the documents are. */
+  async _renderSides() {
+    const left = this._textOf(this._left, 'left');
+    const right = this._textOf(this._right, 'right');
+    if (!this._boxes) {
+      const make = (host, label) => Structra.codeView.create(host, { mode: 'json', readOnly: true, fold: false, label });
+      this._boxes = await Promise.all([make(this.$('#diffLeftHost'), 'Left document'), make(this.$('#diffRightHost'), 'Right document')]);
+      this._syncScroll(this._boxes[0].cm, this._boxes[1].cm);
+    }
+    const [leftBox, rightBox] = this._boxes;
+    leftBox.setValue(left.text);
+    rightBox.setValue(right.text);
+    leftBox.setLineClasses(left.classes);
+    rightBox.setLineClasses(right.classes);
+    leftBox.refresh();
+    rightBox.refresh();
+  }
+
+  /** The two boxes scroll as one, so the same part of each document stays side by side */
+  _syncScroll(a, b) {
+    let busy = false;
+    const follow = (from, to) => from.on('scroll', () => {
+      if (busy) return;
+      busy = true;
+      const info = from.getScrollInfo();
+      to.scrollTo(info.left, info.top);
+      busy = false;
+    });
+    follow(a, b);
+    follow(b, a);
   }
 
   /**
-   * The pretty-printed JSON of a value as lines, each with the data path it belongs to
-   * (the same "$.a[2].b" form the diff uses), so a changed path can be matched to its lines.
+   * The document as pretty-printed text, and the shading for each line: a line takes the colour of the change that covers
+   * it (the value itself, or something inside it). Each line is decided once, as it is written, so the cost is the size of
+   * the document and does not grow with the number of changes.
    */
-  _lines(value) {
-    const out = [];
-    const walk = (v, path, indent, key, last) => {
+  _textOf(value, side) {
+    const mark = new Map();                                     // path -> class
+    for (const d of this._diffs) {
+      if (side === 'left') {
+        if (d.type === 'removed') mark.set(d.leftPath, 'diff-rm');
+        else if (d.type === 'changed' || d.type === 'moved') mark.set(d.leftPath, 'diff-chg');
+      } else if (d.type === 'added') mark.set(d.rightPath, 'diff-add');
+      else if (d.type === 'changed' || d.type === 'moved') mark.set(d.rightPath, 'diff-chg');
+    }
+    const lines = [];
+    const classes = new Map();                                  // line number -> class
+    const put = (text, cls) => { if (cls) classes.set(lines.length, cls); lines.push(text); };
+    const walk = (v, path, indent, key, last, inherited) => {
+      const cls = mark.get(path) || inherited;
       const prefix = indent + (key === undefined ? '' : JSON.stringify(key) + ': ');
       const comma = last ? '' : ',';
       if (v !== null && typeof v === 'object') {
-        const entries = Array.isArray(v) ? v.map((x, i) => [i, x]) : Object.entries(v);
-        const open = Array.isArray(v) ? '[' : '{';
-        const close = Array.isArray(v) ? ']' : '}';
-        if (!entries.length) { out.push({ text: prefix + open + close + comma, path }); return; }
-        out.push({ text: prefix + open, path });
-        entries.forEach(([k, child], i) => {
-          const childPath = Array.isArray(v) ? `${path}[${k}]` : `${path}.${k}`;
-          walk(child, childPath, indent + '  ', Array.isArray(v) ? undefined : k, i === entries.length - 1);
-        });
-        out.push({ text: indent + close + comma, path });
+        const isList = Array.isArray(v);
+        const keys = isList ? null : Object.keys(v);
+        const size = isList ? v.length : keys.length;
+        const open = isList ? '[' : '{';
+        const close = isList ? ']' : '}';
+        if (!size) { put(prefix + open + close + comma, cls); return; }
+        put(prefix + open, cls);
+        for (let i = 0; i < size; i++) {
+          const k = isList ? i : keys[i];
+          const childPath = isList ? `${path}[${k}]` : `${path}.${k}`;
+          walk(v[k], childPath, indent + '  ', isList ? undefined : k, i === size - 1, cls);
+        }
+        put(indent + close + comma, cls);
       } else {
-        out.push({ text: prefix + JSON.stringify(v) + comma, path });
+        put(prefix + JSON.stringify(v) + comma, cls);
       }
     };
-    walk(value, '$', '', undefined, true);
-    return out;
-  }
-
-  /** Does a change at changePath cover the line printed for linePath (the value itself or anything inside it)? */
-  _covers(changePath, linePath) {
-    return linePath === changePath || linePath.startsWith(changePath + '.') || linePath.startsWith(changePath + '[');
-  }
-
-  _renderSidePane(lines, side) {
-    return '<div class="diff-lines">' + lines.map((line, i) => {
-      const cls = this._getLineDiffClass(line, side);
-      return `<div class="diff-line ${cls}"><span class="diff-ln">${i + 1}</span><span class="diff-code">${Structra.util.esc(line.text)}</span></div>`;
-    }).join('') + '</div>';
-  }
-
-  _getLineDiffClass(line, side) {
-    for (const d of this._diffs) {
-      if (!this._covers(d.path, line.path)) continue;
-      if (d.type === 'changed') return 'diff-chg';
-      if (d.type === 'removed' && side === 'left') return 'diff-rm';
-      if (d.type === 'added' && side === 'right') return 'diff-add';
-    }
-    return '';
+    walk(value, '$', '', undefined, true, '');
+    return { text: lines.join('\n'), classes };
   }
 
   _renderInline() {
+    const rows = this._diffs.slice(0, StructraDiff.MAX_ROWS);
+    const line = (cls, sign, path, value) => `<div class="diff-line ${cls}"><span class="diff-ln">${sign}</span><span class="diff-code">${Structra.util.esc(path)}: ${Structra.util.esc(this._preview(value))}</span></div>`;
     let html = '<div class="diff-lines">';
-    for (const d of this._diffs) {
-      if (d.type === 'removed') {
-        html += `<div class="diff-line diff-rm"><span class="diff-ln">-</span><span class="diff-code">${Structra.util.esc(d.path)}: ${Structra.util.esc(this._preview(d.left))}</span></div>`;
-      } else if (d.type === 'added') {
-        html += `<div class="diff-line diff-add"><span class="diff-ln">+</span><span class="diff-code">${Structra.util.esc(d.path)}: ${Structra.util.esc(this._preview(d.right))}</span></div>`;
-      } else if (d.type === 'changed') {
-        html += `<div class="diff-line diff-rm"><span class="diff-ln">-</span><span class="diff-code">${Structra.util.esc(d.path)}: ${Structra.util.esc(this._preview(d.left))}</span></div>`;
-        html += `<div class="diff-line diff-add"><span class="diff-ln">+</span><span class="diff-code">${Structra.util.esc(d.path)}: ${Structra.util.esc(this._preview(d.right))}</span></div>`;
+    for (const d of rows) {
+      if (d.type === 'removed') html += line('diff-rm', '-', d.leftPath, d.left);
+      else if (d.type === 'added') html += line('diff-add', '+', d.rightPath, d.right);
+      else {
+        html += line('diff-rm', '-', d.leftPath, d.left);
+        html += line('diff-add', '+', d.rightPath, d.right);
       }
     }
-    html += '</div>';
+    html += '</div>' + this._moreNote();
     return html;
   }
 
   _renderStructural() {
     const groups = {};
-    for (const d of this._diffs) {
+    for (const d of this._diffs.slice(0, StructraDiff.MAX_ROWS)) {
       const root = d.path.split('.').slice(0, 2).join('.');
       if (!groups[root]) groups[root] = [];
       groups[root].push(d);
@@ -287,52 +328,28 @@ class StructraDiff extends StructraOverlay {
       }
       html += '</div>';
     }
-    html += '</div>';
+    html += '</div>' + this._moreNote();
     return html;
   }
 
-  _deepDiff(a, b, path) {
-    const diffs = [];
-    if (a === b) return diffs;
-    if (a === null || b === null || typeof a !== typeof b) {
-      diffs.push({ type: 'changed', path, left: a, right: b });
-      return diffs;
-    }
-    if (typeof a !== 'object') {
-      if (a !== b) diffs.push({ type: 'changed', path, left: a, right: b });
-      return diffs;
-    }
-    if (Array.isArray(a) && Array.isArray(b)) {
-      const max = Math.max(a.length, b.length);
-      for (let i = 0; i < max; i++) {
-        if (i >= a.length) diffs.push({ type: 'added', path: `${path}[${i}]`, right: b[i] });
-        else if (i >= b.length) diffs.push({ type: 'removed', path: `${path}[${i}]`, left: a[i] });
-        else diffs.push(...this._deepDiff(a[i], b[i], `${path}[${i}]`));
-      }
-    } else {
-      const allKeys = new Set([...Object.keys(a), ...Object.keys(b)]);
-      for (const k of allKeys) {
-        const cp = `${path}.${k}`;
-        if (!(k in a)) diffs.push({ type: 'added', path: cp, right: b[k] });
-        else if (!(k in b)) diffs.push({ type: 'removed', path: cp, left: a[k] });
-        else diffs.push(...this._deepDiff(a[k], b[k], cp));
-      }
-    }
-    return diffs;
+  _moreNote() {
+    const more = this._diffs.length - StructraDiff.MAX_ROWS;
+    return more > 0 ? `<div class="diff-more">Showing the first ${StructraDiff.MAX_ROWS.toLocaleString()} of ${this._diffs.length.toLocaleString()} changes. Use Side by Side to see them all in place.</div>` : '';
   }
 
   _copyDiff() {
-    const text = this._diffs.map(d => {
-      if (d.type === 'added') return `+ ${d.path}: ${JSON.stringify(d.right)}`;
-      if (d.type === 'removed') return `- ${d.path}: ${JSON.stringify(d.left)}`;
+    const text = this._diffs.map((d) => {
+      if (d.type === 'added') return `+ ${d.rightPath}: ${JSON.stringify(d.right)}`;
+      if (d.type === 'removed') return `- ${d.leftPath}: ${JSON.stringify(d.left)}`;
+      if (d.type === 'moved') return `> ${d.leftPath} to ${d.rightPath}`;
       return `~ ${d.path}: ${JSON.stringify(d.left)} → ${JSON.stringify(d.right)}`;
     }).join('\n');
     Structra.util.copy(text, 'Diff copied');
   }
 
-  _copyPatch() {
-    if (this._left === undefined || this._right === undefined) { Structra.toast('Fill in both sides first'); return; }
-    const ops = Structra.jsonTools.patch(this._left, this._right);
+  async _copyPatch() {
+    if (!this._result) { Structra.toast('Fill in both sides first'); return; }
+    const ops = await Structra.jsonDiff.patchOps(this._result, this._left, this._right);
     if (!ops.length) { Structra.toast('No differences'); return; }
     Structra.util.copy(JSON.stringify(ops, null, 2), 'Copied ' + ops.length + ' patch operation' + (ops.length === 1 ? '' : 's'));
   }

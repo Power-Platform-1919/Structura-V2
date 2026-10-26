@@ -103,6 +103,12 @@ Colours are in `src/css/codeview.css` and use the theme's syntax colours. CodeMi
 
 Measured on this machine (Edge): a 37 MB file (49 MB of text, 2.2 million lines) opens in the Editor in about 3 seconds and a keystroke takes about 15 ms; an 88 MB file (134 MB of text, 6.9 million lines) opens in about 16 seconds, with keystrokes at about 50 ms and about 1.5 GB of memory. The Editor view opens files up to 100 MB (`MAX_EDIT_BYTES` in `structra-editor.js`).
 
+### Comparing documents
+
+`Structra.jsonDiff` (`core/json-diff.js`) says what is different between two values, as a flat list of changes (`added`, `removed`, `changed`, `moved`) with the place on each side. It uses the jsondiffpatch library (`src/libs/jsondiffpatch`, plain ES modules, MIT). Items of a list are matched by an id-like field (`id`, `_id`, `key`, `name`, ...) or by their whole content, so one record added at the start is one change.
+
+Matching list items is slow on long lists, so a list over 1,500 items makes the whole compare use a simple position-by-position mode, and the result carries a note that the Compare dialog shows. The same module makes the JSON Patch. Its unit tests include 150 random documents whose patch must rebuild the right side.
+
 ## 7. Writing style for text people see
 
 - Short, plain words. No jargon: say "list" and "value", not "array" and "payload", where you can.
@@ -114,6 +120,7 @@ Measured on this machine (Edge): a 37 MB file (49 MB of text, 2.2 million lines)
 
 ```bash
 npm install
+npm run lint             # code checks (ESLint)
 npm run serve            # http://localhost:8765/index.html
 npm test                 # unit tests
 npm run test:all         # every browser smoke test

@@ -81,22 +81,6 @@ Structra.persistence = (() => {
     });
   }
 
-  function txPromise(storeName, mode, fn) {
-    return open().then(() => {
-      return new Promise((resolve, reject) => {
-        const transaction = _db.transaction(storeName, mode);
-        const store = transaction.objectStore(storeName);
-        const result = fn(store);
-        transaction.oncomplete = () => resolve(result.result !== undefined ? result.result : undefined);
-        transaction.onerror = () => reject(transaction.error);
-        // If fn returns a request, resolve with its result
-        if (result && result.onsuccess !== undefined) {
-          result.onsuccess = () => resolve(result.result);
-        }
-      });
-    });
-  }
-
   /* --- Content Hash (SHA-256) --- */
   async function hashText(text) {
     const data = new TextEncoder().encode(text);

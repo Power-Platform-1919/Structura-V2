@@ -37,21 +37,21 @@
 /* Colours of the text. These use the syntax colours the theme already defines for the Tree.
    CodeMirror's own stylesheet loads after this one and sets light-theme colours with a rule such as
    .cm-s-default .cm-string, so without stronger rules the text would be unreadable in dark themes.
-   That is why the editor rules start with .CodeMirror. The pre.cv copies colour text made by
-   Structra.codeView.colorize(), which has no editor around it. */
-.cv .CodeMirror .cm-keyword, pre.cv .cm-keyword { color: var(--syn-key); font-weight: var(--fw-semibold); }
-.cv .CodeMirror .cm-builtin, .cv .CodeMirror .cm-atom, .cv .CodeMirror .cm-def, pre.cv .cm-builtin, pre.cv .cm-atom, pre.cv .cm-def { color: var(--syn-boolean); }
-.cv .CodeMirror .cm-string, .cv .CodeMirror .cm-string-2, pre.cv .cm-string, pre.cv .cm-string-2 { color: var(--syn-string); }
-.cv .CodeMirror .cm-number, pre.cv .cm-number { color: var(--syn-number); }
-.cv .CodeMirror .cm-null, pre.cv .cm-null { color: var(--syn-null); }
-.cv .CodeMirror .cm-comment, pre.cv .cm-comment { color: var(--text-muted); font-style: italic; }
-.cv .CodeMirror .cm-variable, .cv .CodeMirror .cm-variable-2, .cv .CodeMirror .cm-variable-3, .cv .CodeMirror .cm-type, .cv .CodeMirror .cm-property, pre.cv .cm-variable, pre.cv .cm-variable-2, pre.cv .cm-variable-3, pre.cv .cm-type, pre.cv .cm-property { color: var(--text); }
-.cv .CodeMirror .cm-operator, .cv .CodeMirror .cm-punctuation, .cv .CodeMirror .cm-bracket, .cv .CodeMirror .cm-meta, pre.cv .cm-operator, pre.cv .cm-punctuation, pre.cv .cm-bracket, pre.cv .cm-meta { color: var(--syn-bracket); }
-.cv .CodeMirror .cm-tag, pre.cv .cm-tag { color: var(--syn-key); }
-.cv .CodeMirror .cm-attribute, pre.cv .cm-attribute { color: var(--syn-boolean); }
-.cv .CodeMirror .cm-error, pre.cv .cm-error { color: var(--danger); }
+   That is why the editor rules start with .CodeMirror. The ".cv > .cm-" copies colour text made by
+   Structra.codeView.colorize(), which has no editor around it: its coloured parts sit directly inside the element. */
+.cv .CodeMirror .cm-keyword, .cv > .cm-keyword { color: var(--syn-key); font-weight: var(--fw-semibold); }
+.cv .CodeMirror .cm-builtin, .cv .CodeMirror .cm-atom, .cv .CodeMirror .cm-def, .cv > .cm-builtin, .cv > .cm-atom, .cv > .cm-def { color: var(--syn-boolean); }
+.cv .CodeMirror .cm-string, .cv .CodeMirror .cm-string-2, .cv > .cm-string, .cv > .cm-string-2 { color: var(--syn-string); }
+.cv .CodeMirror .cm-number, .cv > .cm-number { color: var(--syn-number); }
+.cv .CodeMirror .cm-null, .cv > .cm-null { color: var(--syn-null); }
+.cv .CodeMirror .cm-comment, .cv > .cm-comment { color: var(--text-muted); font-style: italic; }
+.cv .CodeMirror .cm-variable, .cv .CodeMirror .cm-variable-2, .cv .CodeMirror .cm-variable-3, .cv .CodeMirror .cm-type, .cv .CodeMirror .cm-property, .cv > .cm-variable, .cv > .cm-variable-2, .cv > .cm-variable-3, .cv > .cm-type, .cv > .cm-property { color: var(--text); }
+.cv .CodeMirror .cm-operator, .cv .CodeMirror .cm-punctuation, .cv .CodeMirror .cm-bracket, .cv .CodeMirror .cm-meta, .cv > .cm-operator, .cv > .cm-punctuation, .cv > .cm-bracket, .cv > .cm-meta { color: var(--syn-bracket); }
+.cv .CodeMirror .cm-tag, .cv > .cm-tag { color: var(--syn-key); }
+.cv .CodeMirror .cm-attribute, .cv > .cm-attribute { color: var(--syn-boolean); }
+.cv .CodeMirror .cm-error, .cv > .cm-error { color: var(--danger); }
 /* In JSON a key is a property in quotes; it uses the Tree's key colour, so the editor and the Tree read alike */
-.cv .CodeMirror .cm-property, pre.cv .cm-property { color: var(--syn-key); }
+.cv .CodeMirror .cm-property, .cv > .cm-property { color: var(--syn-key); }
 
 /* The suggestion list (CodeMirror's show-hint add-on). It is opened inside the code box, so these rules start with .cv to win over its own stylesheet. */
 .cv .CodeMirror-hints {
@@ -66,3 +66,8 @@
 .qp-sql-host .CodeMirror { min-height: 9rem; }
 .qp-sql-host .CodeMirror-scroll { min-height: 9rem; max-height: 22rem; }
 .qp-sql-host .CodeMirror-lines { padding: var(--sp-2) 0; }
+
+/* Shaded lines in the Compare panes: the same colours as the lists of changes */
+.cv .CodeMirror-linebackground.diff-add { background: var(--success-soft); }
+.cv .CodeMirror-linebackground.diff-rm { background: var(--danger-soft); }
+.cv .CodeMirror-linebackground.diff-chg { background: var(--warning-soft); }

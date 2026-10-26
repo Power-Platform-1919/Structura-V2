@@ -118,7 +118,7 @@ class StructraContext extends StructraElement {
     // Value preview
     const valEl = this.$('#ctxValue');
     if (val === null) valEl.textContent = 'null';
-    else if (typeof val === 'object') valEl.textContent = JSON.stringify(val, null, 2).slice(0, 200);
+    else if (typeof val === 'object') Structra.codeView.colorize(valEl, this._previewJson(val), 'json');
     else valEl.textContent = String(val);
 
     // Content preview (pattern detection)
@@ -132,6 +132,30 @@ class StructraContext extends StructraElement {
     else if (val && typeof val === 'object') metaHtml += `<dt>Keys</dt><dd>${Object.keys(val).length}</dd>`;
     else if (typeof val === 'string') metaHtml += `<dt>Length</dt><dd>${val.length}</dd>`;
     meta.innerHTML = metaHtml;
+  }
+
+  /**
+   * The first part of a value as JSON text, for the preview box. Only the first few items of each list and object are
+   * turned into text: the whole value can be as big as the document, and the box shows only the start of it anyway.
+   */
+  _previewJson(val) {
+    const KEEP = 12;
+    const trim = (v, depth) => {
+      if (v === null || typeof v !== 'object') return v;
+      if (depth > 3) return Array.isArray(v) ? ['…'] : { '…': '…' };
+      if (Array.isArray(v)) {
+        const part = v.slice(0, KEEP).map((x) => trim(x, depth + 1));
+        if (v.length > KEEP) part.push('… ' + (v.length - KEEP).toLocaleString() + ' more');
+        return part;
+      }
+      const out = {};
+      const keys = Object.keys(v);
+      for (const k of keys.slice(0, KEEP)) out[k] = trim(v[k], depth + 1);
+      if (keys.length > KEEP) out['…'] = (keys.length - KEEP).toLocaleString() + ' more';
+      return out;
+    };
+    const text = JSON.stringify(trim(val, 0), null, 2);
+    return text.length > 600 ? text.slice(0, 600) + '\n…' : text;
   }
 
   /* ======== CONTENT PREVIEW - pattern detection ======== */

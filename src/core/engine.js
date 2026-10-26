@@ -16,7 +16,6 @@
      Structra.engine.getStats()                 → stats summary
      Structra.engine.pathQuery(expr)            → JSONPath query
      Structra.engine.sql(query)                 → DuckDB SQL (when ready)
-     Structra.engine.diff(tabId1, tabId2)       → structural diff
 
    Events:
      'engine:ingested'    → {tabId, meta}
@@ -424,46 +423,6 @@ Structra.engine = (() => {
   }
 
   /* --- Diff (structural comparison between two datasets) --- */
-  function diff(tabId1, tabId2) {
-    const ds1 = _datasets.get(tabId1);
-    const ds2 = _datasets.get(tabId2);
-    if (!ds1 || !ds2) return null;
-
-    const result = {
-      tabs: [tabId1, tabId2],
-      shape: [ds1.meta.shape, ds2.meta.shape],
-      shapeDiff: ds1.meta.shape !== ds2.meta.shape,
-      rowCount: [ds1.meta.rowCount, ds2.meta.rowCount],
-      changes: [],
-    };
-
-    // For flat arrays: compare schemas (columns)
-    if (ds1.meta.shape === 'flat-array' && ds2.meta.shape === 'flat-array') {
-      const cols1 = new Set((ds1.indexes.columns || []).map(c => c.name));
-      const cols2 = new Set((ds2.indexes.columns || []).map(c => c.name));
-      const added = [...cols2].filter(c => !cols1.has(c));
-      const removed = [...cols1].filter(c => !cols2.has(c));
-      const common = [...cols1].filter(c => cols2.has(c));
-      result.columns = { added, removed, common };
-      result.changes.push(`Columns: +${added.length} added, -${removed.length} removed, ${common.length} shared`);
-    }
-
-    // For objects: compare top-level keys
-    if (ds1.meta.shape === 'object' && ds2.meta.shape === 'object') {
-      const keys1 = new Set(Object.keys(ds1.raw));
-      const keys2 = new Set(Object.keys(ds2.raw));
-      const added = [...keys2].filter(k => !keys1.has(k));
-      const removed = [...keys1].filter(k => !keys2.has(k));
-      const common = [...keys1].filter(k => keys2.has(k));
-      const typeDiffs = common.filter(k => typeof ds1.raw[k] !== typeof ds2.raw[k]);
-      result.keys = { added, removed, common, typeDiffs };
-      result.changes.push(`Keys: +${added.length} added, -${removed.length} removed, ${typeDiffs.length} type changes`);
-    }
-
-    Structra.log.info('Engine', `Diff tab ${tabId1} vs ${tabId2}: ${result.changes.join('; ')}`);
-    return result;
-  }
-
   /* --- DuckDB Ready Hook --- */
   function onDuckDBReady() {
     _duckReady = true;
@@ -1077,7 +1036,6 @@ Structra.engine = (() => {
     try {
       // First try struct access (DuckDB auto-creates STRUCT columns from nested JSON)
       // If the path is a direct column or nested struct, struct access is faster
-      const structPath = path.replace(/\./g, '.');
       const cols = _getDuckColumnNames(ds);
       const topKey = path.split('.')[0].split('[')[0];
 
@@ -2054,7 +2012,6 @@ Structra.engine = (() => {
     getStats,
     sql,
     pathQuery,
-    diff,
     // Query pipeline (DuckDB-first)
     findInDb,
     replaceInData,

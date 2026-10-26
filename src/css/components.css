@@ -1551,12 +1551,17 @@ structra-overview {
 .diff-source { font-size: var(--fs-xs); background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 2px 6px; color: var(--text); }
 .diff-paste-area { padding: var(--sp-2) var(--sp-3); display: flex; gap: var(--sp-2); align-items: flex-start; border-bottom: 1px solid var(--border); }
 .diff-paste-input { flex: 1; min-height: 60px; resize: vertical; font-family: var(--font-mono); font-size: var(--fs-xs); background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--sp-1); color: var(--text); }
-.diff-body { flex: 1; display: flex; overflow: hidden; }
-.diff-body.diff-inline-mode .diff-right { display: none; }
-.diff-body.diff-inline-mode .diff-left { flex: 1; }
-.diff-body.diff-structural-mode .diff-right { display: none; }
-.diff-body.diff-structural-mode .diff-left { flex: 1; }
-.diff-pane { flex: 1; overflow: auto; padding: var(--sp-1); font-family: var(--font-mono); font-size: var(--fs-xs); }
+.diff-body { flex: 1; display: flex; overflow: hidden; min-height: 300px; }
+/* Side by side: two code boxes, each filling its half. The lists (Inline, Structural) take the place of both. */
+.diff-pane { flex: 1; min-width: 0; position: relative; overflow: hidden; }
+.diff-host { position: absolute; inset: 0; }
+.diff-host .CodeMirror { position: absolute; inset: 0; height: auto; border: 0; border-radius: 0; font-size: var(--fs-xs); }
+.diff-list { display: none; flex: 1; overflow: auto; padding: var(--sp-1); font-family: var(--font-mono); font-size: var(--fs-xs); }
+.diff-body.diff-list-mode .diff-pane { display: none; }
+.diff-body.diff-list-mode .diff-list { display: block; }
+.diff-note { padding: var(--sp-2) var(--sp-3); border-bottom: 1px solid var(--border); background: var(--warning-soft); color: var(--text); font-size: var(--fs-sm); }
+.diff-note[hidden] { display: none; }
+.diff-more { padding: var(--sp-2); color: var(--text-muted); font-size: var(--fs-sm); font-family: var(--font-sans); }
 .diff-left { border-right: 1px solid var(--border); }
 .diff-lines { display: flex; flex-direction: column; }
 .diff-line { display: flex; padding: 1px 4px; min-height: 18px; }

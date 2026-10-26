@@ -3,7 +3,7 @@
  */
 Structra.codeGen = (() => {
 
-  const { typeOf, capitalize, camelCase, pascalCase, snakeCase } = Structra.util;
+  const { snakeCase } = Structra.util;
 
   /**
    * The generators below read one example of each record. To be right for every record, a list is first

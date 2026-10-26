@@ -585,7 +585,6 @@ class StructraTable extends StructraElement {
       const v = row && row[col];
       return v !== null && typeof v === 'object' && !Array.isArray(v);
     });
-    const isHidden = this._hiddenCols && this._hiddenCols.has(col);
 
     const menu = document.createElement('div');
     menu.className = 'col-ctx-menu';
@@ -835,7 +834,6 @@ class StructraTable extends StructraElement {
       freq[key] = (freq[key] || 0) + 1;
     }
     const uniqueValues = Object.entries(freq).sort((a, b) => b[1] - a[1]);
-    const currentFilter = this._colFilters[col] || '';
 
     const panel = document.createElement('div');
     panel.className = 'col-filter-panel';

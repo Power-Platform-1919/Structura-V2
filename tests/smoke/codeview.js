@@ -108,6 +108,15 @@ function serve() {
     const sg = await page.evaluate(() => { const o = document.querySelector('#sgOutput'); return { len: o ? o.textContent.length : 0, coloured: o ? o.querySelectorAll('span[class^="cm-"]').length : 0 }; });
     if (!sg.len || !sg.coloured) failures.push('the Parse JSON schema should be coloured: ' + JSON.stringify(sg));
 
+    // ---- The Node panel colours the value that is selected ----
+    await page.evaluate(() => Structra.events.emit('tree:node-selected', '$[0]'));
+    await page.waitForTimeout(500);
+    const node = await page.evaluate(() => { const v = document.querySelector('#ctxValue'); return { coloured: v.querySelectorAll('span[class^="cm-"]').length, text: v.textContent.length }; });
+    if (!node.text || !node.coloured) failures.push('the Node panel should show the selected object in colour: ' + JSON.stringify(node));
+    // The preview of a big value is cut short without turning the whole value into text first
+    const preview = await page.evaluate(() => { const c = document.querySelector('structra-context'); const big = Array.from({ length: 2000000 }, (_, i) => ({ id: i })); const t0 = performance.now(); const text = c._previewJson(big); return { ms: Math.round(performance.now() - t0), len: text.length, more: /more/.test(text) }; });
+    if (preview.ms > 200 || preview.len > 700 || !preview.more) failures.push('the preview of a huge list should be short and quick: ' + JSON.stringify(preview));
+
     // ---- The JSON editor: folding, error marking ----
     await page.evaluate(() => Structra.set('activeView', 'editor'));
     await page.waitForSelector('structra-editor .CodeMirror', { timeout: 20000 });
