@@ -21,11 +21,11 @@ class StructraFind extends StructraComponent {
     this._replaceOpen = false;
     this._mode = 'text'; // text | fuzzy | regex
 
-    this.on('state:findBarOpen', (d) => {
-      Structra.log.info('Find', 'findBar ' + (d.value ? 'opened' : 'closed'));
-      this.props.open = d.value ? 'true' : '';
-      if (d.value && Structra.state.filterBarOpen) Structra.setState('filterBarOpen', false);
-      this._toggle(d.value);
+    this.on('state:findBarOpen', (change) => {
+      Structra.log.info('Find', 'findBar ' + (change.value ? 'opened' : 'closed'));
+      this.props.open = change.value ? 'true' : '';
+      if (change.value && Structra.state.filterBarOpen) Structra.setState('filterBarOpen', false);
+      this._toggle(change.value);
     });
     this.on('overlay:close', () => this._close());
     this.on('find:toggle-replace', () => this._toggleReplace());
@@ -109,10 +109,10 @@ class StructraFind extends StructraComponent {
       if (!query) { this._clearSearch(); return; }
       this._debounceTimer = setTimeout(() => this._doFind(query), 250);
     });
-    findInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (e.shiftKey) this._goToPreviousMatch();
+    findInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (event.shiftKey) this._goToPreviousMatch();
         else {
           clearTimeout(this._debounceTimer);
           const query = findInput.value.trim();
@@ -120,41 +120,41 @@ class StructraFind extends StructraComponent {
           else this._goToNextMatch();
         }
       }
-      if (e.key === 'Escape') this._close();
+      if (event.key === 'Escape') this._close();
     });
 
     // Replace input events
-    this.queryOne('#replaceInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); this._replaceOne(); }
-      if (e.key === 'Escape') this._close();
+    this.queryOne('#replaceInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') { event.preventDefault(); this._replaceOne(); }
+      if (event.key === 'Escape') this._close();
     });
 
     // Button clicks
-    this.addEventListener('click', (e) => {
-      const modeBtn = e.target.closest('[data-mode]');
+    this.addEventListener('click', (event) => {
+      const modeBtn = event.target.closest('[data-mode]');
       if (modeBtn) {
         this._setMode(modeBtn.dataset.mode);
         const query = this._getInput();
         if (query) this._doFind(query);
         return;
       }
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const a = btn.dataset.action;
-      if (a === 'prev') this._goToPreviousMatch();
-      else if (a === 'next') this._goToNextMatch();
-      else if (a === 'close-find') Structra.setState('findBarOpen', false);
-      else if (a === 'toggleReplace') this._toggleReplace();
-      else if (a === 'replaceOne') this._replaceOne();
-      else if (a === 'replaceAll') this._replaceAll();
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.dataset.action;
+      if (action === 'prev') this._goToPreviousMatch();
+      else if (action === 'next') this._goToNextMatch();
+      else if (action === 'close-find') Structra.setState('findBarOpen', false);
+      else if (action === 'toggleReplace') this._toggleReplace();
+      else if (action === 'replaceOne') this._replaceOne();
+      else if (action === 'replaceAll') this._replaceAll();
     });
   }
 
-  _getInput() { const el = this.queryOne('#findInput'); return el ? el.value.trim() : ''; }
+  _getInput() { const element = this.queryOne('#findInput'); return element ? element.value.trim() : ''; }
 
   _setMode(mode) {
     this._mode = mode;
-    this.querySelectorAll('.fb-mode').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    this.querySelectorAll('.fb-mode').forEach(element => element.classList.toggle('active', element.dataset.mode === mode));
     const input = this.queryOne('#findInput');
     if (input) {
       const placeholders = {
@@ -221,8 +221,8 @@ class StructraFind extends StructraComponent {
       const total = (results && results.total) || 0;
       this._idx = -1;
       this.queryOne('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
-    } catch (err) {
-      Structra.log.warn('Find', 'Fuzzy search failed', err.message);
+    } catch (error) {
+      Structra.log.warn('Find', 'Fuzzy search failed', error.message);
       this.queryOne('#findCount').textContent = 'Error';
     }
   }
@@ -234,8 +234,8 @@ class StructraFind extends StructraComponent {
       const total = (results && results.total) || 0;
       this._idx = -1;
       this.queryOne('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
-    } catch (err) {
-      Structra.log.warn('Find', 'Regex search failed', err.message);
+    } catch (error) {
+      Structra.log.warn('Find', 'Regex search failed', error.message);
       this.queryOne('#findCount').textContent = 'Not a valid pattern';
     }
   }
@@ -249,8 +249,8 @@ class StructraFind extends StructraComponent {
       } else {
         this.queryOne('#findCount').textContent = '0 found';
       }
-    } catch (err) {
-      Structra.log.warn('Find', 'Find failed', err.message);
+    } catch (error) {
+      Structra.log.warn('Find', 'Find failed', error.message);
       this.queryOne('#findCount').textContent = 'Error';
     }
   }
@@ -267,8 +267,8 @@ class StructraFind extends StructraComponent {
       } else {
         this.queryOne('#findCount').textContent = result.total + ' rows';
       }
-    } catch (err) {
-      Structra.log.warn('Find', 'SQL query failed', err.message);
+    } catch (error) {
+      Structra.log.warn('Find', 'SQL query failed', error.message);
       this.queryOne('#findCount').textContent = 'SQL Error';
     }
   }
@@ -277,11 +277,11 @@ class StructraFind extends StructraComponent {
 
   /** Replace in the open document, keeping the original so Ctrl+Z can bring it back */
   _replace(findText, replaceText, all) {
-    const ds = Structra.dataEngine.getActive();
+    const dataset = Structra.dataEngine.getActive();
     const tabId = Structra.tabs.activeId;
-    const kept = ds ? Structra.undoStack.push(ds.raw, 'Before replace', tabId) : false;
+    const kept = dataset ? Structra.undoStack.push(dataset.raw, 'Before replace', tabId) : false;
     const result = Structra.dataEngine.replaceInData(findText, replaceText, all);
-    if (result.replaced > 0 && kept) Structra.undoStack.push(ds.raw, `Replace "${findText}" with "${replaceText}"`, tabId);
+    if (result.replaced > 0 && kept) Structra.undoStack.push(dataset.raw, `Replace "${findText}" with "${replaceText}"`, tabId);
     return { ...result, undoable: kept };
   }
 
@@ -343,11 +343,11 @@ class StructraFind extends StructraComponent {
   }
 
   _updateCount() {
-    const el = this.queryOne('#findCount');
-    if (!el) return;
+    const element = this.queryOne('#findCount');
+    if (!element) return;
     const query = Structra.dataEngine.getQuery();
     if (query && query.total > 0) {
-      el.textContent = `${this._idx + 1}/${query.total}`;
+      element.textContent = `${this._idx + 1}/${query.total}`;
     }
   }
 

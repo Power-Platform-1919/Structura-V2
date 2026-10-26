@@ -30,8 +30,8 @@ class StructraMinimap extends StructraComponent {
     this._ctx = this._canvas.getContext('2d');
 
     this.queryOne('.minimap-close').addEventListener('click', () => this._toggle());
-    this._canvas.addEventListener('click', (e) => this._onCanvasClick(e));
-    this._canvas.addEventListener('mousedown', (e) => this._startDrag(e));
+    this._canvas.addEventListener('click', (event) => this._onCanvasClick(event));
+    this._canvas.addEventListener('mousedown', (event) => this._startDrag(event));
   }
 
   _toggle() {
@@ -53,22 +53,22 @@ class StructraMinimap extends StructraComponent {
 
     const canvas = this._canvas;
     const ctx = this._ctx;
-    const W = canvas.width;
-    const H = canvas.height;
+    const width = canvas.width;
+    const height = canvas.height;
 
-    ctx.clearRect(0, 0, W, H);
+    ctx.clearRect(0, 0, width, height);
 
     // Generate structure map
     const lines = this._structureLines(data, 0);
-    const lineH = Math.max(1, H / Math.max(lines.length, 1));
+    const lineH = Math.max(1, height / Math.max(lines.length, 1));
 
     for (let i = 0; i < lines.length; i++) {
-      const ln = lines[i];
+      const line = lines[i];
       const y = i * lineH;
-      const indent = Math.min(ln.depth * 8, W - 10);
-      const barW = Math.max(4, (W - indent) * ln.density);
+      const indent = Math.min(line.depth * 8, width - 10);
+      const barW = Math.max(4, (width - indent) * line.density);
 
-      ctx.fillStyle = this._colorForType(ln.type);
+      ctx.fillStyle = this._colorForType(line.type);
       ctx.globalAlpha = 0.7;
       ctx.fillRect(indent, y, barW, Math.max(lineH, 1));
     }
@@ -80,22 +80,22 @@ class StructraMinimap extends StructraComponent {
 
   _structureLines(data, depth) {
     const lines = [];
-    const walk = (val, d) => {
-      if (d > 30) return; // Safety
-      if (val === null) { lines.push({ depth: d, type: 'null', density: 0.2 }); return; }
-      if (typeof val !== 'object') {
-        const len = typeof val === 'string' ? Math.min(val.length / 100, 1) : 0.3;
-        lines.push({ depth: d, type: typeof val, density: len });
+    const walk = (value, depth) => {
+      if (depth > 30) return; // Safety
+      if (value === null) { lines.push({ depth: depth, type: 'null', density: 0.2 }); return; }
+      if (typeof value !== 'object') {
+        const len = typeof value === 'string' ? Math.min(value.length / 100, 1) : 0.3;
+        lines.push({ depth: depth, type: typeof value, density: len });
         return;
       }
-      if (Array.isArray(val)) {
-        lines.push({ depth: d, type: 'array', density: Math.min(val.length / 50, 1) });
+      if (Array.isArray(value)) {
+        lines.push({ depth: depth, type: 'array', density: Math.min(value.length / 50, 1) });
         // Show first 200 items
-        const limit = Math.min(val.length, 200);
-        for (let i = 0; i < limit; i++) walk(val[i], d + 1);
+        const limit = Math.min(value.length, 200);
+        for (let i = 0; i < limit; i++) walk(value[i], depth + 1);
       } else {
-        lines.push({ depth: d, type: 'object', density: Math.min(Object.keys(val).length / 20, 1) });
-        for (const k of Object.keys(val)) walk(val[k], d + 1);
+        lines.push({ depth: depth, type: 'object', density: Math.min(Object.keys(value).length / 20, 1) });
+        for (const key of Object.keys(value)) walk(value[key], depth + 1);
       }
     };
     walk(data, depth);
@@ -115,29 +115,29 @@ class StructraMinimap extends StructraComponent {
   _updateViewport() {
     const main = document.querySelector('.json-view') || document.querySelector('.table-scroll');
     if (!main) return;
-    const vp = this.queryOne('#minimapViewport');
+    const viewport = this.queryOne('#minimapViewport');
     const ratio = this._canvas.height / Math.max(main.scrollHeight, 1);
     const top = main.scrollTop * ratio;
     const height = Math.max(20, main.clientHeight * ratio);
-    vp.style.top = `${top}px`;
-    vp.style.height = `${height}px`;
+    viewport.style.top = `${top}px`;
+    viewport.style.height = `${height}px`;
   }
 
-  _onCanvasClick(e) {
+  _onCanvasClick(event) {
     const rect = this._canvas.getBoundingClientRect();
-    const ratio = e.clientY - rect.top;
-    const pct = ratio / rect.height;
+    const ratio = event.clientY - rect.top;
+    const percent = ratio / rect.height;
     const main = document.querySelector('.json-view') || document.querySelector('.table-scroll');
-    if (main) main.scrollTop = pct * main.scrollHeight;
+    if (main) main.scrollTop = percent * main.scrollHeight;
   }
 
-  _startDrag(e) {
-    e.preventDefault();
-    const onMove = (ev) => {
+  _startDrag(event) {
+    event.preventDefault();
+    const onMove = (event) => {
       const rect = this._canvas.getBoundingClientRect();
-      const pct = (ev.clientY - rect.top) / rect.height;
+      const percent = (event.clientY - rect.top) / rect.height;
       const main = document.querySelector('.json-view') || document.querySelector('.table-scroll');
-      if (main) main.scrollTop = pct * main.scrollHeight;
+      if (main) main.scrollTop = percent * main.scrollHeight;
       this._updateViewport();
     };
     const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };

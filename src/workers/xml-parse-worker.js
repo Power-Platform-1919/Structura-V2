@@ -11,51 +11,51 @@
       if (node.nodeType === 3) return node.textContent.trim() || null; // text node
       if (node.nodeType !== 1) return null; // skip comments, etc.
 
-      var obj = {};
+      var object = {};
       // Attributes
       if (node.attributes && node.attributes.length > 0) {
-        obj['@attributes'] = {};
+        object['@attributes'] = {};
         for (var i = 0; i < node.attributes.length; i++) {
-          obj['@attributes'][node.attributes[i].name] = node.attributes[i].value;
+          object['@attributes'][node.attributes[i].name] = node.attributes[i].value;
         }
       }
       // Children
       var children = node.childNodes;
       var hasElements = false;
-      for (var c = 0; c < children.length; c++) {
-        var child = children[c];
+      for (var index = 0; index < children.length; index++) {
+        var child = children[index];
         if (child.nodeType === 1) {
           hasElements = true;
           var tag = child.nodeName;
-          var val = domToObj(child);
-          if (obj[tag] !== undefined) {
+          var value = domToObj(child);
+          if (object[tag] !== undefined) {
             // Multiple same-name siblings → array
-            if (!Array.isArray(obj[tag])) obj[tag] = [obj[tag]];
-            obj[tag].push(val);
+            if (!Array.isArray(object[tag])) object[tag] = [object[tag]];
+            object[tag].push(value);
           } else {
-            obj[tag] = val;
+            object[tag] = value;
           }
         }
       }
       // If no element children, use text content
       if (!hasElements) {
         var text = node.textContent.trim();
-        if (obj['@attributes']) {
-          if (text) obj['#text'] = text;
+        if (object['@attributes']) {
+          if (text) object['#text'] = text;
         } else {
           return text || null;
         }
       }
-      return obj;
+      return object;
     }
 
-    self.addEventListener('message', function(e) {
-      var id = e.data.id, text = e.data.text;
+    self.addEventListener('message', function(event) {
+      var id = event.data.id, text = event.data.text;
       if (id == null) { self.postMessage({ id: null, success: false, error: 'Missing request id' }); return; }
       if (!text || typeof text !== 'string') { self.postMessage({ id: id, success: false, error: 'No XML input' }); return; }
 
       try {
-        var t0 = performance.now();
+        var startTime = performance.now();
         var parser = new DOMParser();
         var doc = parser.parseFromString(text, 'application/xml');
         var parseError = doc.querySelector('parsererror');
@@ -67,11 +67,11 @@
         // Wrap in root element name
         var result = {};
         result[doc.documentElement.nodeName] = data;
-        var elapsed = (performance.now() - t0).toFixed(1);
+        var elapsed = (performance.now() - startTime).toFixed(1);
         console.log('[Worker:XML] #' + id + ' Parse OK in ' + elapsed + 'ms');
         self.postMessage({ id: id, success: true, data: result });
-      } catch (err) {
-        self.postMessage({ id: id, success: false, error: 'XML parse failed: ' + (err.message || err) });
+      } catch (error) {
+        self.postMessage({ id: id, success: false, error: 'XML parse failed: ' + (error.message || error) });
       }
     });
   };

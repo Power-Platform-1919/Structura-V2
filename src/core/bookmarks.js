@@ -31,8 +31,8 @@ Structra.bookmarks = (() => {
     try {
       const parsed = JSON.parse(localStorage.getItem(KEY) || '[]');
       return Array.isArray(parsed) ? parsed : [];
-    } catch (err) {
-      Structra.log.warn('Bookmarks', 'Stored bookmarks unreadable, starting empty', err.message);
+    } catch (error) {
+      Structra.log.warn('Bookmarks', 'Stored bookmarks unreadable, starting empty', error.message);
       return [];
     }
   }
@@ -40,18 +40,18 @@ Structra.bookmarks = (() => {
   function save(all) {
     try {
       localStorage.setItem(KEY, JSON.stringify(all));
-    } catch (err) {
-      Structra.log.warn('Bookmarks', 'Could not save bookmarks', err.message);
+    } catch (error) {
+      Structra.log.warn('Bookmarks', 'Could not save bookmarks', error.message);
     }
     Structra.events.emit('bookmarks:changed');
   }
 
   const file = () => Structra.state.fileName || '';
-  const mine = (b) => (b.fileName || '') === file();
+  const mine = (bookmark) => (bookmark.fileName || '') === file();
 
   const list = () => load().filter(mine);
-  const paths = () => list().map((b) => b.path);
-  const has = (path) => list().some((b) => b.path === path);
+  const paths = () => list().map((bookmark) => bookmark.path);
+  const has = (path) => list().some((bookmark) => bookmark.path === path);
 
   function add(path, preview) {
     if (!path || path === '$') return false;
@@ -63,7 +63,7 @@ Structra.bookmarks = (() => {
   }
 
   function remove(path) {
-    save(load().filter((b) => !(mine(b) && b.path === path)));
+    save(load().filter((bookmark) => !(mine(bookmark) && bookmark.path === path)));
   }
 
   function toggle(path) {
@@ -73,13 +73,13 @@ Structra.bookmarks = (() => {
   }
 
   function clear() {
-    save(load().filter((b) => !mine(b)));
+    save(load().filter((bookmark) => !mine(bookmark)));
   }
 
   // The tree's context menu announces bookmarks through this event
-  Structra.events.on('bookmark:add', (d) => {
-    if (!d || !d.path) return;
-    if (add(d.path, d.preview)) Structra.toast('Bookmarked ' + d.path);
+  Structra.events.on('bookmark:add', (payload) => {
+    if (!payload || !payload.path) return;
+    if (add(payload.path, payload.preview)) Structra.toast('Bookmarked ' + payload.path);
     else Structra.toast('Already bookmarked');
   });
 

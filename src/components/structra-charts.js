@@ -18,7 +18,7 @@ class StructraCharts extends StructraDialog {
   init() {
     super.init();
     this._sources = [];       // [{ path, label, rows }]
-    this.on('charts:open', (d) => this._open(d || {}));
+    this.on('charts:open', (pathData) => this._open(pathData || {}));
   }
 
   render() {
@@ -30,9 +30,9 @@ class StructraCharts extends StructraDialog {
         <label class="ch-field">Column <select id="chColumn"></select></label>`,
       body: '<div class="ch-body" id="chBody"></div>',
     });
-    this.root.addEventListener('change', (e) => {
-      if (e.target.id === 'chSource') { this._fillColumns(); this._draw(); }
-      else if (e.target.id === 'chColumn') this._draw();
+    this.root.addEventListener('change', (event) => {
+      if (event.target.id === 'chSource') { this._fillColumns(); this._draw(); }
+      else if (event.target.id === 'chColumn') this._draw();
     });
   }
 
@@ -43,18 +43,18 @@ class StructraCharts extends StructraDialog {
     if (!data) { Structra.toast('Open a file first'); return; }
 
     this._sources = Structra.dataEngine.findAllArrays(data, '')
-      .filter((a) => Array.isArray(a.data) && a.data.length > 0)
-      .map((a) => ({ path: a.path, label: `${a.path === '(root)' || a.path === '$' ? 'The whole list' : a.path} (${a.data.length.toLocaleString()} ${a.data.length === 1 ? 'item' : 'items'})`, rows: a.data }));
+      .filter((list) => Array.isArray(list.data) && list.data.length > 0)
+      .map((list) => ({ path: list.path, label: `${list.path === '(root)' || list.path === '$' ? 'The whole list' : list.path} (${list.data.length.toLocaleString()} ${list.data.length === 1 ? 'item' : 'items'})`, rows: list.data }));
     if (!this._sources.length) { Structra.toast('No arrays to chart in this document'); return; }
 
     const esc = Structra.sharedHelpers.escapeHtml;
     this.queryOne('#chSource').innerHTML = this._sources
-      .map((s, i) => `<option value="${i}">${esc(s.label)}</option>`).join('');
+      .map((source, i) => `<option value="${i}">${esc(source.label)}</option>`).join('');
 
     // Prefer the requested array, then the first array of objects
-    let idx = this._sources.findIndex((s) => s.path === (path || '(root)') || s.path === path);
-    if (idx < 0) idx = this._sources.findIndex((s) => this._isObjectRows(s.rows));
-    this.queryOne('#chSource').value = String(Math.max(0, idx));
+    let index = this._sources.findIndex((source) => source.path === (path || '(root)') || source.path === path);
+    if (index < 0) index = this._sources.findIndex((source) => this._isObjectRows(source.rows));
+    this.queryOne('#chSource').value = String(Math.max(0, index));
 
     this._fillColumns(column);
     this.open();
@@ -62,56 +62,56 @@ class StructraCharts extends StructraDialog {
   }
 
   _isObjectRows(rows) {
-    const first = rows.find((r) => r !== null && r !== undefined);
+    const first = rows.find((row) => row !== null && row !== undefined);
     return !!first && typeof first === 'object' && !Array.isArray(first);
   }
 
   _fillColumns(preferred) {
-    const src = this._sources[parseInt(this.queryOne('#chSource').value, 10)];
-    const sel = this.queryOne('#chColumn');
+    const source = this._sources[parseInt(this.queryOne('#chSource').value, 10)];
+    const selection = this.queryOne('#chColumn');
     const esc = Structra.sharedHelpers.escapeHtml;
-    let cols;
-    if (this._isObjectRows(src.rows)) {
+    let columns;
+    if (this._isObjectRows(source.rows)) {
       const seen = new Map();
-      for (const r of src.rows.slice(0, 300)) {
-        if (!r || typeof r !== 'object') continue;
-        for (const [k, v] of Object.entries(r)) {
-          if (v !== null && typeof v === 'object') continue;      // nested values are not chartable here
-          seen.set(k, (seen.get(k) || 0) + 1);
+      for (const row of source.rows.slice(0, 300)) {
+        if (!row || typeof row !== 'object') continue;
+        for (const [label, value] of Object.entries(row)) {
+          if (value !== null && typeof value === 'object') continue;      // nested values are not chartable here
+          seen.set(label, (seen.get(label) || 0) + 1);
         }
       }
-      cols = [...seen.keys()];
+      columns = [...seen.keys()];
     } else {
-      cols = [StructraCharts.VALUE_COLUMN];
+      columns = [StructraCharts.VALUE_COLUMN];
     }
-    sel.innerHTML = cols.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-    if (preferred && cols.includes(preferred)) sel.value = preferred;
+    selection.innerHTML = columns.map((count) => `<option value="${esc(count)}">${esc(count)}</option>`).join('');
+    if (preferred && columns.includes(preferred)) selection.value = preferred;
   }
 
   /* ---------- drawing ---------- */
 
-  _values(src, col) {
-    if (col === StructraCharts.VALUE_COLUMN) return src.rows;
-    const out = new Array(src.rows.length);
-    for (let i = 0; i < src.rows.length; i++) {
-      const r = src.rows[i];
-      out[i] = r && typeof r === 'object' ? r[col] : undefined;
+  _values(source, column) {
+    if (column === StructraCharts.VALUE_COLUMN) return source.rows;
+    const out = new Array(source.rows.length);
+    for (let i = 0; i < source.rows.length; i++) {
+      const row = source.rows[i];
+      out[i] = row && typeof row === 'object' ? row[column] : undefined;
     }
     return out;
   }
 
   _draw() {
     const body = this.queryOne('#chBody');
-    const src = this._sources[parseInt(this.queryOne('#chSource').value, 10)];
-    const col = this.queryOne('#chColumn').value;
-    if (!src || !col) { body.innerHTML = '<p class="ch-note">Pick a list and a column.</p>'; return; }
+    const source = this._sources[parseInt(this.queryOne('#chSource').value, 10)];
+    const column = this.queryOne('#chColumn').value;
+    if (!source || !column) { body.innerHTML = '<p class="ch-note">Pick a list and a column.</p>'; return; }
 
-    const all = this._values(src, col);
-    const present = all.filter((v) => v !== null && v !== undefined);
+    const all = this._values(source, column);
+    const present = all.filter((value) => value !== null && value !== undefined);
     const nulls = all.length - present.length;
     if (!present.length) { body.innerHTML = '<p class="ch-note">This column has no values.</p>'; return; }
 
-    const numeric = present.every((v) => typeof v === 'number' && Number.isFinite(v));
+    const numeric = present.every((value) => typeof value === 'number' && Number.isFinite(value));
     body.innerHTML = numeric ? this._numeric(present, nulls) : this._categorical(present, nulls);
   }
 
@@ -119,22 +119,22 @@ class StructraCharts extends StructraDialog {
     return `<div class="ch-stat"><span class="ch-stat-v">${Structra.sharedHelpers.escapeHtml(value)}</span><span class="ch-stat-l">${Structra.sharedHelpers.escapeHtml(label)}</span></div>`;
   }
 
-  _formatNumber(n) {
-    if (!Number.isFinite(n)) return String(n);
-    return Math.abs(n) >= 1000 || Number.isInteger(n) ? n.toLocaleString() : n.toPrecision(4).replace(/\.?0+$/, '');
+  _formatNumber(number) {
+    if (!Number.isFinite(number)) return String(number);
+    return Math.abs(number) >= 1000 || Number.isInteger(number) ? number.toLocaleString() : number.toPrecision(4).replace(/\.?0+$/, '');
   }
 
   _numeric(values, nulls) {
-    const n = values.length;
+    const count = values.length;
     let min = values[0], max = values[0], sum = 0;
-    for (const v of values) { if (v < min) min = v; if (v > max) max = v; sum += v; }
-    const sorted = [...values].sort((a, b) => a - b);
-    const median = n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    for (const value of values) { if (value < min) min = value; if (value > max) max = value; sum += value; }
+    const sorted = [...values].sort((list, second) => list - second);
+    const median = count % 2 ? sorted[(count - 1) / 2] : (sorted[count / 2 - 1] + sorted[count / 2]) / 2;
 
     const stats = [
-      this._statLine('values', n.toLocaleString()), this._statLine('empty', nulls.toLocaleString()),
+      this._statLine('values', count.toLocaleString()), this._statLine('empty', nulls.toLocaleString()),
       this._statLine('min', this._formatNumber(min)), this._statLine('median', this._formatNumber(median)),
-      this._statLine('mean', this._formatNumber(sum / n)), this._statLine('max', this._formatNumber(max)),
+      this._statLine('mean', this._formatNumber(sum / count)), this._statLine('max', this._formatNumber(max)),
     ].join('');
 
     return `<div class="ch-stats">${stats}</div>
@@ -143,57 +143,57 @@ class StructraCharts extends StructraDialog {
   }
 
   _histogram(values, min, max) {
-    const W = 640, H = 170, padL = 8, padB = 22, padT = 8;
+    const width = 640, height = 170, padL = 8, padB = 22, padT = 8;
     const bins = max === min ? 1 : StructraCharts.BINS;
     const counts = new Array(bins).fill(0);
     const span = (max - min) || 1;
-    for (const v of values) counts[Math.min(bins - 1, Math.floor(((v - min) / span) * bins))]++;
+    for (const value of values) counts[Math.min(bins - 1, Math.floor(((value - min) / span) * bins))]++;
     const peak = Math.max(...counts);
-    const bw = (W - padL * 2) / bins;
-    const bars = counts.map((c, i) => {
-      const h = peak ? (c / peak) * (H - padB - padT) : 0;
-      const lo = min + (span * i) / bins, hi = min + (span * (i + 1)) / bins;
-      return `<rect class="ch-bar" x="${(padL + i * bw + 1).toFixed(1)}" y="${(H - padB - h).toFixed(1)}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${h.toFixed(1)}"><title>${this._formatNumber(lo)} to ${this._formatNumber(hi)}: ${c.toLocaleString()}</title></rect>`;
+    const barWidth = (width - padL * 2) / bins;
+    const bars = counts.map((count, i) => {
+      const barHeight = peak ? (count / peak) * (height - padB - padT) : 0;
+      const low = min + (span * i) / bins, high = min + (span * (i + 1)) / bins;
+      return `<rect class="ch-bar" x="${(padL + i * barWidth + 1).toFixed(1)}" y="${(height - padB - barHeight).toFixed(1)}" width="${Math.max(1, barWidth - 2).toFixed(1)}" height="${barHeight.toFixed(1)}"><title>${this._formatNumber(low)} to ${this._formatNumber(high)}: ${count.toLocaleString()}</title></rect>`;
     }).join('');
-    return `<svg class="ch-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Histogram from ${this._formatNumber(min)} to ${this._formatNumber(max)}, tallest bar ${peak.toLocaleString()} values">
+    return `<svg class="ch-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Histogram from ${this._formatNumber(min)} to ${this._formatNumber(max)}, tallest bar ${peak.toLocaleString()} values">
       ${bars}
-      <line class="ch-axisline" x1="${padL}" y1="${H - padB}" x2="${W - padL}" y2="${H - padB}"/>
-      <text class="ch-axis" x="${padL}" y="${H - 6}">${this._formatNumber(min)}</text>
-      <text class="ch-axis" x="${W - padL}" y="${H - 6}" text-anchor="end">${this._formatNumber(max)}</text>
+      <line class="ch-axisline" x1="${padL}" y1="${height - padB}" x2="${width - padL}" y2="${height - padB}"/>
+      <text class="ch-axis" x="${padL}" y="${height - 6}">${this._formatNumber(min)}</text>
+      <text class="ch-axis" x="${width - padL}" y="${height - 6}" text-anchor="end">${this._formatNumber(max)}</text>
     </svg>
     <p class="ch-note">Each bar counts the values in one range, from ${this._formatNumber(min)} to ${this._formatNumber(max)}. The tallest bar holds ${peak.toLocaleString()} ${peak === 1 ? 'value' : 'values'}.</p>`;
   }
 
   _trend(values, min, max) {
-    const W = 640, H = 120, padL = 46, padR = 8, padT = 8, padB = 20;
+    const width = 640, height = 120, padL = 46, padR = 8, padT = 8, padB = 20;
     const target = StructraCharts.TREND_POINTS;
     const stride = Math.max(1, Math.ceil(values.length / target));
     const pts = [];
     for (let i = 0; i < values.length; i += stride) pts.push(values[i]);
     const span = (max - min) || 1;
-    const d = pts.map((v, i) => {
-      const x = pts.length === 1 ? (padL + W - padR) / 2 : padL + (i / (pts.length - 1)) * (W - padL - padR);
-      const y = H - padB - ((v - min) / span) * (H - padT - padB);
+    const pathData = pts.map((point, i) => {
+      const x = pts.length === 1 ? (padL + width - padR) / 2 : padL + (i / (pts.length - 1)) * (width - padL - padR);
+      const y = height - padB - ((point - min) / span) * (height - padT - padB);
       return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
     }).join(' ');
-    return `<svg class="ch-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Values in file order, ${values.length.toLocaleString()} values${stride > 1 ? ', every ' + stride + 'th shown' : ''}">
-      <line class="ch-axisline" x1="${padL}" y1="${padT}" x2="${padL}" y2="${H - padB}"/>
-      <line class="ch-axisline" x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}"/>
-      <path class="ch-line" d="${d}"/>
+    return `<svg class="ch-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Values in file order, ${values.length.toLocaleString()} values${stride > 1 ? ', every ' + stride + 'th shown' : ''}">
+      <line class="ch-axisline" x1="${padL}" y1="${padT}" x2="${padL}" y2="${height - padB}"/>
+      <line class="ch-axisline" x1="${padL}" y1="${height - padB}" x2="${width - padR}" y2="${height - padB}"/>
+      <path class="ch-line" d="${pathData}"/>
       <text class="ch-axis" x="${padL - 6}" y="${padT + 8}" text-anchor="end">${this._formatNumber(max)}</text>
-      <text class="ch-axis" x="${padL - 6}" y="${H - padB}" text-anchor="end">${this._formatNumber(min)}</text>
-      <text class="ch-axis" x="${padL}" y="${H - 5}">first row</text>
-      <text class="ch-axis" x="${W - padR}" y="${H - 5}" text-anchor="end">row ${values.length.toLocaleString()}</text>
+      <text class="ch-axis" x="${padL - 6}" y="${height - padB}" text-anchor="end">${this._formatNumber(min)}</text>
+      <text class="ch-axis" x="${padL}" y="${height - 5}">first row</text>
+      <text class="ch-axis" x="${width - padR}" y="${height - 5}" text-anchor="end">row ${values.length.toLocaleString()}</text>
     </svg>${stride > 1 ? `<p class="ch-note">Showing every ${stride}th value.</p>` : ''}`;
   }
 
   _categorical(values, nulls) {
-    const freq = new Map();
-    for (const v of values) {
-      const k = typeof v === 'string' ? v : String(v);
-      freq.set(k, (freq.get(k) || 0) + 1);
+    const frequency = new Map();
+    for (const value of values) {
+      const text = typeof value === 'string' ? value : String(value);
+      frequency.set(text, (frequency.get(text) || 0) + 1);
     }
-    const ranked = [...freq.entries()].sort((a, b) => b[1] - a[1]);
+    const ranked = [...frequency.entries()].sort((list, second) => second[1] - list[1]);
     const top = ranked.slice(0, StructraCharts.MAX_BARS);
     const peak = top[0][1];
     const esc = Structra.sharedHelpers.escapeHtml;
@@ -203,11 +203,11 @@ class StructraCharts extends StructraDialog {
       this._statLine('distinct', ranked.length.toLocaleString()),
     ].join('');
 
-    const rows = top.map(([k, c]) => `
-      <div class="ch-hrow" title="${esc(k)}: ${c.toLocaleString()}">
-        <span class="ch-hlabel">${esc(k.length > 40 ? k.slice(0, 39) + '…' : k)}</span>
-        <span class="ch-htrack"><span class="ch-hbar" style="width:${((c / peak) * 100).toFixed(1)}%"></span></span>
-        <span class="ch-hcount">${c.toLocaleString()}</span>
+    const rows = top.map(([label, count]) => `
+      <div class="ch-hrow" title="${esc(label)}: ${count.toLocaleString()}">
+        <span class="ch-hlabel">${esc(label.length > 40 ? label.slice(0, 39) + '…' : label)}</span>
+        <span class="ch-htrack"><span class="ch-hbar" style="width:${((count / peak) * 100).toFixed(1)}%"></span></span>
+        <span class="ch-hcount">${count.toLocaleString()}</span>
       </div>`).join('');
 
     return `<div class="ch-stats">${stats}</div>

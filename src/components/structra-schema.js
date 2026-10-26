@@ -33,11 +33,11 @@ class StructraSchema extends StructraComponent {
     this.innerHTML = '<div class="schema-bar"><span class="schema-hint">Every field the file has. Click one to see its expressions.</span><button class="btn btn-sm" type="button" data-schema-copy title="Copy this as a JSON Schema, ready for the Parse JSON action">Copy schema</button></div><div class="schema-container" id="schemaContainer"></div>';
     this.renderSchema();
     // A field is a place in the document: click it to see its expressions, like a node in the Tree
-    this.addEventListener('click', (e) => {
-      if (e.target.closest('[data-schema-copy]')) { if (this._schema) Structra.sharedHelpers.copyToClipboard(JSON.stringify(this._schema, null, 2), 'Schema copied'); return; }
-      const line = e.target.closest('.s-line');
+    this.addEventListener('click', (event) => {
+      if (event.target.closest('[data-schema-copy]')) { if (this._schema) Structra.sharedHelpers.copyToClipboard(JSON.stringify(this._schema, null, 2), 'Schema copied'); return; }
+      const line = event.target.closest('.s-line');
       if (!line || !line.dataset.path || line.dataset.path === '$') return;
-      this.querySelectorAll('.s-line.selected').forEach((l) => l.classList.remove('selected'));
+      this.querySelectorAll('.s-line.selected').forEach((line) => line.classList.remove('selected'));
       line.classList.add('selected');
       Structra.setState('currentPath', line.dataset.path);
     });
@@ -45,7 +45,7 @@ class StructraSchema extends StructraComponent {
 
   renderSchema() {
     this._stale = false;
-    const t0 = performance.now();
+    const startTime = performance.now();
     const container = this.queryOne('#schemaContainer');
 
     const dataset = Structra.dataEngine.getActive();
@@ -64,27 +64,27 @@ class StructraSchema extends StructraComponent {
 
     const MAX = 3000;
     const shown = lines.slice(0, MAX);
-    container.innerHTML = shown.map((l) => {
-      const nullable = l.types.includes('null');
-      const types = l.types.map((t) => `<span class="s-type${t === 'null' ? ' s-null' : ''}">${Structra.sharedHelpers.escapeHtml(t)}</span>`).join('<span class="s-or"> | </span>');
-      return `<div class="s-line" data-path="${Structra.sharedHelpers.escapeHtml(l.path)}" style="padding-left:${l.depth * 16}px">` +
-        `<span class="s-key">${Structra.sharedHelpers.escapeHtml(l.key)}</span>: ${types}` +
-        (l.required ? ' <span class="s-req" title="This field is in every record">required</span>' : '') +
+    container.innerHTML = shown.map((line) => {
+      const nullable = line.types.includes('null');
+      const types = line.types.map((type) => `<span class="s-type${type === 'null' ? ' s-null' : ''}">${Structra.sharedHelpers.escapeHtml(type)}</span>`).join('<span class="s-or"> | </span>');
+      return `<div class="s-line" data-path="${Structra.sharedHelpers.escapeHtml(line.path)}" style="padding-left:${line.depth * 16}px">` +
+        `<span class="s-key">${Structra.sharedHelpers.escapeHtml(line.key)}</span>: ${types}` +
+        (line.required ? ' <span class="s-req" title="This field is in every record">required</span>' : '') +
         (nullable ? '' : '') +
         `</div>`;
     }).join('') + (lines.length > MAX ? `<div class="s-more">${(lines.length - MAX).toLocaleString()} more fields are not shown. Copy the schema from the Schema Gen tab to get all of it.</div>` : '');
-    Structra.log.perf('Schema', 'render', performance.now() - t0);
+    Structra.log.perf('Schema', 'render', performance.now() - startTime);
   }
 
   /** What a schema node is called: 'string', 'string | null', 'object | array', or 'any' when only empty values were seen */
   _typesOf(node) {
     const out = [];
-    const add = (t) => { if (t && !out.includes(t)) out.push(t); };
-    const read = (n) => {
-      if (!n) return;
-      if (Array.isArray(n.type)) n.type.forEach(add);
-      else if (n.type) add(n.type);
-      if (Array.isArray(n.anyOf)) n.anyOf.forEach(read);
+    const add = (type) => { if (type && !out.includes(type)) out.push(type); };
+    const read = (node) => {
+      if (!node) return;
+      if (Array.isArray(node.type)) node.type.forEach(add);
+      else if (node.type) add(node.type);
+      if (Array.isArray(node.anyOf)) node.anyOf.forEach(read);
     };
     read(node);
     return out.length ? out : ['empty'];
@@ -97,20 +97,20 @@ class StructraSchema extends StructraComponent {
     // A node can be an object in some records and a list in others: show the children of both
     const variants = [node, ...(Array.isArray(node && node.anyOf) ? node.anyOf : [])];
     const seenKeys = new Set();
-    for (const v of variants) {
-      if (v && v.properties) {
-        const req = new Set(v.required || []);
-        for (const [k, child] of Object.entries(v.properties)) {
-          if (seenKeys.has(k)) continue;
-          seenKeys.add(k);
-          this._collect(child, k, depth + 1, req.has(k), lines, path === '$' ? `$.${k}` : `${path}.${k}`);
+    for (const variant of variants) {
+      if (variant && variant.properties) {
+        const request = new Set(variant.required || []);
+        for (const [key, child] of Object.entries(variant.properties)) {
+          if (seenKeys.has(key)) continue;
+          seenKeys.add(key);
+          this._collect(child, key, depth + 1, request.has(key), lines, path === '$' ? `$.${key}` : `${path}.${key}`);
         }
       }
     }
-    for (const v of variants) {
-      if (v && v.items && !seenKeys.has('[item]')) {
+    for (const variant of variants) {
+      if (variant && variant.items && !seenKeys.has('[item]')) {
         seenKeys.add('[item]');
-        this._collect(v.items, '[item]', depth + 1, false, lines, path + '[0]');
+        this._collect(variant.items, '[item]', depth + 1, false, lines, path + '[0]');
       }
     }
   }

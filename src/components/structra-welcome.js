@@ -77,19 +77,19 @@ class StructraWelcome extends StructraDialog {
         <button class="btn btn-primary" type="button" data-act="sample" autofocus>Open the sample</button>`,
     });
 
-    this.root.addEventListener('click', (e) => {
-      const mode = e.target.closest('[data-mode]');
+    this.root.addEventListener('click', (event) => {
+      const mode = event.target.closest('[data-mode]');
       if (mode) {
         Structra.themeEngine.setMode(mode.dataset.mode);
-        this.queryAll('#wlMode .seg-btn').forEach((b) => b.classList.toggle('active', b === mode));
+        this.queryAll('#wlMode .seg-btn').forEach((button) => button.classList.toggle('active', button === mode));
         return;
       }
-      const act = e.target.closest('[data-act]');
-      if (!act) return;
+      const action = event.target.closest('[data-act]');
+      if (!action) return;
       this.close();
-      if (act.dataset.act === 'themes') Structra.events.emit('theme:open');
-      else if (act.dataset.act === 'sample') this._startSample();
-      else if (act.dataset.act === 'file') this._openFilePicker();
+      if (action.dataset.act === 'themes') Structra.events.emit('theme:open');
+      else if (action.dataset.act === 'sample') this._startSample();
+      else if (action.dataset.act === 'file') this._openFilePicker();
     });
 
     if (!StructraWelcome._seen()) setTimeout(() => this._maybeShowFirstRun(), 600);

@@ -13,9 +13,9 @@ class StructraHeader extends StructraComponent {
   static get observedAttributes() { return ['path', 'show-bookmark']; }
 
   init() {
-    this.on('state:currentPath', (d) => {
+    this.on('state:currentPath', (change) => {
       const input = this.queryOne('#pathInput');
-      if (input) input.value = d.value === '$' ? '' : d.value;     // nothing selected: show the hint text
+      if (input) input.value = change.value === '$' ? '' : change.value;     // nothing selected: show the hint text
       this._syncButtons();
     });
     this.on('nav:changed', () => this._syncButtons());
@@ -78,25 +78,25 @@ class StructraHeader extends StructraComponent {
         </button>
       </div>`;
 
-    this.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const action = btn.dataset.action;
+    this.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.dataset.action;
       if (action === 'copy-path') this._copyPath();
       else if (action === 'back') Structra.pathHistory.back();
       else if (action === 'forward') Structra.pathHistory.forward();
       else if (action === 'bookmark') this._toggleBookmark();
-      else if (action === 'bookmarks') this._showBookmarks(btn);
+      else if (action === 'bookmarks') this._showBookmarks(button);
       else if (action === 'toggle-theme') Structra.themeEngine.toggle();
       else if (action === 'appearance') Structra.events.emit('theme:open');
       else if (action === 'command-palette') Structra.events.emit('command-palette:toggle');
     });
 
-    this.queryOne('#pathInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this._goToPath(e.target.value);
-      else if (e.key === 'Escape') { e.target.blur(); }
+    this.queryOne('#pathInput').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') this._goToPath(event.target.value);
+      else if (event.key === 'Escape') { event.target.blur(); }
     });
-    this.queryOne('#pathInput').addEventListener('input', (e) => e.target.classList.remove('invalid'));
+    this.queryOne('#pathInput').addEventListener('input', (event) => event.target.classList.remove('invalid'));
 
     this._syncButtons();
   }
@@ -144,27 +144,27 @@ class StructraHeader extends StructraComponent {
     menu.className = 'bm-menu';
     menu.setAttribute('role', 'menu');
     menu.innerHTML = items.length
-      ? items.map((b) => `<div class="bm-item" role="menuitem" tabindex="0" data-path="${esc(b.path)}"><span class="bm-path">${esc(b.path)}</span><button class="bm-remove" type="button" data-remove="${esc(b.path)}" aria-label="Remove bookmark ${esc(b.path)}">${Structra.icons.svg('x', { size: 12 })}</button></div>`).join('')
+      ? items.map((item) => `<div class="bm-item" role="menuitem" tabindex="0" data-path="${esc(item.path)}"><span class="bm-path">${esc(item.path)}</span><button class="bm-remove" type="button" data-remove="${esc(item.path)}" aria-label="Remove bookmark ${esc(item.path)}">${Structra.icons.svg('x', { size: 12 })}</button></div>`).join('')
       : '<div class="bm-empty">No bookmarks in this file yet. Select a line and press Ctrl+B.</div>';
-    const r = anchor.getBoundingClientRect();
-    menu.style.top = (r.bottom + 4) + 'px';
-    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 300)) + 'px';
+    const rect = anchor.getBoundingClientRect();
+    menu.style.top = (rect.bottom + 4) + 'px';
+    menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 300)) + 'px';
     document.body.appendChild(menu);
     const close = () => { menu.remove(); document.removeEventListener('mousedown', outside, true); document.removeEventListener('keydown', onKey, true); };
-    const outside = (e) => { if (!menu.contains(e.target) && !anchor.contains(e.target)) close(); };
-    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    const outside = (event) => { if (!menu.contains(event.target) && !anchor.contains(event.target)) close(); };
+    const onKey = (event) => { if (event.key === 'Escape') close(); };
     document.addEventListener('mousedown', outside, true);
     document.addEventListener('keydown', onKey, true);
-    menu.addEventListener('click', (e) => {
-      const rm = e.target.closest('[data-remove]');
-      if (rm) { Structra.bookmarks.remove(rm.dataset.remove); close(); return; }
-      const item = e.target.closest('.bm-item');
+    menu.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('[data-remove]');
+      if (removeButton) { Structra.bookmarks.remove(removeButton.dataset.remove); close(); return; }
+      const item = event.target.closest('.bm-item');
       if (!item) return;
       close();
       this.queryOne('#pathInput').value = item.dataset.path;
       this._goToPath(item.dataset.path);
     });
-    menu.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.classList.contains('bm-item')) e.target.click(); });
+    menu.addEventListener('keydown', (event) => { if (event.key === 'Enter' && event.target.classList.contains('bm-item')) event.target.click(); });
   }
 
   _copyPath() {

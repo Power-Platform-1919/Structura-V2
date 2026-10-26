@@ -133,68 +133,68 @@ class StructraCommand extends StructraComponent {
     this._renderList('');
 
     // Filter on input
-    this.queryOne('#cmdInput').addEventListener('input', (e) => {
+    this.queryOne('#cmdInput').addEventListener('input', (event) => {
       this._selectedIdx = 0;
-      this._renderList(e.target.value);
+      this._renderList(event.target.value);
     });
 
     // Keyboard nav
-    this.queryOne('#cmdInput').addEventListener('keydown', (e) => {
+    this.queryOne('#cmdInput').addEventListener('keydown', (event) => {
       const items = this.queryAll('.cmd-item:not([hidden])');
-      if (e.key === 'ArrowDown') { e.preventDefault(); this._selectedIdx = Math.min(this._selectedIdx + 1, items.length - 1); this._highlightItem(items); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); this._selectedIdx = Math.max(this._selectedIdx - 1, 0); this._highlightItem(items); }
-      else if (e.key === 'Enter') { e.preventDefault(); if (items[this._selectedIdx]) this._runCommand(items[this._selectedIdx].dataset.cmd); }
-      else if (e.key === 'Escape') { this._close(); }
+      if (event.key === 'ArrowDown') { event.preventDefault(); this._selectedIdx = Math.min(this._selectedIdx + 1, items.length - 1); this._highlightItem(items); }
+      else if (event.key === 'ArrowUp') { event.preventDefault(); this._selectedIdx = Math.max(this._selectedIdx - 1, 0); this._highlightItem(items); }
+      else if (event.key === 'Enter') { event.preventDefault(); if (items[this._selectedIdx]) this._runCommand(items[this._selectedIdx].dataset.cmd); }
+      else if (event.key === 'Escape') { this._close(); }
     });
 
     // Click on overlay to close
-    this.queryOne('#cmdOverlay').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) this._close();
+    this.queryOne('#cmdOverlay').addEventListener('click', (event) => {
+      if (event.target === event.currentTarget) this._close();
     });
 
     // Click on item to run
-    this.queryOne('#cmdList').addEventListener('click', (e) => {
-      const item = e.target.closest('.cmd-item');
+    this.queryOne('#cmdList').addEventListener('click', (event) => {
+      const item = event.target.closest('.cmd-item');
       if (item) this._runCommand(item.dataset.cmd);
     });
   }
 
   /** Commands that need a document, or the Tree, or something to undo, are left out when that is not the case */
-  _available(c) {
+  _available(command) {
     const hasData = !!Structra.state.jsonData;
     const ALWAYS = ['new-tab', 'load-url', 'welcome', 'shortcuts', 'appearance', 'theme', 'toolbar-reset', 'zoom-in', 'zoom-out', 'zoom-reset', 'zoom-fit', 'snippets', 'workspace', 'back', 'forward'];
-    if (ALWAYS.includes(c.id)) return true;
+    if (ALWAYS.includes(command.id)) return true;
     if (!hasData) return false;
-    if (['expand-all', 'collapse-all', 'depth-3', 'wrap'].includes(c.id)) return Structra.state.activeView === 'tree';
-    if (c.id === 'undo') return Structra.undoStack.canUndo();
-    if (c.id === 'redo') return Structra.undoStack.canRedo();
-    if (c.id === 'unmask') return !!(this._maskBackups && this._maskBackups.has(Structra.tabs.activeId));
-    if (['pp-copy-pa', 'pp-copy-fx'].includes(c.id)) return !!Structra.state.currentPath && Structra.state.currentPath !== '$';
+    if (['expand-all', 'collapse-all', 'depth-3', 'wrap'].includes(command.id)) return Structra.state.activeView === 'tree';
+    if (command.id === 'undo') return Structra.undoStack.canUndo();
+    if (command.id === 'redo') return Structra.undoStack.canRedo();
+    if (command.id === 'unmask') return !!(this._maskBackups && this._maskBackups.has(Structra.tabs.activeId));
+    if (['pp-copy-pa', 'pp-copy-fx'].includes(command.id)) return !!Structra.state.currentPath && Structra.state.currentPath !== '$';
     return true;
   }
 
   _renderList(query) {
     const q = query.toLowerCase().trim();
     const list = this.queryOne('#cmdList');
-    const filtered = this._commands.filter(c => this._available(c)
-      && (!q || c.label.toLowerCase().includes(q) || c.id.includes(q) || (c.cat && c.cat.toLowerCase().includes(q)) || (c.keys && c.keys.includes(q))));
+    const filtered = this._commands.filter(command => this._available(command)
+      && (!q || command.label.toLowerCase().includes(q) || command.id.includes(q) || (command.cat && command.cat.toLowerCase().includes(q)) || (command.keys && command.keys.includes(q))));
     if (!filtered.length) {
       list.innerHTML = `<div class="cmd-empty">No command matches <strong>${Structra.sharedHelpers.escapeHtml(query)}</strong>. Try a word like sort, mask, export, table or power.</div>`;
       return;
     }
     list.innerHTML = filtered
-      .map((c, i) =>
-        `<div class="cmd-item ${i === this._selectedIdx ? 'selected' : ''}" data-cmd="${c.id}">
-          ${Structra.icons.svg(c.icon)}
-          <span class="cmd-text">${Structra.sharedHelpers.escapeHtml(c.label)}</span>
-          <span class="cmd-cat">${c.cat || ''}</span>
-          ${c.kbd ? `<kbd>${c.kbd}</kbd>` : ''}
+      .map((command, i) =>
+        `<div class="cmd-item ${i === this._selectedIdx ? 'selected' : ''}" data-cmd="${command.id}">
+          ${Structra.icons.svg(command.icon)}
+          <span class="cmd-text">${Structra.sharedHelpers.escapeHtml(command.label)}</span>
+          <span class="cmd-cat">${command.cat || ''}</span>
+          ${command.kbd ? `<kbd>${command.kbd}</kbd>` : ''}
         </div>`
       ).join('');
   }
 
   _highlightItem(items) {
-    items.forEach((el, i) => el.classList.toggle('selected', i === this._selectedIdx));
+    items.forEach((item, i) => item.classList.toggle('selected', i === this._selectedIdx));
     if (items[this._selectedIdx]) items[this._selectedIdx].scrollIntoView({ block: 'nearest' });
   }
 
@@ -227,8 +227,8 @@ class StructraCommand extends StructraComponent {
       return;
     }
 
-    const ds = Structra.dataEngine.getActive();
-    const data = ds ? ds.raw : Structra.state.jsonData;
+    const dataset = Structra.dataEngine.getActive();
+    const data = dataset ? dataset.raw : Structra.state.jsonData;
 
     switch (cmdId) {
       /* ---- Data Operations ---- */
@@ -273,11 +273,11 @@ class StructraCommand extends StructraComponent {
       }
       case 'sample': {
         if (!Array.isArray(data)) { Structra.toast('A random sample needs a list of records'); return; }
-        const n = Math.min(10, data.length);
+        const count = Math.min(10, data.length);
         const open = (rows) => this._openInNewTab(rows, this._baseName() + ' (sample)')
           .then((opened) => { if (opened) Structra.toast(`${rows.length} random rows, opened in a new tab`); });
-        const shuffle = () => [...data].sort(() => Math.random() - 0.5).slice(0, n);
-        Structra.dataEngine.sampleData(n).then((sampled) => open(sampled && sampled.length ? sampled : shuffle())).catch(() => open(shuffle()));
+        const shuffle = () => [...data].sort(() => Math.random() - 0.5).slice(0, count);
+        Structra.dataEngine.sampleData(count).then((sampled) => open(sampled && sampled.length ? sampled : shuffle())).catch(() => open(shuffle()));
         break;
       }
 
@@ -298,8 +298,8 @@ class StructraCommand extends StructraComponent {
         }).catch(() => {
           // JS fallback for non-array data
           const rows = Array.isArray(data) ? data : [data];
-          const keys = [...new Set(rows.flatMap(r => Object.keys(r)))];
-          const csv = [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
+          const keys = [...new Set(rows.flatMap(row => Object.keys(row)))];
+          const csv = [keys.join(','), ...rows.map(row => keys.map(key => JSON.stringify(row[key] ?? '')).join(','))].join('\n');
           Structra.sharedHelpers.downloadFile(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         });
@@ -310,7 +310,7 @@ class StructraCommand extends StructraComponent {
         Structra.formatConversion.jsonToYaml(data).then(yaml => {
           Structra.sharedHelpers.downloadFile(yaml, this._baseName() + '.yaml', 'text/yaml');
           Structra.toast('YAML downloaded');
-        }).catch(e => Structra.toast('Could not convert to YAML: ' + e.message));
+        }).catch(error => Structra.toast('Could not convert to YAML: ' + error.message));
         break;
       }
       case 'export-xml': {
@@ -319,7 +319,7 @@ class StructraCommand extends StructraComponent {
           const xml = Structra.formatConversion.jsonToXml(data);
           Structra.sharedHelpers.downloadFile(xml, this._baseName() + '.xml', 'text/xml');
           Structra.toast('XML downloaded');
-        } catch (e) { Structra.toast('Could not convert to XML: ' + e.message); }
+        } catch (error) { Structra.toast('Could not convert to XML: ' + error.message); }
         break;
       }
 
@@ -355,7 +355,7 @@ class StructraCommand extends StructraComponent {
           Structra.toast('Select a value in the Tree, then run this again');
           return;
         }
-        const rows = Structra.powerPlatformExpressions.quick(path, value).filter((r) => r.app === (cmdId === 'pp-copy-pa' ? 'Power Automate' : 'Power Fx'));
+        const rows = Structra.powerPlatformExpressions.quick(path, value).filter((row) => row.app === (cmdId === 'pp-copy-pa' ? 'Power Automate' : 'Power Fx'));
         if (rows[0]) Structra.sharedHelpers.copyToClipboard(rows[0].code, rows[0].label + ' copied');
         break;
       }
@@ -370,11 +370,11 @@ class StructraCommand extends StructraComponent {
         Structra.events.emit('validate:open');
         break;
       case 'dup-keys': {
-        const src = Structra.dataEngine.getActive() && Structra.dataEngine.getActive()._rawSource;
-        if (!src) { Structra.toast('No duplicate keys. This document was not read from JSON text (CSV, edited or generated data), so a key cannot repeat.'); return; }
+        const source = Structra.dataEngine.getActive() && Structra.dataEngine.getActive()._rawSource;
+        if (!source) { Structra.toast('No duplicate keys. This document was not read from JSON text (CSV, edited or generated data), so a key cannot repeat.'); return; }
         Structra.toast('Checking for duplicate keys...');
         // Duplicates only exist in the original text (parsing keeps the last value)
-        (typeof src === 'string' ? Promise.resolve(src) : src.text())
+        (typeof source === 'string' ? Promise.resolve(source) : source.text())
           .then((text) => Structra.jsonRepairAndValidation.findDuplicateKeys(text))
           .then((dupes) => {
             Structra.setState('duplicateKeys', dupes);
@@ -389,7 +389,7 @@ class StructraCommand extends StructraComponent {
         if (!data) { Structra.toast('Open a file first'); return; }
         Structra.shareLink.createUrl(data, Structra.state.fileName)
           .then(({ url, bytes }) => Structra.sharedHelpers.copyToClipboard(url, `Share link copied (${bytes < 1000 ? bytes + ' characters' : Math.round(bytes / 1000) + ' KB'}). The data is inside the link, nothing is uploaded, and anyone with the link can read it.`))
-          .catch((e) => Structra.toast(e.message));
+          .catch((error) => Structra.toast(error.message));
         break;
       }
       case 'export-image': {
@@ -399,23 +399,23 @@ class StructraCommand extends StructraComponent {
         Structra.toast('Creating image...');
         Structra.imageCapture.png(panel, base + '-' + view + '.png')
           .then(() => Structra.toast('Image saved'))
-          .catch((e) => Structra.toast('Could not save the image: ' + e.message));
+          .catch((error) => Structra.toast('Could not save the image: ' + error.message));
         break;
       }
       case 'repair':
       case 'format-json':
       case 'minify-json': {
         Structra.setState('activeView', 'editor');
-        const evt = { 'repair': 'editor:repair', 'format-json': 'editor:format', 'minify-json': 'editor:minify' }[cmdId];
-        setTimeout(() => Structra.events.emit(evt), 80);
+        const event = { 'repair': 'editor:repair', 'format-json': 'editor:format', 'minify-json': 'editor:minify' }[cmdId];
+        setTimeout(() => Structra.events.emit(event), 80);
         break;
       }
 
       /* ---- Undo/Redo ---- */
       case 'undo': {
         const label = Structra.undoStack.nextUndoLabel();
-        const prev = Structra.undoStack.undo();
-        if (prev) this._reingest(prev).then(() => { this._syncModified(); Structra.toast('Undid: ' + label); });
+        const previous = Structra.undoStack.undo();
+        if (previous) this._reingest(previous).then(() => { this._syncModified(); Structra.toast('Undid: ' + label); });
         else Structra.toast('Nothing to undo in this tab');
         break;
       }
@@ -489,24 +489,24 @@ class StructraCommand extends StructraComponent {
   /* ---- Helpers ---- */
   /** Show new data in the open tab: the engine and every view (Tree, Table, Overview...) switch to it together */
   async _reingest(data) {
-    const ds = Structra.dataEngine.getActive();
-    const tabId = ds ? ds.id : Structra.tabs.activeId;
+    const dataset = Structra.dataEngine.getActive();
+    const tabId = dataset ? dataset.id : Structra.tabs.activeId;
     const size = JSON.stringify(data).length;
     await Structra.dataEngine.ingest(tabId, data, {
-      fileName: (ds && ds.meta.fileName) || Structra.state.fileName || 'data.json',
+      fileName: (dataset && dataset.meta.fileName) || Structra.state.fileName || 'data.json',
       fileSize: size,
     });
     Structra.setState('jsonData', data);
     Structra.setState('fileSize', size);
-    const tab = Structra.tabs.list.find((t) => t.id === tabId);
+    const tab = Structra.tabs.list.find((tab) => tab.id === tabId);
     if (tab) { tab.modified = true; Structra.events.emit('tabs:changed'); }
   }
 
   /** After Undo or Redo: the tab counts as changed only while the history is past its first step (the original) */
   _syncModified() {
-    const tab = Structra.tabs.list.find((t) => t.id === Structra.tabs.activeId);
-    const cur = Structra.undoStack.current();
-    if (tab) { tab.modified = !!cur && cur.index > 0; Structra.events.emit('tabs:changed'); }
+    const tab = Structra.tabs.list.find((tab) => tab.id === Structra.tabs.activeId);
+    const current = Structra.undoStack.current();
+    if (tab) { tab.modified = !!current && current.index > 0; Structra.events.emit('tabs:changed'); }
   }
 
   /**
@@ -544,8 +544,8 @@ class StructraCommand extends StructraComponent {
   }
 
   _showCodeGen(lang) {
-    const ds = Structra.dataEngine.getActive();
-    const data = ds ? ds.raw : Structra.state.jsonData;
+    const dataset = Structra.dataEngine.getActive();
+    const data = dataset ? dataset.raw : Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first'); return; }
     Structra.events.emit('typedef:open', { lang, name: 'Root' });
   }
@@ -554,31 +554,31 @@ class StructraCommand extends StructraComponent {
     Structra.events.emit('shortcuts:open');
   }
 
-  _sortKeysDeep(obj) {
-    if (Array.isArray(obj)) return obj.map(v => this._sortKeysDeep(v));
-    if (obj && typeof obj === 'object') {
+  _sortKeysDeep(object) {
+    if (Array.isArray(object)) return object.map(item => this._sortKeysDeep(item));
+    if (object && typeof object === 'object') {
       const sorted = {};
-      for (const k of Object.keys(obj).sort()) sorted[k] = this._sortKeysDeep(obj[k]);
+      for (const key of Object.keys(object).sort()) sorted[key] = this._sortKeysDeep(object[key]);
       return sorted;
     }
-    return obj;
+    return object;
   }
 
   /** Dot notation. Two paths that give the same name are recorded in `clash` instead of one overwriting the other. */
-  _flattenObj(obj, prefix = '', result = {}, clash = []) {
+  _flattenObj(object, prefix = '', result = {}, clash = []) {
     const put = (key, value) => {
       if (Object.prototype.hasOwnProperty.call(result, key)) clash.push(key);
       else result[key] = value;
     };
-    if (Array.isArray(obj)) {
-      if (!obj.length) put(prefix, []);
-      obj.forEach((v, i) => this._flattenObj(v, prefix ? `${prefix}[${i}]` : `[${i}]`, result, clash));
-    } else if (obj && typeof obj === 'object') {
-      const entries = Object.entries(obj);
+    if (Array.isArray(object)) {
+      if (!object.length) put(prefix, []);
+      object.forEach((item, i) => this._flattenObj(item, prefix ? `${prefix}[${i}]` : `[${i}]`, result, clash));
+    } else if (object && typeof object === 'object') {
+      const entries = Object.entries(object);
       if (!entries.length) put(prefix, {});
-      for (const [k, v] of entries) this._flattenObj(v, prefix ? `${prefix}.${k}` : k, result, clash);
+      for (const [key, item] of entries) this._flattenObj(item, prefix ? `${prefix}.${key}` : key, result, clash);
     } else {
-      put(prefix, obj);
+      put(prefix, object);
     }
     return result;
   }
@@ -589,18 +589,18 @@ class StructraCommand extends StructraComponent {
     const unsafe = new Set(['__proto__', 'constructor', 'prototype']);
     for (const [path, value] of Object.entries(flat)) {
       const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
-      if (parts.some((p) => unsafe.has(p))) return { problem: `"${path}" uses a name that cannot be rebuilt safely.` };
-      let cur = result;
+      if (parts.some((part) => unsafe.has(part))) return { problem: `"${path}" uses a name that cannot be rebuilt safely.` };
+      let current = result;
       for (let i = 0; i < parts.length - 1; i++) {
         const key = parts[i];
         const next = parts[i + 1];
-        if (!Object.prototype.hasOwnProperty.call(cur, key)) cur[key] = /^\d+$/.test(next) ? [] : {};
-        else if (cur[key] === null || typeof cur[key] !== 'object') return { problem: `"${parts.slice(0, i + 1).join('.')}" is both a value and a group of values.` };
-        cur = cur[key];
+        if (!Object.prototype.hasOwnProperty.call(current, key)) current[key] = /^\d+$/.test(next) ? [] : {};
+        else if (current[key] === null || typeof current[key] !== 'object') return { problem: `"${parts.slice(0, i + 1).join('.')}" is both a value and a group of values.` };
+        current = current[key];
       }
       const last = parts[parts.length - 1];
-      if (Object.prototype.hasOwnProperty.call(cur, last)) return { problem: `"${path}" appears twice after rebuilding.` };
-      cur[last] = value;
+      if (Object.prototype.hasOwnProperty.call(current, last)) return { problem: `"${path}" appears twice after rebuilding.` };
+      current[last] = value;
     }
     return { data: result };
   }

@@ -55,28 +55,28 @@ class StructraStatus extends StructraComponent {
   _cycleLogMode() {
     const modes = ['off', 'normal', 'dev'];
     const current = Structra.log.getMode();
-    const idx = modes.indexOf(current);
-    const next = modes[(idx + 1) % modes.length];
+    const index = modes.indexOf(current);
+    const next = modes[(index + 1) % modes.length];
     Structra.log.setMode(next);
     this._updateLogLabel();
   }
 
   _updateLogLabel() {
     const label = this.queryOne('#logLabel');
-    const btn = this.queryOne('#logToggle');
-    if (!label || !btn) return;
+    const button = this.queryOne('#logToggle');
+    if (!label || !button) return;
     const mode = Structra.log.getMode();
     label.textContent = mode.toUpperCase();
-    btn.dataset.mode = mode;
+    button.dataset.mode = mode;
   }
 
   _updateDuckStatus(state) {
-    const el = this.queryOne('#statusDuck');
+    const element = this.queryOne('#statusDuck');
     const icon = this.queryOne('#duckIcon');
     const label = this.queryOne('#duckLabel');
-    if (!el) return;
-    el.dataset.state = state;
-    el.title = {
+    if (!element) return;
+    element.dataset.state = state;
+    element.title = {
       idle: 'The SQL engine answers questions about your data with SQL queries. It is off until needed and takes a few seconds to start. Click to start it now.',
       loading: 'Starting the SQL engine. This takes a few seconds the first time.',
       ready: 'The SQL engine is running. SQL runs on this computer only.',
@@ -104,22 +104,22 @@ class StructraStatus extends StructraComponent {
   }
 
   _updateDupes() {
-    const el = this.queryOne('#statusDupes');
-    if (!el) return;
-    const d = Structra.state.duplicateKeys || [];
-    el.hidden = d.length === 0;
-    el.textContent = d.length + ' duplicate key' + (d.length === 1 ? '' : 's');
-    el.title = d.slice(0, 20).map((x) => x.path + ' (line ' + x.line + ')').join('\n');
+    const element = this.queryOne('#statusDupes');
+    if (!element) return;
+    const duplicates = Structra.state.duplicateKeys || [];
+    element.hidden = duplicates.length === 0;
+    element.textContent = duplicates.length + ' duplicate key' + (duplicates.length === 1 ? '' : 's');
+    element.title = duplicates.slice(0, 20).map((x) => x.path + ' (line ' + x.line + ')').join('\n');
   }
 
   _updatePath() {
-    const el = this.queryOne('#statusPath');
-    if (el) el.textContent = '';        // the path is in the path bar and the Node panel: not a third time here
+    const element = this.queryOne('#statusPath');
+    if (element) element.textContent = '';        // the path is in the path bar and the Node panel: not a third time here
   }
 
   _updateFile() {
-    const el = this.queryOne('#statusFile');
-    if (el) el.textContent = Structra.state.fileName || '';
+    const element = this.queryOne('#statusFile');
+    if (element) element.textContent = Structra.state.fileName || '';
   }
 }
 

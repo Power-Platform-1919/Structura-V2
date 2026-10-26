@@ -96,10 +96,10 @@ Structra.appSettings = (() => {
   }
 
   function importSettings(json) {
-    let obj;
-    try { obj = JSON.parse(json); }
+    let object;
+    try { object = JSON.parse(json); }
     catch { console.error('[Settings] Invalid JSON'); return false; }
-    for (const [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(object)) {
       if (key in DEFAULTS) set(key, value);
     }
     return true;

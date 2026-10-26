@@ -17,9 +17,9 @@ class StructraContext extends StructraComponent {
       Structra.log.debug('Context', 'Node selected: ' + path);
       this._show(path);
     });
-    this.on('state:contextPanelOpen', (d) => {
-      Structra.log.debug('Context', 'contextPanel ' + (d.value ? 'opened' : 'closed'));
-      this.classList.toggle('show', d.value);
+    this.on('state:contextPanelOpen', (date) => {
+      Structra.log.debug('Context', 'contextPanel ' + (date.value ? 'opened' : 'closed'));
+      this.classList.toggle('show', date.value);
     });
     this.on('overlay:close', () => Structra.setState('contextPanelOpen', false));
     this.on('bookmarks:changed', () => this._renderBookmarks());

@@ -42,7 +42,7 @@ Structra.pathHistory = (() => {
     Structra.events.emit('nav:changed');
   }
 
-  function go(step) {
+  function moveBy(step) {
     const s = current();
     const next = s.index + step;
     if (next < 0 || next >= s.items.length) return;
@@ -56,12 +56,12 @@ Structra.pathHistory = (() => {
     Structra.events.emit('nav:changed');
   }
 
-  const back = () => go(-1);
-  const forward = () => go(1);
+  const back = () => moveBy(-1);
+  const forward = () => moveBy(1);
   const canBack = () => current().index > 0;
   const canForward = () => { const s = current(); return s.index < s.items.length - 1; };
 
-  Structra.events.on('state:currentPath', (d) => record(d.value));
+  Structra.events.on('state:currentPath', (change) => record(change.value));
 
   // New data in a tab starts a fresh history
   Structra.events.on('state:jsonData', () => {

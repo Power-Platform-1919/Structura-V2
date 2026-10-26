@@ -12,362 +12,362 @@ Structra.typeCodeGenerator = (() => {
    * is remembered as nullable under NULLABLE.
    */
   const NULLABLE = Symbol('nullable');
-  const isNullable = (parent, key, val) => val === null || !!(parent && parent[NULLABLE] && parent[NULLABLE].has(key));
+  const isNullable = (parent, key, value) => value === null || !!(parent && parent[NULLABLE] && parent[NULLABLE].has(key));
   const isPlain = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 
   /**
    * Names in generated code must be valid in that language, whatever the JSON key looks like
    * ('@odata.context', 'first name', '1st'). The JSON key itself is kept in an attribute, tag or comment.
    */
-  const words = (k) => String(k).replace(/[^A-Za-z0-9_\s-]+/g, ' ').trim() || 'field';
+  const words = (key) => String(key).replace(/[^A-Za-z0-9_\s-]+/g, ' ').trim() || 'field';
   const lead = (id) => (/^[0-9]/.test(id) ? '_' + id : id);
-  const q = (k) => String(k).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const escapeQuotes = (key) => String(key).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
   const KEYWORDS = {
     python: new Set(['and', 'as', 'class', 'def', 'del', 'else', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'not', 'or', 'pass', 'return', 'try', 'while', 'with', 'yield', 'None', 'True', 'False']),
     rust: new Set(['as', 'break', 'const', 'continue', 'crate', 'else', 'enum', 'extern', 'false', 'fn', 'for', 'if', 'impl', 'in', 'let', 'loop', 'match', 'mod', 'move', 'mut', 'pub', 'ref', 'return', 'self', 'Self', 'static', 'struct', 'super', 'trait', 'true', 'type', 'unsafe', 'use', 'where', 'while', 'async', 'await', 'dyn']),
     java: new Set(['abstract', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class', 'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extends', 'final', 'finally', 'float', 'for', 'goto', 'if', 'implements', 'import', 'instanceof', 'int', 'interface', 'long', 'native', 'new', 'package', 'private', 'protected', 'public', 'return', 'short', 'static', 'super', 'switch', 'synchronized', 'this', 'throw', 'throws', 'transient', 'try', 'void', 'volatile', 'while']),
   };
   const noKeyword = (lang, id) => (KEYWORDS[lang] && KEYWORDS[lang].has(id) ? id + '_' : id);
-  const tsKey = (k) => (/^[A-Za-z_$][\w$]*$/.test(k) ? k : "'" + String(k).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'");
-  const parts = (k) => words(k).split(/[\s_-]+/).filter(Boolean);
-  const upFirst = (w) => w.charAt(0).toUpperCase() + w.slice(1);
-  const pascalIdent = (k) => parts(k).map(upFirst).join('');
-  const camelIdent = (k) => { const ps = parts(k); return ps.map((w, i) => (i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : upFirst(w))).join(''); };
-  const snakeIdent = (k) => parts(k).map((w) => snakeCase(w)).join('_');
-  const typeName = (k) => lead(pascalIdent(k));
+  const tsKey = (key) => (/^[A-Za-z_$][\w$]*$/.test(key) ? key : "'" + String(key).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'");
+  const parts = (key) => words(key).split(/[\s_-]+/).filter(Boolean);
+  const upFirst = (word) => word.charAt(0).toUpperCase() + word.slice(1);
+  const pascalIdent = (key) => parts(key).map(upFirst).join('');
+  const camelIdent = (key) => { const wordParts = parts(key); return wordParts.map((word, i) => (i === 0 ? word.charAt(0).toLowerCase() + word.slice(1) : upFirst(word))).join(''); };
+  const snakeIdent = (key) => parts(key).map((word) => snakeCase(word)).join('_');
+  const typeName = (key) => lead(pascalIdent(key));
 
   function mergeRecords(records) {
     const out = {};
     const nullable = new Set();
     const keys = [];
-    records.forEach((r) => Object.keys(r).forEach((k) => { if (!keys.includes(k)) keys.push(k); }));
-    for (const k of keys) {
-      const values = records.map((r) => r[k]);
-      if (values.some((v) => v === null || v === undefined)) nullable.add(k);
-      const real = values.filter((v) => v !== null && v !== undefined);
-      if (!real.length) out[k] = null;
-      else if (real.every(isPlain)) out[k] = mergeRecords(real.map((r) => r));
-      else if (real.every(Array.isArray)) out[k] = normalize(real.flat());
-      else out[k] = real[0];
+    records.forEach((record) => Object.keys(record).forEach((key) => { if (!keys.includes(key)) keys.push(key); }));
+    for (const key of keys) {
+      const values = records.map((record) => record[key]);
+      if (values.some((value) => value === null || value === undefined)) nullable.add(key);
+      const real = values.filter((value) => value !== null && value !== undefined);
+      if (!real.length) out[key] = null;
+      else if (real.every(isPlain)) out[key] = mergeRecords(real.map((record) => record));
+      else if (real.every(Array.isArray)) out[key] = normalize(real.flat());
+      else out[key] = real[0];
     }
     out[NULLABLE] = nullable;
     return out;
   }
 
-  function normalize(v) {
-    if (Array.isArray(v)) {
-      const records = v.filter(isPlain);
+  function normalize(value) {
+    if (Array.isArray(value)) {
+      const records = value.filter(isPlain);
       if (records.length) return [mergeRecords(records)];
-      const nested = v.filter(Array.isArray);
+      const nested = value.filter(Array.isArray);
       if (nested.length) return [normalize(nested.flat())];
-      return v.length ? [v.find((x) => x !== null && x !== undefined) ?? null] : v;
+      return value.length ? [value.find((x) => x !== null && x !== undefined) ?? null] : value;
     }
-    if (isPlain(v)) {
+    if (isPlain(value)) {
       const out = {};
-      for (const [k, x] of Object.entries(v)) out[k] = normalize(x);
+      for (const [key, x] of Object.entries(value)) out[key] = normalize(x);
       return out;
     }
-    return v;
+    return value;
   }
 
   // === TypeScript ===
-  function toTypeScript(val, name = 'Root') {
+  function toTypeScript(value, name = 'Root') {
     const interfaces = [];
 
-    function walk(v, iName) {
-      if (Array.isArray(v)) {
-        if (v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
-          walk(v[0], iName + 'Item');
-          return `${iName}Item[]`;
+    function walk(value, interfaceName) {
+      if (Array.isArray(value)) {
+        if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+          walk(value[0], interfaceName + 'Item');
+          return `${interfaceName}Item[]`;
         }
-        if (v.length > 0) return inferTsType(v[0]) + '[]';
+        if (value.length > 0) return inferTsType(value[0]) + '[]';
         return 'any[]';
       }
-      if (v && typeof v === 'object') {
+      if (value && typeof value === 'object') {
         const fields = [];
-        for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, typeName(k));
+        for (const [key, val] of Object.entries(value)) {
+          const type = walk(val, typeName(key));
           // A field that can be empty reads "T | null": it is there, but may hold nothing
-          const orNull = isNullable(v, k, val) && type !== 'null' ? ' | null' : '';
-          fields.push(`  ${tsKey(k)}: ${type}${orNull};`);
+          const orNull = isNullable(value, key, val) && type !== 'null' ? ' | null' : '';
+          fields.push(`  ${tsKey(key)}: ${type}${orNull};`);
         }
-        interfaces.push(`interface ${iName} {\n${fields.join('\n')}\n}`);
-        return iName;
+        interfaces.push(`interface ${interfaceName} {\n${fields.join('\n')}\n}`);
+        return interfaceName;
       }
-      return inferTsType(v);
+      return inferTsType(value);
     }
 
-    function inferTsType(v) {
-      if (v === null) return 'null';
-      if (typeof v === 'string') return 'string';
-      if (typeof v === 'number') return Number.isInteger(v) ? 'number' : 'number';
-      if (typeof v === 'boolean') return 'boolean';
+    function inferTsType(value) {
+      if (value === null) return 'null';
+      if (typeof value === 'string') return 'string';
+      if (typeof value === 'number') return Number.isInteger(value) ? 'number' : 'number';
+      if (typeof value === 'boolean') return 'boolean';
       return 'any';
     }
 
-    walk(val, name);
+    walk(value, name);
     return interfaces.reverse().join('\n\n');
   }
 
   // === Python (dataclass) ===
-  function toPython(val, name = 'Root') {
+  function toPython(value, name = 'Root') {
     const classes = [];
 
-    function walk(v, cName) {
-      if (Array.isArray(v)) {
-        if (v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
-          walk(v[0], cName + 'Item');
-          return `List[${cName}Item]`;
+    function walk(value, className) {
+      if (Array.isArray(value)) {
+        if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+          walk(value[0], className + 'Item');
+          return `List[${className}Item]`;
         }
-        if (v.length > 0) return `List[${pyType(v[0])}]`;
+        if (value.length > 0) return `List[${pyType(value[0])}]`;
         return 'List[Any]';
       }
-      if (v && typeof v === 'object') {
+      if (value && typeof value === 'object') {
         const fields = [];
-        for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, typeName(k));
-          const optional = isNullable(v, k, val) ? `Optional[${type}]` : type;
-          const pyName = noKeyword('python', lead(snakeIdent(k)));
-          fields.push(`    ${pyName}: ${isNullable(v, k, val) ? optional : type}${pyName === k ? '' : '  # JSON key: "' + q(k) + '"'}`);
+        for (const [key, val] of Object.entries(value)) {
+          const type = walk(val, typeName(key));
+          const optional = isNullable(value, key, val) ? `Optional[${type}]` : type;
+          const pyName = noKeyword('python', lead(snakeIdent(key)));
+          fields.push(`    ${pyName}: ${isNullable(value, key, val) ? optional : type}${pyName === key ? '' : '  # JSON key: "' + escapeQuotes(key) + '"'}`);
         }
-        classes.push(`@dataclass\nclass ${cName}:\n${fields.join('\n')}`);
-        return cName;
+        classes.push(`@dataclass\nclass ${className}:\n${fields.join('\n')}`);
+        return className;
       }
-      return pyType(v);
+      return pyType(value);
     }
 
-    function pyType(v) {
-      if (v === null) return 'None';
-      if (typeof v === 'string') return 'str';
-      if (typeof v === 'number') return Number.isInteger(v) ? 'int' : 'float';
-      if (typeof v === 'boolean') return 'bool';
+    function pyType(value) {
+      if (value === null) return 'None';
+      if (typeof value === 'string') return 'str';
+      if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'float';
+      if (typeof value === 'boolean') return 'bool';
       return 'Any';
     }
 
-    walk(val, name);
+    walk(value, name);
     return 'from dataclasses import dataclass\nfrom typing import List, Optional, Any\n\n' + classes.reverse().join('\n\n');
   }
 
   // === C# ===
-  function toCSharp(val, name = 'Root') {
+  function toCSharp(value, name = 'Root') {
     const classes = [];
 
-    function walk(v, cName) {
-      if (Array.isArray(v)) {
-        if (v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
-          walk(v[0], cName + 'Item');
-          return `List<${cName}Item>`;
+    function walk(value, className) {
+      if (Array.isArray(value)) {
+        if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+          walk(value[0], className + 'Item');
+          return `List<${className}Item>`;
         }
-        if (v.length > 0) return `List<${csType(v[0])}>`;
+        if (value.length > 0) return `List<${csType(value[0])}>`;
         return 'List<object>';
       }
-      if (v && typeof v === 'object') {
-        const props = [];
-        for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, typeName(k));
-          const nullable = isNullable(v, k, val) ? '?' : '';
-          const csName = typeName(k);
-          props.push((csName === k ? '' : '    [JsonPropertyName("' + q(k) + '")]\n') + `    public ${type}${nullable} ${csName} { get; set; }`);
+      if (value && typeof value === 'object') {
+        const properties = [];
+        for (const [key, val] of Object.entries(value)) {
+          const type = walk(val, typeName(key));
+          const nullable = isNullable(value, key, val) ? '?' : '';
+          const csName = typeName(key);
+          properties.push((csName === key ? '' : '    [JsonPropertyName("' + escapeQuotes(key) + '")]\n') + `    public ${type}${nullable} ${csName} { get; set; }`);
         }
-        classes.push(`public class ${cName}\n{\n${props.join('\n')}\n}`);
-        return cName;
+        classes.push(`public class ${className}\n{\n${properties.join('\n')}\n}`);
+        return className;
       }
-      return csType(v);
+      return csType(value);
     }
 
-    function csType(v) {
-      if (v === null) return 'object';
-      if (typeof v === 'string') return 'string';
-      if (typeof v === 'number') return Number.isInteger(v) ? 'int' : 'double';
-      if (typeof v === 'boolean') return 'bool';
+    function csType(value) {
+      if (value === null) return 'object';
+      if (typeof value === 'string') return 'string';
+      if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'double';
+      if (typeof value === 'boolean') return 'bool';
       return 'object';
     }
 
-    walk(val, name);
+    walk(value, name);
     return 'using System.Text.Json.Serialization;\n\n' + classes.reverse().join('\n\n');
   }
 
   // === Go ===
-  function toGo(val, name = 'Root') {
+  function toGo(value, name = 'Root') {
     const structs = [];
 
-    function walk(v, sName) {
-      if (Array.isArray(v)) {
-        if (v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
-          walk(v[0], sName + 'Item');
-          return `[]${sName}Item`;
+    function walk(value, structName) {
+      if (Array.isArray(value)) {
+        if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+          walk(value[0], structName + 'Item');
+          return `[]${structName}Item`;
         }
-        if (v.length > 0) return `[]${goType(v[0])}`;
+        if (value.length > 0) return `[]${goType(value[0])}`;
         return '[]interface{}';
       }
-      if (v && typeof v === 'object') {
+      if (value && typeof value === 'object') {
         const fields = [];
-        for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, typeName(k));
-          const ptr = isNullable(v, k, val) ? '*' : '';
-          fields.push(`\t${typeName(k)} ${ptr}${type} \`json:"${q(k)}"\``);
+        for (const [key, val] of Object.entries(value)) {
+          const type = walk(val, typeName(key));
+          const pointer = isNullable(value, key, val) ? '*' : '';
+          fields.push(`\t${typeName(key)} ${pointer}${type} \`json:"${escapeQuotes(key)}"\``);
         }
-        structs.push(`type ${sName} struct {\n${fields.join('\n')}\n}`);
-        return sName;
+        structs.push(`type ${structName} struct {\n${fields.join('\n')}\n}`);
+        return structName;
       }
-      return goType(v);
+      return goType(value);
     }
 
-    function goType(v) {
-      if (v === null) return 'interface{}';
-      if (typeof v === 'string') return 'string';
-      if (typeof v === 'number') return Number.isInteger(v) ? 'int' : 'float64';
-      if (typeof v === 'boolean') return 'bool';
+    function goType(value) {
+      if (value === null) return 'interface{}';
+      if (typeof value === 'string') return 'string';
+      if (typeof value === 'number') return Number.isInteger(value) ? 'int' : 'float64';
+      if (typeof value === 'boolean') return 'bool';
       return 'interface{}';
     }
 
-    walk(val, name);
+    walk(value, name);
     return structs.reverse().join('\n\n');
   }
 
   // === Rust ===
-  function toRust(val, name = 'Root') {
+  function toRust(value, name = 'Root') {
     const structs = [];
 
-    function walk(v, sName) {
-      if (Array.isArray(v)) {
-        if (v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
-          walk(v[0], sName + 'Item');
-          return `Vec<${sName}Item>`;
+    function walk(value, structName) {
+      if (Array.isArray(value)) {
+        if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+          walk(value[0], structName + 'Item');
+          return `Vec<${structName}Item>`;
         }
-        if (v.length > 0) return `Vec<${rustType(v[0])}>`;
+        if (value.length > 0) return `Vec<${rustType(value[0])}>`;
         return 'Vec<serde_json::Value>';
       }
-      if (v && typeof v === 'object') {
+      if (value && typeof value === 'object') {
         const fields = [];
-        for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, typeName(k));
-          const opt = isNullable(v, k, val) ? `Option<${type}>` : type;
-          const rsName = noKeyword('rust', lead(snakeIdent(k)));
-          fields.push((rsName === k ? '' : '    #[serde(rename = "' + q(k) + '")]\n') + `    pub ${rsName}: ${isNullable(v, k, val) ? opt : type},`);
+        for (const [key, val] of Object.entries(value)) {
+          const type = walk(val, typeName(key));
+          const option = isNullable(value, key, val) ? `Option<${type}>` : type;
+          const rsName = noKeyword('rust', lead(snakeIdent(key)));
+          fields.push((rsName === key ? '' : '    #[serde(rename = "' + escapeQuotes(key) + '")]\n') + `    pub ${rsName}: ${isNullable(value, key, val) ? option : type},`);
         }
-        structs.push(`#[derive(Debug, Serialize, Deserialize)]\npub struct ${sName} {\n${fields.join('\n')}\n}`);
-        return sName;
+        structs.push(`#[derive(Debug, Serialize, Deserialize)]\npub struct ${structName} {\n${fields.join('\n')}\n}`);
+        return structName;
       }
-      return rustType(v);
+      return rustType(value);
     }
 
-    function rustType(v) {
-      if (v === null) return 'serde_json::Value';
-      if (typeof v === 'string') return 'String';
-      if (typeof v === 'number') return Number.isInteger(v) ? 'i64' : 'f64';
-      if (typeof v === 'boolean') return 'bool';
+    function rustType(value) {
+      if (value === null) return 'serde_json::Value';
+      if (typeof value === 'string') return 'String';
+      if (typeof value === 'number') return Number.isInteger(value) ? 'i64' : 'f64';
+      if (typeof value === 'boolean') return 'bool';
       return 'serde_json::Value';
     }
 
-    walk(val, name);
+    walk(value, name);
     return 'use serde::{Serialize, Deserialize};\n\n' + structs.reverse().join('\n\n');
   }
 
   // === Java ===
-  function toJava(val, name = 'Root') {
+  function toJava(value, name = 'Root') {
     const classes = [];
 
-    function walk(v, cName) {
-      if (Array.isArray(v)) {
-        if (v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
-          walk(v[0], cName + 'Item');
-          return `List<${cName}Item>`;
+    function walk(value, className) {
+      if (Array.isArray(value)) {
+        if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+          walk(value[0], className + 'Item');
+          return `List<${className}Item>`;
         }
-        if (v.length > 0) return `List<${javaType(v[0], true)}>`;
+        if (value.length > 0) return `List<${javaType(value[0], true)}>`;
         return 'List<Object>';
       }
-      if (v && typeof v === 'object') {
+      if (value && typeof value === 'object') {
         const fields = [];
-        for (const [k, val] of Object.entries(v)) {
-          const type = walk(val, typeName(k));
-          const jName = noKeyword('java', lead(camelIdent(k)));
-          fields.push((jName === k ? '' : '    @JsonProperty("' + q(k) + '")\n') + `    private ${type} ${jName};`);
+        for (const [key, val] of Object.entries(value)) {
+          const type = walk(val, typeName(key));
+          const jName = noKeyword('java', lead(camelIdent(key)));
+          fields.push((jName === key ? '' : '    @JsonProperty("' + escapeQuotes(key) + '")\n') + `    private ${type} ${jName};`);
         }
-        classes.push(`public class ${cName} {\n${fields.join('\n')}\n}`);
-        return cName;
+        classes.push(`public class ${className} {\n${fields.join('\n')}\n}`);
+        return className;
       }
-      return javaType(v, false);
+      return javaType(value, false);
     }
 
-    function javaType(v, boxed) {
-      if (v === null) return 'Object';
-      if (typeof v === 'string') return 'String';
-      if (typeof v === 'number') return Number.isInteger(v) ? (boxed ? 'Integer' : 'int') : (boxed ? 'Double' : 'double');
-      if (typeof v === 'boolean') return boxed ? 'Boolean' : 'boolean';
+    function javaType(value, boxed) {
+      if (value === null) return 'Object';
+      if (typeof value === 'string') return 'String';
+      if (typeof value === 'number') return Number.isInteger(value) ? (boxed ? 'Integer' : 'int') : (boxed ? 'Double' : 'double');
+      if (typeof value === 'boolean') return boxed ? 'Boolean' : 'boolean';
       return 'Object';
     }
 
-    walk(val, name);
+    walk(value, name);
     return 'import java.util.List;\nimport com.fasterxml.jackson.annotation.JsonProperty;\n\n' + classes.reverse().join('\n\n');
   }
 
   // === Power Fx UDT ===
-  function toPowerFx(val) {
-    const body = buildFxUDTInline(val, 2);
+  function toPowerFx(value) {
+    const body = buildFxUDTInline(value, 2);
     return `RootType :=\n    Type(\n${body}\n    );\n`;
   }
 
-  function buildFxUDTInline(obj, indent) {
+  function buildFxUDTInline(object, indent) {
     const pad = '    '.repeat(indent);
-    if (Array.isArray(obj)) {
-      if (obj.length === 0) {
+    if (Array.isArray(object)) {
+      if (object.length === 0) {
         return `${pad}[\n${pad}    {\n${pad}        Value: Text\n${pad}    }\n${pad}]`;
-      } else if (typeof obj[0] === 'object' && obj[0] !== null) {
-        const inner = buildFxRecordFields(obj[0], indent + 2);
+      } else if (typeof object[0] === 'object' && object[0] !== null) {
+        const inner = buildFxRecordFields(object[0], indent + 2);
         return `${pad}[\n${pad}    {\n${inner}\n${pad}    }\n${pad}]`;
       } else {
-        return `${pad}[\n${pad}    {\n${pad}        Value: ${fxType(obj[0])}\n${pad}    }\n${pad}]`;
+        return `${pad}[\n${pad}    {\n${pad}        Value: ${fxType(object[0])}\n${pad}    }\n${pad}]`;
       }
-    } else if (obj && typeof obj === 'object') {
-      const inner = buildFxRecordFields(obj, indent + 1);
+    } else if (object && typeof object === 'object') {
+      const inner = buildFxRecordFields(object, indent + 1);
       return `${pad}{\n${inner}\n${pad}}`;
     }
-    return `${pad}${fxType(obj)}`;
+    return `${pad}${fxType(object)}`;
   }
 
-  function buildFxRecordFields(obj, indent) {
+  function buildFxRecordFields(object, indent) {
     const pad = '    '.repeat(indent);
-    const entries = Object.entries(obj);
+    const entries = Object.entries(object);
     const lines = [];
-    for (const [k, v] of entries) {
-      const safe = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(k) ? k : `'${k}'`;
-      if (Array.isArray(v)) {
-        if (v.length > 0 && typeof v[0] === 'object' && v[0] !== null) {
-          const inner = buildFxRecordFields(v[0], indent + 2);
+    for (const [key, value] of entries) {
+      const safe = /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) ? key : `'${key}'`;
+      if (Array.isArray(value)) {
+        if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+          const inner = buildFxRecordFields(value[0], indent + 2);
           lines.push(`${pad}${safe}: [\n${pad}    {\n${inner}\n${pad}    }\n${pad}]`);
         } else {
-          const valType = v.length > 0 ? fxType(v[0]) : 'Text';
+          const valType = value.length > 0 ? fxType(value[0]) : 'Text';
           lines.push(`${pad}${safe}: [{ Value: ${valType} }]`);
         }
-      } else if (v && typeof v === 'object') {
-        const inner = buildFxRecordFields(v, indent + 1);
+      } else if (value && typeof value === 'object') {
+        const inner = buildFxRecordFields(value, indent + 1);
         lines.push(`${pad}${safe}: {\n${inner}\n${pad}}`);
       } else {
-        lines.push(`${pad}${safe}: ${fxType(v)}`);
+        lines.push(`${pad}${safe}: ${fxType(value)}`);
       }
     }
     return lines.join(',\n');
   }
 
-  function fxType(v) {
-    if (v === null) return 'Text';
-    if (typeof v === 'string') return 'Text';
-    if (typeof v === 'number') return 'Number';
-    if (typeof v === 'boolean') return 'Boolean';
+  function fxType(value) {
+    if (value === null) return 'Text';
+    if (typeof value === 'string') return 'Text';
+    if (typeof value === 'number') return 'Number';
+    if (typeof value === 'boolean') return 'Boolean';
     return 'Text';
   }
 
   // === SQL DDL ===
-  function toSQL(val, name = 'Root') {
+  function toSQL(value, name = 'Root') {
     const tableName = snakeCase(name);
     // Normalise input: if object, wrap in array; if array of primitives, skip
     let rows;
-    if (Array.isArray(val)) {
-      rows = val.filter(r => r && typeof r === 'object' && !Array.isArray(r));
+    if (Array.isArray(value)) {
+      rows = value.filter(record => record && typeof record === 'object' && !Array.isArray(record));
       if (rows.length === 0) return `-- Cannot generate SQL: array does not contain objects`;
-    } else if (val && typeof val === 'object') {
-      rows = [val];
+    } else if (value && typeof value === 'object') {
+      rows = [value];
     } else {
       return `-- Cannot generate SQL from primitive value`;
     }
@@ -375,27 +375,27 @@ Structra.typeCodeGenerator = (() => {
     // Collect all columns across all rows
     const colSet = new Map();
     for (const row of rows) {
-      for (const [k, v] of Object.entries(row)) {
-        if (!colSet.has(k)) colSet.set(k, inferSqlType(v));
+      for (const [key, value] of Object.entries(row)) {
+        if (!colSet.has(key)) colSet.set(key, inferSqlType(value));
         else {
-          const existing = colSet.get(k);
-          const newType = inferSqlType(v);
-          if (existing !== newType && v !== null) colSet.set(k, mergeSqlTypes(existing, newType));
+          const existing = colSet.get(key);
+          const newType = inferSqlType(value);
+          if (existing !== newType && value !== null) colSet.set(key, mergeSqlTypes(existing, newType));
         }
       }
     }
 
-    const cols = [...colSet.entries()];
-    const lines = cols.map(([col, type]) => `  ${sqlIdent(col)} ${type}`);
+    const columns = [...colSet.entries()];
+    const lines = columns.map(([column, type]) => `  ${sqlIdent(column)} ${type}`);
     let ddl = `CREATE TABLE ${sqlIdent(tableName)} (\n${lines.join(',\n')}\n);\n`;
 
     // INSERT statements
     if (rows.length <= 200) {
-      const colNames = cols.map(c => sqlIdent(c[0]));
+      const colNames = columns.map(column => sqlIdent(column[0]));
       ddl += `\nINSERT INTO ${sqlIdent(tableName)} (${colNames.join(', ')})\nVALUES\n`;
       const valueRows = rows.map(row => {
-        const vals = cols.map(([col]) => sqlLiteral(row[col]));
-        return `  (${vals.join(', ')})`;
+        const values = columns.map(([column]) => sqlLiteral(row[column]));
+        return `  (${values.join(', ')})`;
       });
       ddl += valueRows.join(',\n') + ';\n';
     } else {
@@ -405,36 +405,36 @@ Structra.typeCodeGenerator = (() => {
     return ddl;
   }
 
-  function inferSqlType(v) {
-    if (v === null || v === undefined) return 'TEXT';
-    if (typeof v === 'boolean') return 'BOOLEAN';
-    if (typeof v === 'number') return Number.isInteger(v) ? 'INTEGER' : 'REAL';
-    if (typeof v === 'string') {
-      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return 'TIMESTAMP';
-      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return 'DATE';
-      if (v.length > 255) return 'TEXT';
+  function inferSqlType(value) {
+    if (value === null || value === undefined) return 'TEXT';
+    if (typeof value === 'boolean') return 'BOOLEAN';
+    if (typeof value === 'number') return Number.isInteger(value) ? 'INTEGER' : 'REAL';
+    if (typeof value === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return 'TIMESTAMP';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'DATE';
+      if (value.length > 255) return 'TEXT';
       return 'VARCHAR(255)';
     }
-    if (Array.isArray(v) || typeof v === 'object') return 'JSONB';
+    if (Array.isArray(value) || typeof value === 'object') return 'JSONB';
     return 'TEXT';
   }
 
-  function mergeSqlTypes(a, b) {
-    if (a === b) return a;
+  function mergeSqlTypes(first, second) {
+    if (first === second) return first;
     const rank = { BOOLEAN: 1, INTEGER: 2, REAL: 3, DATE: 4, TIMESTAMP: 5, 'VARCHAR(255)': 6, TEXT: 7, JSONB: 8 };
-    return (rank[a] || 99) >= (rank[b] || 99) ? a : b;
+    return (rank[first] || 99) >= (rank[second] || 99) ? first : second;
   }
 
   function sqlIdent(name) {
     return /^[a-zA-Z_]\w*$/.test(name) ? name : `"${name.replace(/"/g, '""')}"`;
   }
 
-  function sqlLiteral(v) {
-    if (v === null || v === undefined) return 'NULL';
-    if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
-    if (typeof v === 'number') return String(v);
-    if (typeof v === 'object') return `'${JSON.stringify(v).replace(/'/g, "''")}'`;
-    return `'${String(v).replace(/'/g, "''")}'`;
+  function sqlLiteral(value) {
+    if (value === null || value === undefined) return 'NULL';
+    if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
+    if (typeof value === 'number') return String(value);
+    if (typeof value === 'object') return `'${JSON.stringify(value).replace(/'/g, "''")}'`;
+    return `'${String(value).replace(/'/g, "''")}'`;
   }
 
   const generators = {
@@ -451,15 +451,15 @@ Structra.typeCodeGenerator = (() => {
   // Aliases for short tab IDs
   const aliases = { ts: 'typescript' };
 
-  function generate(lang, val, name) {
+  function generate(lang, value, name) {
     const key = aliases[lang] || lang;
     const gen = generators[key];
     if (!gen) return '';
-    return gen.fn(normalize(val), name || 'Root');
+    return gen.fn(normalize(value), name || 'Root');
   }
 
   function getLanguages() {
-    return Object.entries(generators).map(([id, g]) => ({ id, label: g.label }));
+    return Object.entries(generators).map(([id, value]) => ({ id, label: value.label }));
   }
 
   return { generate, getLanguages, generators };

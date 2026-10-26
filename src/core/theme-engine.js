@@ -92,7 +92,7 @@ Structra.themeEngine = (() => {
       bg: '#000000', surface: '#101010', surfaceAlt: '#1f1f1f', border: '#d0d0d0', text: '#ffffff', textSec: '#ececec', textMuted: '#c8c8c8',
       accent: '#ffd60a', success: '#4cff8f', warning: '#ffb020', danger: '#ff6b6b', info: '#5cc8ff',
       synKey: '#ff9cf0', synString: '#7dffb0', synNumber: '#ffd60a', synBoolean: '#6fd0ff', synNull: '#bdbdbd' } },
-  ].map((t) => ({ ...t, builtIn: true }));
+  ].map((theme) => ({ ...theme, builtIn: true }));
 
   const DEFAULTS = { mode: 'system', light: 'structra-light', dark: 'structra-dark', custom: [] };
 
@@ -122,22 +122,22 @@ Structra.themeEngine = (() => {
   const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 
   function toRgb(hex) {
-    let h = hex.replace('#', '');
-    if (h.length === 3) h = h.split('').map((c) => c + c).join('');
-    return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+    let digits = hex.replace('#', '');
+    if (digits.length === 3) digits = digits.split('').map((part) => part + part).join('');
+    return [0, 2, 4].map((i) => parseInt(digits.slice(i, i + 2), 16));
   }
 
   function luminance(hex) {
-    const [r, g, b] = toRgb(hex).map((v) => {
-      const s = v / 255;
-      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    const [red, green, blue] = toRgb(hex).map((channel) => {
+      const fraction = channel / 255;
+      return fraction <= 0.03928 ? fraction / 12.92 : Math.pow((fraction + 0.055) / 1.055, 2.4);
     });
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
   }
 
-  function contrast(a, b) {
-    const la = luminance(a), lb = luminance(b);
-    return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+  function contrast(first, second) {
+    const firstLuminance = luminance(first), secondLuminance = luminance(second);
+    return (Math.max(firstLuminance, secondLuminance) + 0.05) / (Math.min(firstLuminance, secondLuminance) + 0.05);
   }
 
   const onAccent = (accent) => (contrast(accent, '#ffffff') >= contrast(accent, '#0b1020') ? '#ffffff' : '#0b1020');
@@ -145,10 +145,10 @@ Structra.themeEngine = (() => {
   /* ---------- catalogue ---------- */
 
   const list = () => [...BUILT_IN, ...load().custom];
-  const get = (id) => list().find((t) => t.id === id) || null;
+  const get = (id) => list().find((theme) => theme.id === id) || null;
 
   function fallbackFor(mode) {
-    return get(mode === 'dark' ? load().dark : load().light) || BUILT_IN.find((t) => t.mode === mode);
+    return get(mode === 'dark' ? load().dark : load().light) || BUILT_IN.find((theme) => theme.mode === mode);
   }
 
   function systemMode() {
@@ -158,8 +158,8 @@ Structra.themeEngine = (() => {
   /** The theme in effect: a preview if one is open, otherwise the choice for the active mode */
   function current() {
     if (_preview) return { mode: _preview.mode, theme: _preview };
-    const s = load();
-    const mode = s.mode === 'system' ? systemMode() : s.mode;
+    const settings = load();
+    const mode = settings.mode === 'system' ? systemMode() : settings.mode;
     return { mode, theme: fallbackFor(mode) };
   }
 
@@ -175,13 +175,13 @@ Structra.themeEngine = (() => {
 
     // Base colours go on :root as inline custom properties; the CSS derives the rest from them
     for (const key of BASE_KEYS) {
-      const value = theme.colors[key] || (BUILT_IN.find((t) => t.mode === mode) || BUILT_IN[0]).colors[key];
+      const value = theme.colors[key] || (BUILT_IN.find((theme) => theme.mode === mode) || BUILT_IN[0]).colors[key];
       root.style.setProperty(CSS_VAR[key], value);
     }
     root.style.setProperty('--text-on-accent', onAccent(theme.colors.accent));
     // Status text drawn on its own tinted background: pulled toward the text colour so it stays readable (computed here, not with color-mix, which image export cannot read)
-    const towardText = (hex) => { const a = toRgb(hex), b = toRgb(theme.colors.text); return '#' + a.map((v, i) => Math.round(v * 0.78 + b[i] * 0.22).toString(16).padStart(2, '0')).join(''); };
-    for (const k of ['success', 'warning', 'danger']) root.style.setProperty('--' + k + '-ink', towardText(theme.colors[k] || '#000000'));
+    const towardText = (hex) => { const baseColor = toRgb(hex), textColor = toRgb(theme.colors.text); return '#' + baseColor.map((channel, i) => Math.round(channel * 0.78 + textColor[i] * 0.22).toString(16).padStart(2, '0')).join(''); };
+    for (const colorName of ['success', 'warning', 'danger']) root.style.setProperty('--' + colorName + '-ink', towardText(theme.colors[colorName] || '#000000'));
 
     const fonts = theme.fonts || {};
     const setFont = (cssVar, value) => {
@@ -213,9 +213,9 @@ Structra.themeEngine = (() => {
   function use(id) {
     const theme = get(id);
     if (!theme) return;
-    const s = load();
-    s[theme.mode] = id;
-    s.mode = theme.mode;          // picking a theme also switches to its mode
+    const settings = load();
+    settings[theme.mode] = id;
+    settings.mode = theme.mode;          // picking a theme also switches to its mode
     save();
     _preview = null;
     apply();
@@ -241,13 +241,13 @@ Structra.themeEngine = (() => {
     if (!name) errors.push('The theme needs a name.');
     if (input.mode !== 'light' && input.mode !== 'dark') errors.push('Mode must be "light" or "dark".');
 
-    const base = BUILT_IN.find((t) => t.mode === input.mode) || BUILT_IN[0];
+    const base = BUILT_IN.find((theme) => theme.mode === input.mode) || BUILT_IN[0];
     const colors = {};
     for (const key of BASE_KEYS) {
-      const v = input.colors && input.colors[key];
-      if (v === undefined) { colors[key] = base.colors[key]; continue; }     // missing colours fall back to the built-in of that mode
-      if (typeof v !== 'string' || !HEX.test(v)) errors.push('"' + key + '" must be a hex colour such as #3b5bdb.');
-      else colors[key] = v.toLowerCase();
+      const color = input.colors && input.colors[key];
+      if (color === undefined) { colors[key] = base.colors[key]; continue; }     // missing colours fall back to the built-in of that mode
+      if (typeof color !== 'string' || !HEX.test(color)) errors.push('"' + key + '" must be a hex colour such as #3b5bdb.');
+      else colors[key] = color.toLowerCase();
     }
 
     const theme = { name, mode: input.mode, colors };
@@ -266,44 +266,44 @@ Structra.themeEngine = (() => {
   function uniqueId(name) {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'theme';
     let id = 'custom-' + slug;
-    let n = 2;
-    while (get(id)) id = 'custom-' + slug + '-' + n++;
+    let suffix = 2;
+    while (get(id)) id = 'custom-' + slug + '-' + suffix++;
     return id;
   }
 
   /** Save a custom theme (new, or an update when it already has a custom id) */
   function saveCustom(input) {
     const clean = sanitize({ format: FORMAT, ...input });
-    const s = load();
-    const existing = input.id && s.custom.find((t) => t.id === input.id);
+    const settings = load();
+    const existing = input.id && settings.custom.find((theme) => theme.id === input.id);
     if (existing) {
       Object.assign(existing, clean);
       save();
-      if (s[existing.mode] === existing.id) apply();
+      if (settings[existing.mode] === existing.id) apply();
       return existing.id;
     }
     const id = uniqueId(clean.name);
-    s.custom.push({ id, ...clean });
+    settings.custom.push({ id, ...clean });
     save();
     return id;
   }
 
   function deleteCustom(id) {
-    const s = load();
-    const theme = s.custom.find((t) => t.id === id);
+    const settings = load();
+    const theme = settings.custom.find((theme) => theme.id === id);
     if (!theme) return;
-    s.custom = s.custom.filter((t) => t.id !== id);
-    if (s.light === id) s.light = DEFAULTS.light;
-    if (s.dark === id) s.dark = DEFAULTS.dark;
+    settings.custom = settings.custom.filter((theme) => theme.id !== id);
+    if (settings.light === id) settings.light = DEFAULTS.light;
+    if (settings.dark === id) settings.dark = DEFAULTS.dark;
     save();
     apply();
   }
 
   function exportJson(id) {
-    const t = get(id);
-    if (!t) throw new Error('Theme not found');
-    const out = { format: FORMAT, version: 1, name: t.name, mode: t.mode, colors: { ...t.colors } };
-    if (t.fonts) out.fonts = { ...t.fonts };
+    const theme = get(id);
+    if (!theme) throw new Error('Theme not found');
+    const out = { format: FORMAT, version: 1, name: theme.name, mode: theme.mode, colors: { ...theme.colors } };
+    if (theme.fonts) out.fonts = { ...theme.fonts };
     return JSON.stringify(out, null, 2);
   }
 
@@ -317,9 +317,9 @@ Structra.themeEngine = (() => {
 
   // Follow the operating system while the mode is "system"
   if (window.matchMedia) {
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => { if (load().mode === 'system') apply(); };
-    if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
+    if (darkQuery.addEventListener) darkQuery.addEventListener('change', onChange); else if (darkQuery.addListener) darkQuery.addListener(onChange);
   }
 
   apply();          // before first paint
@@ -334,15 +334,15 @@ Structra.themeEngine = (() => {
     snapshot: () => JSON.parse(JSON.stringify(load())),
     restore(snap) {
       if (!snap || typeof snap !== 'object') return;
-      const s = load();
-      if (['light', 'dark', 'system'].includes(snap.mode)) s.mode = snap.mode;
+      const settings = load();
+      if (['light', 'dark', 'system'].includes(snap.mode)) settings.mode = snap.mode;
       if (Array.isArray(snap.custom)) {
-        for (const t of snap.custom) {
-          try { if (!get(t.id)) s.custom.push({ id: String(t.id), ...sanitize({ format: FORMAT, ...t }) }); } catch { /* skip an invalid theme */ }
+        for (const theme of snap.custom) {
+          try { if (!get(theme.id)) settings.custom.push({ id: String(theme.id), ...sanitize({ format: FORMAT, ...theme }) }); } catch { /* skip an invalid theme */ }
         }
       }
-      if (get(snap.light)) s.light = snap.light;
-      if (get(snap.dark)) s.dark = snap.dark;
+      if (get(snap.light)) settings.light = snap.light;
+      if (get(snap.dark)) settings.dark = snap.dark;
       save();
       apply();
     },

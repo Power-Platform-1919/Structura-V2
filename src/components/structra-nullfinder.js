@@ -35,10 +35,10 @@ class StructraNullfinder extends StructraDialog {
           <button class="nf-nav-btn" data-action="next">Next ${Structra.icons.svg('chevron-right', { size: 14 })}</button>
         </div>` });
 
-    this.addEventListener('click', (e) => {
-      const item = e.target.closest('[data-nf-path]');
+    this.addEventListener('click', (event) => {
+      const item = event.target.closest('[data-nf-path]');
       if (item) { this._goToPath(item.dataset.nfPath); return; }
-      const action = e.target.closest('[data-action]');
+      const action = event.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
       if (a === 'close') this.close();
@@ -52,23 +52,23 @@ class StructraNullfinder extends StructraDialog {
 
   /** Show a result in the Tree (the other views have no place to show a path) */
   _goToPath(path) {
-    const p = Structra.dataPaths.canonical(path);
+    const canonicalPath = Structra.dataPaths.canonical(path);
     if (!['tree', 'table', 'graph', 'schema'].includes(Structra.state.activeView)) Structra.setState('activeView', 'tree');
-    Structra.setState('currentPath', p);
-    setTimeout(() => Structra.events.emit('tree:navigate-path', p), 80);
+    Structra.setState('currentPath', canonicalPath);
+    setTimeout(() => Structra.events.emit('tree:navigate-path', canonicalPath), 80);
   }
 
   _scan() {
     const data = Structra.state.jsonData;
     if (!data) { Structra.toast('Open a file first', 'warning'); return; }
-    const opts = {
+    const options = {
       nulls: this.queryOne('#nfNull').checked,
       empty: this.queryOne('#nfEmpty').checked,
       undef: this.queryOne('#nfUndef').checked,
       zero: false,
       falsy: false,
     };
-    this._results = this._scanInMemory(data, opts);
+    this._results = this._scanInMemory(data, options);
     this._idx = -1;
     this._renderResults();
   }
@@ -77,28 +77,28 @@ class StructraNullfinder extends StructraDialog {
    * Walk the whole document. null, empty, zero and false are reported wherever they are.
    * A key counts as missing only against the other records of the same list: records that have it, one that does not.
    */
-  _scanInMemory(data, opts) {
+  _scanInMemory(data, options) {
     const results = [];
-    const key = (path, k) => (/^[A-Za-z_$][\w$]*$/.test(k) ? `${path}.${k}` : `${path}['${k}']`);
-    const walk = (val, path) => {
-      if (val === null) { if (opts.nulls) results.push({ path, type: 'null' }); return; }
-      if (val === '') { if (opts.empty) results.push({ path, type: 'empty' }); return; }
-      if (val === 0) { if (opts.zero) results.push({ path, type: 'zero' }); return; }
-      if (val === false) { if (opts.falsy) results.push({ path, type: 'false' }); return; }
-      if (typeof val !== 'object') return;
-      if (Array.isArray(val)) {
-        const records = val.filter((r) => r && typeof r === 'object' && !Array.isArray(r));
-        if (opts.undef && records.length > 1) {
+    const key = (path, key) => (/^[A-Za-z_$][\w$]*$/.test(key) ? `${path}.${key}` : `${path}['${key}']`);
+    const walk = (value, path) => {
+      if (value === null) { if (options.nulls) results.push({ path, type: 'null' }); return; }
+      if (value === '') { if (options.empty) results.push({ path, type: 'empty' }); return; }
+      if (value === 0) { if (options.zero) results.push({ path, type: 'zero' }); return; }
+      if (value === false) { if (options.falsy) results.push({ path, type: 'false' }); return; }
+      if (typeof value !== 'object') return;
+      if (Array.isArray(value)) {
+        const records = value.filter((record) => record && typeof record === 'object' && !Array.isArray(record));
+        if (options.undef && records.length > 1) {
           const all = new Set();
-          records.forEach((r) => Object.keys(r).forEach((k) => all.add(k)));
-          val.forEach((r, i) => {
-            if (!r || typeof r !== 'object' || Array.isArray(r)) return;
-            for (const k of all) if (!(k in r)) results.push({ path: key(`${path}[${i}]`, k), type: 'missing' });
+          records.forEach((record) => Object.keys(record).forEach((key) => all.add(key)));
+          value.forEach((record, i) => {
+            if (!record || typeof record !== 'object' || Array.isArray(record)) return;
+            for (const k of all) if (!(k in record)) results.push({ path: key(`${path}[${i}]`, k), type: 'missing' });
           });
         }
-        val.forEach((v, i) => walk(v, `${path}[${i}]`));
+        value.forEach((child, i) => walk(child, `${path}[${i}]`));
       } else {
-        for (const k of Object.keys(val)) walk(val[k], key(path, k));
+        for (const k of Object.keys(value)) walk(value[k], key(path, k));
       }
     };
     walk(data, '$');
@@ -119,30 +119,30 @@ class StructraNullfinder extends StructraDialog {
 
     // One line per field (value[*].Notes), with how many of each kind, so a column that is mostly empty stands out
     const groups = new Map();
-    this._results.forEach((r, i) => {
-      const pattern = r.path.replace(/\[\d+\]/g, '[*]');
-      if (!groups.has(pattern)) groups.set(pattern, { pattern, first: r.path, counts: {}, total: 0, firstIdx: i });
-      const g = groups.get(pattern);
-      g.counts[r.type] = (g.counts[r.type] || 0) + 1;
-      g.total++;
+    this._results.forEach((result, i) => {
+      const pattern = result.path.replace(/\[\d+\]/g, '[*]');
+      if (!groups.has(pattern)) groups.set(pattern, { pattern, first: result.path, counts: {}, total: 0, firstIdx: i });
+      const group = groups.get(pattern);
+      group.counts[result.type] = (group.counts[result.type] || 0) + 1;
+      group.total++;
     });
-    const rows = [...groups.values()].sort((a, b) => b.total - a.total);
+    const rows = [...groups.values()].sort((action, second) => second.total - action.total);
     const esc = Structra.sharedHelpers.escapeHtml;
-    container.innerHTML = rows.slice(0, 200).map((g) => `
-      <div class="nf-item" data-nf-path="${esc(g.first)}" data-nf-idx="${g.firstIdx}" title="Show the first one">
-        <span class="nf-path">${esc(g.pattern)}</span>
-        <span class="nf-kinds">${Object.entries(g.counts).map(([t, n]) => `<span class="nf-badge nf-badge-${t}">${n.toLocaleString()} ${t}</span>`).join('')}</span>
+    container.innerHTML = rows.slice(0, 200).map((group) => `
+      <div class="nf-item" data-nf-path="${esc(group.first)}" data-nf-idx="${group.firstIdx}" title="Show the first one">
+        <span class="nf-path">${esc(group.pattern)}</span>
+        <span class="nf-kinds">${Object.entries(group.counts).map(([key, value]) => `<span class="nf-badge nf-badge-${key}">${value.toLocaleString()} ${key}</span>`).join('')}</span>
       </div>`).join('') + (rows.length > 200 ? `<div class="nf-more">…and ${rows.length - 200} more fields</div>` : '');
   }
 
-  _navigate(dir) {
+  _navigate(direction) {
     if (this._results.length === 0) return;
-    this._idx = (this._idx + dir + this._results.length) % this._results.length;
+    this._idx = (this._idx + direction + this._results.length) % this._results.length;
     this.queryOne('#nfNavCount').textContent = `${this._idx + 1} of ${this._results.length.toLocaleString()}`;
-    const r = this._results[this._idx];
-    this._goToPath(r.path);
-    const pattern = r.path.replace(/\[\d+\]/g, '[*]');
-    this.querySelectorAll('.nf-item').forEach((el) => el.classList.toggle('nf-active', el.querySelector('.nf-path').textContent === pattern));
+    const result = this._results[this._idx];
+    this._goToPath(result.path);
+    const pattern = result.path.replace(/\[\d+\]/g, '[*]');
+    this.querySelectorAll('.nf-item').forEach((element) => element.classList.toggle('nf-active', element.querySelector('.nf-path').textContent === pattern));
   }
 
 }

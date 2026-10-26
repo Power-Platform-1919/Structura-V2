@@ -15,21 +15,21 @@ class StructraDrawer extends StructraComponent {
   init() {
     this._stateIdx = 0; // 0=collapsed, 1=medium, 2=expanded
     this.on('drawer:show', (id) => this._switchTab(id));
-    this.on('state:drawerState', (d) => {
-      Structra.log.debug('Drawer', 'drawerState → ' + d.value);
-      this._stateIdx = Structra.constants.DRAWER_STATES.indexOf(d.value);
+    this.on('state:drawerState', (change) => {
+      Structra.log.debug('Drawer', 'drawerState → ' + change.value);
+      this._stateIdx = Structra.constants.DRAWER_STATES.indexOf(change.value);
       this._applyState();
     });
     // The Overview already shows what the Analyze tab shows, so the drawer stays folded there and opens in the other views
     const analyzeOpen = () => (this.queryOne('.drawer-tabs .tab.active') || {}).dataset?.tab === 'analyze';
-    this.on('state:activeView', (d) => {
+    this.on('state:activeView', (change) => {
       if (!Structra.state.jsonData) return;
-      if (d.value === 'overview' && analyzeOpen() && this._stateIdx !== 0) {
+      if (change.value === 'overview' && analyzeOpen() && this._stateIdx !== 0) {
         this._autoFolded = true;
         this._stateIdx = 0;
         Structra.setState('drawerState', 'collapsed');
         this._applyState();
-      } else if (d.value !== 'overview' && this._autoFolded) {
+      } else if (change.value !== 'overview' && this._autoFolded) {
         this._autoFolded = false;
         this._stateIdx = 1;
         Structra.setState('drawerState', 'medium');
@@ -38,18 +38,18 @@ class StructraDrawer extends StructraComponent {
     });
     // A newly opened document starts on the Analyze tab: the tab you were on belonged to the previous document
     this.on('engine:ingested', () => { if ((this.queryOne('.drawer-tabs .tab.active') || {}).dataset?.tab !== 'analyze') this._switchTab('analyze'); });
-    this.on('state:jsonData', (d) => {
-      this.hidden = !d.value;
-      if (d.value && this._stateIdx === 0 && Structra.state.activeView === 'overview' && analyzeOpen()) {
+    this.on('state:jsonData', (change) => {
+      this.hidden = !change.value;
+      if (change.value && this._stateIdx === 0 && Structra.state.activeView === 'overview' && analyzeOpen()) {
         this._autoFolded = true;                    // stays folded on the Overview, opens when another view is chosen
-      } else if (d.value && this._stateIdx === 0 && window.innerHeight <= 700) {
+      } else if (change.value && this._stateIdx === 0 && window.innerHeight <= 700) {
         // A short laptop screen keeps the panel folded: the Tree and Table get the height, and the tabs open it on demand
         this._autoFolded = false;
-      } else if (d.value && this._stateIdx === 0) {
+      } else if (change.value && this._stateIdx === 0) {
         Structra.log.debug('Drawer', 'Data loaded - expanding to medium');
         this._stateIdx = 1;
         this._applyState();
-      } else if (!d.value) {
+      } else if (!change.value) {
         Structra.log.debug('Drawer', 'Data cleared - collapsing');
         this._stateIdx = 0;
         this._applyState();
@@ -72,20 +72,20 @@ class StructraDrawer extends StructraComponent {
           ${Structra.icons.svg('chevron-up', { cls: 'drawer-chevron' })}
         </button>
         <div class="tabs drawer-tabs" role="tablist" aria-label="Panels">
-          ${tabs.map((t, i) => `<button class="tab ${i === 0 ? 'active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-tab="${t.id}">${t.label}</button>`).join('')}
+          ${tabs.map((tab, i) => `<button class="tab ${i === 0 ? 'active' : ''}" type="button" role="tab" aria-selected="${i === 0}" data-tab="${tab.id}">${tab.label}</button>`).join('')}
         </div>
         <button class="drawer-max" type="button" data-action="maximise" aria-label="Make the panel taller" title="Make the panel taller or smaller">${Structra.icons.svg('maximize-2', { size: 14 })}</button>
       </div>
       <div class="drawer-body">
-        ${tabs.map((t, i) => `<div class="drawer-panel ${i === 0 ? 'active' : ''}" data-panel="${t.id}" id="dp-${t.id}">${panelTag[t.id] ? `<${panelTag[t.id]}></${panelTag[t.id]}>` : ''}</div>`).join('')}
+        ${tabs.map((tab, i) => `<div class="drawer-panel ${i === 0 ? 'active' : ''}" data-panel="${tab.id}" id="dp-${tab.id}">${panelTag[tab.id] ? `<${panelTag[tab.id]}></${panelTag[tab.id]}>` : ''}</div>`).join('')}
       </div>`;
 
     this.hidden = !Structra.state.jsonData;
     this._applyState();
     this._initResize();
 
-    this.addEventListener('click', (e) => {
-      if (e.target.closest('[data-action="maximise"]')) {
+    this.addEventListener('click', (event) => {
+      if (event.target.closest('[data-action="maximise"]')) {
         const states = Structra.constants.DRAWER_STATES;
         this.classList.remove('resizing'); this.style.height = '';
         this._stateIdx = this._stateIdx === 2 ? 1 : 2;
@@ -93,11 +93,11 @@ class StructraDrawer extends StructraComponent {
         this._applyState();
         return;
       }
-      if (e.target.closest('[data-action="cycle"]')) {
+      if (event.target.closest('[data-action="cycle"]')) {
         this._cycle();
         return;
       }
-      const navBtn = e.target.closest('[data-tab]');
+      const navBtn = event.target.closest('[data-tab]');
       if (navBtn) this._switchTab(navBtn.dataset.tab);
     });
   }
@@ -107,8 +107,8 @@ class StructraDrawer extends StructraComponent {
     if (!bar) return;
 
     let startY, startH;
-    const onMove = (e) => {
-      const delta = startY - e.clientY;
+    const onMove = (event) => {
+      const delta = startY - event.clientY;
       const newH = Math.max(36, Math.min(window.innerHeight * 0.6, startH + delta));
       this.style.height = newH + 'px';
     };
@@ -121,11 +121,11 @@ class StructraDrawer extends StructraComponent {
       try { localStorage.setItem('structra.drawerH', String(Math.round(this.offsetHeight))); } catch { /* storage blocked */ }
     };
 
-    bar.addEventListener('mousedown', (e) => {
-      e.preventDefault();
+    bar.addEventListener('mousedown', (event) => {
+      event.preventDefault();
       // Switch to custom height mode - remove class-driven height
       this.classList.add('resizing');
-      startY = e.clientY;
+      startY = event.clientY;
       startH = this.offsetHeight;
       document.body.style.cursor = 'ns-resize';
       document.body.style.userSelect = 'none';
@@ -172,14 +172,14 @@ class StructraDrawer extends StructraComponent {
   }
 
   _switchTab(id) {
-    this.queryAll('.drawer-tabs .tab').forEach(b => { b.classList.toggle('active', b.dataset.tab === id); b.setAttribute('aria-selected', String(b.dataset.tab === id)); });
+    this.queryAll('.drawer-tabs .tab').forEach(button => { button.classList.toggle('active', button.dataset.tab === id); button.setAttribute('aria-selected', String(button.dataset.tab === id)); });
     // Choosing a tab while the drawer is folded away opens it
     if (this.classList.contains('collapsed')) {
       this._stateIdx = 1;
       Structra.setState('drawerState', Structra.constants.DRAWER_STATES[1]);
       this._applyState();
     }
-    this.queryAll('.drawer-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === id));
+    this.queryAll('.drawer-panel').forEach(panel => panel.classList.toggle('active', panel.dataset.panel === id));
     Structra.events.emit('drawer:tab-switched', id);
   }
 

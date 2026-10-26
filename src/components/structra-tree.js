@@ -18,7 +18,7 @@ class StructraTree extends StructraComponent {
   init() {
     this._wrap = false;
     this.on('state:jsonData', () => this.renderTree());
-    this.on('state:currentPath', (d) => this._highlightPath(d.value));
+    this.on('state:currentPath', (change) => this._highlightPath(change.value));
     this.on('bookmarks:changed', () => this._markBookmarks());
     this.on('tree:expand-all', () => this._expandAll());
     this.on('tree:collapse-all', () => this._collapseAll());
@@ -54,32 +54,32 @@ class StructraTree extends StructraComponent {
   /** Up and Down move between lines, Right opens and Left closes a block, Enter selects the line */
   _bindKeys() {
     const view = this._getView();
-    view.addEventListener('keydown', (e) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Home', 'End'].includes(e.key)) return;
-      const lines = [...view.querySelectorAll('.j-line')].filter((l) => l.offsetParent !== null);
+    view.addEventListener('keydown', (event) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Home', 'End'].includes(event.key)) return;
+      const lines = [...view.querySelectorAll('.j-line')].filter((line) => line.offsetParent !== null);
       if (!lines.length) return;
-      e.preventDefault();
-      let cur = lines.indexOf(this._kcur);
-      if (cur < 0) cur = lines.findIndex((l) => l.classList.contains('highlighted'));
-      const select = (l) => {
-        if (!l) return;
+      event.preventDefault();
+      let current = lines.indexOf(this._kcur);
+      if (current < 0) current = lines.findIndex((line) => line.classList.contains('highlighted'));
+      const select = (line) => {
+        if (!line) return;
         view.querySelectorAll('.j-line.highlighted').forEach((x) => x.classList.remove('highlighted'));
-        l.classList.add('highlighted');
-        this._kcur = l;
-        const p = Structra.dataPaths.canonical(l.dataset.path);
-        Structra.setState('currentPath', p);
-        Structra.events.emit('tree:node-selected', p);
-        l.scrollIntoView({ block: 'nearest' });
+        line.classList.add('highlighted');
+        this._kcur = line;
+        const path = Structra.dataPaths.canonical(line.dataset.path);
+        Structra.setState('currentPath', path);
+        Structra.events.emit('tree:node-selected', path);
+        line.scrollIntoView({ block: 'nearest' });
       };
-      const toggle = cur >= 0 ? lines[cur].querySelector('.j-toggle') : null;
+      const toggle = current >= 0 ? lines[current].querySelector('.j-toggle') : null;
       const open = toggle && toggle.textContent.trim() === '\u25BC';
-      if (e.key === 'ArrowDown') select(lines[Math.min(lines.length - 1, cur + 1)]);
-      else if (e.key === 'ArrowUp') select(lines[Math.max(0, cur - 1)]);
-      else if (e.key === 'Home') select(lines[0]);
-      else if (e.key === 'End') select(lines[lines.length - 1]);
-      else if (e.key === 'ArrowRight') { if (toggle && !open) toggle.click(); else select(lines[Math.min(lines.length - 1, cur + 1)]); }
-      else if (e.key === 'ArrowLeft') { if (toggle && open) toggle.click(); }
-      else if (cur >= 0) { if (toggle && e.key === ' ') toggle.click(); else select(lines[cur]); }
+      if (event.key === 'ArrowDown') select(lines[Math.min(lines.length - 1, current + 1)]);
+      else if (event.key === 'ArrowUp') select(lines[Math.max(0, current - 1)]);
+      else if (event.key === 'Home') select(lines[0]);
+      else if (event.key === 'End') select(lines[lines.length - 1]);
+      else if (event.key === 'ArrowRight') { if (toggle && !open) toggle.click(); else select(lines[Math.min(lines.length - 1, current + 1)]); }
+      else if (event.key === 'ArrowLeft') { if (toggle && open) toggle.click(); }
+      else if (current >= 0) { if (toggle && event.key === ' ') toggle.click(); else select(lines[current]); }
       else select(lines[0]);
     });
   }
@@ -98,7 +98,7 @@ class StructraTree extends StructraComponent {
     }
     const itemCount = Array.isArray(data) ? data.length : Object.keys(data).length;
     Structra.log.info('Tree', 'renderTree() - ' + itemCount + ' top-level items');
-    const t0 = performance.now();
+    const startTime = performance.now();
 
     // Render using V2 json-tree renderer
     Structra.jsonTreeRenderer.render(view, data, {
@@ -118,7 +118,7 @@ class StructraTree extends StructraComponent {
     this._markBookmarks();
     if (this._wrap) view.classList.add('wrap-mode');
     Structra.events.emit('tree:rendered');
-    Structra.log.perf('Tree', 'renderTree()', performance.now() - t0);
+    Structra.log.perf('Tree', 'renderTree()', performance.now() - startTime);
   }
 
   /** Show the bookmark marker on bookmarked lines that are currently rendered */
@@ -160,9 +160,9 @@ class StructraTree extends StructraComponent {
   _showContextMenu(x, y, path) {
     this._dismissCtxMenu();
     const data = Structra.state.jsonData;
-    const val = this._resolve(data, path);
-    const isObj = val !== null && typeof val === 'object';
-    const isArray = Array.isArray(val);
+    const value = this._resolve(data, path);
+    const isObj = value !== null && typeof value === 'object';
+    const isArray = Array.isArray(value);
 
     const menu = document.createElement('div');
     menu.className = 'tree-ctx-menu';
@@ -178,35 +178,35 @@ class StructraTree extends StructraComponent {
       { id: 'sql', label: 'SQL' },
     ];
 
-    const ic = (name) => `<span class="tree-ctx-icon">${Structra.icons.svg(name, { size: 14 })}</span>`;
-    const scalar = val !== null && val !== undefined && !isObj;
+    const iconSpan = (name) => `<span class="tree-ctx-icon">${Structra.icons.svg(name, { size: 14 })}</span>`;
+    const scalar = value !== null && value !== undefined && !isObj;
     // A text value that holds JSON (a flow run's Payload) can be opened and read as data
     let inner = null;
-    if (typeof val === 'string' && /^\s*[\[{]/.test(val)) { try { const p = JSON.parse(val); if (p && typeof p === 'object') inner = p; } catch { /* just text */ } }
+    if (typeof value === 'string' && /^\s*[\[{]/.test(value)) { try { const parsed = JSON.parse(value); if (parsed && typeof parsed === 'object') inner = parsed; } catch { /* just text */ } }
     menu.innerHTML = `
-      <div class="tree-ctx-item" data-ctx="copy-path">${ic('copy')} Copy path</div>
-      <div class="tree-ctx-item" data-ctx="copy-value">${ic('clipboard')} Copy value</div>
-      ${isObj ? `<div class="tree-ctx-item" data-ctx="copy-subtree">${ic('braces')} Copy as JSON</div>` : ''}
+      <div class="tree-ctx-item" data-ctx="copy-path">${iconSpan('copy')} Copy path</div>
+      <div class="tree-ctx-item" data-ctx="copy-value">${iconSpan('clipboard')} Copy value</div>
+      ${isObj ? `<div class="tree-ctx-item" data-ctx="copy-subtree">${iconSpan('braces')} Copy as JSON</div>` : ''}
       <div class="tree-ctx-sep"></div>
-      <div class="tree-ctx-item" data-ctx="copy-pa">${ic('zap')} Copy Power Automate expression</div>
-      <div class="tree-ctx-item" data-ctx="copy-fx">${ic('zap')} Copy Power Fx formula</div>
-      <div class="tree-ctx-item tree-ctx-sub-parent" data-ctx="copy-as">${ic('code-xml')} Copy as type definition
+      <div class="tree-ctx-item" data-ctx="copy-pa">${iconSpan('zap')} Copy Power Automate expression</div>
+      <div class="tree-ctx-item" data-ctx="copy-fx">${iconSpan('zap')} Copy Power Fx formula</div>
+      <div class="tree-ctx-item tree-ctx-sub-parent" data-ctx="copy-as">${iconSpan('code-xml')} Copy as type definition
         <div class="tree-ctx-submenu">
-          ${codeGenLangs.map(l => `<div class="tree-ctx-item" data-ctx="gen" data-lang="${l.id}">${l.label}</div>`).join('')}
+          ${codeGenLangs.map(line => `<div class="tree-ctx-item" data-ctx="gen" data-lang="${line.id}">${line.label}</div>`).join('')}
         </div>
       </div>
       <div class="tree-ctx-sep"></div>
-      ${isArray && val.length && val[0] && typeof val[0] === 'object' ? `<div class="tree-ctx-item" data-ctx="expand-here">${ic('table')} Show as a table</div>` : ''}
-      ${inner ? `<div class="tree-ctx-item" data-ctx="open-json-text">${ic('braces')} Open this text as JSON in a new tab</div>` : ''}
-      ${scalar ? `<div class="tree-ctx-item" data-ctx="find-value">${ic('search')} Find this value</div>` : ''}
-      <div class="tree-ctx-item" data-ctx="mock">${ic('dices')} Copy mock data</div>
-      <div class="tree-ctx-item" data-ctx="bookmark">${ic('bookmark')} ${Structra.bookmarks.has(path) ? 'Remove bookmark' : 'Bookmark'}</div>
+      ${isArray && value.length && value[0] && typeof value[0] === 'object' ? `<div class="tree-ctx-item" data-ctx="expand-here">${iconSpan('table')} Show as a table</div>` : ''}
+      ${inner ? `<div class="tree-ctx-item" data-ctx="open-json-text">${iconSpan('braces')} Open this text as JSON in a new tab</div>` : ''}
+      ${scalar ? `<div class="tree-ctx-item" data-ctx="find-value">${iconSpan('search')} Find this value</div>` : ''}
+      <div class="tree-ctx-item" data-ctx="mock">${iconSpan('dices')} Copy mock data</div>
+      <div class="tree-ctx-item" data-ctx="bookmark">${iconSpan('bookmark')} ${Structra.bookmarks.has(path) ? 'Remove bookmark' : 'Bookmark'}</div>
     `;
 
-    menu.addEventListener('click', (e) => {
-      const item = e.target.closest('[data-ctx]');
+    menu.addEventListener('click', (event) => {
+      const item = event.target.closest('[data-ctx]');
       if (!item) return;
-      this._execCtxAction(item.dataset.ctx, path, val, item.dataset.lang);
+      this._execCtxAction(item.dataset.ctx, path, value, item.dataset.lang);
       this._dismissCtxMenu();
     });
 
@@ -220,8 +220,8 @@ class StructraTree extends StructraComponent {
       if (rect.bottom > window.innerHeight) menu.style.top = `${y - rect.height}px`;
     });
 
-    const close = (e) => {
-      if (!menu.contains(e.target)) {
+    const close = (event) => {
+      if (!menu.contains(event.target)) {
         this._dismissCtxMenu();
         document.removeEventListener('mousedown', close);
       }
@@ -236,47 +236,47 @@ class StructraTree extends StructraComponent {
     }
   }
 
-  async _execCtxAction(action, path, val, lang) {
+  async _execCtxAction(action, path, value, lang) {
     switch (action) {
       case 'copy-path':
         Structra.sharedHelpers.copyToClipboard(path, 'Path copied');
         break;
       case 'copy-value': {
-        const text = val === null ? 'null' : typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
+        const text = value === null ? 'null' : typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
         Structra.sharedHelpers.copyToClipboard(text, 'Value copied');
         break;
       }
       case 'open-json-text': {
         try {
-          const inner = JSON.parse(val);
-          const cmd = document.querySelector('structra-command');
+          const inner = JSON.parse(value);
+          const command = document.querySelector('structra-command');
           const leaf = String(path).split('.').pop().replace(/\[\d+\]$/, '') || 'text';
-          const ok = await cmd._openInNewTab(inner, leaf);
+          const ok = await command._openInNewTab(inner, leaf);
           if (!ok) Structra.toast('Close a tab first: the limit of open tabs is reached.', 'warning');
         } catch { Structra.toast('This text is not valid JSON, so it cannot be opened', 'error'); }
         break;
       }
       case 'copy-subtree': {
-        const json = JSON.stringify(val, null, 2);
+        const json = JSON.stringify(value, null, 2);
         Structra.sharedHelpers.copyToClipboard(json, 'Subtree copied');
         break;
       }
       case 'gen': {
         if (!lang) break;
         try {
-          const code = Structra.typeCodeGenerator.generate(lang, val, 'Data');
+          const code = Structra.typeCodeGenerator.generate(lang, value, 'Data');
           Structra.sharedHelpers.copyToClipboard(code, `Copied as ${lang}`);
-        } catch (e) {
-          Structra.toast('Could not generate the code: ' + e.message, 'error');
+        } catch (event) {
+          Structra.toast('Could not generate the code: ' + event.message, 'error');
         }
         break;
       }
       case 'expand-here': {
         // If it's an array of objects, switch to table view focused on this path
-        if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+        if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
           Structra.setState('activeView', 'table');
-          Structra.toast(`Showing ${val.length} items in table`);
-        } else if (typeof val === 'object' && val !== null) {
+          Structra.toast(`Showing ${value.length} items in table`);
+        } else if (typeof value === 'object' && value !== null) {
           // Single object - show key/value pairs
           Structra.setState('activeView', 'table');
         }
@@ -284,7 +284,7 @@ class StructraTree extends StructraComponent {
       }
       case 'mock': {
         try {
-          const mocked = Structra.mockDataGenerator.generate(val, 3);
+          const mocked = Structra.mockDataGenerator.generate(value, 3);
           Structra.sharedHelpers.copyToClipboard(JSON.stringify(mocked, null, 2), 'Mock data copied');
         } catch { Structra.toast('Could not make sample data', 'error'); }
         break;
@@ -295,12 +295,12 @@ class StructraTree extends StructraComponent {
       case 'copy-pa':
       case 'copy-fx': {
         const want = action === 'copy-pa' ? 'Power Automate' : 'Power Fx';
-        const row = Structra.powerPlatformExpressions.quick(path, val).filter((r) => r.app === want)[0];
+        const row = Structra.powerPlatformExpressions.quick(path, value).filter((row) => row.app === want)[0];
         if (row) Structra.sharedHelpers.copyToClipboard(row.code, row.label + ' copied');
         break;
       }
       case 'find-value':
-        if (val !== null && val !== undefined && typeof val !== 'object') Structra.events.emit('find:prefill', String(val));
+        if (value !== null && value !== undefined && typeof value !== 'object') Structra.events.emit('find:prefill', String(value));
         break;
     }
   }
@@ -310,12 +310,12 @@ class StructraTree extends StructraComponent {
     return Structra.dataPaths.resolve(data, path);
   }
 
-  _preview(val) {
-    if (val === null) return 'null';
-    if (typeof val === 'string') return val.length > 30 ? val.slice(0, 27) + '…' : val;
-    if (Array.isArray(val)) return `[${val.length}]`;
-    if (typeof val === 'object') return `{${Object.keys(val).length} keys}`;
-    return String(val);
+  _preview(value) {
+    if (value === null) return 'null';
+    if (typeof value === 'string') return value.length > 30 ? value.slice(0, 27) + '…' : value;
+    if (Array.isArray(value)) return `[${value.length}]`;
+    if (typeof value === 'object') return `{${Object.keys(value).length} keys}`;
+    return String(value);
   }
 
   connectedCallback() {

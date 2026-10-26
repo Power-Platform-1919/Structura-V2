@@ -50,18 +50,18 @@ class StructraSchemaGen extends StructraComponent {
       </div>
       <pre class="sg-output" id="sgOutput"></pre>`;
 
-    this.addEventListener('click', (e) => {
-      if (!e.target.closest('[data-action="copy"]')) return;
+    this.addEventListener('click', (event) => {
+      if (!event.target.closest('[data-action="copy"]')) return;
       const text = this.queryOne('#sgOutput').dataset.schema;
       if (!text) { Structra.toast('No schema to copy'); return; }
       Structra.sharedHelpers.copyToClipboard(text, 'Schema copied');
     });
-    this.addEventListener('change', (e) => {
-      const a = e.target.dataset && e.target.dataset.action;
-      if (a === 'integers') this._integers = e.target.checked;
-      else if (a === 'required') this._required = e.target.checked;
-      else if (a === 'all-items') this._allItems = e.target.checked;
-      else if (a === 'selected') this._selected = e.target.checked;
+    this.addEventListener('change', (event) => {
+      const action = event.target.dataset && event.target.dataset.action;
+      if (action === 'integers') this._integers = event.target.checked;
+      else if (action === 'required') this._required = event.target.checked;
+      else if (action === 'all-items') this._allItems = event.target.checked;
+      else if (action === 'selected') this._selected = event.target.checked;
       else return;
       this._stale = true;
       this._refresh();
@@ -74,9 +74,9 @@ class StructraSchemaGen extends StructraComponent {
   _syncScope() {
     const label = this.queryOne('#sgScope');
     if (!label) return;
-    const p = Structra.state.currentPath;
-    const usable = !!p && p !== '$';
-    label.textContent = usable ? 'Only the selected value (' + p.replace(/^\$\.?/, '') + ')' : 'Only the selected value (select one in the Tree)';
+    const path = Structra.state.currentPath;
+    const usable = !!path && path !== '$';
+    label.textContent = usable ? 'Only the selected value (' + path.replace(/^\$\.?/, '') + ')' : 'Only the selected value (select one in the Tree)';
     const box = this.queryOne('[data-action="selected"]');
     box.disabled = !usable;
     if (!usable && this._selected) { this._selected = false; box.checked = false; this._stale = true; this._refresh(); }
@@ -98,13 +98,13 @@ class StructraSchemaGen extends StructraComponent {
       return;
     }
     try {
-      const opts = { integers: this._integers, required: this._required };
-      const schema = this._allItems ? Structra.parseJsonSchemaGenerator.smart(data, opts) : Structra.parseJsonSchemaGenerator.basic(data, opts);
+      const options = { integers: this._integers, required: this._required };
+      const schema = this._allItems ? Structra.parseJsonSchemaGenerator.smart(data, options) : Structra.parseJsonSchemaGenerator.basic(data, options);
       const text = JSON.stringify(schema, null, 2);
       out.dataset.schema = text;
       Structra.codeView.colorize(out, text, 'json');
-    } catch (err) {
-      Structra.log.error('SchemaGen', 'Schema generation failed', err);
+    } catch (error) {
+      Structra.log.error('SchemaGen', 'Schema generation failed', error);
       out.dataset.schema = '';
       out.textContent = 'Could not generate a schema for this data';
     }

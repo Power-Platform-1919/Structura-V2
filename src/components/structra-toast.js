@@ -10,7 +10,7 @@ class StructraToast extends StructraComponent {
   static get observedAttributes() { return ['duration']; }
 
   init() {
-    this.on('toast', (t) => this.show(t));
+    this.on('toast', (toast) => this.show(toast));
     // A message with a button needs time to be clicked: hovering keeps it open
     this.addEventListener('mouseenter', () => clearTimeout(this._timer));
     this.addEventListener('mouseleave', () => this._startHideTimer());
@@ -30,15 +30,15 @@ class StructraToast extends StructraComponent {
     });
   }
 
-  show(t) {
-    const note = typeof t === 'string' ? { msg: t } : t;
-    const el = this.queryOne('.toast');
+  show(toast) {
+    const note = typeof toast === 'string' ? { msg: toast } : toast;
+    const element = this.queryOne('.toast');
     this.queryOne('#toastMsg').textContent = note.msg;
-    const btn = this.queryOne('#toastAction');
+    const button = this.queryOne('#toastAction');
     this._action = note.action ? note.action.run : null;
-    btn.hidden = !note.action;
-    if (note.action) btn.textContent = note.action.label;
-    el.classList.add('show');
+    button.hidden = !note.action;
+    if (note.action) button.textContent = note.action.label;
+    element.classList.add('show');
     // Long messages (advice, steps) stay on screen long enough to be read
     this._duration = note.duration || parseInt(this.props.duration, 10) || Math.min(8000, Math.max(2200, 1200 + String(note.msg).length * 45 + (note.action ? 2500 : 0)));
     this._startHideTimer();

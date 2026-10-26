@@ -49,10 +49,10 @@ Structra.jsonTreeRenderer = (() => {
     return _states.get(container) || null;
   }
 
-  function initState(container, data, opts) {
+  function initState(container, data, options) {
     const state = {
       data,
-      opts: opts || {},
+      opts: options || {},
       lineCounter: 0,
       fileLine: 0,
       chunkId: 0,
@@ -73,12 +73,12 @@ Structra.jsonTreeRenderer = (() => {
      CORE RENDER
      ============================ */
 
-  function render(container, data, opts) {
-    opts = opts || {};
+  function render(container, data, options) {
+    options = options || {};
     Structra.log.info('JsonTree', 'render()');
-    const t0 = performance.now();
+    const startTime = performance.now();
 
-    const st = initState(container, data, opts);
+    const treeState = initState(container, data, options);
     cleanup(container);
     container.innerHTML = '';
 
@@ -87,164 +87,164 @@ Structra.jsonTreeRenderer = (() => {
       return;
     }
 
-    const lines = buildLines(st, data, '', 0);
+    const lines = buildLines(treeState, data, '', 0);
     container.innerHTML = lines.join('');
 
-    setupDelegation(container, st);
-    setupObservers(container, st);
+    setupDelegation(container, treeState);
+    setupObservers(container, treeState);
 
-    Structra.log.perf('JsonTree', 'render() total (' + st.chunkId + ' chunks)', performance.now() - t0);
+    Structra.log.perf('JsonTree', 'render() total (' + treeState.chunkId + ' chunks)', performance.now() - startTime);
   }
 
   /* ============================
      LINE BUILDERS
      ============================ */
 
-  function ln(st, content, path) {
-    return `<span class="j-line" data-path="${esc(path)}" data-ln="${++st.fileLine}">${content}</span>`;
+  function makeLine(treeState, content, path) {
+    return `<span class="j-line" data-path="${esc(path)}" data-ln="${++treeState.fileLine}">${content}</span>`;
   }
 
-  function valSpan(val, path) {
-    if (val === null) return `<span class="j-null" data-path="${esc(path)}">null</span>`;
-    if (typeof val === 'string') {
+  function valSpan(value, path) {
+    if (value === null) return `<span class="j-null" data-path="${esc(path)}">null</span>`;
+    if (typeof value === 'string') {
       const escaped = esc(
-        val.replace(/\\/g, '\\\\')
+        value.replace(/\\/g, '\\\\')
            .replace(/"/g, '\\"')
            .replace(/\n/g, '\\n')
            .replace(/\r/g, '\\r')
            .replace(/\t/g, '\\t')
-      ).replace(/\\(?:[nrt\\]|&quot;)/g, m => `<span class="j-esc">${m}</span>`);
+      ).replace(/\\(?:[nrt\\]|&quot;)/g, match => `<span class="j-esc">${match}</span>`);
       return `<span class="j-str" data-path="${esc(path)}">&quot;${escaped}&quot;</span>`;
     }
-    if (typeof val === 'number') return `<span class="j-num" data-path="${esc(path)}">${val}</span>`;
-    if (typeof val === 'boolean') return `<span class="j-bool" data-path="${esc(path)}">${val}</span>`;
-    return `<span data-path="${esc(path)}">${esc(String(val))}</span>`;
+    if (typeof value === 'number') return `<span class="j-num" data-path="${esc(path)}">${value}</span>`;
+    if (typeof value === 'boolean') return `<span class="j-bool" data-path="${esc(path)}">${value}</span>`;
+    return `<span data-path="${esc(path)}">${esc(String(value))}</span>`;
   }
 
-  function countFileLines(val) {
-    if (val === null || typeof val !== 'object') return 1;
-    if (Array.isArray(val)) {
-      if (val.length === 0) return 1;
+  function countFileLines(value) {
+    if (value === null || typeof value !== 'object') return 1;
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 1;
       let count = 2;
-      for (let i = 0; i < val.length; i++) count += countFileLines(val[i]);
+      for (let i = 0; i < value.length; i++) count += countFileLines(value[i]);
       return count;
     }
-    const keys = Object.keys(val);
+    const keys = Object.keys(value);
     if (keys.length === 0) return 1;
     let count = 2;
     for (let i = 0; i < keys.length; i++) {
-      const v = val[keys[i]];
-      if (v && typeof v === 'object') count += countFileLines(v);
+      const child = value[keys[i]];
+      if (child && typeof child === 'object') count += countFileLines(child);
       else count += 1;
     }
     return count;
   }
 
-  function buildLines(st, obj, path, indent) {
+  function buildLines(treeState, object, path, indent) {
     const lines = [];
     const pad = '  '.repeat(indent);
 
-    if (Array.isArray(obj)) {
-      if (obj.length === 0) {
-        lines.push(ln(st, `${pad}<span class="j-bracket">[]</span>`, path));
+    if (Array.isArray(object)) {
+      if (object.length === 0) {
+        lines.push(makeLine(treeState, `${pad}<span class="j-bracket">[]</span>`, path));
         return lines;
       }
-      const id = 'bl' + (st.lineCounter++);
-      lines.push(ln(st, `${pad}<span class="j-toggle" data-block="${id}">&#9660;</span><span class="j-bracket">[</span><span class="j-ellipsis" data-block="${id}" style="display:none"> ...${obj.length} items ]</span>`, path));
-      const chunkStartLine = st.fileLine;
+      const id = 'bl' + (treeState.lineCounter++);
+      lines.push(makeLine(treeState, `${pad}<span class="j-toggle" data-block="${id}">&#9660;</span><span class="j-bracket">[</span><span class="j-ellipsis" data-block="${id}" style="display:none"> ...${object.length} items ]</span>`, path));
+      const chunkStartLine = treeState.fileLine;
 
       // Render first chunk inline
-      const renderCount = Math.min(obj.length, CHUNK_SIZE);
-      const chunkHtml = buildChunkLines(st, obj, path, indent, 0, renderCount, obj.length, chunkStartLine);
+      const renderCount = Math.min(object.length, CHUNK_SIZE);
+      const chunkHtml = buildChunkLines(treeState, object, path, indent, 0, renderCount, object.length, chunkStartLine);
       // The lines of the items are numbered inside buildChunkLines; carry on from the last one
-      if (chunkHtml.endLine != null) st.fileLine = chunkHtml.endLine;
+      if (chunkHtml.endLine != null) treeState.fileLine = chunkHtml.endLine;
 
       // Wrap in recyclable container
-      const cid = 'jchunk' + (st.chunkId++);
-      let blockContent = `<span class="j-chunk" id="${cid}" data-chunkpath="${esc(path || '')}" data-chunkindent="${indent}" data-chunkstart="0" data-chunkend="${renderCount}" data-chunktotal="${obj.length}" data-chunkstartline="${chunkStartLine}">${chunkHtml.join('')}</span>`;
+      const cid = 'jchunk' + (treeState.chunkId++);
+      let blockContent = `<span class="j-chunk" id="${cid}" data-chunkpath="${esc(path || '')}" data-chunkindent="${indent}" data-chunkstart="0" data-chunkend="${renderCount}" data-chunktotal="${object.length}" data-chunkstartline="${chunkStartLine}">${chunkHtml.join('')}</span>`;
 
       // Sentinel for remaining items
-      if (obj.length > CHUNK_SIZE) {
+      if (object.length > CHUNK_SIZE) {
         let skippedLines = 0;
-        for (let i = CHUNK_SIZE; i < obj.length; i++) {
-          skippedLines += countFileLines(obj[i]);
+        for (let i = CHUNK_SIZE; i < object.length; i++) {
+          skippedLines += countFileLines(object[i]);
         }
-        const sentinelStartLine = st.fileLine;
-        st.fileLine += skippedLines;
-        blockContent += makeSentinel(path, indent, CHUNK_SIZE, obj.length, sentinelStartLine);
+        const sentinelStartLine = treeState.fileLine;
+        treeState.fileLine += skippedLines;
+        blockContent += makeSentinel(path, indent, CHUNK_SIZE, object.length, sentinelStartLine);
       }
 
       lines.push(`<span class="j-block" data-block="${id}">${blockContent}</span>`);
-      lines.push(`<span class="j-line j-close" data-path="${esc(path)}" data-close="${id}" data-ln="${++st.fileLine}">${pad}<span class="j-bracket">]</span></span>`);
+      lines.push(`<span class="j-line j-close" data-path="${esc(path)}" data-close="${id}" data-ln="${++treeState.fileLine}">${pad}<span class="j-bracket">]</span></span>`);
 
-    } else if (obj && typeof obj === 'object') {
-      const keys = Object.keys(obj);
+    } else if (object && typeof object === 'object') {
+      const keys = Object.keys(object);
       if (keys.length === 0) {
-        lines.push(ln(st, `${pad}<span class="j-bracket">{}</span>`, path));
+        lines.push(makeLine(treeState, `${pad}<span class="j-bracket">{}</span>`, path));
         return lines;
       }
-      const id = 'bl' + (st.lineCounter++);
-      lines.push(ln(st, `${pad}<span class="j-toggle" data-block="${id}">&#9660;</span><span class="j-bracket">{</span><span class="j-ellipsis" data-block="${id}" style="display:none"> ...${keys.length} keys }</span>`, path));
+      const id = 'bl' + (treeState.lineCounter++);
+      lines.push(makeLine(treeState, `${pad}<span class="j-toggle" data-block="${id}">&#9660;</span><span class="j-bracket">{</span><span class="j-ellipsis" data-block="${id}" style="display:none"> ...${keys.length} keys }</span>`, path));
       const inner = [];
       const innerPad = '  '.repeat(indent + 1);
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
         const needsBracket = /[.\[\]]/.test(key);
-        const cp = path
+        const childPath = path
           ? (needsBracket ? `${path}["${key}"]` : `${path}.${key}`)
           : (needsBracket ? `["${key}"]` : key);
         const comma = i < keys.length - 1 ? ',' : '';
-        const value = obj[key];
+        const value = object[key];
         if (value && typeof value === 'object') {
-          const keyStr = `${innerPad}<span class="j-key" data-path="${esc(cp)}">"${esc(key)}"</span>: `;
-          const sub = buildLines(st, value, cp, indent + 1);
+          const keyStr = `${innerPad}<span class="j-key" data-path="${esc(childPath)}">"${esc(key)}"</span>: `;
+          const sub = buildLines(treeState, value, childPath, indent + 1);
           if (sub.length > 0) {
             const first = sub[0].replace(/^<span class="j-line"[^>]*>(\s*)/, '');
-            sub[0] = `<span class="j-line" data-path="${esc(cp)}" data-ln="${sub[0].match(/data-ln="(\d+)"/)[1]}">${keyStr}${first}`;
-            for (let s = 0; s < sub.length; s++) inner.push(sub[s]);
+            sub[0] = `<span class="j-line" data-path="${esc(childPath)}" data-ln="${sub[0].match(/data-ln="(\d+)"/)[1]}">${keyStr}${first}`;
+            for (let index = 0; index < sub.length; index++) inner.push(sub[index]);
             if (comma && inner.length) {
               const last = inner[inner.length - 1];
-              const idx = last.lastIndexOf('</span>');
-              if (idx !== -1) inner[inner.length - 1] = last.slice(0, idx) + comma + '</span>';
+              const index = last.lastIndexOf('</span>');
+              if (index !== -1) inner[inner.length - 1] = last.slice(0, index) + comma + '</span>';
             }
           }
         } else {
-          inner.push(ln(st, `${innerPad}<span class="j-key" data-path="${esc(cp)}">"${esc(key)}"</span>: ${valSpan(value, cp)}${comma}`, cp));
+          inner.push(makeLine(treeState, `${innerPad}<span class="j-key" data-path="${esc(childPath)}">"${esc(key)}"</span>: ${valSpan(value, childPath)}${comma}`, childPath));
         }
       }
       lines.push(`<span class="j-block" data-block="${id}">${inner.join('')}</span>`);
-      lines.push(`<span class="j-line j-close" data-path="${esc(path)}" data-close="${id}" data-ln="${++st.fileLine}">${pad}<span class="j-bracket">}</span></span>`);
+      lines.push(`<span class="j-line j-close" data-path="${esc(path)}" data-close="${id}" data-ln="${++treeState.fileLine}">${pad}<span class="j-bracket">}</span></span>`);
 
     } else {
-      lines.push(ln(st, pad + valSpan(obj, path), path));
+      lines.push(makeLine(treeState, pad + valSpan(object, path), path));
     }
     return lines;
   }
 
-  function buildChunkLines(st, arr, path, indent, start, end, total, startLine) {
+  function buildChunkLines(treeState, array, path, indent, start, end, total, startLine) {
     const lines = [];
     const innerPad = '  '.repeat(indent + 1);
     let currentLine = startLine || 0;
     for (let i = start; i < end; i++) {
-      const item = arr[i];
-      const cp = path ? `${path}[${i}]` : `[${i}]`;
+      const item = array[i];
+      const childPath = path ? `${path}[${i}]` : `[${i}]`;
       const needsComma = i < total - 1;
       if (item && typeof item === 'object') {
-        const savedFileLine = st.fileLine;
-        st.fileLine = currentLine;
-        const sub = buildLines(st, item, cp, indent + 1);
-        currentLine = st.fileLine;
-        st.fileLine = savedFileLine;
-        for (let s = 0; s < sub.length; s++) lines.push(sub[s]);
+        const savedFileLine = treeState.fileLine;
+        treeState.fileLine = currentLine;
+        const sub = buildLines(treeState, item, childPath, indent + 1);
+        currentLine = treeState.fileLine;
+        treeState.fileLine = savedFileLine;
+        for (let index = 0; index < sub.length; index++) lines.push(sub[index]);
         if (needsComma && lines.length) {
           const last = lines[lines.length - 1];
-          const idx = last.lastIndexOf('</span>');
-          if (idx !== -1) lines[lines.length - 1] = last.slice(0, idx) + ',</span>';
+          const index = last.lastIndexOf('</span>');
+          if (index !== -1) lines[lines.length - 1] = last.slice(0, index) + ',</span>';
         }
       } else {
         currentLine++;
         const comma = needsComma ? ',' : '';
-        lines.push(`<span class="j-line" data-path="${esc(cp)}" data-ln="${currentLine}">${innerPad}${valSpan(item, cp)}${comma}</span>`);
+        lines.push(`<span class="j-line" data-path="${esc(childPath)}" data-ln="${currentLine}">${innerPad}${valSpan(item, childPath)}${comma}</span>`);
       }
     }
     lines.endLine = currentLine;
@@ -262,50 +262,50 @@ Structra.jsonTreeRenderer = (() => {
      ============================ */
 
   function cleanup(container) {
-    const st = getState(container);
-    if (!st) return;
-    if (st.loadObserver) { st.loadObserver.disconnect(); st.loadObserver = null; }
-    if (st.recycleObserver) { st.recycleObserver.disconnect(); st.recycleObserver = null; }
-    removeFilterScrollLoader(container, st);
+    const treeState = getState(container);
+    if (!treeState) return;
+    if (treeState.loadObserver) { treeState.loadObserver.disconnect(); treeState.loadObserver = null; }
+    if (treeState.recycleObserver) { treeState.recycleObserver.disconnect(); treeState.recycleObserver = null; }
+    removeFilterScrollLoader(container, treeState);
   }
 
-  function setupObservers(container, st) {
-    st.loadObserver = new IntersectionObserver((entries) => {
+  function setupObservers(container, treeState) {
+    treeState.loadObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
-          st.loadObserver.unobserve(entry.target);
-          loadNextChunk(container, st, entry.target);
+          treeState.loadObserver.unobserve(entry.target);
+          loadNextChunk(container, treeState, entry.target);
         }
       }
     }, { root: container, rootMargin: '400px' });
 
-    st.recycleObserver = new IntersectionObserver((entries) => {
+    treeState.recycleObserver = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         const chunk = entry.target;
         if (!entry.isIntersecting) {
           if (!chunk.dataset.recycled) recycleChunk(chunk);
         } else {
-          if (chunk.dataset.recycled) rehydrateChunk(container, st, chunk);
+          if (chunk.dataset.recycled) rehydrateChunk(container, treeState, chunk);
         }
       }
     }, { root: container, rootMargin: `${OFFSCREEN_MARGIN}px` });
 
-    container.querySelectorAll('.j-lazy-sentinel').forEach(s => st.loadObserver.observe(s));
-    container.querySelectorAll('.j-chunk').forEach(c => {
-      const total = parseInt(c.dataset.chunktotal);
-      if (total > CHUNK_SIZE) st.recycleObserver.observe(c);
+    container.querySelectorAll('.j-lazy-sentinel').forEach(index => treeState.loadObserver.observe(index));
+    container.querySelectorAll('.j-chunk').forEach(closer => {
+      const total = parseInt(closer.dataset.chunktotal);
+      if (total > CHUNK_SIZE) treeState.recycleObserver.observe(closer);
     });
   }
 
   function recycleChunk(chunk) {
-    const h = chunk.offsetHeight;
-    if (h === 0) return;
+    const height = chunk.offsetHeight;
+    if (height === 0) return;
     chunk.dataset.recycled = '1';
     chunk.innerHTML = '';
-    chunk.style.height = h + 'px';
+    chunk.style.height = height + 'px';
   }
 
-  function rehydrateChunk(container, st, chunk) {
+  function rehydrateChunk(container, treeState, chunk) {
     const path = chunk.dataset.chunkpath || '';
     const indent = parseInt(chunk.dataset.chunkindent);
     const start = parseInt(chunk.dataset.chunkstart);
@@ -313,18 +313,18 @@ Structra.jsonTreeRenderer = (() => {
     const total = parseInt(chunk.dataset.chunktotal);
     const startLine = parseInt(chunk.dataset.chunkstartline) || 0;
 
-    const dataRef = st.data;
+    const dataRef = treeState.data;
     const actualArr = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
     if (!actualArr || !Array.isArray(actualArr)) return;
 
-    const lines = buildChunkLines(st, actualArr, path, indent, start, end, total, startLine);
+    const lines = buildChunkLines(treeState, actualArr, path, indent, start, end, total, startLine);
     chunk.innerHTML = lines.join('');
     chunk.style.height = '';
     delete chunk.dataset.recycled;
-    applyFilterToContainer(st, chunk);
+    applyFilterToContainer(treeState, chunk);
   }
 
-  function loadNextChunk(container, st, sentinel) {
+  function loadNextChunk(container, treeState, sentinel) {
     const path = sentinel.dataset.lazypath || '';
     const indent = parseInt(sentinel.dataset.indent);
     const start = parseInt(sentinel.dataset.start);
@@ -332,7 +332,7 @@ Structra.jsonTreeRenderer = (() => {
     const startLine = parseInt(sentinel.dataset.startline) || 0;
     const end = Math.min(start + CHUNK_SIZE, total);
 
-    const dataRef = st.data;
+    const dataRef = treeState.data;
     const actualArr = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
     if (!actualArr || !Array.isArray(actualArr)) { sentinel.remove(); return; }
 
@@ -345,11 +345,11 @@ Structra.jsonTreeRenderer = (() => {
     chunk.dataset.chunkend = end;
     chunk.dataset.chunktotal = total;
     chunk.dataset.chunkstartline = startLine;
-    chunk.id = 'jchunk' + (st.chunkId++);
+    chunk.id = 'jchunk' + (treeState.chunkId++);
 
-    const lines = buildChunkLines(st, actualArr, path, indent, start, end, total, startLine);
+    const lines = buildChunkLines(treeState, actualArr, path, indent, start, end, total, startLine);
     chunk.innerHTML = lines.join('');
-    applyFilterToContainer(st, chunk);
+    applyFilterToContainer(treeState, chunk);
 
     // Calculate next chunk's start line
     let nextStartLine = startLine;
@@ -359,7 +359,7 @@ Structra.jsonTreeRenderer = (() => {
 
     sentinel.parentNode.insertBefore(chunk, sentinel);
 
-    const filterActive = !!(st.filterMatchedPaths || st.filterPathRegex);
+    const filterActive = !!(treeState.filterMatchedPaths || treeState.filterPathRegex);
 
     if (end < total) {
       sentinel.dataset.start = end;
@@ -367,83 +367,83 @@ Structra.jsonTreeRenderer = (() => {
       const remaining = total - end;
       const pad = '  '.repeat(indent + 1);
       sentinel.innerHTML = `<span class="j-muted">${pad}// ${remaining} more items below...</span>`;
-      if (!filterActive && st.loadObserver) st.loadObserver.observe(sentinel);
+      if (!filterActive && treeState.loadObserver) treeState.loadObserver.observe(sentinel);
     } else {
       sentinel.remove();
     }
 
-    if (st.recycleObserver && total > CHUNK_SIZE) st.recycleObserver.observe(chunk);
+    if (treeState.recycleObserver && total > CHUNK_SIZE) treeState.recycleObserver.observe(chunk);
   }
 
   /* ============================
      EVENT DELEGATION
      ============================ */
 
-  function setupDelegation(container, st) {
-    if (st.delegationBound) return;
-    st.delegationBound = true;
+  function setupDelegation(container, treeState) {
+    if (treeState.delegationBound) return;
+    treeState.delegationBound = true;
 
     let clickScrollTimer = null;
-    const onPathSelect = st.opts.onPathSelect;
-    const onContextMenu = st.opts.onContextMenu;
+    const onPathSelect = treeState.opts.onPathSelect;
+    const onContextMenu = treeState.opts.onContextMenu;
 
-    container.addEventListener('click', e => {
-      const tog = e.target.closest('.j-toggle');
-      if (tog) { e.stopPropagation(); toggleCollapse(container, tog); return; }
-      const ell = e.target.closest('.j-ellipsis');
+    container.addEventListener('click', ellipsis => {
+      const tog = ellipsis.target.closest('.j-toggle');
+      if (tog) { ellipsis.stopPropagation(); toggleCollapse(container, tog); return; }
+      const ell = ellipsis.target.closest('.j-ellipsis');
       if (ell && ell.dataset.block) {
         const owner = container.querySelector(`.j-toggle[data-block="${ell.dataset.block}"]`);
-        if (owner) { e.stopPropagation(); toggleCollapse(container, owner); return; }
+        if (owner) { ellipsis.stopPropagation(); toggleCollapse(container, owner); return; }
       }
 
-      const keyEl = e.target.closest('.j-key');
+      const keyEl = ellipsis.target.closest('.j-key');
       if (keyEl) {
-        e.stopPropagation();
+        ellipsis.stopPropagation();
         highlightKeyOccurrences(container, keyEl);
-        const p = keyEl.getAttribute('data-path');
-        if (p && onPathSelect) {
+        const path = keyEl.getAttribute('data-path');
+        if (path && onPathSelect) {
           clearTimeout(clickScrollTimer);
-          clickScrollTimer = setTimeout(() => onPathSelect(p), 250);
+          clickScrollTimer = setTimeout(() => onPathSelect(path), 250);
         }
         return;
       }
 
       clearKeyHighlights(container);
 
-      const pathEl = e.target.closest('[data-path]');
+      const pathEl = ellipsis.target.closest('[data-path]');
       if (pathEl) {
-        e.stopPropagation();
-        const p = pathEl.getAttribute('data-path');
-        if (p && onPathSelect) {
+        ellipsis.stopPropagation();
+        const path = pathEl.getAttribute('data-path');
+        if (path && onPathSelect) {
           clearTimeout(clickScrollTimer);
-          clickScrollTimer = setTimeout(() => onPathSelect(p), 250);
+          clickScrollTimer = setTimeout(() => onPathSelect(path), 250);
         }
       }
     });
 
-    container.addEventListener('dblclick', e => {
+    container.addEventListener('dblclick', ellipsis => {
       clearTimeout(clickScrollTimer);
 
-      const keyEl = e.target.closest('.j-key');
+      const keyEl = ellipsis.target.closest('.j-key');
       if (keyEl) {
-        e.stopPropagation();
+        ellipsis.stopPropagation();
         const keyName = extractKeyName(keyEl);
         if (keyName) Structra.events.emit('tree:search-key', keyName);
         return;
       }
 
-      const valEl = e.target.closest('.j-str, .j-num, .j-bool, .j-null');
+      const valEl = ellipsis.target.closest('.j-str, .j-num, .j-bool, .j-null');
       if (valEl && valEl.dataset.path) {
-        e.stopPropagation();
-        startInlineEdit(container, st, valEl);
+        ellipsis.stopPropagation();
+        startInlineEdit(container, treeState, valEl);
       }
     });
 
-    container.addEventListener('contextmenu', e => {
-      const pathEl = e.target.closest('[data-path]');
+    container.addEventListener('contextmenu', ellipsis => {
+      const pathEl = ellipsis.target.closest('[data-path]');
       if (pathEl) {
-        e.preventDefault(); e.stopPropagation();
-        if (onContextMenu) onContextMenu(e.clientX, e.clientY, pathEl.getAttribute('data-path'));
+        ellipsis.preventDefault(); ellipsis.stopPropagation();
+        if (onContextMenu) onContextMenu(ellipsis.clientX, ellipsis.clientY, pathEl.getAttribute('data-path'));
       }
     });
   }
@@ -480,8 +480,8 @@ Structra.jsonTreeRenderer = (() => {
     container.classList.remove('all-collapsed');
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_ELEMENT, {
       acceptNode(node) {
-        const cl = node.classList;
-        if (cl.contains('j-block') || cl.contains('j-ellipsis') || cl.contains('j-toggle') || cl.contains('j-close')) return NodeFilter.FILTER_ACCEPT;
+        const classList = node.classList;
+        if (classList.contains('j-block') || classList.contains('j-ellipsis') || classList.contains('j-toggle') || classList.contains('j-close')) return NodeFilter.FILTER_ACCEPT;
         return NodeFilter.FILTER_SKIP;
       }
     });
@@ -500,8 +500,8 @@ Structra.jsonTreeRenderer = (() => {
     await tick();
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_ELEMENT, {
       acceptNode(node) {
-        const cl = node.classList;
-        if (cl.contains('j-block') || cl.contains('j-ellipsis') || cl.contains('j-toggle') || cl.contains('j-close')) return NodeFilter.FILTER_ACCEPT;
+        const classList = node.classList;
+        if (classList.contains('j-block') || classList.contains('j-ellipsis') || classList.contains('j-toggle') || classList.contains('j-close')) return NodeFilter.FILTER_ACCEPT;
         return NodeFilter.FILTER_SKIP;
       }
     });
@@ -522,20 +522,20 @@ Structra.jsonTreeRenderer = (() => {
     const blocks = container.getElementsByClassName('j-block');
     const blockMap = Object.create(null);
     for (let i = 0; i < blocks.length; i++) {
-      const b = blocks[i];
-      if (b.dataset.block) blockMap[b.dataset.block] = b;
+      const block = blocks[i];
+      if (block.dataset.block) blockMap[block.dataset.block] = block;
     }
     const ellipses = container.getElementsByClassName('j-ellipsis');
     const ellMap = Object.create(null);
     for (let i = 0; i < ellipses.length; i++) {
-      const e = ellipses[i];
-      if (e.dataset.block) ellMap[e.dataset.block] = e;
+      const ellipsis = ellipses[i];
+      if (ellipsis.dataset.block) ellMap[ellipsis.dataset.block] = ellipsis;
     }
     const closes = container.getElementsByClassName('j-close');
     const closeMap = Object.create(null);
     for (let i = 0; i < closes.length; i++) {
-      const c = closes[i];
-      if (c.dataset.close) closeMap[c.dataset.close] = c;
+      const closer = closes[i];
+      if (closer.dataset.close) closeMap[closer.dataset.close] = closer;
     }
     const toggles = container.getElementsByClassName('j-toggle');
     for (let i = 0; i < toggles.length; i++) {
@@ -554,9 +554,9 @@ Structra.jsonTreeRenderer = (() => {
     Structra.events.emit('loading:hide');
   }
 
-  function getDepth(container, el) {
+  function getDepth(container, element) {
     let depth = 0;
-    let node = el;
+    let node = element;
     while (node && node !== container) {
       if (node.classList && node.classList.contains('j-block')) depth++;
       node = node.parentElement;
@@ -564,8 +564,8 @@ Structra.jsonTreeRenderer = (() => {
     return depth;
   }
 
-  function expandParents(container, el) {
-    let node = el.parentElement;
+  function expandParents(container, element) {
+    let node = element.parentElement;
     while (node && node !== container) {
       if (node.classList.contains('j-block') && node.style.display === 'none') {
         node.style.display = '';
@@ -588,13 +588,13 @@ Structra.jsonTreeRenderer = (() => {
      ============================ */
 
   function highlightPath(container, path) {
-    const st = getState(container);
-    if (st && st.highlightedEl) { st.highlightedEl.classList.remove('highlighted'); st.highlightedEl = null; }
+    const treeState = getState(container);
+    if (treeState && treeState.highlightedEl) { treeState.highlightedEl.classList.remove('highlighted'); treeState.highlightedEl = null; }
     if (!path) return;
     const match = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.dataPaths.strip(path))}"]`);
     if (match) {
       match.classList.add('highlighted');
-      if (st) st.highlightedEl = match;
+      if (treeState) treeState.highlightedEl = match;
       expandParents(container, match);
       match.offsetHeight; // force reflow
       const matchRect = match.getBoundingClientRect();
@@ -608,10 +608,10 @@ Structra.jsonTreeRenderer = (() => {
   function highlightPaths(container, paths) {
     // Highlight multiple paths (for search results)
     // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b"
-    const set = new Set((Array.isArray(paths) ? paths : []).map((p) => Structra.dataPaths.strip(p)));
-    container.querySelectorAll('.j-line').forEach(el => {
-      const dp = el.getAttribute('data-path') || '';
-      el.classList.toggle('find-match', set.has(dp));
+    const set = new Set((Array.isArray(paths) ? paths : []).map((path) => Structra.dataPaths.strip(path)));
+    container.querySelectorAll('.j-line').forEach(element => {
+      const dataPath = element.getAttribute('data-path') || '';
+      element.classList.toggle('find-match', set.has(dataPath));
     });
     // Scroll to first match
     const first = container.querySelector('.find-match');
@@ -622,13 +622,13 @@ Structra.jsonTreeRenderer = (() => {
   }
 
   function updateBookmarkHighlights(container, bookmarks) {
-    const st = getState(container);
-    if (!st) return;
-    for (let i = 0; i < st.bookmarkedEls.length; i++) st.bookmarkedEls[i].classList.remove('bookmarked');
-    st.bookmarkedEls = [];
-    for (const b of bookmarks) {
-      const el = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.dataPaths.strip(b))}"]`);
-      if (el) { el.classList.add('bookmarked'); st.bookmarkedEls.push(el); }
+    const treeState = getState(container);
+    if (!treeState) return;
+    for (let i = 0; i < treeState.bookmarkedEls.length; i++) treeState.bookmarkedEls[i].classList.remove('bookmarked');
+    treeState.bookmarkedEls = [];
+    for (const block of bookmarks) {
+      const element = container.querySelector(`.j-line[data-path="${CSS.escape(Structra.dataPaths.strip(block))}"]`);
+      if (element) { element.classList.add('bookmarked'); treeState.bookmarkedEls.push(element); }
     }
   }
 
@@ -670,9 +670,9 @@ Structra.jsonTreeRenderer = (() => {
      INLINE EDITING
      ============================ */
 
-  function startInlineEdit(container, st, valEl) {
+  function startInlineEdit(container, treeState, valEl) {
     const path = valEl.dataset.path;
-    const data = st.data;
+    const data = treeState.data;
     if (!path || !data) return;
 
     const currentVal = Structra.dataPaths.resolve(data, path);
@@ -709,9 +709,9 @@ Structra.jsonTreeRenderer = (() => {
     };
 
     input.addEventListener('blur', commit);
-    input.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-      if (ev.key === 'Escape') { committed = true; if (input.parentNode) input.parentNode.replaceChild(valEl, input); }
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
+      if (event.key === 'Escape') { committed = true; if (input.parentNode) input.parentNode.replaceChild(valEl, input); }
     });
   }
 
@@ -719,14 +719,14 @@ Structra.jsonTreeRenderer = (() => {
      FILTER (data-level, survives recycle/rehydrate)
      ============================ */
 
-  function applyFilterToContainer(st, el) {
-    if (!st.filterMatchedPaths && !st.filterPathRegex) return;
+  function applyFilterToContainer(treeState, element) {
+    if (!treeState.filterMatchedPaths && !treeState.filterPathRegex) return;
 
-    const parent = el.parentNode;
-    const next = el.nextSibling;
-    if (parent) parent.removeChild(el);
+    const parent = element.parentNode;
+    const next = element.nextSibling;
+    if (parent) parent.removeChild(element);
 
-    const lines = el.getElementsByClassName('j-line');
+    const lines = element.getElementsByClassName('j-line');
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       if (line.classList.contains('j-lazy-sentinel')) {
@@ -735,16 +735,16 @@ Structra.jsonTreeRenderer = (() => {
         line.style.overflow = 'hidden';
         continue;
       }
-      const dp = line.getAttribute('data-path') || '';
+      const dataPath = line.getAttribute('data-path') || '';
 
-      if (st.filterPathRegex) {
-        line.classList.toggle('filter-hidden', !st.filterPathRegex.test(dp));
-      } else if (st.filterMatchedPaths) {
-        const match = isAncestorMatched(st.filterMatchedPaths, dp) || (st.filterAncestors && st.filterAncestors.has(dp));
+      if (treeState.filterPathRegex) {
+        line.classList.toggle('filter-hidden', !treeState.filterPathRegex.test(dataPath));
+      } else if (treeState.filterMatchedPaths) {
+        const match = isAncestorMatched(treeState.filterMatchedPaths, dataPath) || (treeState.filterAncestors && treeState.filterAncestors.has(dataPath));
         if (match) {
           line.classList.remove('filter-hidden');
-          if (st.filterMatchedPaths.has(dp)) {
-            line.querySelectorAll('.j-str, .j-num, .j-bool, .j-null').forEach(vs => vs.classList.add('filter-match'));
+          if (treeState.filterMatchedPaths.has(dataPath)) {
+            line.querySelectorAll('.j-str, .j-num, .j-bool, .j-null').forEach(element => element.classList.add('filter-match'));
           }
         } else {
           line.classList.add('filter-hidden');
@@ -753,71 +753,71 @@ Structra.jsonTreeRenderer = (() => {
     }
 
     if (parent) {
-      if (next) parent.insertBefore(el, next);
-      else parent.appendChild(el);
+      if (next) parent.insertBefore(element, next);
+      else parent.appendChild(element);
     }
   }
 
-  function isAncestorMatched(matchedPaths, dp) {
+  function isAncestorMatched(matchedPaths, dataPath) {
     if (matchedPaths.has('')) return true;
-    if (matchedPaths.has(dp)) return true;
-    let p = dp;
-    while (p) {
-      const lastDot = p.lastIndexOf('.');
-      const lastBracket = p.lastIndexOf('[');
+    if (matchedPaths.has(dataPath)) return true;
+    let currentPath = dataPath;
+    while (currentPath) {
+      const lastDot = currentPath.lastIndexOf('.');
+      const lastBracket = currentPath.lastIndexOf('[');
       const cut = Math.max(lastDot, lastBracket);
       if (cut <= 0) break;
-      p = p.substring(0, cut);
-      if (matchedPaths.has(p)) return true;
+      currentPath = currentPath.substring(0, cut);
+      if (matchedPaths.has(currentPath)) return true;
     }
     return false;
   }
 
   async function setFilter(container, matchedPaths) {
-    const st = getState(container);
-    if (!st) return;
+    const treeState = getState(container);
+    if (!treeState) return;
     // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b". The filter looks paths up, so keep them as a Set in the tree's form.
-    st.filterMatchedPaths = new Set([...matchedPaths].map((p) => Structra.dataPaths.strip(p)));
-    st.filterPathRegex = null;
+    treeState.filterMatchedPaths = new Set([...matchedPaths].map((path) => Structra.dataPaths.strip(path)));
+    treeState.filterPathRegex = null;
     // The lines above a match stay visible, so a match is shown inside the record that holds it
-    st.filterAncestors = new Set(['']);
-    for (const m of st.filterMatchedPaths) {
-      let p = m;
-      while (p) {
-        const cut = Math.max(p.lastIndexOf('.'), p.lastIndexOf('['));
+    treeState.filterAncestors = new Set(['']);
+    for (const filterMatchedPath of treeState.filterMatchedPaths) {
+      let currentPath = filterMatchedPath;
+      while (currentPath) {
+        const cut = Math.max(currentPath.lastIndexOf('.'), currentPath.lastIndexOf('['));
         if (cut <= 0) break;
-        p = p.substring(0, cut);
-        if (st.filterAncestors.has(p)) break;
-        st.filterAncestors.add(p);
+        currentPath = currentPath.substring(0, cut);
+        if (treeState.filterAncestors.has(currentPath)) break;
+        treeState.filterAncestors.add(currentPath);
       }
     }
-    if (st.loadObserver) st.loadObserver.disconnect();
+    if (treeState.loadObserver) treeState.loadObserver.disconnect();
     Structra.events.emit('loading:show', 'Applying filter…');
     await tick();
-    applyFilterToContainer(st, container);
-    installFilterScrollLoader(container, st);
-    fillViewport(container, st, true);
+    applyFilterToContainer(treeState, container);
+    installFilterScrollLoader(container, treeState);
+    fillViewport(container, treeState, true);
   }
 
   async function setFilterByRegex(container, regex) {
-    const st = getState(container);
-    if (!st) return;
-    st.filterPathRegex = regex;
-    st.filterMatchedPaths = null;
-    if (st.loadObserver) st.loadObserver.disconnect();
+    const treeState = getState(container);
+    if (!treeState) return;
+    treeState.filterPathRegex = regex;
+    treeState.filterMatchedPaths = null;
+    if (treeState.loadObserver) treeState.loadObserver.disconnect();
     Structra.events.emit('loading:show', 'Applying filter…');
     await tick();
-    applyFilterToContainer(st, container);
-    installFilterScrollLoader(container, st);
-    fillViewport(container, st, true);
+    applyFilterToContainer(treeState, container);
+    installFilterScrollLoader(container, treeState);
+    fillViewport(container, treeState, true);
   }
 
   async function clearFilter(container) {
-    const st = getState(container);
-    if (!st) return;
-    st.filterMatchedPaths = null;
-    st.filterPathRegex = null;
-    removeFilterScrollLoader(container, st);
+    const treeState = getState(container);
+    if (!treeState) return;
+    treeState.filterMatchedPaths = null;
+    treeState.filterPathRegex = null;
+    removeFilterScrollLoader(container, treeState);
     Structra.events.emit('loading:show', 'Clearing filter…');
     await tick();
 
@@ -825,25 +825,25 @@ Structra.jsonTreeRenderer = (() => {
     const next = container.nextSibling;
     if (parent) parent.removeChild(container);
 
-    container.querySelectorAll('.filter-hidden').forEach(el => el.classList.remove('filter-hidden'));
-    container.querySelectorAll('.filter-match').forEach(el => el.classList.remove('filter-match'));
-    container.querySelectorAll('.j-lazy-sentinel').forEach(s => {
-      s.style.visibility = '';
-      s.style.height = '';
-      s.style.overflow = '';
+    container.querySelectorAll('.filter-hidden').forEach(element => element.classList.remove('filter-hidden'));
+    container.querySelectorAll('.filter-match').forEach(element => element.classList.remove('filter-match'));
+    container.querySelectorAll('.j-lazy-sentinel').forEach(index => {
+      index.style.visibility = '';
+      index.style.height = '';
+      index.style.overflow = '';
     });
 
     if (parent) {
       if (next) parent.insertBefore(container, next);
       else parent.appendChild(container);
     }
-    if (st.loadObserver) {
-      container.querySelectorAll('.j-lazy-sentinel').forEach(s => st.loadObserver.observe(s));
+    if (treeState.loadObserver) {
+      container.querySelectorAll('.j-lazy-sentinel').forEach(index => treeState.loadObserver.observe(index));
     }
     Structra.events.emit('loading:hide');
   }
 
-  function fillViewport(container, st, dismissSpinner) {
+  function fillViewport(container, treeState, dismissSpinner) {
     if (!container.clientHeight) { if (dismissSpinner) Structra.events.emit('loading:hide'); return; }
     const maxIterations = 200;
     let iterations = 0;
@@ -852,16 +852,16 @@ Structra.jsonTreeRenderer = (() => {
       const sentinel = container.querySelector('.j-lazy-sentinel');
       if (!sentinel) { if (dismissSpinner) Structra.events.emit('loading:hide'); return; }
       if (container.scrollHeight > container.clientHeight + 100) { if (dismissSpinner) Structra.events.emit('loading:hide'); return; }
-      loadNextChunk(container, st, sentinel);
+      loadNextChunk(container, treeState, sentinel);
       requestAnimationFrame(doFill);
     };
     requestAnimationFrame(doFill);
   }
 
-  function installFilterScrollLoader(container, st) {
-    removeFilterScrollLoader(container, st);
+  function installFilterScrollLoader(container, treeState) {
+    removeFilterScrollLoader(container, treeState);
     let loading = false;
-    st.filterScrollHandler = () => {
+    treeState.filterScrollHandler = () => {
       if (loading) return;
       const sentinel = container.querySelector('.j-lazy-sentinel');
       if (!sentinel) return;
@@ -872,24 +872,24 @@ Structra.jsonTreeRenderer = (() => {
         let chunksLoaded = 0;
         const maxChunksPerScroll = 30;
         const doLoad = () => {
-          const s = container.querySelector('.j-lazy-sentinel');
-          if (!s || chunksLoaded >= maxChunksPerScroll) { loading = false; Structra.events.emit('loading:hide'); return; }
+          const sentinel = container.querySelector('.j-lazy-sentinel');
+          if (!sentinel || chunksLoaded >= maxChunksPerScroll) { loading = false; Structra.events.emit('loading:hide'); return; }
           const rem = container.scrollHeight - container.scrollTop - container.clientHeight;
           if (rem > 400 && chunksLoaded > 0) { loading = false; Structra.events.emit('loading:hide'); return; }
-          loadNextChunk(container, st, s);
+          loadNextChunk(container, treeState, sentinel);
           chunksLoaded++;
           requestAnimationFrame(doLoad);
         };
         requestAnimationFrame(doLoad);
       }
     };
-    container.addEventListener('scroll', st.filterScrollHandler, { passive: true });
+    container.addEventListener('scroll', treeState.filterScrollHandler, { passive: true });
   }
 
-  function removeFilterScrollLoader(container, st) {
-    if (st && st.filterScrollHandler) {
-      container.removeEventListener('scroll', st.filterScrollHandler);
-      st.filterScrollHandler = null;
+  function removeFilterScrollLoader(container, treeState) {
+    if (treeState && treeState.filterScrollHandler) {
+      container.removeEventListener('scroll', treeState.filterScrollHandler);
+      treeState.filterScrollHandler = null;
     }
   }
 
@@ -898,10 +898,10 @@ Structra.jsonTreeRenderer = (() => {
      ============================ */
 
   function renderInto(container, data) {
-    const st = initState(container, data, {});
-    container.innerHTML = buildLines(st, data, '', 0).join('');
-    setupDelegation(container, st);
-    setupObservers(container, st);
+    const treeState = initState(container, data, {});
+    container.innerHTML = buildLines(treeState, data, '', 0).join('');
+    setupDelegation(container, treeState);
+    setupObservers(container, treeState);
   }
 
   /* --- Utility --- */

@@ -21,11 +21,11 @@ class StructraZoom extends StructraComponent {
     this.on('zoom:fit', () => this._fitToScreen());
 
     // Listen globally for Ctrl+/- keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (!e.ctrlKey && !e.metaKey) return;
-      if (e.key === '=' || e.key === '+') { e.preventDefault(); this._zoom(1); }
-      else if (e.key === '-') { e.preventDefault(); this._zoom(-1); }
-      else if (e.key === '0') { e.preventDefault(); this._reset(); }
+    document.addEventListener('keydown', (event) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      if (event.key === '=' || event.key === '+') { event.preventDefault(); this._zoom(1); }
+      else if (event.key === '-') { event.preventDefault(); this._zoom(-1); }
+      else if (event.key === '0') { event.preventDefault(); this._reset(); }
     });
   }
 
@@ -35,8 +35,8 @@ class StructraZoom extends StructraComponent {
     </div>`;
   }
 
-  _zoom(dir) {
-    this._size = Math.max(this._min, Math.min(this._max, this._size + dir));
+  _zoom(direction) {
+    this._size = Math.max(this._min, Math.min(this._max, this._size + direction));
     this._applySize();
     this._showIndicator();
   }
@@ -64,12 +64,12 @@ class StructraZoom extends StructraComponent {
   }
 
   _showIndicator() {
-    const pct = Math.round((this._size / 14) * 100);
+    const percent = Math.round((this._size / 14) * 100);
     const ind = this.queryOne('#zoomIndicator');
     const label = this.queryOne('#zoomLabel');
-    label.textContent = `${pct}%`;
+    label.textContent = `${percent}%`;
     ind.style.display = '';
-    Structra.toast(`Zoom: ${pct}% (${this._size}px)`, 'info');
+    Structra.toast(`Zoom: ${percent}% (${this._size}px)`, 'info');
     clearTimeout(this._hideTimer);
     this._hideTimer = setTimeout(() => { ind.style.display = 'none'; }, 2000);
   }

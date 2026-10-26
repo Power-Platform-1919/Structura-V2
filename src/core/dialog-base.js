@@ -74,13 +74,13 @@ class StructraDialog extends StructraComponent {
       </div>`;
 
     const root = this.querySelector('.ov');
-    root.addEventListener('mousedown', (e) => { this._downOnBackdrop = e.target === root; });
-    root.addEventListener('click', (e) => {
+    root.addEventListener('mousedown', (event) => { this._downOnBackdrop = event.target === root; });
+    root.addEventListener('click', (event) => {
       // Only a click that started and ended on the backdrop closes (not a drag that ended there)
-      if (e.target === root && this._downOnBackdrop) this.close();
-      if (e.target.closest('[data-ov-close]')) this.close();
+      if (event.target === root && this._downOnBackdrop) this.close();
+      if (event.target.closest('[data-ov-close]')) this.close();
     });
-    root.addEventListener('keydown', (e) => this._onKey(e));
+    root.addEventListener('keydown', (event) => this._onKey(event));
     return this.body;
   }
 
@@ -110,15 +110,15 @@ class StructraDialog extends StructraComponent {
     if (this.onClose) this.onClose();
   }
 
-  _onKey(e) {
-    if (e.key === 'Escape') { e.stopPropagation(); this.close(); return; }
-    if (e.key !== 'Tab') return;
+  _onKey(event) {
+    if (event.key === 'Escape') { event.stopPropagation(); this.close(); return; }
+    if (event.key !== 'Tab') return;
     const focusable = [...this.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
-      .filter((el) => !el.disabled && el.offsetParent !== null);
+      .filter((element) => !element.disabled && element.offsetParent !== null);
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 }

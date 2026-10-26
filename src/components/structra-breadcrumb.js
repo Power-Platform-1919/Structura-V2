@@ -15,8 +15,8 @@ class StructraBreadcrumb extends StructraComponent {
   }
 
   render() {
-    this.addEventListener('click', (e) => {
-      const seg = e.target.closest('[data-path]');
+    this.addEventListener('click', (event) => {
+      const seg = event.target.closest('[data-path]');
       if (!seg) return;
       Structra.setState('currentPath', seg.dataset.path);
     });
@@ -35,10 +35,10 @@ class StructraBreadcrumb extends StructraComponent {
     const esc = Structra.sharedHelpers.escapeHtml;
     let running = '';
     const parts = [`<button class="bc-seg" data-path="$">root</button>`];
-    tokens.forEach((t, i) => {
-      if (t.type === 'key') running += (running ? '.' : '') + t.value;
-      else running += `[${t.value}]`;
-      const label = t.type === 'key' ? t.value : `[${t.value}]`;
+    tokens.forEach((token, i) => {
+      if (token.type === 'key') running += (running ? '.' : '') + token.value;
+      else running += `[${token.value}]`;
+      const label = token.type === 'key' ? token.value : `[${token.value}]`;
       const last = i === tokens.length - 1;
       parts.push(`<span class="bc-sep">›</span><button class="bc-seg${last ? ' bc-current' : ''}" data-path="${esc(running)}">${esc(label)}</button>`);
     });

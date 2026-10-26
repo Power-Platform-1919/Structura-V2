@@ -23,10 +23,10 @@ Structra.shareLink = (() => {
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   };
 
-  const fromBase64Url = (s) => {
-    const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+  const fromBase64Url = (text) => {
+    const b64 = text.replace(/-/g, '+').replace(/_/g, '/');
     const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
-    return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    return Uint8Array.from(bin, (character) => character.charCodeAt(0));
   };
 
   const MAX_UNPACKED = 20 * 1024 * 1024;   // a link that unpacks to more than this is refused
@@ -44,7 +44,7 @@ Structra.shareLink = (() => {
     }
     const out = new Uint8Array(total);
     let at = 0;
-    for (const p of parts) { out.set(p, at); at += p.length; }
+    for (const part of parts) { out.set(part, at); at += part.length; }
     return out;
   }
 
@@ -64,10 +64,10 @@ Structra.shareLink = (() => {
   }
 
   async function readHash() {
-    const m = /^#share=([gp])\.(.+)$/.exec(location.hash);
-    if (!m) return null;
-    let bytes = fromBase64Url(m[2]);
-    if (m[1] === 'g') bytes = await pipe(bytes, new DecompressionStream('gzip'), MAX_UNPACKED);
+    const match = /^#share=([gp])\.(.+)$/.exec(location.hash);
+    if (!match) return null;
+    let bytes = fromBase64Url(match[2]);
+    if (match[1] === 'g') bytes = await pipe(bytes, new DecompressionStream('gzip'), MAX_UNPACKED);
     else if (bytes.length > MAX_UNPACKED) throw new Error('This share link holds more than ' + Math.round(MAX_UNPACKED / 1048576) + ' MB, which is more than a link should hold.');
     const body = JSON.parse(new TextDecoder().decode(bytes));
     return { data: body.data, name: body.name || null };
@@ -97,8 +97,8 @@ Structra.imageCapture = (() => {
       ctx.fillStyle = '#000';
       ctx.fillStyle = css;                       // the browser parses any colour it supports
       ctx.fillRect(0, 0, 1, 1);
-      const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
-      const out = a === 255 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${+(a / 255).toFixed(3)})`;
+      const [red, green, blue, alpha] = ctx.getImageData(0, 0, 1, 1).data;
+      const out = alpha === 255 ? `rgb(${red}, ${green}, ${blue})` : `rgba(${red}, ${green}, ${blue}, ${+(alpha / 255).toFixed(3)})`;
       cache.set(css, out);
       return out;
     };
@@ -107,13 +107,13 @@ Structra.imageCapture = (() => {
   function flattenColors(clonedDoc) {
     const win = clonedDoc.defaultView;
     const toRgb = colorResolver();
-    for (const el of clonedDoc.querySelectorAll('*')) {
-      const cs = win.getComputedStyle(el);
-      for (const prop of COLOR_PROPS) {
-        const value = cs[prop];
+    for (const element of clonedDoc.querySelectorAll('*')) {
+      const computedStyle = win.getComputedStyle(element);
+      for (const property of COLOR_PROPS) {
+        const value = computedStyle[property];
         if (value && MODERN.test(value)) {
           MODERN.lastIndex = 0;
-          el.style[prop] = value.replace(MODERN, (m) => toRgb(m));
+          element.style[property] = value.replace(MODERN, (match) => toRgb(match));
         }
         MODERN.lastIndex = 0;
       }
@@ -123,9 +123,9 @@ Structra.imageCapture = (() => {
   async function png(element, fileName) {
     if (!element) throw new Error('Nothing to capture');
     await Structra.libraryLoader.loadLibrary('html2canvas');
-    const bg = getComputedStyle(document.body).backgroundColor;
+    const background = getComputedStyle(document.body).backgroundColor;
     const canvas = await window.html2canvas(element, {
-      backgroundColor: MODERN.test(bg) ? colorResolver()(bg) : bg,
+      backgroundColor: MODERN.test(background) ? colorResolver()(background) : background,
       scale: Math.min(2, window.devicePixelRatio || 1),
       onclone: (doc) => flattenColors(doc),
     });

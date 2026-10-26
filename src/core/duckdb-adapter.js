@@ -42,13 +42,13 @@ Structra.duckdbAdapter = (() => {
   }
 
   async function _doInit() {
-    const t0 = performance.now();
+    const startTime = performance.now();
     try {
       Structra.log.info('DuckDB', 'Loading DuckDB WASM via Structra.libraryLoader...');
       const duckdb = await Structra.libraryLoader.loadLibrary('duckdb');
 
       // The engine files are in this app's own folder (nothing is downloaded from another site)
-      const abs = (u) => new URL(u, document.baseURI).href;
+      const abs = (relativeUrl) => new URL(relativeUrl, document.baseURI).href;
       const bundle = { mainModule: abs('src/libs/duckdb/duckdb-eh.wasm'), mainWorker: abs('src/libs/duckdb/duckdb-browser-eh.worker.js'), pthreadWorker: null };
 
       // Create worker via blob URL with importScripts
@@ -69,21 +69,21 @@ Structra.duckdbAdapter = (() => {
       // In-memory is fine - Structra re-ingests data from localStorage/IndexedDB on load.
       await _db.open({});
       // The JSON add-on is also served from this folder
-      await _db.connect().then(async (c) => { try { await c.query(`SET custom_extension_repository='${new URL('src/libs/duckdb/ext', document.baseURI).href}'`); } finally { await c.close(); } });
+      await _db.connect().then(async (column) => { try { await column.query(`SET custom_extension_repository='${new URL('src/libs/duckdb/ext', document.baseURI).href}'`); } finally { await column.close(); } });
       Structra.log.info('DuckDB', 'Opened in-memory');
 
       // Create connection
       _conn = await _db.connect();
       _ready = true;
 
-      const duration = performance.now() - t0;
+      const duration = performance.now() - startTime;
       Structra.log.info('DuckDB', `Ready in ${duration.toFixed(0)}ms`);
 
       // Notify engine
       Structra.dataEngine.onDuckDBReady();
       return true;
-    } catch (err) {
-      Structra.log.error('DuckDB', 'Init failed - SQL queries unavailable', err);
+    } catch (error) {
+      Structra.log.error('DuckDB', 'Init failed - SQL queries unavailable', error);
       _ready = false;
       Structra.events.emit('engine:duckdb-failed');
       return false;
@@ -103,18 +103,18 @@ Structra.duckdbAdapter = (() => {
   /* --- Arrow to JS Objects --- */
   function arrowToObjects(table) {
     const rows = [];
-    const schema = table.schema.fields.map(f => f.name);
+    const schema = table.schema.fields.map(field => field.name);
     for (let i = 0; i < table.numRows; i++) {
       const row = {};
-      for (const col of schema) {
-        const colData = table.getChild(col);
-        row[col] = colData ? colData.get(i) : null;
+      for (const column of schema) {
+        const colData = table.getChild(column);
+        row[column] = colData ? colData.get(i) : null;
       }
       rows.push(row);
     }
     // What each column is (DATE, DECIMAL(10,2), ...). The values alone cannot say: a date arrives as a number of milliseconds
     // and a decimal as its digits without the point.
-    rows.columnTypes = table.schema.fields.map((f) => ({ type: String(f.type), scale: f.type.scale }));
+    rows.columnTypes = table.schema.fields.map((field) => ({ type: String(field.type), scale: field.type.scale }));
     return rows;
   }
 
@@ -149,9 +149,9 @@ Structra.duckdbAdapter = (() => {
       dataset._duckColumns = colInfo;
 
       const rowCount = dataToRegister.length;
-      Structra.log.info('DuckDB', `Registered "${tableName}" - shape:${meta.shape}, ${rowCount} rows, ${colInfo.length} columns (${colInfo.filter(c => c.nested).length} nested)`);
-    } catch (err) {
-      Structra.log.warn('DuckDB', `Registration failed for "${tableName}": ${err.message}`);
+      Structra.log.info('DuckDB', `Registered "${tableName}" - shape:${meta.shape}, ${rowCount} rows, ${colInfo.length} columns (${colInfo.filter(column => column.nested).length} nested)`);
+    } catch (error) {
+      Structra.log.warn('DuckDB', `Registration failed for "${tableName}": ${error.message}`);
       // Table may not exist - that's OK, engine falls back to in-memory
     }
   }
@@ -167,11 +167,11 @@ Structra.duckdbAdapter = (() => {
       const result = await _conn.query(
         `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${safeName}' ORDER BY ordinal_position`
       );
-      const cols = arrowToObjects(result);
-      return cols.map(c => ({
-        name: c.column_name,
-        type: c.data_type,
-        nested: /STRUCT|LIST|MAP|JSON/i.test(c.data_type),
+      const columns = arrowToObjects(result);
+      return columns.map(column => ({
+        name: column.column_name,
+        type: column.data_type,
+        nested: /STRUCT|LIST|MAP|JSON/i.test(column.data_type),
       }));
     } catch {
       return [];

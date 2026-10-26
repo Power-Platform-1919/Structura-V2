@@ -60,54 +60,54 @@ class StructraHeatmap extends StructraComponent {
     this._applyStyles(maxSize);
   }
 
-  _walkSizes(val, path) {
-    const size = this._estimateSize(val);
+  _walkSizes(value, path) {
+    const size = this._estimateSize(value);
     this._sizeMap.set(path, size);
 
-    if (val && typeof val === 'object') {
-      if (Array.isArray(val)) {
-        for (let i = 0; i < val.length; i++) this._walkSizes(val[i], `${path}[${i}]`);
+    if (value && typeof value === 'object') {
+      if (Array.isArray(value)) {
+        for (let i = 0; i < value.length; i++) this._walkSizes(value[i], `${path}[${i}]`);
       } else {
-        for (const k of Object.keys(val)) this._walkSizes(val[k], `${path}.${k}`);
+        for (const key of Object.keys(value)) this._walkSizes(value[key], `${path}.${key}`);
       }
     }
   }
 
-  _estimateSize(val) {
-    if (val === null) return 4;
-    if (typeof val === 'string') return val.length + 2;
-    if (typeof val === 'number') return String(val).length;
-    if (typeof val === 'boolean') return val ? 4 : 5;
-    if (Array.isArray(val)) return JSON.stringify(val).length;
-    if (typeof val === 'object') return JSON.stringify(val).length;
+  _estimateSize(value) {
+    if (value === null) return 4;
+    if (typeof value === 'string') return value.length + 2;
+    if (typeof value === 'number') return String(value).length;
+    if (typeof value === 'boolean') return value ? 4 : 5;
+    if (Array.isArray(value)) return JSON.stringify(value).length;
+    if (typeof value === 'object') return JSON.stringify(value).length;
     return 0;
   }
 
   _applyStyles(maxSize) {
     // The Tree marks each line with a coloured edge; its data-path is the short form (value[0].Title)
-    document.querySelectorAll('.j-line[data-path]:not(.j-close)').forEach(el => {
-      const size = this._sizeMap.get(Structra.dataPaths.canonical(el.dataset.path));
+    document.querySelectorAll('.j-line[data-path]:not(.j-close)').forEach(element => {
+      const size = this._sizeMap.get(Structra.dataPaths.canonical(element.dataset.path));
       if (size === undefined) return;
-      el.style.boxShadow = `inset 3px 0 0 ${this._getColor(size / maxSize)}`;
-      el.title = `${size.toLocaleString()} characters`;
+      element.style.boxShadow = `inset 3px 0 0 ${this._getColor(size / maxSize)}`;
+      element.title = `${size.toLocaleString()} characters`;
     });
   }
 
   _clearStyles() {
-    document.querySelectorAll('.j-line[data-path]').forEach(el => { el.style.boxShadow = ''; if (/ characters$/.test(el.title)) el.removeAttribute('title'); });
+    document.querySelectorAll('.j-line[data-path]').forEach(element => { element.style.boxShadow = ''; if (/ characters$/.test(element.title)) element.removeAttribute('title'); });
   }
 
   _getColor(ratio) {
     // Green (small) → Yellow (medium) → Red (large)
     if (ratio < 0.33) {
-      const t = ratio / 0.33;
-      return `rgb(${Math.round(16 + t * 229)}, ${Math.round(185 - t * 27)}, ${Math.round(129 - t * 50)})`;
+      const fraction = ratio / 0.33;
+      return `rgb(${Math.round(16 + fraction * 229)}, ${Math.round(185 - fraction * 27)}, ${Math.round(129 - fraction * 50)})`;
     } else if (ratio < 0.66) {
-      const t = (ratio - 0.33) / 0.33;
-      return `rgb(${Math.round(245 - t * 6)}, ${Math.round(158 - t * 100)}, ${Math.round(79 - t * 60)})`;
+      const fraction = (ratio - 0.33) / 0.33;
+      return `rgb(${Math.round(245 - fraction * 6)}, ${Math.round(158 - fraction * 100)}, ${Math.round(79 - fraction * 60)})`;
     } else {
-      const t = (ratio - 0.66) / 0.34;
-      return `rgb(${Math.round(239 - t * 30)}, ${Math.round(58 - t * 20)}, ${Math.round(19 + t * 30)})`;
+      const fraction = (ratio - 0.66) / 0.34;
+      return `rgb(${Math.round(239 - fraction * 30)}, ${Math.round(58 - fraction * 20)}, ${Math.round(19 + fraction * 30)})`;
     }
   }
 }

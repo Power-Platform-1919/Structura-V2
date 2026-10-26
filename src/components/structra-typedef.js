@@ -15,7 +15,7 @@ class StructraTypedef extends StructraDialog {
     this._code = '';
     this._rootName = 'Root';
 
-    this.on('typedef:open', (d) => this._open(d));
+    this.on('typedef:open', (payload) => this._open(payload));
   }
 
   render() {
@@ -37,34 +37,34 @@ class StructraTypedef extends StructraDialog {
 
     this._renderTabs();
 
-    this.addEventListener('click', (e) => {
-      const action = e.target.closest('[data-action]');
+    this.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
       if (a === 'close') this.close();
       else if (a === 'copy') this._copy();
       else if (a === 'download') this._download();
 
-      const tab = e.target.closest('[data-lang]');
+      const tab = event.target.closest('[data-lang]');
       if (tab) {
         this._lang = tab.dataset.lang;
-        this.querySelectorAll('.typedef-tab').forEach(t => t.classList.toggle('active', t.dataset.lang === this._lang));
+        this.querySelectorAll('.typedef-tab').forEach(element => element.classList.toggle('active', element.dataset.lang === this._lang));
         this._generate();
       }
     });
 
     // Also handle tab clicks directly
-    this.addEventListener('click', (e) => {
-      const tab = e.target.closest('[data-lang]');
+    this.addEventListener('click', (event) => {
+      const tab = event.target.closest('[data-lang]');
       if (tab) {
         this._lang = tab.dataset.lang;
-        this.querySelectorAll('.typedef-tab').forEach(t => t.classList.toggle('active', t.dataset.lang === this._lang));
+        this.querySelectorAll('.typedef-tab').forEach(element => element.classList.toggle('active', element.dataset.lang === this._lang));
         this._generate();
       }
     });
 
-    this.queryOne('#typedefName').addEventListener('input', (e) => {
-      this._rootName = e.target.value.trim() || 'Root';
+    this.queryOne('#typedefName').addEventListener('input', (event) => {
+      this._rootName = event.target.value.trim() || 'Root';
       this._generate();
     });
   }
@@ -80,14 +80,14 @@ class StructraTypedef extends StructraDialog {
     ).join('');
   }
 
-  _open(opts) {
-    if (opts && opts.lang) this._lang = opts.lang;
-    if (opts && opts.name) {
-      this._rootName = opts.name;
+  _open(options) {
+    if (options && options.lang) this._lang = options.lang;
+    if (options && options.name) {
+      this._rootName = options.name;
       const nameInput = this.queryOne('#typedefName');
-      if (nameInput) nameInput.value = opts.name;
+      if (nameInput) nameInput.value = options.name;
     }
-    this.querySelectorAll('.typedef-tab').forEach(t => t.classList.toggle('active', t.dataset.lang === this._lang));
+    this.querySelectorAll('.typedef-tab').forEach(element => element.classList.toggle('active', element.dataset.lang === this._lang));
     this.open();
     this._generate();
   }
@@ -104,8 +104,8 @@ class StructraTypedef extends StructraDialog {
     try {
       this._code = Structra.typeCodeGenerator.generate(this._lang, data, this._rootName);
       this._show();
-    } catch (err) {
-      this._code = `// Error generating ${this._lang}: ${err.message}`;
+    } catch (error) {
+      this._code = `// Error generating ${this._lang}: ${error.message}`;
       this._show();
     }
   }
@@ -120,10 +120,10 @@ class StructraTypedef extends StructraDialog {
   }
 
   _download() {
-    const exts = { typescript: '.ts', python: '.py', csharp: '.cs', go: '.go', rust: '.rs', java: '.java', powerfx: '.fx', sql: '.sql' };
-    const ext = exts[this._lang] || '.txt';
-    Structra.sharedHelpers.downloadFile(this._code, `${this._rootName}${ext}`, 'text/plain');
-    Structra.toast(`Downloaded ${this._rootName}${ext}`);
+    const extensions = { typescript: '.ts', python: '.py', csharp: '.cs', go: '.go', rust: '.rs', java: '.java', powerfx: '.fx', sql: '.sql' };
+    const extension = extensions[this._lang] || '.txt';
+    Structra.sharedHelpers.downloadFile(this._code, `${this._rootName}${extension}`, 'text/plain');
+    Structra.toast(`Downloaded ${this._rootName}${extension}`);
   }
 }
 

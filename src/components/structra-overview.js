@@ -53,7 +53,7 @@ class StructraOverview extends StructraComponent {
     this.renderStats();
 
     // Single event-delegated click handler
-    this.addEventListener('click', (e) => this._onClick(e));
+    this.addEventListener('click', (event) => this._onClick(event));
   }
 
   /* ====================================================
@@ -62,13 +62,13 @@ class StructraOverview extends StructraComponent {
 
   /** A new document starts at its headline, not where the last one was scrolled to */
   _toTop() {
-    for (let el = this; el; el = el.parentElement) { if (el.scrollTop) el.scrollTop = 0; if (el.classList && el.classList.contains('view-panel')) break; }
-    const c = this.queryOne('#statsContainer'); if (c) c.scrollTop = 0;
+    for (let element = this; element; element = element.parentElement) { if (element.scrollTop) element.scrollTop = 0; if (element.classList && element.classList.contains('view-panel')) break; }
+    const container = this.queryOne('#statsContainer'); if (container) container.scrollTop = 0;
   }
 
   async renderStats() {
     this._stale = false;
-    const t0 = performance.now();
+    const startTime = performance.now();
     const container = this.queryOne('#statsContainer');
     if (!container) return;
 
@@ -81,7 +81,7 @@ class StructraOverview extends StructraComponent {
 
     const analysis = await Structra.dataEngine.getAnalysis();
     if (!analysis) return;
-    const { stats: s, firstArr, profile } = analysis;
+    const { stats: stats, firstArr, profile } = analysis;
     let html = '';
 
     this._insights = Structra.overviewInsights.build({
@@ -92,21 +92,21 @@ class StructraOverview extends StructraComponent {
     });
     html += this._renderSummary(this._insights);
     html += '<h2 class="ovw-details-title">Details</h2>';
-    html += this._renderTypes(s);
+    html += this._renderTypes(stats);
 
     if (firstArr) {
       this._currentArr = firstArr;
       if (profile) html += this._renderQuality(profile.quality);
-      html += this._renderArraysFound(s.arraysDetail);
+      html += this._renderArraysFound(stats.arraysDetail);
       html += this._renderKeyCoverage(firstArr.path, firstArr.rows, [], profile ? profile.coverage : null);
       if (profile) html += this._renderProfiler(profile);
       if (profile) html += this._renderDistribution(profile);
     } else {
-      html += this._renderArraysFound(s.arraysDetail);
+      html += this._renderArraysFound(stats.arraysDetail);
     }
 
     container.innerHTML = html;
-    Structra.log.perf('Stats', 'renderStats()', performance.now() - t0);
+    Structra.log.perf('Stats', 'renderStats()', performance.now() - startTime);
     // Signal that analysis + rendering is complete (used by loading overlay)
     Structra.events.emit('engine:analysisComplete');
   }
@@ -115,31 +115,31 @@ class StructraOverview extends StructraComponent {
      SUMMARY (Structra.overviewInsights)
      ==================================================== */
 
-  _renderSummary(ins) {
+  _renderSummary(insertion) {
     const esc = Structra.sharedHelpers.escapeHtml;
     const icons = Structra.icons;
-    const facts = ins.facts.map((f) => `<div class="ovw-fact"><dt>${esc(f.label)}</dt><dd>${esc(f.value)}</dd></div>`).join('');
+    const facts = insertion.facts.map((finding) => `<div class="ovw-fact"><dt>${esc(finding.label)}</dt><dd>${esc(finding.value)}</dd></div>`).join('');
 
-    const findings = ins.findings.length
-      ? `<ul class="ovw-findings">${ins.findings.map((f, i) => `
-          <li><button class="ovw-find sev-${f.severity}" type="button" data-action="go" data-i="${i}">
-            ${icons.svg(f.severity === 'info' ? 'info' : 'triangle-alert', { size: 18, color: f.severity === 'high' ? 'danger' : f.severity === 'med' ? 'warning' : 'info' })}
-            <span class="ovw-find-text"><strong>${esc(f.title)}</strong>${f.detail ? `<span>${esc(f.detail)}</span>` : ''}</span>
+    const findings = insertion.findings.length
+      ? `<ul class="ovw-findings">${insertion.findings.map((finding, i) => `
+          <li><button class="ovw-find sev-${finding.severity}" type="button" data-action="go" data-i="${i}">
+            ${icons.svg(finding.severity === 'info' ? 'info' : 'triangle-alert', { size: 18, color: finding.severity === 'high' ? 'danger' : finding.severity === 'med' ? 'warning' : 'info' })}
+            <span class="ovw-find-text"><strong>${esc(finding.title)}</strong>${finding.detail ? `<span>${esc(finding.detail)}</span>` : ''}</span>
             ${icons.svg('chevron-right', { size: 16 })}
           </button></li>`).join('')}</ul>`
       : `<p class="ovw-clear">${icons.svg('check', { size: 18, color: 'success' })} Nothing unusual found. Missing values, mixed types and repeated keys all look fine.</p>`;
 
-    const arrays = ins.arrays.length
-      ? `<ul class="ovw-lists">${ins.arrays.map((a) => `
-          <li><button class="ovw-list" type="button" data-action="go-list" data-path="${esc(a.path)}">
-            <code>${esc(a.pattern.replace(/^\$\.?/, '') || 'the whole document')}</code>
-            <span>${a.lists > 1 ? `${a.lists.toLocaleString()} lists, ${a.items.toLocaleString()} items` : `${a.items.toLocaleString()} ${a.items === 1 ? 'item' : 'items'}`}</span>
+    const arrays = insertion.arrays.length
+      ? `<ul class="ovw-lists">${insertion.arrays.map((list) => `
+          <li><button class="ovw-list" type="button" data-action="go-list" data-path="${esc(list.path)}">
+            <code>${esc(list.pattern.replace(/^\$\.?/, '') || 'the whole document')}</code>
+            <span>${list.lists > 1 ? `${list.lists.toLocaleString()} lists, ${list.items.toLocaleString()} items` : `${list.items.toLocaleString()} ${list.items === 1 ? 'item' : 'items'}`}</span>
           </button></li>`).join('')}</ul>`
       : '<p class="ovw-clear">This document has no lists.</p>';
 
     return `
       <section class="ovw-summary">
-        <h2 class="ovw-headline">${esc(ins.headline)}</h2>
+        <h2 class="ovw-headline">${esc(insertion.headline)}</h2>
         <dl class="ovw-facts">${facts}</dl>
       </section>
       <div class="ovw-columns">
@@ -155,37 +155,37 @@ class StructraOverview extends StructraComponent {
   }
 
   /** Take the person from a finding or a list to the place in the data it talks about */
-  _goToFinding(go) {
-    if (go.path) {
-      Structra.setState('currentPath', go.path);
+  _goToFinding(target) {
+    if (target.path) {
+      Structra.setState('currentPath', target.path);
       Structra.setState('activeView', 'tree');
-      Structra.events.emit('tree:node-selected', go.path);
-    } else if (go.view) {
-      Structra.setState('activeView', go.view);
+      Structra.events.emit('tree:node-selected', target.path);
+    } else if (target.view) {
+      Structra.setState('activeView', target.view);
     }
-    if (go.drawer) Structra.events.emit('drawer:show', go.drawer);
+    if (target.drawer) Structra.events.emit('drawer:show', target.drawer);
   }
 
   /* ====================================================
      TYPE DISTRIBUTION
      ==================================================== */
 
-  _renderTypes(s) {
+  _renderTypes(stats) {
     const types = [
-      { label: 'Strings',  count: s.strings,  color: 'var(--syn-string)' },
-      { label: 'Numbers',  count: s.numbers,  color: 'var(--syn-number)' },
-      { label: 'Booleans', count: s.booleans, color: 'var(--syn-boolean)' },
-      { label: 'Nulls',    count: s.nulls,    color: 'var(--syn-null)' },
-      { label: 'Objects',  count: s.objects,   color: 'var(--syn-key)' },
-      { label: 'Arrays',   count: s.arrays,   color: 'var(--accent)' },
+      { label: 'Strings',  count: stats.strings,  color: 'var(--syn-string)' },
+      { label: 'Numbers',  count: stats.numbers,  color: 'var(--syn-number)' },
+      { label: 'Booleans', count: stats.booleans, color: 'var(--syn-boolean)' },
+      { label: 'Nulls',    count: stats.nulls,    color: 'var(--syn-null)' },
+      { label: 'Objects',  count: stats.objects,   color: 'var(--syn-key)' },
+      { label: 'Arrays',   count: stats.arrays,   color: 'var(--accent)' },
     ];
     let maxType = 1;
     for (let i = 0; i < types.length; i++) { if (types[i].count > maxType) maxType = types[i].count; }
     let html = '<div class="stats-section"><div class="stats-section-title">Type Distribution</div><div class="type-pills">';
-    types.forEach(t => {
-      if (t.count > 0) {
-        const pct = Math.round(t.count / maxType * 100);
-        html += `<div class="type-pill"><span class="tp-count">${t.count.toLocaleString()}</span> ${t.label}<span class="tp-bar"><span class="tp-fill" style="width:${pct}%;background:${t.color}"></span></span></div>`;
+    types.forEach(type => {
+      if (type.count > 0) {
+        const percent = Math.round(type.count / maxType * 100);
+        html += `<div class="type-pill"><span class="tp-count">${type.count.toLocaleString()}</span> ${type.label}<span class="tp-bar"><span class="tp-fill" style="width:${percent}%;background:${type.color}"></span></span></div>`;
       }
     });
     html += '</div></div>';
@@ -196,10 +196,10 @@ class StructraOverview extends StructraComponent {
      DATA QUALITY SCORE
      ==================================================== */
 
-  _renderQuality(q) {
-    if (!q) return '';
-    const color = q.overall >= 80 ? 'var(--success)' : q.overall >= 50 ? 'var(--warning)' : 'var(--danger)';
-    const barColor = (v) => v >= 80 ? 'var(--success)' : v >= 50 ? 'var(--warning)' : 'var(--danger)';
+  _renderQuality(quality) {
+    if (!quality) return '';
+    const color = quality.overall >= 80 ? 'var(--success)' : quality.overall >= 50 ? 'var(--warning)' : 'var(--danger)';
+    const barColor = (score) => score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
 
     let html = `<div class="stats-section"><div class="stats-section-title">Data Quality</div>
       <div class="pf-quality">
@@ -209,22 +209,22 @@ class StructraOverview extends StructraComponent {
               fill="none" stroke="var(--border)" stroke-width="2.5"/>
             <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
               fill="none" stroke="${color}" stroke-width="2.5"
-              stroke-dasharray="${q.overall}, 100" stroke-linecap="round"/>
+              stroke-dasharray="${quality.overall}, 100" stroke-linecap="round"/>
           </svg>
-          <span class="pf-q-num" style="color:${color}">${q.overall}</span>
+          <span class="pf-q-num" style="color:${color}">${quality.overall}</span>
         </div>
         <div class="pf-q-bars">
           <div class="pf-q-bar-row"><span class="pf-q-label">Completeness</span>
-            <div class="pf-q-track"><div class="pf-q-fill" style="width:${q.completeness}%;background:${barColor(q.completeness)}"></div></div>
-            <span class="pf-q-val">${q.completeness}%</span></div>
+            <div class="pf-q-track"><div class="pf-q-fill" style="width:${quality.completeness}%;background:${barColor(quality.completeness)}"></div></div>
+            <span class="pf-q-val">${quality.completeness}%</span></div>
           <div class="pf-q-bar-row"><span class="pf-q-label">Consistency</span>
-            <div class="pf-q-track"><div class="pf-q-fill" style="width:${q.consistency}%;background:${barColor(q.consistency)}"></div></div>
-            <span class="pf-q-val">${q.consistency}%</span></div>
+            <div class="pf-q-track"><div class="pf-q-fill" style="width:${quality.consistency}%;background:${barColor(quality.consistency)}"></div></div>
+            <span class="pf-q-val">${quality.consistency}%</span></div>
           <div class="pf-q-bar-row"><span class="pf-q-label">Uniqueness</span>
-            <div class="pf-q-track"><div class="pf-q-fill" style="width:${q.uniqueness}%;background:${barColor(q.uniqueness)}"></div></div>
-            <span class="pf-q-val">${q.uniqueness}%</span></div>
+            <div class="pf-q-track"><div class="pf-q-fill" style="width:${quality.uniqueness}%;background:${barColor(quality.uniqueness)}"></div></div>
+            <span class="pf-q-val">${quality.uniqueness}%</span></div>
         </div>
-        ${q.issues.length > 0 ? `<div class="pf-q-issues"><span class="pf-q-issues-title">Top Issues</span>${q.issues.map(i =>
+        ${quality.issues.length > 0 ? `<div class="pf-q-issues"><span class="pf-q-issues-title">Top Issues</span>${quality.issues.map(i =>
           `<div class="pf-q-issue pf-q-issue-${i.severity}"><span class="pf-q-issue-field">${Structra.sharedHelpers.escapeHtml(i.field)}</span> ${Structra.sharedHelpers.escapeHtml(i.msg)}</div>`
         ).join('')}</div>` : ''}
       </div></div>`;
@@ -263,24 +263,24 @@ class StructraOverview extends StructraComponent {
   /** Normalize $[0].foo → $[*].foo and group */
   _groupArraysBySchema(arraysDetail) {
     const map = new Map();
-    for (const a of arraysDetail) {
-      const schema = a.path.replace(/\[\d+\]/g, '[*]');
+    for (const list of arraysDetail) {
+      const schema = list.path.replace(/\[\d+\]/g, '[*]');
       if (!map.has(schema)) {
         map.set(schema, { path: schema, occurrences: 0, totalItems: 0, min: Infinity, max: 0, types: {} });
       }
-      const g = map.get(schema);
-      g.occurrences++;
-      g.totalItems += a.count;
-      if (a.count < g.min) g.min = a.count;
-      if (a.count > g.max) g.max = a.count;
-      g.types[a.sample] = (g.types[a.sample] || 0) + 1;
+      const group = map.get(schema);
+      group.occurrences++;
+      group.totalItems += list.count;
+      if (list.count < group.min) group.min = list.count;
+      if (list.count > group.max) group.max = list.count;
+      group.types[list.sample] = (group.types[list.sample] || 0) + 1;
     }
-    return [...map.values()].map(g => ({
-      ...g,
-      avg: (g.totalItems / g.occurrences).toFixed(1),
-      primaryType: Object.entries(g.types).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown',
-      min: g.min === Infinity ? 0 : g.min,
-    })).sort((a, b) => b.totalItems - a.totalItems);
+    return [...map.values()].map(group => ({
+      ...group,
+      avg: (group.totalItems / group.occurrences).toFixed(1),
+      primaryType: Object.entries(group.types).sort((list, bin) => bin[1] - list[1])[0]?.[0] || 'unknown',
+      min: group.min === Infinity ? 0 : group.min,
+    })).sort((list, bin) => bin.totalItems - list.totalItems);
   }
 
   /** Summary tab - one row per unique schema path */
@@ -288,16 +288,16 @@ class StructraOverview extends StructraComponent {
     let html = '<table class="arr-table"><thead><tr>';
     html += '<th>Schema Path</th><th>Occurrences</th><th>Total Items</th><th>Avg</th><th>Min</th><th>Max</th><th>Type</th>';
     html += '</tr></thead><tbody>';
-    for (const g of groups) {
-      const isPrim = g.primaryType !== 'object';
+    for (const group of groups) {
+      const isPrim = group.primaryType !== 'object';
       html += `<tr>
-        <td class="arr-path${isPrim ? ' arr-prim' : ''}">${Structra.sharedHelpers.escapeHtml(g.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
-        <td class="arr-count">${g.occurrences.toLocaleString()}</td>
-        <td class="arr-count">${g.totalItems.toLocaleString()}</td>
-        <td class="arr-count">${g.avg}</td>
-        <td class="arr-count">${g.min.toLocaleString()}</td>
-        <td class="arr-count">${g.max.toLocaleString()}</td>
-        <td>${Structra.sharedHelpers.escapeHtml(g.primaryType)}</td>
+        <td class="arr-path${isPrim ? ' arr-prim' : ''}">${Structra.sharedHelpers.escapeHtml(group.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
+        <td class="arr-count">${group.occurrences.toLocaleString()}</td>
+        <td class="arr-count">${group.totalItems.toLocaleString()}</td>
+        <td class="arr-count">${group.avg}</td>
+        <td class="arr-count">${group.min.toLocaleString()}</td>
+        <td class="arr-count">${group.max.toLocaleString()}</td>
+        <td>${Structra.sharedHelpers.escapeHtml(group.primaryType)}</td>
       </tr>`;
     }
     html += '</tbody></table>';
@@ -306,17 +306,17 @@ class StructraOverview extends StructraComponent {
 
   /** Top by Size tab - top 100 largest arrays */
   _renderArraysTop(arraysDetail) {
-    const sorted = [...arraysDetail].sort((a, b) => b.count - a.count).slice(0, 100);
+    const sorted = [...arraysDetail].sort((list, bin) => bin.count - list.count).slice(0, 100);
     let html = '<table class="arr-table"><thead><tr><th>#</th><th>Path</th><th>Items</th><th>Element Type</th></tr></thead><tbody>';
     for (let i = 0; i < sorted.length; i++) {
-      const a = sorted[i];
-      const isPrim = a.sample !== 'object';
-      const cls = isPrim ? 'arr-path arr-prim' : 'arr-path';
+      const item = sorted[i];
+      const isPrim = item.sample !== 'object';
+      const className = isPrim ? 'arr-path arr-prim' : 'arr-path';
       html += `<tr>
         <td class="arr-count" style="color:var(--text-muted)">${i + 1}</td>
-        <td class="${cls}" data-action="drill-array" data-path="${Structra.sharedHelpers.escapeHtml(a.path)}">${Structra.sharedHelpers.escapeHtml(a.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
-        <td class="arr-count">${a.count.toLocaleString()}</td>
-        <td>${Structra.sharedHelpers.escapeHtml(a.sample)}</td>
+        <td class="${className}" data-action="drill-array" data-path="${Structra.sharedHelpers.escapeHtml(item.path)}">${Structra.sharedHelpers.escapeHtml(item.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
+        <td class="arr-count">${item.count.toLocaleString()}</td>
+        <td>${Structra.sharedHelpers.escapeHtml(item.sample)}</td>
       </tr>`;
     }
     html += '</tbody></table>';
@@ -364,13 +364,13 @@ class StructraOverview extends StructraComponent {
 
       let rows = '';
       for (let i = startIdx; i < endIdx; i++) {
-        const a = data[i];
-        const isPrim = a.sample !== 'object';
-        const cls = isPrim ? 'arr-path arr-prim' : 'arr-path';
+        const item = data[i];
+        const isPrim = item.sample !== 'object';
+        const className = isPrim ? 'arr-path arr-prim' : 'arr-path';
         rows += `<tr>
-          <td class="${cls}" data-action="drill-array" data-path="${Structra.sharedHelpers.escapeHtml(a.path)}">${Structra.sharedHelpers.escapeHtml(a.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
-          <td class="arr-count">${a.count.toLocaleString()}</td>
-          <td>${Structra.sharedHelpers.escapeHtml(a.sample)}</td>
+          <td class="${className}" data-action="drill-array" data-path="${Structra.sharedHelpers.escapeHtml(item.path)}">${Structra.sharedHelpers.escapeHtml(item.path)}${isPrim ? ' <span class="stat-prim-tag">primitive</span>' : ''}</td>
+          <td class="arr-count">${item.count.toLocaleString()}</td>
+          <td>${Structra.sharedHelpers.escapeHtml(item.sample)}</td>
         </tr>`;
       }
 
@@ -411,42 +411,42 @@ class StructraOverview extends StructraComponent {
     let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage: ${Structra.sharedHelpers.escapeHtml(path)} (${rows.length} rows)${backBtn}</div>`;
     html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th title="Rows where the key is there and not empty">Has a value</th><th></th></tr></thead><tbody>';
 
-    const sorted = [...coverage].sort((a, b) => b.missing - a.missing || b.empty - a.empty || a.key.localeCompare(b.key));
-    for (const k of sorted) {
+    const sorted = [...coverage].sort((list, bin) => bin.missing - list.missing || bin.empty - list.empty || list.key.localeCompare(bin.key));
+    for (const key of sorted) {
       // "Has a value": present and not empty (a key that is there but null is not a value)
-      const hasValue = rows.length ? Math.round(Math.max(0, k.present - k.empty) / rows.length * 100) : 0;
+      const hasValue = rows.length ? Math.round(Math.max(0, key.present - key.empty) / rows.length * 100) : 0;
       const color = hasValue === 100 ? 'var(--success)' : hasValue >= 80 ? 'var(--warning)' : 'var(--danger)';
-      const missStyle = k.missing > 0 ? 'class="stat-missing-cell" data-action="show-missing" data-keyname="' + Structra.sharedHelpers.escapeHtml(k.key) + '"' : '';
-      const emptyStyle = k.empty > 0 ? 'class="stat-empty-cell" data-action="show-empty" data-keyname="' + Structra.sharedHelpers.escapeHtml(k.key) + '"' : '';
+      const missStyle = key.missing > 0 ? 'class="stat-missing-cell" data-action="show-missing" data-keyname="' + Structra.sharedHelpers.escapeHtml(key.key) + '"' : '';
+      const emptyStyle = key.empty > 0 ? 'class="stat-empty-cell" data-action="show-empty" data-keyname="' + Structra.sharedHelpers.escapeHtml(key.key) + '"' : '';
 
       // Detect nested type for drill tags
       let typeTag = '';
-      if (k.types && k.types.has('object')) {
-        typeTag = ` <span class="stat-nested-tag" data-action="toggle-nested" data-keyname="${Structra.sharedHelpers.escapeHtml(k.key)}">${Structra.icons.svg('chevron-right', { size: 12 })} {…}</span>`;
-      } else if (k.types && k.types.has('array')) {
-        typeTag = ` <span class="stat-nested-tag" data-action="drill-nested-array" data-keyname="${Structra.sharedHelpers.escapeHtml(k.key)}">[…]</span>`;
+      if (key.types && key.types.has('object')) {
+        typeTag = ` <span class="stat-nested-tag" data-action="toggle-nested" data-keyname="${Structra.sharedHelpers.escapeHtml(key.key)}">${Structra.icons.svg('chevron-right', { size: 12 })} {…}</span>`;
+      } else if (key.types && key.types.has('array')) {
+        typeTag = ` <span class="stat-nested-tag" data-action="drill-nested-array" data-keyname="${Structra.sharedHelpers.escapeHtml(key.key)}">[…]</span>`;
       }
 
       html += `<tr>
-        <td class="cov-key" data-action="highlight-key" data-keyname="${Structra.sharedHelpers.escapeHtml(k.key)}">${Structra.sharedHelpers.escapeHtml(k.key)}${typeTag}</td>
-        <td>${k.present}</td>
-        <td ${emptyStyle}>${k.empty || '-'}</td>
-        <td ${missStyle} style="${k.missing > 0 ? 'color:var(--danger);font-weight:700;cursor:pointer' : ''}">${k.missing || '-'}</td>
+        <td class="cov-key" data-action="highlight-key" data-keyname="${Structra.sharedHelpers.escapeHtml(key.key)}">${Structra.sharedHelpers.escapeHtml(key.key)}${typeTag}</td>
+        <td>${key.present}</td>
+        <td ${emptyStyle}>${key.empty || '-'}</td>
+        <td ${missStyle} style="${key.missing > 0 ? 'color:var(--danger);font-weight:700;cursor:pointer' : ''}">${key.missing || '-'}</td>
         <td class="cov-pct" style="color:${color}">${hasValue}%</td>
         <td><div class="cov-bar"><div class="cov-bar-fill" style="width:${hasValue}%;background:${color}"></div></div></td>
       </tr>`;
 
       // Nested object keys (hidden by default, toggled)
-      if (k.types && k.types.has('object')) {
-        const nestedCoverage = Structra.dataEngine.analyzeNestedKeys(rows, k.key);
-        for (const nk of nestedCoverage) {
-          const nc = nk.pct === 100 ? 'var(--success)' : nk.pct >= 80 ? 'var(--warning)' : 'var(--danger)';
-          html += `<tr class="stat-nested-row" data-parent="${Structra.sharedHelpers.escapeHtml(k.key)}" style="display:none">
-            <td class="cov-key" style="padding-left:24px;color:var(--text-sec)"><span style="color:var(--text-muted)">└ </span>${Structra.sharedHelpers.escapeHtml(nk.key)}</td>
-            <td>${nk.present}</td><td>${nk.empty || '-'}</td>
-            <td style="${nk.missing > 0 ? 'color:var(--danger);font-weight:700' : ''}">${nk.missing || '-'}</td>
-            <td class="cov-pct" style="color:${nc}">${nk.pct}%</td>
-            <td><div class="cov-bar"><div class="cov-bar-fill" style="width:${nk.pct}%;background:${nc}"></div></div></td>
+      if (key.types && key.types.has('object')) {
+        const nestedCoverage = Structra.dataEngine.analyzeNestedKeys(rows, key.key);
+        for (const nested of nestedCoverage) {
+          const color = nested.pct === 100 ? 'var(--success)' : nested.pct >= 80 ? 'var(--warning)' : 'var(--danger)';
+          html += `<tr class="stat-nested-row" data-parent="${Structra.sharedHelpers.escapeHtml(key.key)}" style="display:none">
+            <td class="cov-key" style="padding-left:24px;color:var(--text-sec)"><span style="color:var(--text-muted)">└ </span>${Structra.sharedHelpers.escapeHtml(nested.key)}</td>
+            <td>${nested.present}</td><td>${nested.empty || '-'}</td>
+            <td style="${nested.missing > 0 ? 'color:var(--danger);font-weight:700' : ''}">${nested.missing || '-'}</td>
+            <td class="cov-pct" style="color:${color}">${nested.pct}%</td>
+            <td><div class="cov-bar"><div class="cov-bar-fill" style="width:${nested.pct}%;background:${color}"></div></div></td>
           </tr>`;
         }
       }
@@ -469,17 +469,17 @@ class StructraOverview extends StructraComponent {
     html += '<th>Top Values</th>';
     html += '</tr></thead><tbody>';
 
-    for (const f of profileData.fields) {
-      const topStr = f.topValues ? f.topValues.map(t => `${Structra.sharedHelpers.escapeHtml(t.val)} (${t.cnt})`).join(', ') : '-';
+    for (const finding of profileData.fields) {
+      const topStr = finding.topValues ? finding.topValues.map(topValue => `${Structra.sharedHelpers.escapeHtml(topValue.val)} (${topValue.cnt})`).join(', ') : '-';
       html += `<tr>
-        <td class="pf-key">${Structra.sharedHelpers.escapeHtml(f.key)}</td>
-        <td><span class="pf-type pf-type-${f.primaryType}">${f.primaryType}</span></td>
-        <td>${f.coverage}%</td>
-        <td style="${parseFloat(f.nullPct) > 20 ? 'color:var(--danger);font-weight:600' : ''}">${f.nullPct}%</td>
-        <td>${f.uniqueCapped ? '\u2265 ' : ''}${f.unique} <small>(${f.uniquePct}%)</small></td>
-        <td>${f.min != null ? f.min : '-'}</td>
-        <td>${f.max != null ? f.max : '-'}</td>
-        <td>${f.avg != null ? f.avg : '-'}</td>`;
+        <td class="pf-key">${Structra.sharedHelpers.escapeHtml(finding.key)}</td>
+        <td><span class="pf-type pf-type-${finding.primaryType}">${finding.primaryType}</span></td>
+        <td>${finding.coverage}%</td>
+        <td style="${parseFloat(finding.nullPct) > 20 ? 'color:var(--danger);font-weight:600' : ''}">${finding.nullPct}%</td>
+        <td>${finding.uniqueCapped ? '\u2265 ' : ''}${finding.unique} <small>(${finding.uniquePct}%)</small></td>
+        <td>${finding.min != null ? finding.min : '-'}</td>
+        <td>${finding.max != null ? finding.max : '-'}</td>
+        <td>${finding.avg != null ? finding.avg : '-'}</td>`;
       html += `<td class="pf-top">${topStr}</td>
       </tr>`;
     }
@@ -494,17 +494,17 @@ class StructraOverview extends StructraComponent {
   _renderDistribution(profile) {
     // Identifiers, tags and time stamps have a different value every row: their "distribution" says nothing
     const NOISE = /^(@|odata)|(^|[_.])(id|guid|uuid|etag)$|^itemInternalId$|^(created|modified|updated|timestamp)(at|on|date|time|by)?$/i;
-    const fields = profile.fields.filter((f) => (f.histogram || f.distTop) && !NOISE.test(f.key));
+    const fields = profile.fields.filter((finding) => (finding.histogram || finding.distTop) && !NOISE.test(finding.key));
     if (!fields.length) return '';
 
     let html = '<div class="stats-section"><div class="stats-section-title">Value Distribution</div><div class="dist-grid">';
-    for (const f of fields) {
+    for (const finding of fields) {
       html += `<div class="dist-card">
-        <div class="dist-card-title">${Structra.sharedHelpers.escapeHtml(f.key)} <span class="dist-card-type">${f.histogram ? 'numeric' : 'categorical'}</span></div>`;
-      if (f.histogram) {
-        const maxBin = Math.max(...f.histogram.map((b) => b.count), 1);
+        <div class="dist-card-title">${Structra.sharedHelpers.escapeHtml(finding.key)} <span class="dist-card-type">${finding.histogram ? 'numeric' : 'categorical'}</span></div>`;
+      if (finding.histogram) {
+        const maxBin = Math.max(...finding.histogram.map((bin) => bin.count), 1);
         html += '<div class="dist-histogram">';
-        for (const bin of f.histogram) {
+        for (const bin of finding.histogram) {
           html += `<div class="dist-bin">
             <span class="dist-bin-label">${bin.label}</span>
             <div class="dist-bin-bar"><div class="dist-bin-fill" style="width:${Math.round(bin.count / maxBin * 100)}%"></div></div>
@@ -513,16 +513,16 @@ class StructraOverview extends StructraComponent {
         }
         html += '</div>';
       } else {
-        const maxVal = Math.max(...f.distTop.map((v) => v.count), 1);
+        const maxVal = Math.max(...finding.distTop.map((entry) => entry.count), 1);
         html += '<div class="dist-categorical">';
-        for (const tv of f.distTop) {
+        for (const tv of finding.distTop) {
           html += `<div class="dist-cat-row">
             <span class="dist-cat-label" title="${Structra.sharedHelpers.escapeHtml(String(tv.value))}">${Structra.sharedHelpers.escapeHtml(String(tv.value).slice(0, 24))}</span>
             <div class="dist-cat-bar"><div class="dist-cat-fill" style="width:${Math.round(tv.count / maxVal * 100)}%"></div></div>
             <span class="dist-cat-count">${tv.count}</span>
           </div>`;
         }
-        if (f.distUnique > f.distTop.length) html += `<div class="dist-cat-more">+${f.distUnique - f.distTop.length} more unique values</div>`;
+        if (finding.distUnique > finding.distTop.length) html += `<div class="dist-cat-more">+${finding.distUnique - finding.distTop.length} more unique values</div>`;
         html += '</div>';
       }
       html += '</div>';
@@ -534,15 +534,15 @@ class StructraOverview extends StructraComponent {
      EVENT HANDLER (delegated)
      ==================================================== */
 
-  _onClick(e) {
-    const action = e.target.closest('[data-action]');
+  _onClick(event) {
+    const action = event.target.closest('[data-action]');
     if (!action) return;
     const act = action.dataset.action;
 
     switch (act) {
       case 'go': {
-        const f = this._insights && this._insights.findings[Number(action.dataset.i)];
-        if (f) this._goToFinding(f.go);
+        const finding = this._insights && this._insights.findings[Number(action.dataset.i)];
+        if (finding) this._goToFinding(finding.go);
         break;
       }
       case 'go-list': {
@@ -555,7 +555,7 @@ class StructraOverview extends StructraComponent {
         if (!content || !this._arraysDetail) break;
 
         // Update active tab styling
-        this.querySelectorAll('.arr-tab').forEach(b => b.classList.remove('arr-tab-active'));
+        this.querySelectorAll('.arr-tab').forEach(bin => bin.classList.remove('arr-tab-active'));
         action.classList.add('arr-tab-active');
 
         // Render selected tab content
@@ -586,8 +586,8 @@ class StructraOverview extends StructraComponent {
       }
       case 'drill-back': {
         if (this._drillStack.length > 0) {
-          const prev = this._drillStack.pop();
-          this._currentArr = prev;
+          const previous = this._drillStack.pop();
+          this._currentArr = previous;
           this._refreshCoverage();
         }
         break;
@@ -597,7 +597,7 @@ class StructraOverview extends StructraComponent {
         const container = this.queryOne('#statsContainer');
         const rows = container.querySelectorAll(`.stat-nested-row[data-parent="${keyName}"]`);
         const isOpen = rows[0]?.style.display !== 'none';
-        rows.forEach(r => r.style.display = isOpen ? 'none' : '');
+        rows.forEach(row => row.style.display = isOpen ? 'none' : '');
         action.innerHTML = Structra.icons.svg(isOpen ? 'chevron-right' : 'chevron-down', { size: 12 }) + ' {…}';
         break;
       }
@@ -636,8 +636,8 @@ class StructraOverview extends StructraComponent {
         const indices = [];
         this._currentArr.rows.forEach((row, i) => {
           if (row && Object.prototype.hasOwnProperty.call(row, keyName)) {
-            const v = row[keyName];
-            if (v === null || v === undefined || v === '') indices.push(i);
+            const value = row[keyName];
+            if (value === null || value === undefined || value === '') indices.push(i);
           }
         });
         this._showIndicesPopup(`Empty "${keyName}"`, indices, action);
@@ -678,9 +678,9 @@ class StructraOverview extends StructraComponent {
     const showing = indices.slice(0, maxShow);
 
     let html = `<div class="missing-panel"><div class="missing-header"><span>${Structra.sharedHelpers.escapeHtml(title)} (${indices.length})</span><span class="missing-close" data-action="close-popup">&times;</span></div><div class="missing-list">`;
-    for (const idx of showing) {
-      const path = `${basePath}[${idx}]`;
-      html += `<span class="missing-item" data-action="goto-index" data-path="${Structra.sharedHelpers.escapeHtml(path)}">[${idx}]</span>`;
+    for (const index of showing) {
+      const path = `${basePath}[${index}]`;
+      html += `<span class="missing-item" data-action="goto-index" data-path="${Structra.sharedHelpers.escapeHtml(path)}">[${index}]</span>`;
     }
     if (indices.length > maxShow) html += `<span class="missing-more">…and ${indices.length - maxShow} more</span>`;
     html += '</div></div>';

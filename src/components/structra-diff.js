@@ -23,7 +23,7 @@ class StructraDiff extends StructraDialog {
     this._result = null;
     this._mode = 'side';
 
-    this.on('diff:open', (d) => this._open(d));
+    this.on('diff:open', (payload) => this._open(payload));
   }
 
   render() {
@@ -65,8 +65,8 @@ class StructraDiff extends StructraDialog {
           <div class="diff-list" id="diffList"></div>
         </div>` });
 
-    this.addEventListener('click', (e) => {
-      const action = e.target.closest('[data-action]');
+    this.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-action]');
       if (action) {
         const a = action.dataset.action;
         if (a === 'close') this.close();
@@ -75,16 +75,16 @@ class StructraDiff extends StructraDialog {
         else if (a === 'copy-patch') this._copyPatch();
         else if (a === 'load-paste') this._loadPaste();
       }
-      const mode = e.target.closest('[data-diff-mode]');
+      const mode = event.target.closest('[data-diff-mode]');
       if (mode) {
-        this.querySelectorAll('[data-diff-mode]').forEach(b => b.classList.toggle('active', b === mode));
+        this.querySelectorAll('[data-diff-mode]').forEach(target => target.classList.toggle('active', target === mode));
         this._mode = mode.dataset.diffMode;
         this._renderDiff();
       }
     });
 
-    this.addEventListener('change', (e) => {
-      if (e.target.id === 'diffLeftSrc' || e.target.id === 'diffRightSrc') {
+    this.addEventListener('change', (event) => {
+      if (event.target.id === 'diffLeftSrc' || event.target.id === 'diffRightSrc') {
         this._handleSourceChange();
       }
     });
@@ -92,27 +92,27 @@ class StructraDiff extends StructraDialog {
 
   /** Every other open document can be a side: the choices are rebuilt each time the dialog opens */
   _tabChoices() {
-    const others = (Structra.tabs.list || []).filter((t) => t.id !== Structra.tabs.activeId && t.data);
-    return others.map((t) => `<option value="tab:${t.id}">Tab: ${Structra.sharedHelpers.escapeHtml(t.label || 'Untitled')}</option>`).join('');
+    const others = (Structra.tabs.list || []).filter((tab) => tab.id !== Structra.tabs.activeId && tab.data);
+    return others.map((tab) => `<option value="tab:${tab.id}">Tab: ${Structra.sharedHelpers.escapeHtml(tab.label || 'Untitled')}</option>`).join('');
   }
 
   _tabData(value) {
     const id = Number(String(value).slice(4));
-    const t = (Structra.tabs.list || []).find((x) => x.id === id);
-    return t ? t.data : null;
+    const tab = (Structra.tabs.list || []).find((x) => x.id === id);
+    return tab ? tab.data : null;
   }
 
-  _open(opts) {
+  _open(options) {
     this.open();
-    this.querySelectorAll('.diff-source').forEach((sel) => {
-      sel.querySelectorAll('option[value^="tab:"]').forEach((o) => o.remove());
-      sel.insertAdjacentHTML('beforeend', this._tabChoices());
+    this.querySelectorAll('.diff-source').forEach((element) => {
+      element.querySelectorAll('option[value^="tab:"]').forEach((element) => element.remove());
+      element.insertAdjacentHTML('beforeend', this._tabChoices());
     });
-    if (opts && opts.left) this._left = opts.left;
+    if (options && options.left) this._left = options.left;
     else this._left = Structra.state.jsonData;
 
-    if (opts && opts.right) {
-      this._right = opts.right;
+    if (options && options.right) {
+      this._right = options.right;
       this._computeAndRender();
     } else {
       this._showPasteArea();
@@ -157,8 +157,8 @@ class StructraDiff extends StructraDialog {
     try {
       this._right = JSON.parse(text);
       this._computeAndRender();   // the paste box stays, so the right side can be edited and compared again
-    } catch (e) {
-      Structra.toast('This is not valid JSON: ' + e.message, 'error');
+    } catch (error) {
+      Structra.toast('This is not valid JSON: ' + error.message, 'error');
     }
   }
 
@@ -177,9 +177,9 @@ class StructraDiff extends StructraDialog {
     let result;
     try {
       result = await Structra.jsonDiff.compare(this._left, this._right);
-    } catch (err) {
-      Structra.log.error('Diff', 'Compare failed', err);
-      if (token === this._token) this._showNote('The two sides could not be compared: ' + err.message);
+    } catch (error) {
+      Structra.log.error('Diff', 'Compare failed', error);
+      if (token === this._token) this._showNote('The two sides could not be compared: ' + error.message);
       return;
     }
     if (token !== this._token) return;                      // a newer compare has started
@@ -198,7 +198,7 @@ class StructraDiff extends StructraDialog {
   }
 
   _updateStats() {
-    const count = (type) => this._diffs.filter((d) => d.type === type).length;
+    const count = (type) => this._diffs.filter((diff) => diff.type === type).length;
     const added = count('added');
     const removed = count('removed');
     const changed = count('changed');
@@ -240,7 +240,7 @@ class StructraDiff extends StructraDialog {
   }
 
   /** The two boxes scroll as one, so the same part of each document stays side by side */
-  _syncScroll(a, b) {
+  _syncScroll(source, target) {
     let busy = false;
     const follow = (from, to) => from.onScroll(() => {
       if (busy) return;
@@ -249,8 +249,8 @@ class StructraDiff extends StructraDialog {
       to.scrollTo(at.left, at.top);
       requestAnimationFrame(() => { busy = false; });     // the other box answers with its own scroll event: ignore that one
     });
-    follow(a, b);
-    follow(b, a);
+    follow(source, target);
+    follow(target, source);
   }
 
   /**
@@ -260,36 +260,36 @@ class StructraDiff extends StructraDialog {
    */
   _textOf(value, side) {
     const mark = new Map();                                     // path -> class
-    for (const d of this._diffs) {
+    for (const diff of this._diffs) {
       if (side === 'left') {
-        if (d.type === 'removed') mark.set(d.leftPath, 'diff-rm');
-        else if (d.type === 'changed' || d.type === 'moved') mark.set(d.leftPath, 'diff-chg');
-      } else if (d.type === 'added') mark.set(d.rightPath, 'diff-add');
-      else if (d.type === 'changed' || d.type === 'moved') mark.set(d.rightPath, 'diff-chg');
+        if (diff.type === 'removed') mark.set(diff.leftPath, 'diff-rm');
+        else if (diff.type === 'changed' || diff.type === 'moved') mark.set(diff.leftPath, 'diff-chg');
+      } else if (diff.type === 'added') mark.set(diff.rightPath, 'diff-add');
+      else if (diff.type === 'changed' || diff.type === 'moved') mark.set(diff.rightPath, 'diff-chg');
     }
     const lines = [];
     const classes = new Map();                                  // line number -> class
-    const put = (text, cls) => { if (cls) classes.set(lines.length, cls); lines.push(text); };
-    const walk = (v, path, indent, key, last, inherited) => {
-      const cls = mark.get(path) || inherited;
+    const put = (text, className) => { if (className) classes.set(lines.length, className); lines.push(text); };
+    const walk = (value, path, indent, key, last, inherited) => {
+      const className = mark.get(path) || inherited;
       const prefix = indent + (key === undefined ? '' : JSON.stringify(key) + ': ');
       const comma = last ? '' : ',';
-      if (v !== null && typeof v === 'object') {
-        const isList = Array.isArray(v);
-        const keys = isList ? null : Object.keys(v);
-        const size = isList ? v.length : keys.length;
+      if (value !== null && typeof value === 'object') {
+        const isList = Array.isArray(value);
+        const keys = isList ? null : Object.keys(value);
+        const size = isList ? value.length : keys.length;
         const open = isList ? '[' : '{';
         const close = isList ? ']' : '}';
-        if (!size) { put(prefix + open + close + comma, cls); return; }
-        put(prefix + open, cls);
+        if (!size) { put(prefix + open + close + comma, className); return; }
+        put(prefix + open, className);
         for (let i = 0; i < size; i++) {
-          const k = isList ? i : keys[i];
-          const childPath = isList ? `${path}[${k}]` : `${path}.${k}`;
-          walk(v[k], childPath, indent + '  ', isList ? undefined : k, i === size - 1, cls);
+          const key = isList ? i : keys[i];
+          const childPath = isList ? `${path}[${key}]` : `${path}.${key}`;
+          walk(value[key], childPath, indent + '  ', isList ? undefined : key, i === size - 1, className);
         }
-        put(indent + close + comma, cls);
+        put(indent + close + comma, className);
       } else {
-        put(prefix + JSON.stringify(v) + comma, cls);
+        put(prefix + JSON.stringify(value) + comma, className);
       }
     };
     walk(value, '$', '', undefined, true, '');
@@ -298,14 +298,14 @@ class StructraDiff extends StructraDialog {
 
   _renderInline() {
     const rows = this._diffs.slice(0, StructraDiff.MAX_ROWS);
-    const line = (cls, sign, path, value) => `<div class="diff-line ${cls}"><span class="diff-ln">${sign}</span><span class="diff-code">${Structra.sharedHelpers.escapeHtml(path)}: ${Structra.sharedHelpers.escapeHtml(this._preview(value))}</span></div>`;
+    const line = (className, sign, path, value) => `<div class="diff-line ${className}"><span class="diff-ln">${sign}</span><span class="diff-code">${Structra.sharedHelpers.escapeHtml(path)}: ${Structra.sharedHelpers.escapeHtml(this._preview(value))}</span></div>`;
     let html = '<div class="diff-lines">';
-    for (const d of rows) {
-      if (d.type === 'removed') html += line('diff-rm', '-', d.leftPath, d.left);
-      else if (d.type === 'added') html += line('diff-add', '+', d.rightPath, d.right);
+    for (const row of rows) {
+      if (row.type === 'removed') html += line('diff-rm', '-', row.leftPath, row.left);
+      else if (row.type === 'added') html += line('diff-add', '+', row.rightPath, row.right);
       else {
-        html += line('diff-rm', '-', d.leftPath, d.left);
-        html += line('diff-add', '+', d.rightPath, d.right);
+        html += line('diff-rm', '-', row.leftPath, row.left);
+        html += line('diff-add', '+', row.rightPath, row.right);
       }
     }
     html += '</div>' + this._moreNote();
@@ -314,17 +314,17 @@ class StructraDiff extends StructraDialog {
 
   _renderStructural() {
     const groups = {};
-    for (const d of this._diffs.slice(0, StructraDiff.MAX_ROWS)) {
-      const root = d.path.split('.').slice(0, 2).join('.');
+    for (const diff of this._diffs.slice(0, StructraDiff.MAX_ROWS)) {
+      const root = diff.path.split('.').slice(0, 2).join('.');
       if (!groups[root]) groups[root] = [];
-      groups[root].push(d);
+      groups[root].push(diff);
     }
     let html = '<div class="diff-structural">';
     for (const [path, changes] of Object.entries(groups)) {
       html += `<div class="diff-struct-group"><div class="diff-struct-path">${Structra.sharedHelpers.escapeHtml(path)}</div>`;
-      for (const c of changes) {
-        const cls = c.type === 'added' ? 'diff-add' : c.type === 'removed' ? 'diff-rm' : 'diff-chg';
-        html += `<div class="diff-struct-item ${cls}">${c.type}: ${Structra.sharedHelpers.escapeHtml(c.path.replace(path + '.', ''))}</div>`;
+      for (const change of changes) {
+        const className = change.type === 'added' ? 'diff-add' : change.type === 'removed' ? 'diff-rm' : 'diff-chg';
+        html += `<div class="diff-struct-item ${className}">${change.type}: ${Structra.sharedHelpers.escapeHtml(change.path.replace(path + '.', ''))}</div>`;
       }
       html += '</div>';
     }
@@ -338,26 +338,26 @@ class StructraDiff extends StructraDialog {
   }
 
   _copyDiff() {
-    const text = this._diffs.map((d) => {
-      if (d.type === 'added') return `+ ${d.rightPath}: ${JSON.stringify(d.right)}`;
-      if (d.type === 'removed') return `- ${d.leftPath}: ${JSON.stringify(d.left)}`;
-      if (d.type === 'moved') return `> ${d.leftPath} to ${d.rightPath}`;
-      return `~ ${d.path}: ${JSON.stringify(d.left)} → ${JSON.stringify(d.right)}`;
+    const text = this._diffs.map((diff) => {
+      if (diff.type === 'added') return `+ ${diff.rightPath}: ${JSON.stringify(diff.right)}`;
+      if (diff.type === 'removed') return `- ${diff.leftPath}: ${JSON.stringify(diff.left)}`;
+      if (diff.type === 'moved') return `> ${diff.leftPath} to ${diff.rightPath}`;
+      return `~ ${diff.path}: ${JSON.stringify(diff.left)} → ${JSON.stringify(diff.right)}`;
     }).join('\n');
     Structra.sharedHelpers.copyToClipboard(text, 'Diff copied');
   }
 
   async _copyPatch() {
     if (!this._result) { Structra.toast('Fill in both sides first'); return; }
-    const ops = await Structra.jsonDiff.patchOps(this._result, this._left, this._right);
-    if (!ops.length) { Structra.toast('No differences'); return; }
-    Structra.sharedHelpers.copyToClipboard(JSON.stringify(ops, null, 2), 'Copied ' + ops.length + ' patch operation' + (ops.length === 1 ? '' : 's'));
+    const operations = await Structra.jsonDiff.patchOps(this._result, this._left, this._right);
+    if (!operations.length) { Structra.toast('No differences'); return; }
+    Structra.sharedHelpers.copyToClipboard(JSON.stringify(operations, null, 2), 'Copied ' + operations.length + ' patch operation' + (operations.length === 1 ? '' : 's'));
   }
 
-  _preview(val) {
-    if (val === null) return 'null';
-    if (typeof val === 'object') return JSON.stringify(val).slice(0, 60);
-    return String(val).slice(0, 60);
+  _preview(value) {
+    if (value === null) return 'null';
+    if (typeof value === 'object') return JSON.stringify(value).slice(0, 60);
+    return String(value).slice(0, 60);
   }
 
 }

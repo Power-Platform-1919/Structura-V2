@@ -41,8 +41,8 @@ class StructraWorkspace extends StructraDialog {
           </div>
         </div>` });
 
-    this.addEventListener('click', (e) => {
-      const action = e.target.closest('[data-action]');
+    this.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-action]');
       if (!action) return;
       const a = action.dataset.action;
       if (a === 'close') this.close();
@@ -53,55 +53,55 @@ class StructraWorkspace extends StructraDialog {
 
   /** Every open tab: its name, its data, where you were looking */
   _tabsSnapshot() {
-    return Structra.tabs.list.map((t) => {
-      const ds = Structra.dataEngine.datasets.get(t.id);
-      if (!ds || ds.raw === undefined || ds.raw === null) return null;
-      const active = t.id === Structra.tabs.activeId;
+    return Structra.tabs.list.map((tab) => {
+      const dataset = Structra.dataEngine.datasets.get(tab.id);
+      if (!dataset || dataset.raw === undefined || dataset.raw === null) return null;
+      const active = tab.id === Structra.tabs.activeId;
       return {
-        label: t.label,
-        fileName: ds.meta.fileName,
-        data: ds.raw,
-        view: active ? Structra.state.activeView : t.view,
-        path: active ? Structra.state.currentPath : t.path,
+        label: tab.label,
+        fileName: dataset.meta.fileName,
+        data: dataset.raw,
+        view: active ? Structra.state.activeView : tab.view,
+        path: active ? Structra.state.currentPath : tab.path,
         active,
       };
     }).filter(Boolean);
   }
 
   _export() {
-    const ws = { version: 3, exportedAt: new Date().toISOString(), type: 'structra-workspace' };
+    const workspace = { version: 3, exportedAt: new Date().toISOString(), type: 'structra-workspace' };
 
     if (this.queryOne('#wsExpData')?.checked !== false) {
-      ws.tabs = this._tabsSnapshot();
+      workspace.tabs = this._tabsSnapshot();
     }
     if (this.queryOne('#wsExpBookmarks')?.checked !== false) {
-      ws.bookmarks = JSON.parse(localStorage.getItem('structra_bookmarks') || '[]');
+      workspace.bookmarks = JSON.parse(localStorage.getItem('structra_bookmarks') || '[]');
     }
     if (this.queryOne('#wsExpSettings')?.checked !== false) {
-      ws.settings = {};
+      workspace.settings = {};
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('structra_setting_')) ws.settings[key] = localStorage.getItem(key);
+        if (key.startsWith('structra_setting_')) workspace.settings[key] = localStorage.getItem(key);
       }
-      ws.theme = Structra.themeEngine.snapshot();
-      ws.fontSize = Structra.state.fontSize;
+      workspace.theme = Structra.themeEngine.snapshot();
+      workspace.fontSize = Structra.state.fontSize;
     }
     if (this.queryOne('#wsExpHistory')?.checked !== false) {
-      ws.queryHistory = JSON.parse(localStorage.getItem('structra_query_history') || '[]');
+      workspace.queryHistory = JSON.parse(localStorage.getItem('structra_query_history') || '[]');
     }
     if (this.queryOne('#wsExpSnippets')?.checked !== false) {
-      ws.snippets = JSON.parse(localStorage.getItem('structra_snippets') || '[]');
+      workspace.snippets = JSON.parse(localStorage.getItem('structra_snippets') || '[]');
     }
     if (this.queryOne('#wsExpUndo')?.checked) {
-      ws.undoHistory = Structra.undoStack.getHistory();
+      workspace.undoHistory = Structra.undoStack.getHistory();
     }
 
-    const json = JSON.stringify(ws, null, 2);
+    const json = JSON.stringify(workspace, null, 2);
     Structra.sharedHelpers.downloadFile(json, `structra-workspace-${new Date().toISOString().slice(0, 10)}.structra`, 'application/json');
     const parts = [];
-    if (ws.tabs) parts.push(`${ws.tabs.length} tab${ws.tabs.length === 1 ? '' : 's'}`);
-    if (ws.bookmarks) parts.push(`${ws.bookmarks.length} bookmark${ws.bookmarks.length === 1 ? '' : 's'}`);
-    if (ws.snippets) parts.push(`${ws.snippets.length} snippet${ws.snippets.length === 1 ? '' : 's'}`);
+    if (workspace.tabs) parts.push(`${workspace.tabs.length} tab${workspace.tabs.length === 1 ? '' : 's'}`);
+    if (workspace.bookmarks) parts.push(`${workspace.bookmarks.length} bookmark${workspace.bookmarks.length === 1 ? '' : 's'}`);
+    if (workspace.snippets) parts.push(`${workspace.snippets.length} snippet${workspace.snippets.length === 1 ? '' : 's'}`);
     Structra.toast('Workspace saved' + (parts.length ? ': ' + parts.join(', ') : ''));
   }
 
@@ -114,41 +114,41 @@ class StructraWorkspace extends StructraDialog {
 
     try {
       const text = await file.text();
-      const ws = JSON.parse(text);
-      if (ws.type !== 'structra-workspace') { Structra.toast('This is not a Structra workspace file', 'error'); return; }
+      const workspace = JSON.parse(text);
+      if (workspace.type !== 'structra-workspace') { Structra.toast('This is not a Structra workspace file', 'error'); return; }
 
       // Check the shape before anything is written: a damaged or hand-made file must not damage saved data
       const isObj = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
-      if (ws.tabs !== undefined && !Array.isArray(ws.tabs)) { Structra.toast('This workspace file is damaged: its tabs are not a list.', 'error'); return; }
-      const rawTabs = ws.tabs || (ws.data ? [{ label: ws.fileName || 'Imported', fileName: ws.fileName, data: ws.data }] : []);
-      const tabs = rawTabs.filter((t) => isObj(t) && t.data !== null && typeof t.data === 'object');
+      if (workspace.tabs !== undefined && !Array.isArray(workspace.tabs)) { Structra.toast('This workspace file is damaged: its tabs are not a list.', 'error'); return; }
+      const rawTabs = workspace.tabs || (workspace.data ? [{ label: workspace.fileName || 'Imported', fileName: workspace.fileName, data: workspace.data }] : []);
+      const tabs = rawTabs.filter((rawTab) => isObj(rawTab) && rawTab.data !== null && typeof rawTab.data === 'object');
       const skipped = rawTabs.length - tabs.length;
-      const okList = (v) => (Array.isArray(v) ? v : null);
-      const bookmarks = okList(ws.bookmarks) ? ws.bookmarks.filter((b) => isObj(b) && typeof b.path === 'string') : null;
-      const snippets = okList(ws.snippets) ? ws.snippets.filter((x) => isObj(x) && typeof x.name === 'string' && typeof x.content === 'string') : null;
-      const history = okList(ws.queryHistory);
-      const settings = isObj(ws.settings) ? Object.fromEntries(Object.entries(ws.settings).filter(([k, v]) => /^structra_setting_\w+$/.test(k) && typeof v === 'string' && v.length < 200)) : null;
+      const okList = (value) => (Array.isArray(value) ? value : null);
+      const bookmarks = okList(workspace.bookmarks) ? workspace.bookmarks.filter((bookmark) => isObj(bookmark) && typeof bookmark.path === 'string') : null;
+      const snippets = okList(workspace.snippets) ? workspace.snippets.filter((x) => isObj(x) && typeof x.name === 'string' && typeof x.content === 'string') : null;
+      const history = okList(workspace.queryHistory);
+      const settings = isObj(workspace.settings) ? Object.fromEntries(Object.entries(workspace.settings).filter(([key, value]) => /^structra_setting_\w+$/.test(key) && typeof value === 'string' && value.length < 200)) : null;
       this.close();
       const panel = document.querySelector('structra-input-panel');
       let opened = 0;
-      for (const t of tabs) {
+      for (const tab of tabs) {
         if (Structra.state.jsonData) {
           const before = Structra.tabs.list.length;
           Structra.events.emit('tabs:add');
           if (Structra.tabs.list.length === before) break;              // the tab limit was reached
         }
-        const label = String(t.label || t.fileName || 'Imported').slice(0, 80);
-        await panel._loadSuccess(t.data, JSON.stringify(t.data), label);
-        if (typeof t.view === 'string' && t.view !== 'overview') Structra.setState('activeView', t.view);
-        if (typeof t.path === 'string') Structra.setState('currentPath', t.path);
+        const label = String(tab.label || tab.fileName || 'Imported').slice(0, 80);
+        await panel._loadSuccess(tab.data, JSON.stringify(tab.data), label);
+        if (typeof tab.view === 'string' && tab.view !== 'overview') Structra.setState('activeView', tab.view);
+        if (typeof tab.path === 'string') Structra.setState('currentPath', tab.path);
         opened++;
       }
 
       const store = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage not available */ } };
       if (bookmarks) { store('structra_bookmarks', bookmarks); Structra.events.emit('bookmarks:changed'); }
-      if (settings) for (const [k, v] of Object.entries(settings)) { try { localStorage.setItem(k, v); } catch { /* storage not available */ } }
-      if (ws.theme) Structra.themeEngine.restore(ws.theme);
-      if (typeof ws.fontSize === 'number') Structra.setState('fontSize', Math.max(10, Math.min(24, ws.fontSize)));
+      if (settings) for (const [key, value] of Object.entries(settings)) { try { localStorage.setItem(key, value); } catch { /* storage not available */ } }
+      if (workspace.theme) Structra.themeEngine.restore(workspace.theme);
+      if (typeof workspace.fontSize === 'number') Structra.setState('fontSize', Math.max(10, Math.min(24, workspace.fontSize)));
       if (history) store('structra_query_history', history);
       if (snippets) store('structra_snippets', snippets);
 
@@ -156,11 +156,11 @@ class StructraWorkspace extends StructraDialog {
       if (opened) parts.push(`${opened} tab${opened === 1 ? '' : 's'} opened`);
       if (bookmarks) parts.push(`${bookmarks.length} bookmark${bookmarks.length === 1 ? '' : 's'}`);
       if (snippets) parts.push(`${snippets.length} snippet${snippets.length === 1 ? '' : 's'}`);
-      if (settings || ws.theme) parts.push('settings and theme');
+      if (settings || workspace.theme) parts.push('settings and theme');
       if (skipped) parts.push(`${skipped} tab${skipped === 1 ? '' : 's'} skipped (no data)`);
       Structra.toast('Workspace restored: ' + (parts.join(', ') || 'nothing to restore'));
-    } catch (e) {
-      Structra.toast('Could not restore the workspace: ' + e.message, 'error');
+    } catch (error) {
+      Structra.toast('Could not restore the workspace: ' + error.message, 'error');
     }
   }
 }

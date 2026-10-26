@@ -70,7 +70,7 @@ Structra.undoStack = (() => {
 
   function getHistory(tabId) {
     const h = historyOf(tabId);
-    return h ? h.stack.map((s, i) => ({ label: s.label, active: i === h.index, timestamp: s.timestamp })) : [];
+    return h ? h.stack.map((snapshot, i) => ({ label: snapshot.label, active: i === h.index, timestamp: snapshot.timestamp })) : [];
   }
 
   // A closed tab takes its history with it

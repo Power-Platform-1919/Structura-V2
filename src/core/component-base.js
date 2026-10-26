@@ -24,8 +24,8 @@ class StructraComponent extends HTMLElement {
 
   /** Reads HTML attributes into this.props (camelCase keys) */
   _readProps() {
-    for (const attr of this.attributes) {
-      this.props[this._camel(attr.name)] = attr.value;
+    for (const attribute of this.attributes) {
+      this.props[this._camel(attribute.name)] = attribute.value;
     }
   }
 
@@ -43,11 +43,11 @@ class StructraComponent extends HTMLElement {
 
   /** Set a prop programmatically and trigger update */
   set(key, value) {
-    const attr = this._kebab(key);
+    const attribute = this._kebab(key);
     if (value == null || value === false) {
-      this.removeAttribute(attr);
+      this.removeAttribute(attribute);
     } else {
-      this.setAttribute(attr, value === true ? '' : value);
+      this.setAttribute(attribute, value === true ? '' : value);
     }
   }
 
@@ -56,8 +56,8 @@ class StructraComponent extends HTMLElement {
     return this.props[key];
   }
 
-  _camel(s) { return s.replace(/-([a-z])/g, (_, c) => c.toUpperCase()); }
-  _kebab(s) { return s.replace(/[A-Z]/g, c => '-' + c.toLowerCase()); }
+  _camel(text) { return text.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase()); }
+  _kebab(text) { return text.replace(/[A-Z]/g, letter => '-' + letter.toLowerCase()); }
 
   /** Override in subclass for one-time setup (event listeners, state subscriptions) */
   init() {}

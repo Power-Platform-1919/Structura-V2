@@ -16,34 +16,34 @@ Structra.jsonpathQuery = (() => {
 
   /* ---------- reading the expression ---------- */
 
-  function parse(expr) {
-    const src = String(expr).trim();
+  function parse(expression) {
+    const source = String(expression).trim();
     let i = 0;
     const steps = [];
-    const fail = (msg) => { throw new Error(`${msg} (at character ${i + 1} of "${src}")`); };
+    const fail = (message) => { throw new Error(`${message} (at character ${i + 1} of "${source}")`); };
 
-    if (src[i] === '$') i++;
-    while (i < src.length) {
-      if (src.startsWith('..', i)) {
+    if (source[i] === '$') i++;
+    while (i < source.length) {
+      if (source.startsWith('..', i)) {
         i += 2;
         steps.push({ type: 'descend' });
-        if (src[i] === '[') continue;                       // ..[?(...)]
-        if (src[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
+        if (source[i] === '[') continue;                       // ..[?(...)]
+        if (source[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
         const name = readName();
         if (!name) fail('Expected a field name after ..');
         steps.push({ type: 'keys', keys: [name] });
-      } else if (src[i] === '.') {
+      } else if (source[i] === '.') {
         i++;
-        if (src[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
+        if (source[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
         const name = readName();
         if (!name) fail('Expected a field name after .');
         steps.push({ type: 'keys', keys: [name] });
-      } else if (src[i] === '[') {
+      } else if (source[i] === '[') {
         steps.push(readBracket());
-      } else if (steps.length === 0 || /\s/.test(src[i])) {
+      } else if (steps.length === 0 || /\s/.test(source[i])) {
         // 'value[0].Title' or '*.email' without the leading $
-        if (/\s/.test(src[i])) { i++; continue; }
-        if (src[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
+        if (/\s/.test(source[i])) { i++; continue; }
+        if (source[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
         const name = readName();
         if (!name) fail('Unexpected character');
         steps.push({ type: 'keys', keys: [name] });
@@ -54,26 +54,26 @@ Structra.jsonpathQuery = (() => {
     return steps;
 
     function readName() {
-      const m = /^[^.\[\]\s,()=<>!&|*]+/.exec(src.slice(i));
-      if (!m) return '';
-      i += m[0].length;
-      return m[0];
+      const match = /^[^.\[\]\s,()=<>!&|*]+/.exec(source.slice(i));
+      if (!match) return '';
+      i += match[0].length;
+      return match[0];
     }
 
     function readBracket() {
       i++;                                                   // [
-      while (src[i] === ' ') i++;
-      if (src[i] === '*') { i++; closeBracket(); return { type: 'wild' }; }
-      if (src[i] === '?') {
+      while (source[i] === ' ') i++;
+      if (source[i] === '*') { i++; closeBracket(); return { type: 'wild' }; }
+      if (source[i] === '?') {
         i++;
-        if (src[i] === '(') {
+        if (source[i] === '(') {
           let depth = 0, start = i;
-          for (; i < src.length; i++) {
-            if (src[i] === '(') depth++;
-            else if (src[i] === ')' && --depth === 0) { i++; break; }
-            else if (src[i] === '"' || src[i] === "'") { const q = src[i]; i++; while (i < src.length && src[i] !== q) i++; }
+          for (; i < source.length; i++) {
+            if (source[i] === '(') depth++;
+            else if (source[i] === ')' && --depth === 0) { i++; break; }
+            else if (source[i] === '"' || source[i] === "'") { const quote = source[i]; i++; while (i < source.length && source[i] !== quote) i++; }
           }
-          const body = src.slice(start + 1, i - 1);
+          const body = source.slice(start + 1, i - 1);
           closeBracket();
           return { type: 'filter', test: parseTest(body) };
         }
@@ -82,22 +82,22 @@ Structra.jsonpathQuery = (() => {
       // names, numbers, slices, separated by commas
       const items = [];
       for (;;) {
-        while (src[i] === ' ') i++;
-        if (src[i] === "'" || src[i] === '"') {
-          const q = src[i++]; let s = '';
-          while (i < src.length && src[i] !== q) { if (src[i] === '\\') i++; s += src[i++]; }
-          if (src[i] !== q) fail('A quote is not closed');
+        while (source[i] === ' ') i++;
+        if (source[i] === "'" || source[i] === '"') {
+          const quote = source[i++]; let text = '';
+          while (i < source.length && source[i] !== quote) { if (source[i] === '\\') i++; text += source[i++]; }
+          if (source[i] !== quote) fail('A quote is not closed');
           i++;
-          items.push({ key: s });
+          items.push({ key: text });
         } else {
-          const m = /^(-?\d*)(?::(-?\d*))?(?::(-?\d*))?/.exec(src.slice(i));
-          if (!m || !m[0]) fail('Expected a number, a range or a quoted name');
-          i += m[0].length;
-          if (m[0].includes(':')) items.push({ slice: [m[1] === '' ? null : +m[1], m[2] === undefined || m[2] === '' ? null : +m[2], m[3] === undefined || m[3] === '' ? 1 : +m[3]] });
-          else items.push({ index: +m[1] });
+          const match = /^(-?\d*)(?::(-?\d*))?(?::(-?\d*))?/.exec(source.slice(i));
+          if (!match || !match[0]) fail('Expected a number, a range or a quoted name');
+          i += match[0].length;
+          if (match[0].includes(':')) items.push({ slice: [match[1] === '' ? null : +match[1], match[2] === undefined || match[2] === '' ? null : +match[2], match[3] === undefined || match[3] === '' ? 1 : +match[3]] });
+          else items.push({ index: +match[1] });
         }
-        while (src[i] === ' ') i++;
-        if (src[i] === ',') { i++; continue; }
+        while (source[i] === ' ') i++;
+        if (source[i] === ',') { i++; continue; }
         break;
       }
       closeBracket();
@@ -105,8 +105,8 @@ Structra.jsonpathQuery = (() => {
     }
 
     function closeBracket() {
-      while (src[i] === ' ') i++;
-      if (src[i] !== ']') fail('Expected ]');
+      while (source[i] === ' ') i++;
+      if (source[i] !== ']') fail('Expected ]');
       i++;
     }
   }
@@ -115,114 +115,114 @@ Structra.jsonpathQuery = (() => {
 
   function parseTest(body) {
     // split on || first, then &&, outside quotes
-    const splitOn = (text, op) => {
-      const out = []; let cur = '', q = null;
-      for (let k = 0; k < text.length; k++) {
-        const c = text[k];
-        if (q) { cur += c; if (c === q) q = null; continue; }
-        if (c === '"' || c === "'") { q = c; cur += c; continue; }
-        if (text.startsWith(op, k)) { out.push(cur); cur = ''; k += op.length - 1; continue; }
-        cur += c;
+    const splitOn = (text, operation) => {
+      const out = []; let current = '', quote = null;
+      for (let position = 0; position < text.length; position++) {
+        const character = text[position];
+        if (quote) { current += character; if (character === quote) quote = null; continue; }
+        if (character === '"' || character === "'") { quote = character; current += character; continue; }
+        if (text.startsWith(operation, position)) { out.push(current); current = ''; position += operation.length - 1; continue; }
+        current += character;
       }
-      out.push(cur);
+      out.push(current);
       return out;
     };
     const ors = splitOn(body, '||').map((part) => splitOn(part, '&&').map(parseComparison));
-    return (node) => ors.some((ands) => ands.every((t) => t(node)));
+    return (node) => ors.some((ands) => ands.every((trimmed) => trimmed(node)));
   }
 
   function parseComparison(text) {
-    const t = text.trim();
-    const m = /^(@[^\s=!<>~]*)\s*(==|!=|>=|<=|=~|>|<)\s*(.+)$/.exec(t);
+    const condition = text.trim();
+    const match = /^(@[^\s=!<>~]*)\s*(==|!=|>=|<=|=~|>|<)\s*(.+)$/.exec(condition);
     const read = (ref) => {
       const keys = ref.replace(/^@\.?/, '').split('.').filter(Boolean);
-      return (node) => keys.reduce((v, k) => (v === null || v === undefined ? undefined : v[k]), node);
+      return (node) => keys.reduce((value, index) => (value === null || value === undefined ? undefined : value[index]), node);
     };
-    if (!m) {
-      if (/^!?@[\w$.]*$/.test(t)) { const neg = t[0] === '!'; const get = read(t.replace(/^!/, '')); return (node) => (get(node) !== undefined && get(node) !== null && get(node) !== false) !== neg; }
-      throw new Error(`Cannot read the filter test "${t}". Try @.field == "value"`);
+    if (!match) {
+      if (/^!?@[\w$.]*$/.test(condition)) { const neg = condition[0] === '!'; const get = read(condition.replace(/^!/, '')); return (node) => (get(node) !== undefined && get(node) !== null && get(node) !== false) !== neg; }
+      throw new Error(`Cannot read the filter test "${condition}". Try @.field == "value"`);
     }
-    const get = read(m[1]);
-    const lit = literal(m[3].trim());
-    const op = m[2];
+    const get = read(match[1]);
+    const lit = literal(match[3].trim());
+    const operation = match[2];
     return (node) => {
-      const v = get(node);
-      switch (op) {
-        case '==': return v === lit || (v != null && lit != null && typeof v !== 'object' && String(v) === String(lit));
-        case '!=': return !(v === lit || (v != null && lit != null && typeof v !== 'object' && String(v) === String(lit)));
-        case '>': return v > lit;
-        case '>=': return v >= lit;
-        case '<': return v < lit;
-        case '<=': return v <= lit;
-        case '=~': return typeof v === 'string' && lit instanceof RegExp && lit.test(v);
+      const found = get(node);
+      switch (operation) {
+        case '==': return found === lit || (found != null && lit != null && typeof found !== 'object' && String(found) === String(lit));
+        case '!=': return !(found === lit || (found != null && lit != null && typeof found !== 'object' && String(found) === String(lit)));
+        case '>': return found > lit;
+        case '>=': return found >= lit;
+        case '<': return found < lit;
+        case '<=': return found <= lit;
+        case '=~': return typeof found === 'string' && lit instanceof RegExp && lit.test(found);
         default: return false;
       }
     };
   }
 
-  function literal(s) {
-    if (/^(['"]).*\1$/.test(s)) return s.slice(1, -1);
-    if (s === 'true') return true;
-    if (s === 'false') return false;
-    if (s === 'null') return null;
-    if (/^-?\d+(\.\d+)?$/.test(s)) return Number(s);
-    const re = /^\/(.*)\/([a-z]*)$/.exec(s);
-    if (re) return new RegExp(re[1], re[2]);
-    return s;
+  function literal(text) {
+    if (/^(['"]).*\1$/.test(text)) return text.slice(1, -1);
+    if (text === 'true') return true;
+    if (text === 'false') return false;
+    if (text === 'null') return null;
+    if (/^-?\d+(\.\d+)?$/.test(text)) return Number(text);
+    const pattern = /^\/(.*)\/([a-z]*)$/.exec(text);
+    if (pattern) return new RegExp(pattern[1], pattern[2]);
+    return text;
   }
 
   /* ---------- running it ---------- */
 
   const childPath = (path, key) => (typeof key === 'number' ? `${path}[${key}]` : (/^[A-Za-z_$][\w$]*$/.test(key) ? `${path}.${key}` : `${path}['${String(key).replace(/'/g, "\\'")}']`));
   const children = (node) => {
-    const v = node.value;
-    if (Array.isArray(v)) return v.map((x, i) => ({ path: childPath(node.path, i), value: x, key: i }));
-    if (v && typeof v === 'object') return Object.keys(v).map((k) => ({ path: childPath(node.path, k), value: v[k], key: k }));
+    const value = node.value;
+    if (Array.isArray(value)) return value.map((x, i) => ({ path: childPath(node.path, i), value: x, key: i }));
+    if (value && typeof value === 'object') return Object.keys(value).map((index) => ({ path: childPath(node.path, index), value: value[index], key: index }));
     return [];
   };
 
-  function query(data, expr) {
-    const steps = parse(expr);
+  function query(data, expression) {
+    const steps = parse(expression);
     let nodes = [{ path: '$', value: data }];
     for (const step of steps) {
       const next = [];
       for (const node of nodes) {
-        const v = node.value;
+        const value = node.value;
         if (step.type === 'keys') {
-          if (v && typeof v === 'object' && !Array.isArray(v)) {
-            for (const k of step.keys) if (Object.prototype.hasOwnProperty.call(v, k)) next.push({ path: childPath(node.path, k), value: v[k] });
-          } else if (Array.isArray(v) && /^\d+$/.test(step.keys[0])) {
-            const idx = Number(step.keys[0]);
-            if (idx < v.length) next.push({ path: childPath(node.path, idx), value: v[idx] });
+          if (value && typeof value === 'object' && !Array.isArray(value)) {
+            for (const key of step.keys) if (Object.prototype.hasOwnProperty.call(value, key)) next.push({ path: childPath(node.path, key), value: value[key] });
+          } else if (Array.isArray(value) && /^\d+$/.test(step.keys[0])) {
+            const index = Number(step.keys[0]);
+            if (index < value.length) next.push({ path: childPath(node.path, index), value: value[index] });
           }
         } else if (step.type === 'wild') {
           next.push(...children(node));
         } else if (step.type === 'descend') {
           const stack = [node];
           while (stack.length) {
-            const n = stack.shift();
-            next.push(n);
-            stack.unshift(...children(n));
+            const node = stack.shift();
+            next.push(node);
+            stack.unshift(...children(node));
           }
         } else if (step.type === 'select') {
           for (const item of step.items) {
             if (item.key !== undefined) {
-              if (v && typeof v === 'object' && !Array.isArray(v) && Object.prototype.hasOwnProperty.call(v, item.key)) next.push({ path: childPath(node.path, item.key), value: v[item.key] });
-            } else if (Array.isArray(v)) {
+              if (value && typeof value === 'object' && !Array.isArray(value) && Object.prototype.hasOwnProperty.call(value, item.key)) next.push({ path: childPath(node.path, item.key), value: value[item.key] });
+            } else if (Array.isArray(value)) {
               if (item.index !== undefined) {
-                const idx = item.index < 0 ? v.length + item.index : item.index;
-                if (idx >= 0 && idx < v.length) next.push({ path: childPath(node.path, idx), value: v[idx] });
+                const index = item.index < 0 ? value.length + item.index : item.index;
+                if (index >= 0 && index < value.length) next.push({ path: childPath(node.path, index), value: value[index] });
               } else {
-                let [a, b, st] = item.slice;
-                const len = v.length;
-                a = a === null ? 0 : (a < 0 ? Math.max(0, len + a) : Math.min(a, len));
-                b = b === null ? len : (b < 0 ? Math.max(0, len + b) : Math.min(b, len));
-                for (let k = a; k < b; k += st || 1) next.push({ path: childPath(node.path, k), value: v[k] });
+                let [start, end, step] = item.slice;
+                const len = value.length;
+                start = start === null ? 0 : (start < 0 ? Math.max(0, len + start) : Math.min(start, len));
+                end = end === null ? len : (end < 0 ? Math.max(0, len + end) : Math.min(end, len));
+                for (let index = start; index < end; index += step || 1) next.push({ path: childPath(node.path, index), value: value[index] });
               }
             }
           }
         } else if (step.type === 'filter') {
-          for (const kid of children(node)) if (kid.value !== null && typeof kid.value === 'object' ? step.test(kid.value) : step.test(kid.value)) next.push(kid);
+          for (const child of children(node)) if (child.value !== null && typeof child.value === 'object' ? step.test(child.value) : step.test(child.value)) next.push(child);
         }
       }
       nodes = next;

@@ -23,33 +23,33 @@ window.Structra = window.Structra || {};
 
 Structra.parseJsonSchemaGenerator = (() => {
   const kindOf = Structra.sharedHelpers.jsonTypeOf;
-  const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+  const isPlainObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
 
   const DEFAULTS = { integers: false, required: true };
 
   /** A type name or a list of them: one name stays a string, several become an array */
   const typeValue = (list) => (list.length === 1 ? list[0] : list);
 
-  function numberType(values, opts) {
-    return opts.integers && values.every((n) => Number.isInteger(n)) ? 'integer' : 'number';
+  function numberType(values, options) {
+    return options.integers && values.every((value) => Number.isInteger(value)) ? 'integer' : 'number';
   }
 
   /**
    * Schema for everything seen at one place in the data.
    * `values` holds every value found there (one per row, per parent object, and so on).
    */
-  function infer(values, opts) {
+  function infer(values, options) {
     const seen = { string: [], number: [], boolean: [], object: [], array: [] };
     let hasNull = false;
-    for (const v of values) {
-      const k = kindOf(v);
-      if (k === 'null') hasNull = true;
-      else if (seen[k]) seen[k].push(v);
+    for (const value of values) {
+      const kind = kindOf(value);
+      if (kind === 'null') hasNull = true;
+      else if (seen[kind]) seen[kind].push(value);
     }
 
     const scalarTypes = [];
     if (seen.string.length) scalarTypes.push('string');
-    if (seen.number.length) scalarTypes.push(numberType(seen.number, opts));
+    if (seen.number.length) scalarTypes.push(numberType(seen.number, options));
     if (seen.boolean.length) scalarTypes.push('boolean');
 
     const hasObject = seen.object.length > 0;
@@ -57,8 +57,8 @@ Structra.parseJsonSchemaGenerator = (() => {
     if (!scalarTypes.length && !hasObject && !hasArray) return {};          // only null, or nothing seen: accept anything
 
     const parts = [];
-    if (hasObject) parts.push(objectSchema(seen.object, opts));
-    if (hasArray) parts.push(arraySchema(seen.array, opts));
+    if (hasObject) parts.push(objectSchema(seen.object, options));
+    if (hasArray) parts.push(arraySchema(seen.array, options));
 
     // One kind of value
     if (scalarTypes.length && !parts.length) return { type: typeValue(hasNull ? [...scalarTypes, 'null'] : scalarTypes) };
@@ -68,37 +68,37 @@ Structra.parseJsonSchemaGenerator = (() => {
     }
 
     // Several kinds, including objects or lists: list every shape
-    const anyOf = [...scalarTypes.map((t) => ({ type: t })), ...parts];
+    const anyOf = [...scalarTypes.map((scalarType) => ({ type: scalarType })), ...parts];
     if (hasNull) anyOf.push({ type: 'null' });
     return { anyOf };
   }
 
-  function objectSchema(objects, opts) {
+  function objectSchema(objects, options) {
     const byKey = new Map();
-    for (const obj of objects) {
-      for (const k of Object.keys(obj)) {
-        let entry = byKey.get(k);
-        if (!entry) { entry = { present: 0, values: [] }; byKey.set(k, entry); }
+    for (const object of objects) {
+      for (const kind of Object.keys(object)) {
+        let entry = byKey.get(kind);
+        if (!entry) { entry = { present: 0, values: [] }; byKey.set(kind, entry); }
         entry.present++;
-        entry.values.push(obj[k]);
+        entry.values.push(object[kind]);
       }
     }
     const properties = {};
     const required = [];
-    for (const [k, entry] of byKey) {
-      properties[k] = infer(entry.values, opts);
-      if (entry.present === objects.length) required.push(k);
+    for (const [key, entry] of byKey) {
+      properties[key] = infer(entry.values, options);
+      if (entry.present === objects.length) required.push(key);
     }
     const schema = { type: 'object', properties };
-    if (opts.required && required.length) schema.required = required;
+    if (options.required && required.length) schema.required = required;
     return schema;
   }
 
-  function arraySchema(arrays, opts) {
+  function arraySchema(arrays, options) {
     const items = [];
-    for (const a of arrays) for (const el of a) items.push(el);
+    for (const list of arrays) for (const element of list) items.push(element);
     const schema = { type: 'array' };
-    if (items.length) schema.items = infer(items, opts);
+    if (items.length) schema.items = infer(items, options);
     return schema;
   }
 
@@ -110,20 +110,20 @@ Structra.parseJsonSchemaGenerator = (() => {
   /** The quick version: only the first item of each list decides */
   function basic(value, options = {}) {
     const opts = { ...DEFAULTS, ...options };
-    const walk = (v) => {
-      if (Array.isArray(v)) return v.length ? { type: 'array', items: walk(v[0]) } : { type: 'array' };
-      if (isPlainObject(v)) {
+    const walk = (value) => {
+      if (Array.isArray(value)) return value.length ? { type: 'array', items: walk(value[0]) } : { type: 'array' };
+      if (isPlainObject(value)) {
         const properties = {};
         const required = [];
-        for (const [k, child] of Object.entries(v)) {
-          properties[k] = walk(child);
-          if (child !== null) required.push(k);
+        for (const [kind, child] of Object.entries(value)) {
+          properties[kind] = walk(child);
+          if (child !== null) required.push(kind);
         }
         const schema = { type: 'object', properties };
         if (opts.required && required.length) schema.required = required;
         return schema;
       }
-      return infer([v], opts);
+      return infer([value], opts);
     };
     return walk(value);
   }

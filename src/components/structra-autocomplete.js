@@ -37,12 +37,12 @@ class StructraAutocomplete extends StructraComponent {
     this._input.addEventListener('focus', () => this._update());
     this._input.addEventListener('blur', () => setTimeout(() => this._hide(), 150));
     // Capture phase: when a suggestion is accepted, the header must not also run its own Enter handler
-    this._input.addEventListener('keydown', (e) => this._onKeydown(e), true);
+    this._input.addEventListener('keydown', (event) => this._onKeydown(event), true);
   }
 
   /* ---------- suggestions ---------- */
 
-  _typeOf(v) { return Structra.sharedHelpers.jsonTypeOf(v); }
+  _typeOf(value) { return Structra.sharedHelpers.jsonTypeOf(value); }
 
   _joinPath(parent, key) {
     if (/^[A-Za-z_$][\w$]*$/.test(key)) return parent ? parent + '.' + key : key;
@@ -66,7 +66,7 @@ class StructraAutocomplete extends StructraComponent {
     const node = parent ? Structra.dataPaths.resolve(data, parent) : data;
     if (node === null || typeof node !== 'object') return [];
 
-    const q = partial.toLowerCase();
+    const query = partial.toLowerCase();
     const out = [];
 
     if (Array.isArray(node)) {
@@ -74,21 +74,21 @@ class StructraAutocomplete extends StructraComponent {
       if (partial && !inBracket) return [];
       const count = Math.min(node.length, 10);
       for (let i = 0; i < count; i++) {
-        if (!q || String(i).startsWith(q)) out.push({ path: `${parent}[${i}]`, type: this._typeOf(node[i]) });
+        if (!query || String(i).startsWith(query)) out.push({ path: `${parent}[${i}]`, type: this._typeOf(node[i]) });
       }
-      if (!q) out.push({ path: `${parent}[*]`, type: 'all items' });
+      if (!query) out.push({ path: `${parent}[*]`, type: 'all items' });
       return out;
     }
 
     // Object: keys that start with the text first, then keys that only contain it
     const keys = Object.keys(node);
-    for (const k of keys) {
-      if (k.toLowerCase().startsWith(q)) out.push({ path: this._joinPath(parent, k), type: this._typeOf(node[k]) });
+    for (const key of keys) {
+      if (key.toLowerCase().startsWith(query)) out.push({ path: this._joinPath(parent, key), type: this._typeOf(node[key]) });
     }
-    if (q) {
-      for (const k of keys) {
-        const lower = k.toLowerCase();
-        if (!lower.startsWith(q) && lower.includes(q)) out.push({ path: this._joinPath(parent, k), type: this._typeOf(node[k]) });
+    if (query) {
+      for (const key of keys) {
+        const lower = key.toLowerCase();
+        if (!lower.startsWith(query) && lower.includes(query)) out.push({ path: this._joinPath(parent, key), type: this._typeOf(node[key]) });
       }
     }
     return out;
@@ -106,15 +106,15 @@ class StructraAutocomplete extends StructraComponent {
 
   /* ---------- interaction ---------- */
 
-  _onKeydown(e) {
+  _onKeydown(event) {
     const open = this.queryOne('#acDropdown').style.display !== 'none';
     if (!open) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); this._moveSelection(1); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); this._moveSelection(-1); }
-    else if (e.key === 'Escape') { this._hide(); }
-    else if (e.key === 'Tab' || (e.key === 'Enter' && this._selected >= 0)) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
+    if (event.key === 'ArrowDown') { event.preventDefault(); this._moveSelection(1); }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); this._moveSelection(-1); }
+    else if (event.key === 'Escape') { this._hide(); }
+    else if (event.key === 'Tab' || (event.key === 'Enter' && this._selected >= 0)) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
       this._accept(this._selected >= 0 ? this._selected : 0);
     }
   }
@@ -135,32 +135,32 @@ class StructraAutocomplete extends StructraComponent {
   }
 
   _show() {
-    const dd = this.queryOne('#acDropdown');
-    dd.style.display = '';
+    const dropdown = this.queryOne('#acDropdown');
+    dropdown.style.display = '';
     const rect = this._input.getBoundingClientRect();
-    dd.style.top = rect.bottom + 2 + 'px';
-    dd.style.left = rect.left + 'px';
-    dd.style.width = rect.width + 'px';
+    dropdown.style.top = rect.bottom + 2 + 'px';
+    dropdown.style.left = rect.left + 'px';
+    dropdown.style.width = rect.width + 'px';
     this._paint();
   }
 
   _hide() {
-    const dd = this.queryOne('#acDropdown');
-    if (dd) dd.style.display = 'none';
+    const dropdown = this.queryOne('#acDropdown');
+    if (dropdown) dropdown.style.display = 'none';
   }
 
   _paint() {
     const esc = Structra.sharedHelpers.escapeHtml;
-    const dd = this.queryOne('#acDropdown');
-    dd.innerHTML = this._items.map((it, i) =>
+    const dropdown = this.queryOne('#acDropdown');
+    dropdown.innerHTML = this._items.map((item, i) =>
       `<div class="ac-item${i === this._selected ? ' ac-selected' : ''}" role="option" data-ac-idx="${i}">
-        <span class="ac-path">${esc(it.path)}</span><span class="ac-type">${esc(it.type)}</span>
+        <span class="ac-path">${esc(item.path)}</span><span class="ac-type">${esc(item.type)}</span>
       </div>`).join('');
-    dd.onmousedown = (e) => {
-      const el = e.target.closest('[data-ac-idx]');
-      if (!el) return;
-      e.preventDefault();               // keep focus in the input
-      this._accept(parseInt(el.dataset.acIdx, 10));
+    dropdown.onmousedown = (event) => {
+      const element = event.target.closest('[data-ac-idx]');
+      if (!element) return;
+      event.preventDefault();               // keep focus in the input
+      this._accept(parseInt(element.dataset.acIdx, 10));
     };
   }
 }

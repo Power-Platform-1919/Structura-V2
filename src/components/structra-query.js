@@ -40,9 +40,9 @@ class StructraQuery extends StructraComponent {
     this.on('tabs:switched', clear);
     this.on('tabs:closed', clear);
     this.on('engine:ingested', clear);
-    this.on('state:queryPanelOpen', (d) => {
-      Structra.log.info('Query', 'queryPanel ' + (d.value ? 'opened' : 'closed'));
-      this.classList.toggle('show', d.value);
+    this.on('state:queryPanelOpen', (date) => {
+      Structra.log.info('Query', 'queryPanel ' + (date.value ? 'opened' : 'closed'));
+      this.classList.toggle('show', date.value);
     });
   }
 
@@ -70,7 +70,7 @@ class StructraQuery extends StructraComponent {
       </div>
       <div class="qp-tab-body" id="qpQueryBody">
         <div class="seg qp-modes">
-          ${modes.map(m => `<button class="seg-btn ${m === this._mode ? 'active' : ''}" type="button" data-mode="${m}">${StructraQuery.MODE_NAMES[m] || m}</button>`).join('')}
+          ${modes.map(modeButton => `<button class="seg-btn ${modeButton === this._mode ? 'active' : ''}" type="button" data-mode="${modeButton}">${StructraQuery.MODE_NAMES[modeButton] || modeButton}</button>`).join('')}
         </div>
         <div class="qp-sql-examples" id="sqlExamples" hidden></div>
         <div class="qp-editor">
@@ -116,12 +116,12 @@ class StructraQuery extends StructraComponent {
       if (copy) {
         e.stopPropagation();
         const path = copy.closest('.qp-result').dataset.path;
-        const expr = copy.dataset.copyExpr === 'pa' ? Structra.dataPaths.powerAutomate(path) : Structra.dataPaths.powerFx(path);
-        Structra.sharedHelpers.copyToClipboard(expr, copy.dataset.copyExpr === 'pa' ? 'Power Automate expression copied' : 'Power Fx expression copied');
+        const expression = copy.dataset.copyExpr === 'pa' ? Structra.dataPaths.powerAutomate(path) : Structra.dataPaths.powerFx(path);
+        Structra.sharedHelpers.copyToClipboard(expression, copy.dataset.copyExpr === 'pa' ? 'Power Automate expression copied' : 'Power Fx expression copied');
         return;
       }
-      const hit = e.target.closest('.qp-result[data-path]');
-      if (hit) { this._showMatch(hit.dataset.path); return; }
+      const match = e.target.closest('.qp-result[data-path]');
+      if (match) { this._showMatch(match.dataset.path); return; }
       if (e.target.closest('[data-action="openPivot"]')) { Structra.events.emit('pivot:open'); return; }
       const preset = e.target.closest('[data-preset]');
       if (preset) {
@@ -135,13 +135,13 @@ class StructraQuery extends StructraComponent {
         this._runQuery();
         return;
       }
-      const col = e.target.closest('[data-sql-col]');
-      if (col) { this._insertAtCursor(col.dataset.sqlCol); return; }
+      const column = e.target.closest('[data-sql-col]');
+      if (column) { this._insertAtCursor(column.dataset.sqlCol); return; }
       const mode = e.target.closest('[data-mode]');
       if (mode) {
         const changed = mode.dataset.mode !== this._mode;
         this._mode = mode.dataset.mode;
-        this.queryAll('.seg-btn').forEach(m => m.classList.toggle('active', m.dataset.mode === this._mode));
+        this.queryAll('.seg-btn').forEach(modeButton => modeButton.classList.toggle('active', modeButton.dataset.mode === this._mode));
         this._showModeHelp();
         if (changed) this._resetResults();                 // the old result belongs to the mode that made it
         return;
@@ -161,24 +161,24 @@ class StructraQuery extends StructraComponent {
     });
 
     // The other modes use this plain box: Enter runs, Shift+Enter starts a new line (SQL has its own editor)
-    this.queryOne('#queryInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
+    this.queryOne('#queryInput').addEventListener('keydown', (example) => {
+      if (example.key === 'Enter' && !example.shiftKey) {
+        example.preventDefault();
         this._runQuery();
       }
     });
-    this.queryOne('#sqlHistory').addEventListener('change', (e) => {
-      if (e.target.value === '') return;
-      this._sqlSet(this._sqlHistory()[Number(e.target.value)] || '');
-      e.target.value = '';
+    this.queryOne('#sqlHistory').addEventListener('change', (example) => {
+      if (example.target.value === '') return;
+      this._sqlSet(this._sqlHistory()[Number(example.target.value)] || '');
+      example.target.value = '';
     });
     // A different file has different columns
     const reloadSchema = () => { if (this._mode === 'sql' && this.classList.contains('show')) this._loadSqlSchema(); };
     this.on('tabs:switched', reloadSchema);
     this.on('engine:ingested', reloadSchema);
-    this.queryOne('#transformInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
+    this.queryOne('#transformInput').addEventListener('keydown', (example) => {
+      if (example.key === 'Enter' && (example.ctrlKey || example.metaKey)) {
+        example.preventDefault();
         this._runTransform();
       }
     });
@@ -190,7 +190,7 @@ class StructraQuery extends StructraComponent {
     const title = this.queryOne('.panel-title');
     if (title) title.textContent = tab === 'transform' ? 'Transform' : 'Query and Transform';
     Structra.events.emit('query:tab-switched', tab);
-    this.querySelectorAll('.tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.qtab === tab));
+    this.querySelectorAll('.tabs .tab').forEach(type => type.classList.toggle('active', type.dataset.qtab === tab));
     this.queryOne('#qpQueryBody').hidden = tab !== 'query';
     this.queryOne('#qpTransformBody').hidden = tab !== 'transform';
   }
@@ -200,8 +200,8 @@ class StructraQuery extends StructraComponent {
    * Returns { presets: [{ label, expr }], example }
    */
   _transformPresets() {
-    const ds = Structra.dataEngine.getActive();
-    const data = ds ? ds.raw : Structra.state.jsonData;
+    const dataset = Structra.dataEngine.getActive();
+    const data = dataset ? dataset.raw : Structra.state.jsonData;
     let rows = null;
     let nav = '';
     if (Array.isArray(data)) rows = data;
@@ -217,28 +217,28 @@ class StructraQuery extends StructraComponent {
     if (!rows || !rows.length || typeof rows[0] !== 'object' || rows[0] === null) {
       return { presets: [{ label: 'Count items', expr: 'length' }, { label: 'Keys', expr: 'keys()' }], example: 'keys() | slice(0, 5)' };
     }
-    const sample = rows.slice(0, 50).filter((r) => r && typeof r === 'object' && !Array.isArray(r));
+    const sample = rows.slice(0, 50).filter((row) => row && typeof row === 'object' && !Array.isArray(row));
     const keys = [];
-    sample.forEach((r) => Object.keys(r).forEach((k) => { if (!keys.includes(k) && /^[A-Za-z_$][\w$]*$/.test(k) && !k.startsWith('@')) keys.push(k); }));
-    const kindOf = (k) => {
-      const vals = sample.map((r) => r[k]).filter((v) => v !== null && v !== undefined);
-      if (!vals.length) return null;
-      if (vals.every((v) => typeof v === 'boolean')) return 'boolean';
-      if (vals.every((v) => typeof v === 'number')) return 'number';
-      if (vals.every((v) => typeof v === 'string')) return 'string';
+    sample.forEach((row) => Object.keys(row).forEach((field) => { if (!keys.includes(field) && /^[A-Za-z_$][\w$]*$/.test(field) && !field.startsWith('@')) keys.push(field); }));
+    const kindOf = (field) => {
+      const values = sample.map((row) => row[field]).filter((value) => value !== null && value !== undefined);
+      if (!values.length) return null;
+      if (values.every((value) => typeof value === 'boolean')) return 'boolean';
+      if (values.every((value) => typeof value === 'number')) return 'number';
+      if (values.every((value) => typeof value === 'string')) return 'string';
       return null;
     };
-    const text = keys.find((k) => kindOf(k) === 'string');
-    const num = keys.find((k) => kindOf(k) === 'number');
-    const flag = keys.find((k) => kindOf(k) === 'boolean');
+    const text = keys.find((field) => kindOf(field) === 'string');
+    const number = keys.find((field) => kindOf(field) === 'number');
+    const flag = keys.find((field) => kindOf(field) === 'boolean');
     const presets = [];
     presets.push({ label: 'Count items', expr: head + 'length' });
     if (keys.length >= 2) presets.push({ label: 'Pick fields', expr: `${head}pick(${keys.slice(0, 3).join(', ')})` });
     if (text) presets.push({ label: 'Sort by ' + text, expr: `${head}sortBy(${text})` });
     if (text) presets.push({ label: 'Unique ' + text, expr: `${head}map(x => x?.${text}) | unique()` });
     if (flag) presets.push({ label: 'Only ' + flag, expr: `${head}filter(x => x?.${flag} == true)` });
-    if (num) presets.push({ label: 'Total ' + num, expr: `${head}sum(x => x?.${num})` });
-    if (num) presets.push({ label: 'Biggest ' + num, expr: `${head}sortBy(-${num}) | slice(0, 5)` });
+    if (number) presets.push({ label: 'Total ' + number, expr: `${head}sum(x => x?.${number})` });
+    if (number) presets.push({ label: 'Biggest ' + number, expr: `${head}sortBy(-${number}) | slice(0, 5)` });
     if (text) presets.push({ label: 'Group by ' + text, expr: `${head}groupBy(x => x?.${text})` });
     return { presets, example: presets[1] ? presets[1].expr : presets[0].expr };
   }
@@ -247,8 +247,8 @@ class StructraQuery extends StructraComponent {
     const container = this.queryOne('#transformPresets');
     if (!container) return;
     const { presets, example } = this._transformPresets();
-    container.innerHTML = presets.map(p =>
-      `<button class="qp-preset-btn" type="button" data-preset="${Structra.sharedHelpers.escapeHtml(p.expr)}" title="${Structra.sharedHelpers.escapeHtml(p.expr)}">${Structra.sharedHelpers.escapeHtml(p.label)}</button>`
+    container.innerHTML = presets.map(path =>
+      `<button class="qp-preset-btn" type="button" data-preset="${Structra.sharedHelpers.escapeHtml(path.expr)}" title="${Structra.sharedHelpers.escapeHtml(path.expr)}">${Structra.sharedHelpers.escapeHtml(path.label)}</button>`
     ).join('');
     const input = this.queryOne('#transformInput');
     if (input) input.placeholder = `Steps joined with |\nExample: ${example}`;
@@ -256,10 +256,10 @@ class StructraQuery extends StructraComponent {
 
   /** Keep the result of a transform: it opens in a new tab and the open file stays as it is */
   _openTransform() {
-    const cmd = document.querySelector('structra-command');
-    if (this._lastTransform === undefined || !cmd) return;
+    const command = document.querySelector('structra-command');
+    if (this._lastTransform === undefined || !command) return;
     const name = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '') + ' (transform)';
-    cmd._openInNewTab(this._lastTransform, name).then((opened) => { if (opened) Structra.toast('Result opened in a new tab'); });
+    command._openInNewTab(this._lastTransform, name).then((opened) => { if (opened) Structra.toast('Result opened in a new tab'); });
   }
 
   async _runTransform() {
@@ -288,8 +288,8 @@ class StructraQuery extends StructraComponent {
           <button class="btn btn-sm btn-ghost" type="button" data-action="copyTransform">Copy</button>
         </div>`;
       Structra.codeView.colorize(results.querySelector('.qp-transform-output'), truncated, 'json');
-    } catch (err) {
-      results.innerHTML = `<div class="qp-summary is-error">${Structra.sharedHelpers.escapeHtml(err.message)}</div>`;
+    } catch (error) {
+      results.innerHTML = `<div class="qp-summary is-error">${Structra.sharedHelpers.escapeHtml(error.message)}</div>`;
     }
   }
 
@@ -305,7 +305,7 @@ class StructraQuery extends StructraComponent {
     this.classList.toggle('is-sql', sql);
     this.queryOne('#sqlHost').hidden = !sql;                  // SQL has its own editor; the other modes use the plain box
     if (input) input.hidden = sql;
-    ['#sqlExamples', '#sqlSchema'].forEach((id) => { const el = this.queryOne(id); if (el) el.hidden = !sql; });
+    ['#sqlExamples', '#sqlSchema'].forEach((id) => { const element = this.queryOne(id); if (element) element.hidden = !sql; });
     const run = this.queryOne('#queryRun');
     if (run) run.innerHTML = sql ? 'Run query <kbd class="qp-kbd">Ctrl+Enter</kbd>' : 'Run query';
     this._renderSqlHistory();
@@ -325,7 +325,7 @@ class StructraQuery extends StructraComponent {
   }
 
   _rememberSql(text) {
-    const list = [text, ...this._sqlHistory().filter((q) => q !== text)].slice(0, 20);
+    const list = [text, ...this._sqlHistory().filter((savedQuery) => savedQuery !== text)].slice(0, 20);
     try { localStorage.setItem(StructraQuery.SQL_HISTORY_KEY, JSON.stringify(list)); } catch { /* storage blocked: history is just not kept */ }
     this._renderSqlHistory();
   }
@@ -335,8 +335,8 @@ class StructraQuery extends StructraComponent {
     if (!select) return;
     const list = this._sqlHistory();
     select.hidden = this._mode !== 'sql' || !list.length;
-    select.innerHTML = '<option value="">Earlier queries</option>' + list.map((q, i) => {
-      const line = q.replace(/\s+/g, ' ').trim();
+    select.innerHTML = '<option value="">Earlier queries</option>' + list.map((savedQuery, i) => {
+      const line = savedQuery.replace(/\s+/g, ' ').trim();
       return `<option value="${i}">${Structra.sharedHelpers.escapeHtml(line.length > 60 ? line.slice(0, 60) + '…' : line)}</option>`;
     }).join('');
   }
@@ -354,7 +354,7 @@ class StructraQuery extends StructraComponent {
       growsWithText: true,
       placeholder: 'Example: ' + StructraQuery.MODE_HELP.sql.example,
       label: 'SQL query',
-      sql: { columns: () => (this._sqlCols || []).map((c) => c.name) },
+      sql: { columns: () => (this._sqlCols || []).map((sqlColumn) => sqlColumn.name) },
       extraKeys: { 'Ctrl-Enter': () => this._runQuery(), 'Cmd-Enter': () => this._runQuery() },
     }).then((box) => { this._box = box; return box; })
       .catch(() => { this._boxPromise = null; return null; });
@@ -394,43 +394,43 @@ class StructraQuery extends StructraComponent {
     }
     const token = (this._schemaToken = (this._schemaToken || 0) + 1);
     box.innerHTML = '<div class="qp-summary">Starting the SQL engine…</div>';
-    let cols = [];
+    let columns = [];
     try {
-      if (await Structra.dataEngine.enableSql()) cols = await Structra.dataEngine.describeTable();
-    } catch { cols = []; }
+      if (await Structra.dataEngine.enableSql()) columns = await Structra.dataEngine.describeTable();
+    } catch { columns = []; }
     if (token !== this._schemaToken) return;           // the file changed while this was loading
-    this._sqlCols = cols;                              // the editor suggests these names
+    this._sqlCols = columns;                              // the editor suggests these names
     if (this._box) this._box.updateSchema();
-    if (!cols.length) {
+    if (!columns.length) {
       box.innerHTML = '<div class="qp-summary">SQL is not available for this file. It needs a list of records or an object.</div>';
       examples.innerHTML = '';
       return;
     }
-    this.queryOne('#sqlSchemaTitle').innerHTML = `Table <code>data</code> (${cols.length} ${cols.length === 1 ? 'column' : 'columns'}, click to show)`;
-    box.innerHTML = cols.map((c) =>
-      `<button class="qp-sql-col" type="button" data-sql-col="${Structra.sharedHelpers.escapeHtml(this._sqlName(c.name))}" title="Add ${Structra.sharedHelpers.escapeHtml(c.name)} to the query">
-        <span>${Structra.sharedHelpers.escapeHtml(c.name)}</span><em>${Structra.sharedHelpers.escapeHtml(c.type)}</em></button>`).join('');
-    examples.innerHTML = this._sqlExamples(cols).map((e) =>
-      `<button class="qp-preset-btn" type="button" data-sql-example="${Structra.sharedHelpers.escapeHtml(e.sql)}" title="${Structra.sharedHelpers.escapeHtml(e.sql)}">${Structra.sharedHelpers.escapeHtml(e.label)}</button>`).join('');
+    this.queryOne('#sqlSchemaTitle').innerHTML = `Table <code>data</code> (${columns.length} ${columns.length === 1 ? 'column' : 'columns'}, click to show)`;
+    box.innerHTML = columns.map((column) =>
+      `<button class="qp-sql-col" type="button" data-sql-col="${Structra.sharedHelpers.escapeHtml(this._sqlName(column.name))}" title="Add ${Structra.sharedHelpers.escapeHtml(column.name)} to the query">
+        <span>${Structra.sharedHelpers.escapeHtml(column.name)}</span><em>${Structra.sharedHelpers.escapeHtml(column.type)}</em></button>`).join('');
+    examples.innerHTML = this._sqlExamples(columns).map((example) =>
+      `<button class="qp-preset-btn" type="button" data-sql-example="${Structra.sharedHelpers.escapeHtml(example.sql)}" title="${Structra.sharedHelpers.escapeHtml(example.sql)}">${Structra.sharedHelpers.escapeHtml(example.label)}</button>`).join('');
   }
 
   /** Ready-made queries that use the file's real column names, so they run as they are */
-  _sqlExamples(cols) {
-    const isNum = (t) => /^(U?(TINY|SMALL|BIG|HUGE)?INT|INTEGER|DOUBLE|FLOAT|REAL|DECIMAL)/i.test(t);
-    const text = cols.find((c) => /^VARCHAR/i.test(c.type));
-    const num = cols.find((c) => isNum(c.type));
+  _sqlExamples(columns) {
+    const isNum = (type) => /^(U?(TINY|SMALL|BIG|HUGE)?INT|INTEGER|DOUBLE|FLOAT|REAL|DECIMAL)/i.test(type);
+    const text = columns.find((column) => /^VARCHAR/i.test(column.type));
+    const number = columns.find((column) => isNum(column.type));
     const list = [
       { label: 'First 100 rows', sql: 'SELECT *\nFROM data\nLIMIT 100' },
       { label: 'Count rows', sql: 'SELECT COUNT(*) AS rows\nFROM data' },
     ];
     if (text) {
-      const t = this._sqlName(text.name);
-      list.push({ label: 'Count by ' + text.name, sql: `SELECT ${t}, COUNT(*) AS n\nFROM data\nGROUP BY ${t}\nORDER BY n DESC` });
+      const textName = this._sqlName(text.name);
+      list.push({ label: 'Count by ' + text.name, sql: `SELECT ${textName}, COUNT(*) AS n\nFROM data\nGROUP BY ${textName}\nORDER BY n DESC` });
     }
-    if (num) {
-      const n = this._sqlName(num.name);
-      list.push({ label: 'Totals of ' + num.name, sql: `SELECT SUM(${n}) AS total, AVG(${n}) AS average, MIN(${n}) AS smallest, MAX(${n}) AS biggest\nFROM data` });
-      list.push({ label: 'Top 10 by ' + num.name, sql: `SELECT *\nFROM data\nORDER BY ${n} DESC\nLIMIT 10` });
+    if (number) {
+      const numberName = this._sqlName(number.name);
+      list.push({ label: 'Totals of ' + number.name, sql: `SELECT SUM(${numberName}) AS total, AVG(${numberName}) AS average, MIN(${numberName}) AS smallest, MAX(${numberName}) AS biggest\nFROM data` });
+      list.push({ label: 'Top 10 by ' + number.name, sql: `SELECT *\nFROM data\nORDER BY ${numberName} DESC\nLIMIT 10` });
     }
     list.push({ label: 'Summary of every column', sql: 'SUMMARIZE data' });
     return list;
@@ -445,7 +445,7 @@ class StructraQuery extends StructraComponent {
   /** The engine's messages, in plainer words */
   _sqlError(message) {
     let text = String(message || 'The query did not run.')
-      .split('\n').filter((l) => !/^\s*(LINE \d+:|\^)/.test(l)).join(' ')
+      .split('\n').filter((line) => !/^\s*(LINE \d+:|\^)/.test(line)).join(' ')
       .replace(/^(Parser|Binder|Catalog|Conversion|Invalid Input|Syntax|Runtime|Out of Range|Constraint) Error:\s*/i, '').trim();
     if (/does not exist/i.test(text) && /table/i.test(text)) text += ' The open file is the table named data.';
     return text;
@@ -476,35 +476,35 @@ class StructraQuery extends StructraComponent {
 
   /** What kind of value a column holds, from the type the engine reported */
   _columnKind(info) {
-    const t = info && info.type ? info.type : '';
-    if (/^Decimal/.test(t)) return { name: 'decimal', scale: info.scale || 0, numeric: true };
-    if (/^(Int|Uint|Float)/.test(t)) return { name: 'number', numeric: true };
-    if (/^Date/.test(t)) return { name: 'date' };
-    if (/^Timestamp/.test(t)) return { name: 'timestamp' };
-    if (/^Time/.test(t)) return { name: 'time' };               // after Timestamp, which also starts with Time
-    if (/^Bool/.test(t)) return { name: 'bool' };
+    const type = info && info.type ? info.type : '';
+    if (/^Decimal/.test(type)) return { name: 'decimal', scale: info.scale || 0, numeric: true };
+    if (/^(Int|Uint|Float)/.test(type)) return { name: 'number', numeric: true };
+    if (/^Date/.test(type)) return { name: 'date' };
+    if (/^Timestamp/.test(type)) return { name: 'timestamp' };
+    if (/^Time/.test(type)) return { name: 'time' };               // after Timestamp, which also starts with Time
+    if (/^Bool/.test(type)) return { name: 'bool' };
     return { name: 'other' };
   }
 
   /** One value as plain JSON data, for copying, saving and opening in a tab */
-  _plain(v, kind) {
-    if (v === null || v === undefined) return null;
-    const pad = (n, w = 2) => String(n).padStart(w, '0');
-    if (kind.name === 'date' && typeof v === 'number') return new Date(v).toISOString().slice(0, 10);
-    if (kind.name === 'timestamp' && typeof v === 'number') {
-      const d = new Date(v);
-      const text = d.toISOString().replace('T', ' ').replace('Z', '');
-      return d.getUTCMilliseconds() ? text : text.slice(0, 19);
+  _plain(value, kind) {
+    if (value === null || value === undefined) return null;
+    const pad = (number, width = 2) => String(number).padStart(width, '0');
+    if (kind.name === 'date' && typeof value === 'number') return new Date(value).toISOString().slice(0, 10);
+    if (kind.name === 'timestamp' && typeof value === 'number') {
+      const date = new Date(value);
+      const text = date.toISOString().replace('T', ' ').replace('Z', '');
+      return date.getUTCMilliseconds() ? text : text.slice(0, 19);
     }
     if (kind.name === 'time') {
-      const micros = Number(v);
+      const micros = Number(value);
       const secs = Math.floor(micros / 1e6);
       const frac = micros % 1e6;
       return `${pad(Math.floor(secs / 3600))}:${pad(Math.floor(secs / 60) % 60)}:${pad(secs % 60)}${frac ? '.' + pad(frac, 6).replace(/0+$/, '') : ''}`;
     }
     if (kind.name === 'decimal') {                       // the engine gives the digits without the point: put it back
-      let digits = String(v).replace('-', '');
-      const negative = String(v).startsWith('-');
+      let digits = String(value).replace('-', '');
+      const negative = String(value).startsWith('-');
       if (kind.scale) {
         digits = digits.padStart(kind.scale + 1, '0');
         digits = digits.slice(0, -kind.scale) + '.' + digits.slice(-kind.scale);
@@ -512,13 +512,13 @@ class StructraQuery extends StructraComponent {
       const text = (negative ? '-' : '') + digits;
       return digits.replace('.', '').length <= 15 ? Number(text) : text;
     }
-    if (typeof v === 'bigint') return Number.isSafeInteger(Number(v)) ? Number(v) : v.toString();
-    if (v instanceof Date) return v.toISOString();
-    if (typeof v === 'object') {
-      if (ArrayBuffer.isView(v) && !(v instanceof DataView)) return Array.from(v, (x) => (typeof x === 'bigint' ? x.toString() : x));
-      try { return JSON.parse(JSON.stringify(v, (k, x) => (typeof x === 'bigint' ? x.toString() : x))); } catch { return String(v); }
+    if (typeof value === 'bigint') return Number.isSafeInteger(Number(value)) ? Number(value) : value.toString();
+    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'object') {
+      if (ArrayBuffer.isView(value) && !(value instanceof DataView)) return Array.from(value, (x) => (typeof x === 'bigint' ? x.toString() : x));
+      try { return JSON.parse(JSON.stringify(value, (field, x) => (typeof x === 'bigint' ? x.toString() : x))); } catch { return String(value); }
     }
-    return v;
+    return value;
   }
 
   /** The text shown in the grid for a plain value (a decimal keeps its trailing zeros: 12.50) */
@@ -530,27 +530,27 @@ class StructraQuery extends StructraComponent {
 
   /** The result of a query ready to show and to save */
   _prepare(result) {
-    const cols = result.columns;
-    const kinds = cols.map((c, i) => this._columnKind((result.columnTypes || [])[i]));
-    const plain = result.rows.map((r) => cols.map((c, i) => this._plain(r[c], kinds[i])));
-    return { cols, kinds, plain };
+    const columns = result.columns;
+    const kinds = columns.map((column, i) => this._columnKind((result.columnTypes || [])[i]));
+    const plain = result.rows.map((row) => columns.map((column, i) => this._plain(row[column], kinds[i])));
+    return { cols: columns, kinds, plain };
   }
 
   _renderSqlResult(result) {
     const results = this.queryOne('#queryResults');
     const esc = Structra.sharedHelpers.escapeHtml;
-    const { cols, kinds, plain: rows } = result.table;
+    const { cols: columns, kinds, plain: rows } = result.table;
     const shown = rows.slice(0, StructraQuery.SQL_SHOW_ROWS);
-    const ms = result.duration < 1000 ? Math.round(result.duration) + ' ms' : (result.duration / 1000).toFixed(1) + ' s';
-    let note = `${rows.length.toLocaleString()}${result.truncated ? '+' : ''} ${rows.length === 1 ? 'row' : 'rows'} in ${ms}`;
+    const milliseconds = result.duration < 1000 ? Math.round(result.duration) + ' ms' : (result.duration / 1000).toFixed(1) + ' s';
+    let note = `${rows.length.toLocaleString()}${result.truncated ? '+' : ''} ${rows.length === 1 ? 'row' : 'rows'} in ${milliseconds}`;
     if (result.truncated) note += `. Only the first ${rows.length.toLocaleString()} rows were read. Add a WHERE or LIMIT to narrow it.`;
     else if (rows.length > shown.length) note += `. The first ${shown.length.toLocaleString()} are shown below; copy or open the result to get them all.`;
-    if (!cols.length) { results.innerHTML = `<div class="qp-summary">The query ran and returned no rows (${esc(ms)}).</div>`; return; }
-    const head = cols.map((c) => `<th title="${esc(c)}">${esc(c)}</th>`).join('');
-    const body = shown.map((r, i) => `<tr><td class="qp-sql-n">${i + 1}</td>${r.map((v, c) => {
-      if (v === null) return '<td class="qp-sql-null">NULL</td>';
-      const t = this._cellText(v, kinds[c]);
-      return `<td${kinds[c].numeric ? ' class="qp-sql-num"' : ''} title="${esc(t.length > 300 ? t.slice(0, 300) + '…' : t)}">${esc(t.length > 120 ? t.slice(0, 120) + '…' : t)}</td>`;
+    if (!columns.length) { results.innerHTML = `<div class="qp-summary">The query ran and returned no rows (${esc(milliseconds)}).</div>`; return; }
+    const head = columns.map((column) => `<th title="${esc(column)}">${esc(column)}</th>`).join('');
+    const body = shown.map((row, i) => `<tr><td class="qp-sql-n">${i + 1}</td>${row.map((value, index) => {
+      if (value === null) return '<td class="qp-sql-null">NULL</td>';
+      const text = this._cellText(value, kinds[index]);
+      return `<td${kinds[index].numeric ? ' class="qp-sql-num"' : ''} title="${esc(text.length > 300 ? text.slice(0, 300) + '…' : text)}">${esc(text.length > 120 ? text.slice(0, 120) + '…' : text)}</td>`;
     }).join('')}</tr>`).join('');
     results.innerHTML = `<div class="qp-summary">${esc(note)}</div>
       <div class="qp-actions">
@@ -564,22 +564,22 @@ class StructraQuery extends StructraComponent {
   _sqlExport(how) {
     const result = this._lastSql;
     if (!result || !result.rows.length) return;
-    const { cols, kinds } = result.table;
-    const rows = result.table.plain.map((r) => Object.fromEntries(cols.map((c, i) => [c, r[i]])));
+    const { cols: columns, kinds } = result.table;
+    const rows = result.table.plain.map((row) => Object.fromEntries(columns.map((column, i) => [column, row[i]])));
     const base = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '');
     if (how === 'copy') {
       Structra.sharedHelpers.copyToClipboard(JSON.stringify(rows, null, 2), `${rows.length} ${rows.length === 1 ? 'row' : 'rows'} copied`);
     } else if (how === 'csv') {
-      const q = (v) => {
-        const t = v === null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
-        return /[",\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+      const csvCell = (value) => {
+        const text = value === null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
+        return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
       };
-      const csv = [cols.map(q).join(','), ...result.table.plain.map((r, n) => r.map((v, i) => q(kinds[i].name === 'decimal' && typeof v === 'number' ? v.toFixed(kinds[i].scale) : v)).join(','))].join('\r\n');
+      const csv = [columns.map(csvCell).join(','), ...result.table.plain.map((row, number) => row.map((value, i) => csvCell(kinds[i].name === 'decimal' && typeof value === 'number' ? value.toFixed(kinds[i].scale) : value)).join(','))].join('\r\n');
       Structra.sharedHelpers.downloadFile('﻿' + csv, base + ' (query).csv', 'text/csv;charset=utf-8');
       Structra.toast('CSV downloaded');
     } else {
-      const cmd = document.querySelector('structra-command');
-      if (cmd) cmd._openInNewTab(rows, base + ' (SQL)').then((opened) => { if (opened) Structra.toast('Result opened in a new tab'); });
+      const command = document.querySelector('structra-command');
+      if (command) command._openInNewTab(rows, base + ' (SQL)').then((opened) => { if (opened) Structra.toast('Result opened in a new tab'); });
     }
   }
 
@@ -594,8 +594,8 @@ class StructraQuery extends StructraComponent {
       return;
     }
 
-    const ds = Structra.dataEngine.getActive();
-    const data = ds ? ds.raw : Structra.state.jsonData;
+    const dataset = Structra.dataEngine.getActive();
+    const data = dataset ? dataset.raw : Structra.state.jsonData;
     if (!data) { results.innerHTML = '<div class="qp-summary">Open a file first</div>'; return; }
 
     try {
@@ -620,18 +620,18 @@ class StructraQuery extends StructraComponent {
           <button class="btn btn-sm" type="button" data-action="copyMatches">Copy values</button>
           <button class="btn btn-sm" type="button" data-action="openMatches">Open in a new tab</button>
         </div>` +
-        shown.map((m, i) =>
-          `<div class="qp-result" data-i="${i}" data-path="${Structra.sharedHelpers.escapeHtml(m.path)}" title="Show in the Tree">
-            <span class="qp-result-path">${Structra.sharedHelpers.escapeHtml(m.path)}</span>
-            <span class="qp-result-value">${Structra.sharedHelpers.escapeHtml(this._preview(m.value))}</span>
+        shown.map((match, i) =>
+          `<div class="qp-result" data-i="${i}" data-path="${Structra.sharedHelpers.escapeHtml(match.path)}" title="Show in the Tree">
+            <span class="qp-result-path">${Structra.sharedHelpers.escapeHtml(match.path)}</span>
+            <span class="qp-result-value">${Structra.sharedHelpers.escapeHtml(this._preview(match.value))}</span>
             <span class="qp-result-copy">
               <button class="btn btn-sm btn-ghost" type="button" data-copy-expr="pa" title="Copy the Power Automate expression for this value">Power Automate</button>
               <button class="btn btn-sm btn-ghost" type="button" data-copy-expr="fx" title="Copy the Power Fx expression for this value">Power Fx</button>
             </span>
           </div>`
         ).join('');
-    } catch (err) {
-      results.innerHTML = `<div class="qp-summary is-error">${Structra.sharedHelpers.escapeHtml(err.message)}</div>`;
+    } catch (error) {
+      results.innerHTML = `<div class="qp-summary is-error">${Structra.sharedHelpers.escapeHtml(error.message)}</div>`;
     }
   }
 
@@ -643,23 +643,23 @@ class StructraQuery extends StructraComponent {
     // Every match is marked in the Tree, and the clicked one is brought into view
     setTimeout(() => {
       const view = document.getElementById('jsonView');
-      const all = (this._lastMatches || []).map((m) => m.path).filter((p) => typeof p === 'string' && p.startsWith('$'));
+      const all = (this._lastMatches || []).map((modeButton) => modeButton.path).filter((path) => typeof path === 'string' && path.startsWith('$'));
       if (view && all.length) Structra.jsonTreeRenderer.highlightPaths(view, all);
       Structra.events.emit('tree:navigate-path', path);
     }, 60);
   }
 
   _copyMatches() {
-    const values = (this._lastMatches || []).map((m) => m.value);
+    const values = (this._lastMatches || []).map((modeButton) => modeButton.value);
     Structra.sharedHelpers.copyToClipboard(JSON.stringify(values, null, 2), `${values.length} ${values.length === 1 ? 'value' : 'values'} copied`);
   }
 
   _openMatches() {
-    const cmd = document.querySelector('structra-command');
-    const values = (this._lastMatches || []).map((m) => m.value);
-    if (!cmd || !values.length) return;
+    const command = document.querySelector('structra-command');
+    const values = (this._lastMatches || []).map((modeButton) => modeButton.value);
+    if (!command || !values.length) return;
     const name = (Structra.state.fileName || 'data').replace(/\.[^.]+$/, '') + ' (query)';
-    cmd._openInNewTab(values, name).then((opened) => { if (opened) Structra.toast('Matches opened in a new tab'); });
+    command._openInNewTab(values, name).then((opened) => { if (opened) Structra.toast('Matches opened in a new tab'); });
   }
 
   _queryRegex(data, pattern) {
@@ -668,13 +668,13 @@ class StructraQuery extends StructraComponent {
     const source = pattern.replace(/^\/|\/[a-z]*$/g, '');
     if (Structra.sharedHelpers.isRiskyRegex(source)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
     try { re = new RegExp(source, 'i'); }
-    catch (err) { throw new Error('That is not a valid pattern: ' + err.message.replace(/^Invalid regular expression: /, '')); }
-    const walk = (val, path) => {
-      if (typeof val === 'string' && re.test(val)) matches.push({ path, value: val });
-      if (val && typeof val === 'object') {
-        const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
-        entries.forEach(([k, v]) => {
-          const p = Array.isArray(val) ? `${path}[${k}]` : (/^[A-Za-z_$][\w$]*$/.test(k) ? `${path}.${k}` : `${path}['${k}']`);
+    catch (error) { throw new Error('That is not a valid pattern: ' + error.message.replace(/^Invalid regular expression: /, '')); }
+    const walk = (value, path) => {
+      if (typeof value === 'string' && re.test(value)) matches.push({ path, value: value });
+      if (value && typeof value === 'object') {
+        const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
+        entries.forEach(([field, v]) => {
+          const p = Array.isArray(value) ? `${path}[${field}]` : (/^[A-Za-z_$][\w$]*$/.test(field) ? `${path}.${field}` : `${path}['${field}']`);
           walk(v, p);
         });
       }
@@ -683,37 +683,37 @@ class StructraQuery extends StructraComponent {
     return matches;
   }
 
-  _queryJs(data, expr) {
+  _queryJs(data, expression) {
     // Strip leading = if present
-    const code = expr.replace(/^=/, '');
+    const code = expression.replace(/^=/, '');
     let result;
     try { result = new Function('data', `return ${code};`)(data); }
-    catch (err) { throw new Error('The JavaScript did not run: ' + err.message); }
+    catch (error) { throw new Error('The JavaScript did not run: ' + error.message); }
 
     // Items that are objects inside the document are given their real path ($.value[1]), the rest are numbered
     let where = null;
-    const locate = (obj) => {
+    const locate = (object) => {
       if (!where) {
         where = new Map();
-        const walk = (val, path, budget) => {
-          if (budget.left-- <= 0 || !val || typeof val !== 'object') return;
-          if (!where.has(val)) where.set(val, path);
-          const entries = Array.isArray(val) ? val.map((v, i) => [i, v]) : Object.entries(val);
-          for (const [k, v] of entries) walk(v, Array.isArray(val) ? `${path}[${k}]` : (/^[A-Za-z_$][\w$]*$/.test(k) ? `${path}.${k}` : `${path}['${k}']`), budget);
+        const walk = (value, path, budget) => {
+          if (budget.left-- <= 0 || !value || typeof value !== 'object') return;
+          if (!where.has(value)) where.set(value, path);
+          const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
+          for (const [field, v] of entries) walk(v, Array.isArray(value) ? `${path}[${field}]` : (/^[A-Za-z_$][\w$]*$/.test(field) ? `${path}.${field}` : `${path}['${field}']`), budget);
         };
         walk(data, '$', { left: 200000 });
       }
-      return where.get(obj);
+      return where.get(object);
     };
-    if (Array.isArray(result)) return result.map((v, i) => ({ path: (v && typeof v === 'object' && locate(v)) || `result[${i}]`, value: v }));
+    if (Array.isArray(result)) return result.map((value, i) => ({ path: (value && typeof value === 'object' && locate(value)) || `result[${i}]`, value: value }));
     return [{ path: (result && typeof result === 'object' && locate(result)) || 'result', value: result }];
   }
 
-  _preview(val) {
-    if (val === null) return 'null';
-    if (typeof val === 'string') return val.length > 40 ? val.slice(0, 40) + '…' : val;
-    if (typeof val === 'object') { const t = JSON.stringify(val); return t.length > 60 ? t.slice(0, 60) + '…' : t; }
-    return String(val);
+  _preview(value) {
+    if (value === null) return 'null';
+    if (typeof value === 'string') return value.length > 40 ? value.slice(0, 40) + '…' : value;
+    if (typeof value === 'object') { const text = JSON.stringify(value); return text.length > 60 ? text.slice(0, 60) + '…' : text; }
+    return String(value);
   }
 
 }

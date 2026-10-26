@@ -33,9 +33,9 @@ Structra.browserDatabase = (() => {
   function open() {
     if (_readyPromise) return _readyPromise;
     _readyPromise = new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = (e) => {
-        const db = e.target.result;
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
         // Recents store - auto-increment, indexed by timestamp
         if (!db.objectStoreNames.contains('recents')) {
           const store = db.createObjectStore('recents', { keyPath: 'id', autoIncrement: true });
@@ -56,21 +56,21 @@ Structra.browserDatabase = (() => {
           store.createIndex('timestamp', 'timestamp', { unique: false });
         }
       };
-      req.onsuccess = () => {
-        _db = req.result;
+      request.onsuccess = () => {
+        _db = request.result;
         Structra.log.info('Persistence', 'IndexedDB opened: ' + DB_NAME);
         resolve(_db);
       };
-      req.onerror = () => {
-        Structra.log.error('Persistence', 'IndexedDB open failed', req.error);
-        reject(req.error);
+      request.onerror = () => {
+        Structra.log.error('Persistence', 'IndexedDB open failed', request.error);
+        reject(request.error);
       };
     });
     return _readyPromise;
   }
 
   /* --- Generic Helpers --- */
-  function tx(storeName, mode) {
+  function openTransaction(storeName, mode) {
     return _db.transaction(storeName, mode).objectStore(storeName);
   }
 
@@ -85,7 +85,7 @@ Structra.browserDatabase = (() => {
   async function hashText(text) {
     const data = new TextEncoder().encode(text);
     const buffer = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(new Uint8Array(buffer)).map(byte => byte.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -101,11 +101,11 @@ Structra.browserDatabase = (() => {
       parts.push(new Uint8Array(await blob.slice(0, EDGE).arrayBuffer()));
       parts.push(new Uint8Array(await blob.slice(blob.size - EDGE).arrayBuffer()));
     }
-    const all = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+    const all = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
     let at = 0;
-    for (const p of parts) { all.set(p, at); at += p.length; }
+    for (const part of parts) { all.set(part, at); at += part.length; }
     const buffer = await crypto.subtle.digest('SHA-256', all);
-    return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return Array.from(new Uint8Array(buffer)).map(byte => byte.toString(16).padStart(2, '0')).join('');
   }
 
   /* --- Recents --- */
@@ -121,21 +121,21 @@ Structra.browserDatabase = (() => {
         hash: entry.hash || '',
         tabId: entry.tabId || null,
       };
-      return promisify(tx('recents', 'readwrite').add(record));
+      return promisify(openTransaction('recents', 'readwrite').add(record));
     },
 
     async getAll(limit = 50) {
       await open();
       return new Promise((resolve, reject) => {
         const results = [];
-        const store = tx('recents', 'readonly');
-        const idx = store.index('timestamp');
-        const cursor = idx.openCursor(null, 'prev'); // newest first
-        cursor.onsuccess = (e) => {
-          const c = e.target.result;
-          if (c && results.length < limit) {
-            results.push(c.value);
-            c.continue();
+        const store = openTransaction('recents', 'readonly');
+        const index = store.index('timestamp');
+        const cursor = index.openCursor(null, 'prev'); // newest first
+        cursor.onsuccess = (event) => {
+          const cursor = event.target.result;
+          if (cursor && results.length < limit) {
+            results.push(cursor.value);
+            cursor.continue();
           } else {
             resolve(results);
           }
@@ -146,7 +146,7 @@ Structra.browserDatabase = (() => {
 
     async clear() {
       await open();
-      return promisify(tx('recents', 'readwrite').clear());
+      return promisify(openTransaction('recents', 'readwrite').clear());
     },
   };
 
@@ -159,13 +159,13 @@ Structra.browserDatabase = (() => {
       const blob = isBlob ? source : new Blob([source], { type: 'text/plain' });
       const hash = isBlob || source.length > 1048576 ? await hashBlob(blob) : await hashText(source);
       const record = { blob, format: meta.format, originalName: meta.name, timestamp: Date.now() };
-      tx('raw_files', 'readwrite').put(record, hash);
+      openTransaction('raw_files', 'readwrite').put(record, hash);
       return hash;
     },
 
     async get(hash) {
       await open();
-      return promisify(tx('raw_files', 'readonly').get(hash));
+      return promisify(openTransaction('raw_files', 'readonly').get(hash));
     },
 
     async getText(hash) {
@@ -176,7 +176,7 @@ Structra.browserDatabase = (() => {
 
     async delete(hash) {
       await open();
-      return promisify(tx('raw_files', 'readwrite').delete(hash));
+      return promisify(openTransaction('raw_files', 'readwrite').delete(hash));
     },
   };
 
@@ -185,18 +185,18 @@ Structra.browserDatabase = (() => {
     async save(state) {
       await open();
       // state: {tabs, activeTab, views, filters, scrollPositions}
-      tx('session', 'readwrite').put(state, 'state');
+      openTransaction('session', 'readwrite').put(state, 'state');
       Structra.log.debug('Persistence', 'Session saved');
     },
 
     async load() {
       await open();
-      return promisify(tx('session', 'readonly').get('state'));
+      return promisify(openTransaction('session', 'readonly').get('state'));
     },
 
     async clear() {
       await open();
-      return promisify(tx('session', 'readwrite').delete('state'));
+      return promisify(openTransaction('session', 'readwrite').delete('state'));
     },
   };
 
@@ -213,21 +213,21 @@ Structra.browserDatabase = (() => {
         responseHash: entry.responseHash || null,
         status: entry.status || null,
       };
-      return promisify(tx('api_history', 'readwrite').add(record));
+      return promisify(openTransaction('api_history', 'readwrite').add(record));
     },
 
     async getAll(limit = 30) {
       await open();
       return new Promise((resolve, reject) => {
         const results = [];
-        const store = tx('api_history', 'readonly');
-        const idx = store.index('timestamp');
-        const cursor = idx.openCursor(null, 'prev');
-        cursor.onsuccess = (e) => {
-          const c = e.target.result;
-          if (c && results.length < limit) {
-            results.push(c.value);
-            c.continue();
+        const store = openTransaction('api_history', 'readonly');
+        const index = store.index('timestamp');
+        const cursor = index.openCursor(null, 'prev');
+        cursor.onsuccess = (event) => {
+          const cursor = event.target.result;
+          if (cursor && results.length < limit) {
+            results.push(cursor.value);
+            cursor.continue();
           } else {
             resolve(results);
           }
@@ -238,7 +238,7 @@ Structra.browserDatabase = (() => {
 
     async clear() {
       await open();
-      return promisify(tx('api_history', 'readwrite').clear());
+      return promisify(openTransaction('api_history', 'readwrite').clear());
     },
   };
 
@@ -247,7 +247,7 @@ Structra.browserDatabase = (() => {
     await open();
     await Promise.all([
       recents.clear(),
-      promisify(tx('raw_files', 'readwrite').clear()),
+      promisify(openTransaction('raw_files', 'readwrite').clear()),
       session.clear(),
       api.clear(),
     ]);

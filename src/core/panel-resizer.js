@@ -23,20 +23,20 @@ Structra.panelResizer = (() => {
 
   function readSaved(name) {
     try {
-      const v = parseInt(localStorage.getItem(KEY(name)), 10);
-      return Number.isFinite(v) ? v : null;
+      const saved = parseInt(localStorage.getItem(KEY(name)), 10);
+      return Number.isFinite(saved) ? saved : null;
     } catch { return null; }
   }
 
-  function save(name, px) {
-    try { localStorage.setItem(KEY(name), String(px)); } catch { /* storage unavailable */ }
+  function save(name, pixels) {
+    try { localStorage.setItem(KEY(name), String(pixels)); } catch { /* storage unavailable */ }
   }
 
-  function attach(panel, opts) {
+  function attach(panel, options) {
     if (!panel || panel.querySelector(':scope > .panel-resizer')) return;
-    const { name, edge, cssVar, min = 200, max = 640 } = opts;
-    const clamp = (px) => Math.max(min, Math.min(max, Math.round(px)));
-    const apply = (px) => document.documentElement.style.setProperty(cssVar, px + 'px');
+    const { name, edge, cssVar, min = 200, max = 640 } = options;
+    const clamp = (pixels) => Math.max(min, Math.min(max, Math.round(pixels)));
+    const apply = (pixels) => document.documentElement.style.setProperty(cssVar, pixels + 'px');
 
     const saved = readSaved(name);
     if (saved !== null) apply(clamp(saved));
@@ -50,31 +50,31 @@ Structra.panelResizer = (() => {
     handle.title = 'Drag to resize';
     panel.appendChild(handle);
 
-    handle.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      handle.setPointerCapture(e.pointerId);
+    handle.addEventListener('pointerdown', (event) => {
+      event.preventDefault();
+      handle.setPointerCapture(event.pointerId);
       handle.classList.add('dragging');
       document.body.style.userSelect = 'none';
-      const startX = e.clientX;
+      const startX = event.clientX;
       const startW = panel.getBoundingClientRect().width;
       const sign = edge === 'right' ? 1 : -1;
 
-      const move = (ev) => apply(clamp(startW + sign * (ev.clientX - startX)));
-      const up = () => {
+      const move = (event) => apply(clamp(startW + sign * (event.clientX - startX)));
+      const stopDragging = () => {
         handle.classList.remove('dragging');
         document.body.style.userSelect = '';
         handle.removeEventListener('pointermove', move);
-        handle.removeEventListener('pointerup', up);
+        handle.removeEventListener('pointerup', stopDragging);
         save(name, Math.round(panel.getBoundingClientRect().width));
       };
       handle.addEventListener('pointermove', move);
-      handle.addEventListener('pointerup', up);
+      handle.addEventListener('pointerup', stopDragging);
     });
 
-    handle.addEventListener('keydown', (e) => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      e.preventDefault();
-      const grow = (e.key === 'ArrowRight') === (edge === 'right');
+    handle.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      const grow = (event.key === 'ArrowRight') === (edge === 'right');
       const next = clamp(panel.getBoundingClientRect().width + (grow ? STEP : -STEP));
       apply(next);
       save(name, next);

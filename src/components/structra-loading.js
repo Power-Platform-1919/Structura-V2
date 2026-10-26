@@ -11,7 +11,7 @@ class StructraLoading extends StructraComponent {
   static get observedAttributes() { return ['active', 'message']; }
 
   init() {
-    this.on('loading:show', (msg) => this.show(msg));
+    this.on('loading:show', (payload) => this.show(payload));
     this.on('loading:hide', () => this.hide());
   }
 
@@ -25,11 +25,11 @@ class StructraLoading extends StructraComponent {
       </div>`;
   }
 
-  show(msg) {
-    Structra.log.info('Loading', 'show: ' + (msg || 'Loading…'));
+  show(message) {
+    Structra.log.info('Loading', 'show: ' + (message || 'Loading…'));
     const overlay = this.queryOne('#loadingOverlay');
     const msgEl = this.queryOne('#loadingMsg');
-    if (msgEl) msgEl.textContent = msg || 'Loading…';
+    if (msgEl) msgEl.textContent = message || 'Loading…';
     if (overlay) overlay.classList.add('show');
   }
 

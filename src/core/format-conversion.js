@@ -2,7 +2,7 @@
  * Format conversion & export - JSON ↔ YAML, JSON → XML, CSV export
  */
 Structra.formatConversion = (() => {
-  const toast = (msg) => Structra.toast(msg);
+  const toast = (message) => Structra.toast(message);
 
   // --- YAML ---
   async function jsonToYaml(json) {
@@ -31,34 +31,34 @@ Structra.formatConversion = (() => {
       return t;
     };
     // Characters XML cannot hold at all (control characters) are dropped
-    const escXml = (s) => s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    const escXml = (text) => text.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
     let usesNil = false;
     const nil = (tag) => { usesNil = true; return `<${tag} xsi:nil="true"/>`; };
 
-    function convert(obj, indent = '') {
-      if (obj === null) return `${indent}${nil('null')}`;
-      if (typeof obj !== 'object') return `${indent}${escXml(String(obj))}`;
+    function convert(object, indent = '') {
+      if (object === null) return `${indent}${nil('null')}`;
+      if (typeof object !== 'object') return `${indent}${escXml(String(object))}`;
 
       let xml = '';
-      if (Array.isArray(obj)) {
-        for (const item of obj) {
+      if (Array.isArray(object)) {
+        for (const item of object) {
           const emptyItem = item !== null && typeof item === 'object' && (Array.isArray(item) ? !item.length : !Object.keys(item).length);
           xml += item === null
             ? `${indent}${nil('item')}\n`
             : emptyItem ? `${indent}<item/>\n` : `${indent}<item>\n${convert(item, indent + '  ')}\n${indent}</item>\n`;
         }
       } else {
-        for (const [key, val] of Object.entries(obj)) {
+        for (const [key, value] of Object.entries(object)) {
           const tag = tagOf(key);
-          if (val === null) {
+          if (value === null) {
             xml += `${indent}${nil(tag)}\n`;
-          } else if (typeof val === 'object') {
-            const empty = Array.isArray(val) ? !val.length : !Object.keys(val).length;
-            xml += empty ? `${indent}<${tag}/>\n` : `${indent}<${tag}>\n${convert(val, indent + '  ')}\n${indent}</${tag}>\n`;
+          } else if (typeof value === 'object') {
+            const empty = Array.isArray(value) ? !value.length : !Object.keys(value).length;
+            xml += empty ? `${indent}<${tag}/>\n` : `${indent}<${tag}>\n${convert(value, indent + '  ')}\n${indent}</${tag}>\n`;
           } else {
-            xml += `${indent}<${tag}>${escXml(String(val))}</${tag}>\n`;
+            xml += `${indent}<${tag}>${escXml(String(value))}</${tag}>\n`;
           }
         }
       }
@@ -68,21 +68,21 @@ Structra.formatConversion = (() => {
     const root = tagOf(rootName);
     const body = convert(json, '  ');
     // xsi:nil needs its namespace declared, or no XML parser will read the file
-    const ns = usesNil ? ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' : '';
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<${root}${ns}>\n${body}\n</${root}>`;
+    const namespaceAttribute = usesNil ? ' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' : '';
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<${root}${namespaceAttribute}>\n${body}\n</${root}>`;
   }
 
   // --- CSV ---
-  function escCsv(v) {
-    if (v == null) return '';
-    const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
-    return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+  function escCsv(value) {
+    if (value == null) return '';
+    const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    return text.includes(',') || text.includes('"') || text.includes('\n') ? `"${text.replace(/"/g, '""')}"` : text;
   }
 
   function generateCsv(rows, columns) {
-    const lines = [columns.map(c => escCsv(c)).join(',')];
+    const lines = [columns.map(column => escCsv(column)).join(',')];
     for (const row of rows) {
-      lines.push(columns.map(c => escCsv(row[c])).join(','));
+      lines.push(columns.map(column => escCsv(row[column])).join(','));
     }
     return lines.join('\n') + '\n';
   }

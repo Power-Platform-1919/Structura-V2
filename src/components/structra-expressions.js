@@ -17,7 +17,7 @@ class StructraExpressions extends StructraComponent {
   init() {
     this._tab = 'automate';
     this._path = '';
-    this.on('state:currentPath', (d) => { this._path = Structra.dataPaths.strip(d.value); this._refresh(); });
+    this.on('state:currentPath', (change) => { this._path = Structra.dataPaths.strip(change.value); this._refresh(); });
     this.on('state:jsonData', () => this._refresh());
     this.on('expressions:source-changed', () => this._refresh());
     this.on('expressions:columns-changed', () => this._refresh());
@@ -41,85 +41,85 @@ class StructraExpressions extends StructraComponent {
       <div class="expr-pane" data-pane="flow"></div>
       <div class="expr-pane" data-pane="helpers"></div>`;
 
-    this.addEventListener('click', (e) => {
-      if (e.target.closest('[data-goto-tree]')) { Structra.setState('activeView', 'tree'); return; }
-      const tab = e.target.closest('.expr-subtab');
+    this.addEventListener('click', (event) => {
+      if (event.target.closest('[data-goto-tree]')) { Structra.setState('activeView', 'tree'); return; }
+      const tab = event.target.closest('.expr-subtab');
       if (tab) { this._switch(tab.dataset.sub); return; }
-      const copyAll = e.target.closest('[data-copy-block]');
+      const copyAll = event.target.closest('[data-copy-block]');
       if (copyAll) { Structra.sharedHelpers.copyToClipboard(copyAll.closest('.expr-block').querySelector('pre').textContent, 'Action copied'); return; }
-      const copy = e.target.closest('.expr-copy');
+      const copy = event.target.closest('.expr-copy');
       if (copy) { Structra.sharedHelpers.copyToClipboard(copy.parentElement.querySelector('.ecode').textContent, 'Copied'); return; }
-      const code = e.target.closest('.ecode');
+      const code = event.target.closest('.ecode');
       if (code) {
         Structra.sharedHelpers.copyToClipboard(code.textContent, 'Copied');
       }
-      const all = e.target.closest('[data-cols-all]');
+      const all = event.target.closest('[data-cols-all]');
       if (all) this._setAllColumns(all.dataset.colsAll === 'on');
     });
-    this.addEventListener('change', (e) => {
-      const col = e.target.closest('[data-col]');
-      if (col) {
+    this.addEventListener('change', (event) => {
+      const column = event.target.closest('[data-col]');
+      if (column) {
         const rows = Structra.dataPaths.resolve(Structra.state.jsonData, this._path);
-        if (Array.isArray(rows)) Structra.powerPlatformExpressions.setColumn(this._path, rows, col.dataset.col, col.checked);
+        if (Array.isArray(rows)) Structra.powerPlatformExpressions.setColumn(this._path, rows, column.dataset.col, column.checked);
         return;
       }
-      const kind = e.target.closest('[data-src="kind"]');
+      const kind = event.target.closest('[data-src="kind"]');
       if (kind) { Structra.powerPlatformExpressions.setSource({ kind: kind.value }); return; }
-      const full = e.target.closest('[data-src="full"]');
+      const full = event.target.closest('[data-src="full"]');
       if (full) Structra.powerPlatformExpressions.setSource({ fullOutput: full.value === 'auto' ? 'auto' : full.value === 'yes' });
     });
-    this.addEventListener('input', (e) => {
-      const name = e.target.closest('[data-src="name"]');
+    this.addEventListener('input', (event) => {
+      const name = event.target.closest('[data-src="name"]');
       if (name) { this._keepFocus = 'name'; Structra.powerPlatformExpressions.setSource({ name: name.value }); return; }
-      const v = e.target.closest('[data-src="fxvar"]');
-      if (v) { this._keepFocus = 'fxvar'; Structra.powerPlatformExpressions.setSource({ fxVar: v.value || 'jsonText' }); }
+      const target = event.target.closest('[data-src="fxvar"]');
+      if (target) { this._keepFocus = 'fxvar'; Structra.powerPlatformExpressions.setSource({ fxVar: target.value || 'jsonText' }); }
     });
     this._refresh();
   }
 
   /** Where does this JSON come from? The expressions start there. */
   _renderSource() {
-    const el = this.queryOne('#exprSource');
-    if (!el) return;
-    if (this._tab === 'helpers') { el.hidden = true; return; }
-    el.hidden = false;
-    const src = Structra.powerPlatformExpressions.getSource();
+    const element = this.queryOne('#exprSource');
+    if (!element) return;
+    if (this._tab === 'helpers') { element.hidden = true; return; }
+    element.hidden = false;
+    const source = Structra.powerPlatformExpressions.getSource();
     const esc = Structra.sharedHelpers.escapeHtml;
     if (this._tab === 'canvas') {
-      el.innerHTML = `<label class="expr-src-field">Text variable that holds the JSON
-        <input type="text" data-src="fxvar" value="${esc(src.fxVar)}" spellcheck="false"></label>`;
+      element.innerHTML = `<label class="expr-src-field">Text variable that holds the JSON
+        <input type="text" data-src="fxvar" value="${esc(source.fxVar)}" spellcheck="false"></label>`;
     } else {
-      const named = src.kind === 'action' || src.kind === 'item' || src.kind === 'custom';
-      const label = src.kind === 'custom' ? 'Expression' : src.kind === 'item' ? 'Loop name' : 'Action name';
-      const sel = (v, cur) => (v === cur ? ' selected' : '');
-      el.innerHTML = `
+      const named = source.kind === 'action' || source.kind === 'item' || source.kind === 'custom';
+      const label = source.kind === 'custom' ? 'Expression' : source.kind === 'item' ? 'Loop name' : 'Action name';
+      const selection = (value, current) => (value === current ? ' selected' : '');
+      element.innerHTML = `
         <label class="expr-src-field">The JSON is
           <select data-src="kind">
-            <option value="action"${sel('action', src.kind)}>An action output</option>
-            <option value="trigger"${sel('trigger', src.kind)}>The trigger body</option>
-            <option value="item"${sel('item', src.kind)}>The current loop item</option>
-            <option value="custom"${sel('custom', src.kind)}>A custom expression</option>
+            <option value="action"${selection('action', source.kind)}>An action output</option>
+            <option value="trigger"${selection('trigger', source.kind)}>The trigger body</option>
+            <option value="item"${selection('item', source.kind)}>The current loop item</option>
+            <option value="custom"${selection('custom', source.kind)}>A custom expression</option>
           </select></label>
         ${named ? `<label class="expr-src-field">${label}
-          <input type="text" data-src="name" value="${esc(src.name)}" spellcheck="false"></label>` : ''}
+          <input type="text" data-src="name" value="${esc(source.name)}" spellcheck="false"></label>` : ''}
         <label class="expr-src-field">Whole action output
           <select data-src="full" title="An action output has statusCode, headers and body. The body is the main part, so it is not repeated in the expression.">
-            <option value="auto"${sel('auto', src.fullOutput)}>Detect</option>
-            <option value="yes"${src.fullOutput === true ? ' selected' : ''}>Yes, skip body</option>
-            <option value="no"${src.fullOutput === false ? ' selected' : ''}>No</option>
+            <option value="auto"${selection('auto', source.fullOutput)}>Detect</option>
+            <option value="yes"${source.fullOutput === true ? ' selected' : ''}>Yes, skip body</option>
+            <option value="no"${source.fullOutput === false ? ' selected' : ''}>No</option>
           </select></label>`;
     }
     if (this._keepFocus) {
-      const f = el.querySelector(`[data-src="${this._keepFocus}"]`);
-      if (f) { f.focus(); const n = f.value.length; f.setSelectionRange(n, n); }
+      const field = element.querySelector(`[data-src="${this._keepFocus}"]`);
+      if (field) { field.focus(); const n = field.value.length; field.setSelectionRange(n, n); }
       this._keepFocus = null;
     }
   }
 
   _switch(id) {
     this._tab = id;
-    this.queryAll('.expr-subtab').forEach((b) => b.classList.toggle('active', b.dataset.sub === id));
-    this.queryAll('.expr-pane').forEach((p) => p.classList.toggle('active', p.dataset.pane === id));
+    this.queryAll('.expr-subtab').forEach((button) => button.classList.toggle('active', button.dataset.sub === id));
+    this.queryAll('.expr-pane').forEach((pane) => pane.classList.toggle('active', pane.dataset.pane === id));
     this._refresh();
   }
 
@@ -163,66 +163,66 @@ class StructraExpressions extends StructraComponent {
   /** For a list of records: which columns go into typed tables (Power Fx) and the Select action (flow). */
   _columnPicker(value) {
     if (!Array.isArray(value) || !value.length || !value[0] || typeof value[0] !== 'object' || Array.isArray(value[0])) return '';
-    const cols = Structra.powerPlatformExpressions.pickedColumns(this._path, value);
-    if (!cols.length) return '';
+    const columns = Structra.powerPlatformExpressions.pickedColumns(this._path, value);
+    if (!columns.length) return '';
     const esc = Structra.sharedHelpers.escapeHtml;
-    const on = cols.filter((c) => c.on).length;
+    const shownCount = columns.filter((column) => column.on).length;
     return `<div class="expr-cols">
       <div class="expr-cols-head"><strong>Columns</strong>
-        <span class="expr-note">${on} of ${cols.length} used in typed tables and Select. Choice and Person fields give one column per part (Status_Value).</span>
+        <span class="expr-note">${shownCount} of ${columns.length} used in typed tables and Select. Choice and Person fields give one column per part (Status_Value).</span>
         <button class="btn btn-sm btn-ghost" type="button" data-cols-all="on">All</button>
         <button class="btn btn-sm btn-ghost" type="button" data-cols-all="off">None</button>
       </div>
-      <div class="expr-cols-list">${cols.slice(0, 80).map((c) => `<label class="expr-col${c.on ? ' on' : ''}${c.noise ? ' noise' : ''}" title="${esc(c.noise ? c.id + ' (system field, off by default)' : c.id)}"><input type="checkbox" data-col="${esc(c.id)}"${c.on ? ' checked' : ''}>${esc(c.name)}</label>`).join('')}</div>
+      <div class="expr-cols-list">${columns.slice(0, 80).map((column) => `<label class="expr-col${column.on ? ' on' : ''}${column.noise ? ' noise' : ''}" title="${esc(column.noise ? column.id + ' (system field, off by default)' : column.id)}"><input type="checkbox" data-col="${esc(column.id)}"${column.on ? ' checked' : ''}>${esc(column.name)}</label>`).join('')}</div>
     </div>`;
   }
 
-  _setAllColumns(on) {
+  _setAllColumns(checked) {
     const rows = Structra.dataPaths.resolve(Structra.state.jsonData, this._path);
     if (!Array.isArray(rows)) return;
-    Structra.powerPlatformExpressions.pickedColumns(this._path, rows).forEach((c) => { if (c.on !== on) Structra.powerPlatformExpressions.setColumn(this._path, rows, c.id, on); });
+    Structra.powerPlatformExpressions.pickedColumns(this._path, rows).forEach((column) => { if (column.on !== checked) Structra.powerPlatformExpressions.setColumn(this._path, rows, column.id, checked); });
   }
 
   /** Action JSON: a titled block with its own copy button */
   _blocks(build) {
     let items;
-    try { items = build(); } catch (err) {
-      Structra.log.error('Expressions', 'Could not build flow actions', err);
+    try { items = build(); } catch (error) {
+      Structra.log.error('Expressions', 'Could not build flow actions', error);
       return this._empty('Could not build flow actions for this data');
     }
     const esc = Structra.sharedHelpers.escapeHtml;
-    return '<p class="expr-note">Paste into a cloud flow with Peek code or the code view, under "actions".</p>' + items.map((it) => `
+    return '<p class="expr-note">Paste into a cloud flow with Peek code or the code view, under "actions".</p>' + items.map((item) => `
       <section class="expr-block">
-        <header class="expr-block-head"><strong>${esc(it.label)}</strong>
+        <header class="expr-block-head"><strong>${esc(item.label)}</strong>
           <button class="btn btn-sm" type="button" data-copy-block>Copy</button></header>
-        <p class="expr-note">${esc(it.note)}</p>
-        <pre>${esc(it.code)}</pre>
+        <p class="expr-note">${esc(item.note)}</p>
+        <pre>${esc(item.code)}</pre>
       </section>`).join('');
   }
 
   _fill(pane, html) {
-    const el = this.queryOne(`[data-pane="${pane}"]`);
-    if (el) el.innerHTML = html;
+    const element = this.queryOne(`[data-pane="${pane}"]`);
+    if (element) element.innerHTML = html;
   }
 
-  _empty(msg) {
-    return `<div class="expr-empty">${Structra.sharedHelpers.escapeHtml(msg)}</div>`;
+  _empty(message) {
+    return `<div class="expr-empty">${Structra.sharedHelpers.escapeHtml(message)}</div>`;
   }
 
   _sections(build) {
     let sections;
     try {
       sections = build();
-    } catch (err) {
-      Structra.log.error('Expressions', 'Could not build expressions', err);
+    } catch (error) {
+      Structra.log.error('Expressions', 'Could not build expressions', error);
       return this._empty('Could not build expressions for this data');
     }
     const esc = Structra.sharedHelpers.escapeHtml;
-    return sections.map((s) => `
+    return sections.map((section) => `
       <section class="expr-section">
-        ${s.title ? `<h4 class="expr-title">${esc(s.title)}</h4>` : ''}
-        ${s.note ? `<p class="expr-note">${esc(s.note)}</p>` : ''}
-        ${s.rows.map((r) => `<div class="expr-row"><span class="elabel" title="${esc(r.label)}">${esc(r.label)}</span><div class="ecode" title="Click to copy">${esc(r.code)}</div><button class="expr-copy" type="button" title="Copy" aria-label="Copy ${esc(r.label)}">${Structra.icons.svg('copy', { size: 14 })}</button></div>`).join('')}
+        ${section.title ? `<h4 class="expr-title">${esc(section.title)}</h4>` : ''}
+        ${section.note ? `<p class="expr-note">${esc(section.note)}</p>` : ''}
+        ${section.rows.map((row) => `<div class="expr-row"><span class="elabel" title="${esc(row.label)}">${esc(row.label)}</span><div class="ecode" title="Click to copy">${esc(row.code)}</div><button class="expr-copy" type="button" title="Copy" aria-label="Copy ${esc(row.label)}">${Structra.icons.svg('copy', { size: 14 })}</button></div>`).join('')}
       </section>`).join('');
   }
 }
