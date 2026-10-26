@@ -144,6 +144,43 @@ function serve() {
     const history = await page.evaluate(() => [...document.querySelectorAll('#sqlHistory option')].map((o) => o.textContent));
     if (history.length < 3 || !history.some((h) => /COUNT\(\*\) AS n, SUM/.test(h))) failures.push('earlier queries should be kept: ' + history.join(' | '));
 
+    // ---- Suggestions while typing ----
+    const box = page.locator('#queryInput');
+    const acItems = () => page.evaluate(() => [...document.querySelectorAll('#sqlAc .qp-ac-item .qp-ac-name')].map((e) => e.textContent));
+    const acShown = () => page.evaluate(() => !document.querySelector('#sqlAc').hidden);
+    await box.fill('');
+    await box.pressSequentially('SELECT reg');
+    if (!(await acShown()) || (await acItems())[0] !== 'region') failures.push('typing SELECT reg should suggest region first: ' + (await acItems()).join(','));
+    await box.press('Tab');
+    if ((await box.inputValue()) !== 'SELECT region') failures.push('Tab should accept the suggestion: ' + (await box.inputValue()));
+    if (await acShown()) failures.push('the list should close after a suggestion is accepted');
+
+    await box.pressSequentially(' FROM d');
+    if ((await acItems()).join(',') !== 'data') failures.push('after FROM only the table data should be suggested: ' + (await acItems()).join(','));
+    await box.press('Enter');
+    if ((await box.inputValue()) !== 'SELECT region FROM data') failures.push('Enter should accept, not add a new line: ' + JSON.stringify(await box.inputValue()));
+
+    await box.fill('');
+    await box.pressSequentially('SELECT ');
+    if (await acShown()) failures.push('nothing should pop up before a letter is typed');
+    await box.press('Control+Space');
+    const all = await acItems();
+    if (!all.includes('id') || !all.includes('Full Name') && !all.includes('name')) failures.push('Ctrl+Space should list the columns: ' + all.join(','));
+    await box.press('ArrowDown');
+    const picked = await page.evaluate(() => document.querySelector('#sqlAc .is-selected').textContent);
+    if (picked === all[0]) failures.push('the arrow keys should move the choice');
+    await box.press('Escape');
+    const stillOpen = await page.evaluate(() => ({ list: !document.querySelector('#sqlAc').hidden, panel: !!Structra.state.queryPanelOpen }));
+    if (stillOpen.list || !stillOpen.panel) failures.push('Escape should close the list and keep the panel open: ' + JSON.stringify(stillOpen));
+
+    await box.fill('');
+    await box.pressSequentially('SELECT COU');
+    await page.locator('#sqlAc .qp-ac-item').first().click();
+    if ((await box.inputValue()) !== 'SELECT COUNT(') failures.push('clicking a suggestion should use it: ' + (await box.inputValue()));
+    await box.fill('');
+    await box.pressSequentially("SELECT * FROM data WHERE name = 'Re");
+    if (await acShown()) failures.push('nothing should be suggested inside quoted text');
+
     // ---- Results can be kept ----
     await run('SELECT id, name FROM data ORDER BY id');
     const actions = await page.evaluate(() => [...document.querySelectorAll('#queryResults .qp-actions .btn')].map((b) => b.textContent.trim()));

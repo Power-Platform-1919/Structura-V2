@@ -27,7 +27,7 @@ class StructraQuery extends StructraElement {
       jsonpath: { example: '$.value[?(@.Cost > 100)].Title', hint: 'JSONPath: $ is the document, [?(...)] keeps items that pass a test, $..name finds name at any depth.' },
       regex: { example: '^[A-Z][a-z]+$', hint: 'Finds text values that match a pattern (not case sensitive).' },
       js: { example: 'data.value.filter(x => x.Approved)', hint: 'JavaScript where data is the whole document. It runs only in this browser.' },
-      sql: { example: 'SELECT * FROM data LIMIT 100', hint: 'The open file is a table named data. Press Ctrl+Enter to run. Select part of the text to run only that part. Queries only read the data, they never change it.' },
+      sql: { example: 'SELECT * FROM data LIMIT 100', hint: 'The open file is a table named data. Suggestions appear as you type (Tab or Enter picks one, Ctrl+Space asks for them). Ctrl+Enter runs. Select part of the text to run only that part. Queries only read the data, they never change it.' },
     };
   }
 
@@ -71,7 +71,10 @@ class StructraQuery extends StructraElement {
           ${modes.map(m => `<button class="seg-btn ${m === this._mode ? 'active' : ''}" type="button" data-mode="${m}">${StructraQuery.MODE_NAMES[m] || m}</button>`).join('')}
         </div>
         <div class="qp-sql-examples" id="sqlExamples" hidden></div>
-        <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder=""></textarea>
+        <div class="qp-editor">
+          <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder="" aria-autocomplete="list" aria-controls="sqlAc" aria-expanded="false"></textarea>
+          <div class="qp-ac" id="sqlAc" role="listbox" aria-label="Suggestions" hidden></div>
+        </div>
         <div class="qp-hint" id="queryHint"></div>
         <div class="qp-run-row">
           <button class="btn btn-primary qp-run" type="button" data-action="run" id="queryRun">Run query</button>
@@ -155,13 +158,25 @@ class StructraQuery extends StructraElement {
 
     this.$('#queryInput').addEventListener('keydown', (e) => {
       if (this._mode === 'sql') {                        // SQL is written over several lines: Ctrl+Enter runs, Enter starts a new line
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this._runQuery(); }
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this._acHide(); this._runQuery(); return; }
+        this._acKeydown(e);
         return;
       }
       if (e.key === 'Enter' && !e.shiftKey) {            // Enter runs, Shift+Enter starts a new line
         e.preventDefault();
         this._runQuery();
       }
+    });
+    // Suggestions while typing SQL: columns, keywords and functions
+    const editor = this.$('#queryInput');
+    editor.addEventListener('input', () => { if (this._mode === 'sql') this._acUpdate(false); });
+    editor.addEventListener('click', () => this._acHide());
+    editor.addEventListener('blur', () => this._acHide());
+    editor.addEventListener('scroll', () => this._acHide());
+    this.$('#sqlAc').addEventListener('mousedown', (e) => {   // mousedown, so the editor keeps focus
+      e.preventDefault();
+      const row = e.target.closest('[data-ac]');
+      if (row && this._ac) this._acAccept(Number(row.dataset.ac));
     });
     this.$('#sqlHistory').addEventListener('change', (e) => {
       if (e.target.value === '') return;
@@ -298,6 +313,7 @@ class StructraQuery extends StructraElement {
     // SQL has its own extras: example queries, the columns of the table, and earlier queries
     const sql = this._mode === 'sql';
     this.classList.toggle('is-sql', sql);
+    this._acHide();
     ['#sqlExamples', '#sqlSchema'].forEach((id) => { const el = this.$(id); if (el) el.hidden = !sql; });
     const run = this.$('#queryRun');
     if (run) run.innerHTML = sql ? 'Run query <kbd class="qp-kbd">Ctrl+Enter</kbd>' : 'Run query';
@@ -339,8 +355,91 @@ class StructraQuery extends StructraElement {
   }
 
   /** A column name as SQL wants it: quoted unless it is a plain lower-case word */
-  _sqlName(name) {
-    return /^[a-z_][a-z0-9_]*$/.test(name) ? name : '"' + String(name).replace(/"/g, '""') + '"';
+  _sqlName(name) { return Structra.sqlComplete.quoteName(name); }
+
+  /* ---- Suggestions in the SQL editor (the choosing is in core/sql-complete.js) ---- */
+
+  /** Work out what to suggest at the cursor and show it. force is true for Ctrl+Space. */
+  _acUpdate(force) {
+    const box = this.$('#queryInput');
+    const found = Structra.sqlComplete.suggest(box.value, box.selectionStart, { columns: this._sqlCols || [], force });
+    if (!found || box.selectionStart !== box.selectionEnd) { this._acHide(); return; }
+    this._ac = { ...found, index: 0 };
+    this._acDraw();
+  }
+
+  _acDraw() {
+    const list = this.$('#sqlAc');
+    const box = this.$('#queryInput');
+    const { items, index, word } = this._ac;
+    const esc = Structra.util.esc;
+    list.innerHTML = items.map((it, i) => {
+      const hit = word && it.label.toLowerCase().startsWith(word.toLowerCase()) ? word.length : 0;
+      const name = hit ? `<b>${esc(it.label.slice(0, hit))}</b>${esc(it.label.slice(hit))}` : esc(it.label);
+      return `<div class="qp-ac-item ${i === index ? 'is-selected' : ''}" role="option" id="sqlAc-${i}" aria-selected="${i === index}" data-ac="${i}">
+        <span class="qp-ac-name qp-ac-${it.kind}">${name}</span><span class="qp-ac-detail">${esc(it.detail)}</span></div>`;
+    }).join('');
+    list.hidden = false;
+    box.setAttribute('aria-expanded', 'true');
+    box.setAttribute('aria-activedescendant', 'sqlAc-' + index);
+    // Below the word being typed, kept inside the editor
+    const at = this._caretPoint(box, this._ac.from);
+    const room = this.$('.qp-editor').clientWidth - list.offsetWidth;
+    list.style.left = Math.max(0, Math.min(at.left, room)) + 'px';
+    list.style.top = at.top + 'px';
+  }
+
+  _acHide() {
+    this._ac = null;
+    const list = this.$('#sqlAc');
+    const box = this.$('#queryInput');
+    if (list) list.hidden = true;
+    if (box) { box.setAttribute('aria-expanded', 'false'); box.removeAttribute('aria-activedescendant'); }
+  }
+
+  /** Arrow keys choose, Enter or Tab accept, Escape closes, Ctrl+Space asks for suggestions */
+  _acKeydown(e) {
+    if (e.key === ' ' && e.ctrlKey) { e.preventDefault(); this._acUpdate(true); return; }
+    if (!this._ac) return;
+    const last = this._ac.items.length - 1;
+    if (e.key === 'ArrowDown') { e.preventDefault(); this._ac.index = this._ac.index >= last ? 0 : this._ac.index + 1; this._acDraw(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); this._ac.index = this._ac.index <= 0 ? last : this._ac.index - 1; this._acDraw(); }
+    else if ((e.key === 'Enter' || e.key === 'Tab') && !e.shiftKey) { e.preventDefault(); this._acAccept(this._ac.index); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this._acHide(); }   // closes the list, not the panel
+    else if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) this._acHide();
+  }
+
+  _acAccept(i) {
+    const box = this.$('#queryInput');
+    const pick = this._ac && this._ac.items[i];
+    if (!pick) return;
+    const { from, to } = this._ac;
+    box.value = box.value.slice(0, from) + pick.insert + box.value.slice(to);
+    box.selectionStart = box.selectionEnd = from + pick.insert.length;
+    this._acHide();
+    box.focus();
+  }
+
+  /** Where a character sits inside the editor, found by laying the same text out in a hidden copy of the box */
+  _caretPoint(box, index) {
+    const wrap = this.$('.qp-editor');
+    const cs = getComputedStyle(box);
+    const mirror = document.createElement('div');
+    ['fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'lineHeight', 'tabSize', 'paddingTop', 'paddingLeft', 'paddingRight', 'paddingBottom',
+      'borderTopWidth', 'borderLeftWidth', 'borderRightWidth', 'borderBottomWidth', 'boxSizing'].forEach((p) => { mirror.style[p] = cs[p]; });
+    mirror.style.cssText += ';position:absolute;visibility:hidden;white-space:pre;top:0;left:0;overflow:hidden;width:' + box.clientWidth + 'px';
+    mirror.textContent = box.value.slice(0, index);
+    const mark = document.createElement('span');
+    mark.textContent = '​';
+    mirror.appendChild(mark);
+    wrap.appendChild(mirror);
+    const lineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.4;
+    const point = {
+      left: mark.offsetLeft + parseFloat(cs.borderLeftWidth) - box.scrollLeft,
+      top: mark.offsetTop + parseFloat(cs.borderTopWidth) - box.scrollTop + lineHeight + 2,
+    };
+    wrap.removeChild(mirror);
+    return point;
   }
 
   /** Show the columns of the open file as a table named data, and offer queries written for those columns */
@@ -360,6 +459,7 @@ class StructraQuery extends StructraElement {
       if (await Structra.engine.enableSql()) cols = await Structra.engine.describeTable();
     } catch { cols = []; }
     if (token !== this._schemaToken) return;           // the file changed while this was loading
+    this._sqlCols = cols;                              // the editor suggests these names
     if (!cols.length) {
       box.innerHTML = '<div class="qp-summary">SQL is not available for this file. It needs a list of records or an object.</div>';
       examples.innerHTML = '';

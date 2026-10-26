@@ -11,7 +11,7 @@ Open a JSON, CSV, XML, YAML or TOML file and see what is inside it: its shape, i
 - **Overview**: a plain summary of the file: what it holds, key figures, findings to look at first and the biggest lists.
 - **Five views**: Tree, Table, Graph, Schema and Overview (`Ctrl+1` to `Ctrl+5`).
 - **Query and Transform**: search with a path, JSONPath, pattern, JavaScript or SQL; pick fields, sort, group and total.
-- **SQL mode**: the open file is a table named `data`, for example `SELECT region, COUNT(*) FROM data GROUP BY region`. It runs in your browser with DuckDB, only reads (it never changes your data), and shows a grid you can copy, download as CSV or open in a new tab. `Ctrl+Enter` runs, selecting text runs just that part, and earlier queries are kept.
+- **SQL mode**: the open file is a table named `data`, for example `SELECT region, COUNT(*) FROM data GROUP BY region`. It runs in your browser with DuckDB, only reads (it never changes your data), and shows a grid you can copy, download as CSV or open in a new tab. Column names, keywords and functions are suggested as you type (`Tab` or `Enter` picks one, `Ctrl+Space` asks for them). `Ctrl+Enter` runs, selecting text runs just that part, and earlier queries are kept.
 - **Filter, Find and Compare**: narrow the data, search inside it and diff two files.
 - **Power Platform tools**: click any value to get:
   - the Power Automate expression (null-safe at every step)
