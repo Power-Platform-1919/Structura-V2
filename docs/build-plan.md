@@ -105,7 +105,7 @@
   <structra-loading></structra-loading>
 
   <!-- Core -->
-  <script src="src/core/component-component-base.js"></script>
+  <script src="src/core/component-base.js"></script>
   <script src="src/core/app-state-and-events.js"></script>
   <script src="src/core/app-constants.js"></script>
 

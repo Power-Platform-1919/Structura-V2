@@ -137,7 +137,7 @@ JsonAnalyzerV2/
 
 **Phase 0: Foundation (Core)**
 1. `src/core/logger.js` - Centralized logging
-2. `src/core/component-component-base.js` - StructraComponent base class
+2. `src/core/component-base.js` - StructraComponent base class
 3. `src/core/app-state-and-events.js` - Global state + event bus
 4. `src/workers/json-parse-worker.js` - JSON parser worker
 5. `src/workers/xml-parse-worker.js` - XML parser worker
@@ -193,7 +193,7 @@ JsonAnalyzerV2/
 | File | Purpose | Key Export |
 |------|---------|-----------|
 | `src/core/logger.js` | Centralized logging system with dev/normal/off modes | `Structra.log` methods |
-| `src/core/component-component-base.js` | Base class for all Web Components (~30 lines) | `StructraComponent` class |
+| `src/core/component-base.js` | Base class for all Web Components (~30 lines) | `StructraComponent` class |
 | `src/core/app-state-and-events.js` | Global state management + event bus | `Structra.events`, `Structra.state` |
 | `src/core/app-constants.js` | App configuration, shortcuts, view/rail definitions | `Structra.constants` |
 | `src/core/worker-pool.js` | Generic worker pool for offloading heavy parsing | `Structra.createWorkerPool()` |
