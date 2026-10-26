@@ -154,6 +154,7 @@ class StructraExpressions extends StructraElement {
     const picker = this._tab === 'automate' ? '' : this._columnPicker(value);
     if (this._tab === 'flow') {
       this._fill('flow', picker + this._blocks(() => Structra.expressions.flowActions(this._path, value)));
+      this.querySelectorAll('[data-pane="flow"] .expr-block pre').forEach((pre) => Structra.codeView.colorize(pre, pre.textContent, 'json'));
       return;
     }
     this._fill(this._tab, picker + this._sections(() => [{ rows: make(this._path, value) }]));

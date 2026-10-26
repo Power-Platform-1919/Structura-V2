@@ -701,6 +701,7 @@ class StructraInputPanel extends StructraElement {
       html += `<button class="io-api-add-row" data-copy="all" type="button">Copy Full Decoded Token</button>`;
 
       claimsEl.innerHTML = html;
+      claimsEl.querySelectorAll('pre[data-colorize]').forEach((pre) => Structra.codeView.colorize(pre, pre.textContent, pre.dataset.colorize));
       claimsEl.querySelector('[data-action="close-jwt"]').addEventListener('click', () => { claimsEl.innerHTML = ''; });
       claimsEl.querySelectorAll('[data-copy]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -723,7 +724,7 @@ class StructraInputPanel extends StructraElement {
   _jwtSection(label, obj, copyKey) {
     return `<div class="io-jwt-section">
       <div class="io-jwt-section-header"><span class="io-jwt-label">${label}</span><button class="io-jwt-copy" data-copy="${copyKey}" type="button">Copy</button></div>
-      <pre class="io-jwt-json">${Structra.util.esc(JSON.stringify(obj, null, 2))}</pre>
+      <pre class="io-jwt-json" data-colorize="json">${Structra.util.esc(JSON.stringify(obj, null, 2))}</pre>
     </div>`;
   }
 

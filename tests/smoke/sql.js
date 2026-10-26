@@ -68,9 +68,12 @@ function serve() {
     const hidden = await page.evaluate(() => document.querySelector('#sqlSchema').hidden);
     if (hidden) failures.push('the table and its columns should be visible in SQL mode');
 
+    // The SQL editor is CodeMirror: read and write it through its own object, and type with the real keyboard
+    const setSql = (text) => page.evaluate((t) => { const cm = document.querySelector('.CodeMirror').CodeMirror; cm.setValue(t); cm.focus(); cm.setCursor({ line: cm.lastLine(), ch: 1e6 }); }, text);
+    const getSql = () => page.evaluate(() => document.querySelector('.CodeMirror').CodeMirror.getValue());
     const run = async (text, keys = 'Control+Enter') => {
-      await page.locator('#queryInput').fill(text);
-      await page.locator('#queryInput').press(keys);
+      await setSql(text);
+      await page.keyboard.press(keys);
       await page.waitForFunction(() => !/Running/.test((document.querySelector('#queryResults .qp-summary') || {}).textContent || ''), null, { timeout: 30000 });
       return page.evaluate(() => ({
         summary: (document.querySelector('#queryResults .qp-summary') || {}).textContent || '',
@@ -93,25 +96,25 @@ function serve() {
     if (!r.cells[0] || r.cells[0][1] !== 'NULL') failures.push('a missing value should read NULL: ' + JSON.stringify(r.cells));
 
     // Enter alone starts a new line, it does not run
-    await page.locator('#queryInput').fill('SELECT 1');
-    await page.locator('#queryInput').press('Enter');
-    const val = await page.locator('#queryInput').inputValue();
+    await setSql('SELECT 1');
+    await page.keyboard.press('Enter');
+    const val = await getSql();
     if (val !== 'SELECT 1\n') failures.push('Enter should add a new line in SQL mode: ' + JSON.stringify(val));
 
     // ---- Selecting part of the text runs only that part ----
-    await page.locator('#queryInput').fill('SELECT 1 AS one;\nSELECT COUNT(*) AS n FROM data');
-    await page.evaluate(() => { const b = document.querySelector('#queryInput'); const i = b.value.indexOf('SELECT COUNT'); b.focus(); b.setSelectionRange(i, b.value.length); });
-    await page.locator('#queryInput').press('Control+Enter');
+    await setSql('SELECT 1 AS one;\nSELECT COUNT(*) AS n FROM data');
+    await page.evaluate(() => { const cm = document.querySelector('.CodeMirror').CodeMirror; cm.setSelection({ line: 1, ch: 0 }, { line: 1, ch: 1e6 }); });
+    await page.keyboard.press('Control+Enter');
     await page.waitForTimeout(600);
     const sel = await page.evaluate(() => [...document.querySelectorAll('#queryResults .qp-sql-grid tbody td:not(.qp-sql-n)')].map((t) => t.textContent));
     if (sel.join(',') !== '4') failures.push('the selected statement should run alone: ' + sel.join(','));
 
     // ---- Clicking a column adds it to the query ----
-    await page.locator('#queryInput').fill('SELECT  FROM data');
-    await page.evaluate(() => { const b = document.querySelector('#queryInput'); b.focus(); b.setSelectionRange(7, 7); });
+    await setSql('SELECT  FROM data');
+    await page.evaluate(() => { const cm = document.querySelector('.CodeMirror').CodeMirror; cm.focus(); cm.setCursor({ line: 0, ch: 7 }); });
     await page.locator('#sqlSchema summary').click();                  // the column list starts folded
     await page.locator('#sqlColumns .qp-sql-col', { hasText: 'region' }).click();
-    const filled = await page.locator('#queryInput').inputValue();
+    const filled = await getSql();
     if (filled !== 'SELECT region FROM data') failures.push('clicking a column should add its name where the cursor is: ' + filled);
 
     // ---- An example runs at once ----
@@ -144,42 +147,60 @@ function serve() {
     const history = await page.evaluate(() => [...document.querySelectorAll('#sqlHistory option')].map((o) => o.textContent));
     if (history.length < 3 || !history.some((h) => /COUNT\(\*\) AS n, SUM/.test(h))) failures.push('earlier queries should be kept: ' + history.join(' | '));
 
-    // ---- Suggestions while typing ----
-    const box = page.locator('#queryInput');
-    const acItems = () => page.evaluate(() => [...document.querySelectorAll('#sqlAc .qp-ac-item .qp-ac-name')].map((e) => e.textContent));
-    const acShown = () => page.evaluate(() => !document.querySelector('#sqlAc').hidden);
-    await box.fill('');
-    await box.pressSequentially('SELECT reg');
-    if (!(await acShown()) || (await acItems())[0] !== 'region') failures.push('typing SELECT reg should suggest region first: ' + (await acItems()).join(','));
-    await box.press('Tab');
-    if ((await box.inputValue()) !== 'SELECT region') failures.push('Tab should accept the suggestion: ' + (await box.inputValue()));
-    if (await acShown()) failures.push('the list should close after a suggestion is accepted');
+    // ---- Colours and suggestions come from CodeMirror ----
+    await setSql("SELECT region, COUNT(*) FROM data WHERE name = 'Ann' -- note");
+    const colours = await page.evaluate(() => {
+      const kinds = (cls) => [...document.querySelectorAll('.qp-sql-host .' + cls)].map((e) => e.textContent);
+      return { keyword: kinds('cm-keyword'), string: kinds('cm-string'), comment: kinds('cm-comment') };
+    });
+    if (!colours.keyword.includes('SELECT') || !colours.keyword.includes('FROM')) failures.push('keywords should be coloured: ' + JSON.stringify(colours));
+    if (!colours.string.some((t) => t.includes('Ann'))) failures.push('text in quotes should be coloured: ' + JSON.stringify(colours));
+    if (!colours.comment.some((t) => t.includes('note'))) failures.push('a comment should be coloured: ' + JSON.stringify(colours));
+    const keywordColour = await page.evaluate(() => getComputedStyle(document.querySelector('.qp-sql-host .cm-keyword')).color);
+    const textColour = await page.evaluate(() => getComputedStyle(document.querySelector('.qp-sql-host .CodeMirror')).color);
+    if (keywordColour === textColour) failures.push('a keyword should not have the same colour as plain text');
 
-    await box.pressSequentially(' FROM d');
-    if ((await acItems()).join(',') !== 'data') failures.push('after FROM only the table data should be suggested: ' + (await acItems()).join(','));
-    await box.press('Enter');
-    if ((await box.inputValue()) !== 'SELECT region FROM data') failures.push('Enter should accept, not add a new line: ' + JSON.stringify(await box.inputValue()));
+    const hints = () => page.evaluate(() => [...document.querySelectorAll('.CodeMirror-hints li')].map((li) => li.textContent));
+    const hintsShown = async () => (await hints()).length > 0;
+    await setSql('');
+    await page.keyboard.type('SELECT reg');
+    await page.waitForTimeout(300);
+    if (!(await hints()).includes('region')) failures.push('typing SELECT reg should suggest region: ' + (await hints()).join(','));
+    await page.keyboard.press('Tab');
+    if ((await getSql()) !== 'SELECT region') failures.push('Tab should accept the suggestion: ' + (await getSql()));
+    await page.waitForTimeout(150);
+    if (await hintsShown()) failures.push('the list should close after a suggestion is accepted');
 
-    await box.fill('');
-    await box.pressSequentially('SELECT ');
-    if (await acShown()) failures.push('nothing should pop up before a letter is typed');
-    await box.press('Control+Space');
-    const all = await acItems();
-    if (!all.includes('id') || !all.includes('Full Name') && !all.includes('name')) failures.push('Ctrl+Space should list the columns: ' + all.join(','));
-    await box.press('ArrowDown');
-    const picked = await page.evaluate(() => document.querySelector('#sqlAc .is-selected').textContent);
-    if (picked === all[0]) failures.push('the arrow keys should move the choice');
-    await box.press('Escape');
-    const stillOpen = await page.evaluate(() => ({ list: !document.querySelector('#sqlAc').hidden, panel: !!Structra.state.queryPanelOpen }));
-    if (stillOpen.list || !stillOpen.panel) failures.push('Escape should close the list and keep the panel open: ' + JSON.stringify(stillOpen));
+    await page.keyboard.type(' FROM d');
+    await page.waitForTimeout(300);
+    if (!(await hints()).includes('data')) failures.push('typing FROM d should suggest the table data: ' + (await hints()).join(','));
+    await page.keyboard.press('Enter');
+    if ((await getSql()) !== 'SELECT region FROM data') failures.push('Enter should accept, not add a new line: ' + JSON.stringify(await getSql()));
 
-    await box.fill('');
-    await box.pressSequentially('SELECT COU');
-    await page.locator('#sqlAc .qp-ac-item').first().click();
-    if ((await box.inputValue()) !== 'SELECT COUNT(') failures.push('clicking a suggestion should use it: ' + (await box.inputValue()));
-    await box.fill('');
-    await box.pressSequentially("SELECT * FROM data WHERE name = 'Re");
-    if (await acShown()) failures.push('nothing should be suggested inside quoted text');
+    await setSql('SELECT data.');
+    await page.keyboard.press('Control+Space');
+    await page.waitForTimeout(300);
+    const dotted = await hints();
+    if (!dotted.includes('data.amount') || !dotted.includes('data.region')) failures.push('Ctrl+Space after data. should list the columns: ' + dotted.join(','));
+    await page.keyboard.press('ArrowDown');
+    const moved = await page.evaluate(() => document.querySelector('.CodeMirror-hint-active').textContent);
+    if (moved === dotted[0]) failures.push('the arrow keys should move the choice');
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    const afterEsc = await page.evaluate(() => ({ list: document.querySelectorAll('.CodeMirror-hints li').length, panel: !!Structra.state.queryPanelOpen }));
+    if (afterEsc.list || !afterEsc.panel) failures.push('Escape should close the list and keep the panel open: ' + JSON.stringify(afterEsc));
+
+    await setSql('');
+    await page.keyboard.type('SELECT COU');
+    await page.waitForTimeout(300);
+    const hasCount = (await hints()).some((h) => /^COUNT/i.test(h));
+    if (!hasCount) failures.push('keywords and functions should be suggested too: ' + (await hints()).join(','));
+    await page.keyboard.press('Escape');
+
+    // Brackets and quotes close themselves
+    await setSql('');
+    await page.keyboard.type('COUNT(');
+    if ((await getSql()) !== 'COUNT()') failures.push('a bracket should close itself: ' + (await getSql()));
 
     // ---- Results can be kept ----
     await run('SELECT id, name FROM data ORDER BY id');

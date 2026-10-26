@@ -102,7 +102,7 @@ class StructraSchemaGen extends StructraElement {
       const schema = this._allItems ? Structra.schemaGen.smart(data, opts) : Structra.schemaGen.basic(data, opts);
       const text = JSON.stringify(schema, null, 2);
       out.dataset.schema = text;
-      out.textContent = text;
+      Structra.codeView.colorize(out, text, 'json');
     } catch (err) {
       Structra.log.error('SchemaGen', 'Schema generation failed', err);
       out.dataset.schema = '';

@@ -72,8 +72,8 @@ class StructraQuery extends StructraElement {
         </div>
         <div class="qp-sql-examples" id="sqlExamples" hidden></div>
         <div class="qp-editor">
-          <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder="" aria-autocomplete="list" aria-controls="sqlAc" aria-expanded="false"></textarea>
-          <div class="qp-ac" id="sqlAc" role="listbox" aria-label="Suggestions" hidden></div>
+          <textarea class="qp-input" id="queryInput" spellcheck="false" placeholder=""></textarea>
+          <div class="qp-sql-host" id="sqlHost" hidden></div>
         </div>
         <div class="qp-hint" id="queryHint"></div>
         <div class="qp-run-row">
@@ -129,7 +129,7 @@ class StructraQuery extends StructraElement {
       }
       const example = e.target.closest('[data-sql-example]');
       if (example) {                                    // a ready-made query runs at once
-        this.$('#queryInput').value = example.dataset.sqlExample;
+        this._sqlSet(example.dataset.sqlExample);
         this._runQuery();
         return;
       }
@@ -156,33 +156,17 @@ class StructraQuery extends StructraElement {
       else if (action.dataset.action === 'copyTransform') Structra.util.copy(JSON.stringify(this._lastTransform, null, 2), 'Result copied');
     });
 
+    // The other modes use this plain box: Enter runs, Shift+Enter starts a new line (SQL has its own editor)
     this.$('#queryInput').addEventListener('keydown', (e) => {
-      if (this._mode === 'sql') {                        // SQL is written over several lines: Ctrl+Enter runs, Enter starts a new line
-        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this._acHide(); this._runQuery(); return; }
-        this._acKeydown(e);
-        return;
-      }
-      if (e.key === 'Enter' && !e.shiftKey) {            // Enter runs, Shift+Enter starts a new line
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         this._runQuery();
       }
     });
-    // Suggestions while typing SQL: columns, keywords and functions
-    const editor = this.$('#queryInput');
-    editor.addEventListener('input', () => { if (this._mode === 'sql') this._acUpdate(false); });
-    editor.addEventListener('click', () => this._acHide());
-    editor.addEventListener('blur', () => this._acHide());
-    editor.addEventListener('scroll', () => this._acHide());
-    this.$('#sqlAc').addEventListener('mousedown', (e) => {   // mousedown, so the editor keeps focus
-      e.preventDefault();
-      const row = e.target.closest('[data-ac]');
-      if (row && this._ac) this._acAccept(Number(row.dataset.ac));
-    });
     this.$('#sqlHistory').addEventListener('change', (e) => {
       if (e.target.value === '') return;
-      this.$('#queryInput').value = this._sqlHistory()[Number(e.target.value)] || '';
+      this._sqlSet(this._sqlHistory()[Number(e.target.value)] || '');
       e.target.value = '';
-      this.$('#queryInput').focus();
     });
     // A different file has different columns
     const reloadSchema = () => { if (this._mode === 'sql' && this.classList.contains('show')) this._loadSqlSchema(); };
@@ -293,11 +277,12 @@ class StructraQuery extends StructraElement {
       const truncated = lines.length > 50 ? lines.slice(0, 50).join('\n') + '\n…' : preview;
       const kind = Array.isArray(output) ? output.length + (output.length === 1 ? ' item' : ' items') : (output && typeof output === 'object' ? 'an object' : typeof output);
       results.innerHTML = `<div class="qp-summary">Result: ${kind}</div>
-        <pre class="qp-transform-output">${Structra.util.esc(truncated)}</pre>
+        <pre class="qp-transform-output"></pre>
         <div class="qp-actions">
           <button class="btn btn-sm" type="button" data-action="openTransform">Open result in a new tab</button>
           <button class="btn btn-sm btn-ghost" type="button" data-action="copyTransform">Copy</button>
         </div>`;
+      Structra.codeView.colorize(results.querySelector('.qp-transform-output'), truncated, 'json');
     } catch (err) {
       results.innerHTML = `<div class="qp-summary is-error">${Structra.util.esc(err.message)}</div>`;
     }
@@ -313,13 +298,19 @@ class StructraQuery extends StructraElement {
     // SQL has its own extras: example queries, the columns of the table, and earlier queries
     const sql = this._mode === 'sql';
     this.classList.toggle('is-sql', sql);
-    this._acHide();
+    this.$('#sqlHost').hidden = !sql;                  // SQL has its own editor; the other modes use the plain box
+    if (input) input.hidden = sql;
     ['#sqlExamples', '#sqlSchema'].forEach((id) => { const el = this.$(id); if (el) el.hidden = !sql; });
     const run = this.$('#queryRun');
     if (run) run.innerHTML = sql ? 'Run query <kbd class="qp-kbd">Ctrl+Enter</kbd>' : 'Run query';
-    if (input) { input.rows = sql ? 8 : 3; input.classList.toggle('is-sql', sql); }
     this._renderSqlHistory();
-    if (sql) this._loadSqlSchema();
+    if (sql) {
+      this._sqlEditor().then((box) => {
+        if (!box) { this.$('#queryResults').innerHTML = '<div class="qp-summary is-error">The SQL editor could not load. Check your connection and try again.</div>'; return; }
+        box.refresh();                                 // it was hidden while it was built
+        this._loadSqlSchema();
+      });
+    }
   }
 
   /* ======== SQL ======== */
@@ -345,101 +336,45 @@ class StructraQuery extends StructraElement {
     }).join('');
   }
 
+  /* ---- The SQL editor ----
+     The box itself (colours, brackets, suggestions) comes from Structra.codeView (core/code-view.js).
+     It loads the first time SQL mode is opened. The plain text box above it is used by the other modes. */
+
+  /** The editor, created on first use. Resolves to it, or null when it could not load. */
+  _sqlEditor() {
+    if (this._boxPromise) return this._boxPromise;
+    this._boxPromise = Structra.codeView.create(this.$('#sqlHost'), {
+      mode: 'sql',
+      lineNumbers: false,
+      growsWithText: true,
+      placeholder: 'Example: ' + StructraQuery.MODE_HELP.sql.example,
+      label: 'SQL query',
+      sql: { columns: () => (this._sqlCols || []).map((c) => c.name) },
+      extraKeys: { 'Ctrl-Enter': () => this._runQuery(), 'Cmd-Enter': () => this._runQuery() },
+    }).then((box) => { this._box = box; return box; })
+      .catch(() => { this._boxPromise = null; return null; });
+    return this._boxPromise;
+  }
+
+  _sqlGet() {
+    return this._box ? this._box.getValue() : '';
+  }
+
+  _sqlSet(text) {
+    if (!this._box) return;
+    this._box.setValue(text);
+    this._box.focus();
+    this._box.cm.setCursor(this._box.cm.lineCount(), 0);
+  }
+
   /** Put text where the cursor is (or over the selection), like a SQL tool does when you click a column name */
   _insertAtCursor(text) {
-    const box = this.$('#queryInput');
-    const from = box.selectionStart, to = box.selectionEnd;
-    box.value = box.value.slice(0, from) + text + box.value.slice(to);
-    box.focus();
-    box.selectionStart = box.selectionEnd = from + text.length;
+    if (this._box) this._box.insertAtCursor(text);
   }
 
   /** A column name as SQL wants it: quoted unless it is a plain lower-case word */
-  _sqlName(name) { return Structra.sqlComplete.quoteName(name); }
-
-  /* ---- Suggestions in the SQL editor (the choosing is in core/sql-complete.js) ---- */
-
-  /** Work out what to suggest at the cursor and show it. force is true for Ctrl+Space. */
-  _acUpdate(force) {
-    const box = this.$('#queryInput');
-    const found = Structra.sqlComplete.suggest(box.value, box.selectionStart, { columns: this._sqlCols || [], force });
-    if (!found || box.selectionStart !== box.selectionEnd) { this._acHide(); return; }
-    this._ac = { ...found, index: 0 };
-    this._acDraw();
-  }
-
-  _acDraw() {
-    const list = this.$('#sqlAc');
-    const box = this.$('#queryInput');
-    const { items, index, word } = this._ac;
-    const esc = Structra.util.esc;
-    list.innerHTML = items.map((it, i) => {
-      const hit = word && it.label.toLowerCase().startsWith(word.toLowerCase()) ? word.length : 0;
-      const name = hit ? `<b>${esc(it.label.slice(0, hit))}</b>${esc(it.label.slice(hit))}` : esc(it.label);
-      return `<div class="qp-ac-item ${i === index ? 'is-selected' : ''}" role="option" id="sqlAc-${i}" aria-selected="${i === index}" data-ac="${i}">
-        <span class="qp-ac-name qp-ac-${it.kind}">${name}</span><span class="qp-ac-detail">${esc(it.detail)}</span></div>`;
-    }).join('');
-    list.hidden = false;
-    box.setAttribute('aria-expanded', 'true');
-    box.setAttribute('aria-activedescendant', 'sqlAc-' + index);
-    // Below the word being typed, kept inside the editor
-    const at = this._caretPoint(box, this._ac.from);
-    const room = this.$('.qp-editor').clientWidth - list.offsetWidth;
-    list.style.left = Math.max(0, Math.min(at.left, room)) + 'px';
-    list.style.top = at.top + 'px';
-  }
-
-  _acHide() {
-    this._ac = null;
-    const list = this.$('#sqlAc');
-    const box = this.$('#queryInput');
-    if (list) list.hidden = true;
-    if (box) { box.setAttribute('aria-expanded', 'false'); box.removeAttribute('aria-activedescendant'); }
-  }
-
-  /** Arrow keys choose, Enter or Tab accept, Escape closes, Ctrl+Space asks for suggestions */
-  _acKeydown(e) {
-    if (e.key === ' ' && e.ctrlKey) { e.preventDefault(); this._acUpdate(true); return; }
-    if (!this._ac) return;
-    const last = this._ac.items.length - 1;
-    if (e.key === 'ArrowDown') { e.preventDefault(); this._ac.index = this._ac.index >= last ? 0 : this._ac.index + 1; this._acDraw(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); this._ac.index = this._ac.index <= 0 ? last : this._ac.index - 1; this._acDraw(); }
-    else if ((e.key === 'Enter' || e.key === 'Tab') && !e.shiftKey) { e.preventDefault(); this._acAccept(this._ac.index); }
-    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); this._acHide(); }   // closes the list, not the panel
-    else if (['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) this._acHide();
-  }
-
-  _acAccept(i) {
-    const box = this.$('#queryInput');
-    const pick = this._ac && this._ac.items[i];
-    if (!pick) return;
-    const { from, to } = this._ac;
-    box.value = box.value.slice(0, from) + pick.insert + box.value.slice(to);
-    box.selectionStart = box.selectionEnd = from + pick.insert.length;
-    this._acHide();
-    box.focus();
-  }
-
-  /** Where a character sits inside the editor, found by laying the same text out in a hidden copy of the box */
-  _caretPoint(box, index) {
-    const wrap = this.$('.qp-editor');
-    const cs = getComputedStyle(box);
-    const mirror = document.createElement('div');
-    ['fontFamily', 'fontSize', 'fontWeight', 'letterSpacing', 'lineHeight', 'tabSize', 'paddingTop', 'paddingLeft', 'paddingRight', 'paddingBottom',
-      'borderTopWidth', 'borderLeftWidth', 'borderRightWidth', 'borderBottomWidth', 'boxSizing'].forEach((p) => { mirror.style[p] = cs[p]; });
-    mirror.style.cssText += ';position:absolute;visibility:hidden;white-space:pre;top:0;left:0;overflow:hidden;width:' + box.clientWidth + 'px';
-    mirror.textContent = box.value.slice(0, index);
-    const mark = document.createElement('span');
-    mark.textContent = '​';
-    mirror.appendChild(mark);
-    wrap.appendChild(mirror);
-    const lineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.4;
-    const point = {
-      left: mark.offsetLeft + parseFloat(cs.borderLeftWidth) - box.scrollLeft,
-      top: mark.offsetTop + parseFloat(cs.borderTopWidth) - box.scrollTop + lineHeight + 2,
-    };
-    wrap.removeChild(mirror);
-    return point;
+  _sqlName(name) {
+    return /^[a-z_][a-z0-9_]*$/.test(name) ? name : '"' + String(name).replace(/"/g, '""') + '"';
   }
 
   /** Show the columns of the open file as a table named data, and offer queries written for those columns */
@@ -497,9 +432,8 @@ class StructraQuery extends StructraElement {
 
   /** The text to run: the selected part if there is one, like a SQL tool, otherwise everything */
   _sqlText() {
-    const box = this.$('#queryInput');
-    const selected = box.value.slice(box.selectionStart, box.selectionEnd).trim();
-    return selected || box.value.trim();
+    if (!this._box) return '';
+    return this._box.getSelection().trim() || this._box.getValue().trim();
   }
 
   /** The engine's messages, in plainer words */
@@ -523,7 +457,7 @@ class StructraQuery extends StructraElement {
       results.innerHTML = `<div class="qp-summary is-error">${Structra.util.esc(this._sqlError(result.error))}</div>`;
       return;
     }
-    this._rememberSql(this.$('#queryInput').value.trim());
+    this._rememberSql(this._sqlGet().trim());
     this._lastSql = result;
     this._renderSqlResult(result);
     this._loadSqlSchemaIfStale();

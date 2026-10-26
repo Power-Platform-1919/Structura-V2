@@ -22,7 +22,7 @@ main('02-layout', async ({ browser, base, rep }) => {
       const r = await page.evaluate(() => {
         const U = window.__ui;
         const out = { overflowX: document.documentElement.scrollWidth - innerWidth, offscreen: [], tiny: [], clipped: [], canvas: null };
-        const interactive = [...document.querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="tab"]')].filter((e) => U.visible(e) && !e.closest('.ov:not(.show), .io-overlay:not(.show), [hidden]'));
+        const interactive = [...document.querySelectorAll('button, a[href], input, select, textarea, [role="button"], [role="tab"]')].filter((e) => U.visible(e) && !e.closest('.ov:not(.show), .io-overlay:not(.show), [hidden]') && !e.matches('.CodeMirror textarea'));   // CodeMirror's hidden typing helper is not a control to tap
         for (const e of interactive) {
           const b = e.getBoundingClientRect();
           // A control inside a row that scrolls sideways is reachable, not cut off

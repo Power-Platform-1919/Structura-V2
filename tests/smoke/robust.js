@@ -104,13 +104,13 @@ function serve() {
     await page.waitForTimeout(500);
     await page.evaluate(() => Structra.set('activeView', 'editor'));
     await page.waitForTimeout(500);
-    await page.locator('#editorArea').fill('{"keep": "TYPED, not applied"}');
+    await page.evaluate(() => { document.querySelector('structra-editor .CodeMirror').CodeMirror.setValue('{"keep": "TYPED, not applied"}'); });
     await page.waitForTimeout(300);
     await page.evaluate((id) => document.querySelector('structra-tabs')._switchTab(id), ids[1]);
     await page.waitForTimeout(700);
     await page.evaluate((id) => document.querySelector('structra-tabs')._switchTab(id), ids[0]);
     await page.waitForTimeout(700);
-    if (!/TYPED, not applied/.test(await page.evaluate(() => document.querySelector('#editorArea').value))) failures.push('text typed in the Editor was lost when switching tabs');
+    if (!/TYPED, not applied/.test(await page.evaluate(() => document.querySelector('structra-editor .CodeMirror').CodeMirror.getValue()))) failures.push('text typed in the Editor was lost when switching tabs');
     if (!(await page.evaluate(() => Structra.tabs.list.find((t) => t.id === Structra.tabs.activeId).draft))) failures.push('a tab with typed, unapplied text should show a dot');
     await page.locator('structra-editor [data-action="apply"]').click();
     await page.waitForTimeout(500);

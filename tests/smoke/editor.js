@@ -58,37 +58,36 @@ function serve() {
     // ---- Line numbers ----
     // Only the numbers in view are drawn: the first is 1 at the top, and scrolling to the end reaches the last line
     const g = await page.evaluate(async () => {
-      const ta = document.querySelector('#editorArea');
-      const gut = document.querySelector('#edGutter');
-      const numbers = () => gut.textContent.trim().split(/\n/);
+      const cm = document.querySelector('structra-editor .CodeMirror').CodeMirror;
+      const numbers = () => [...document.querySelectorAll('structra-editor .CodeMirror-gutter-wrapper .CodeMirror-linenumber')].map((e) => e.textContent.trim()).filter(Boolean);
       const first = numbers()[0];
       const drawn = numbers().length;
-      ta.scrollTop = ta.scrollHeight;
-      ta.dispatchEvent(new Event('scroll'));
+      cm.scrollTo(0, 1e9);
       await new Promise((r) => setTimeout(r, 200));
-      return { lines: ta.value.split(/\n/).length, first, drawn, last: numbers().pop(), st: ta.scrollTop, sh: ta.scrollHeight, ch: ta.clientHeight };
+      return { lines: cm.lineCount(), first, drawn, last: numbers().pop() };
     });
     if (g.first !== '1' || Number(g.last) !== g.lines || g.drawn >= g.lines && g.lines > 200) failures.push(`the gutter should draw only the numbers in view, starting at 1 and reaching ${g.lines} at the end: ${JSON.stringify(g)}`);
+    const setEditorText = (text) => page.evaluate((t) => { document.querySelector('structra-editor .CodeMirror').CodeMirror.setValue(t); }, text);
 
     // ---- An error says what and where, and a click goes there ----
-    await page.locator('#editorArea').evaluate((ta) => { ta.value = '{\n  "a": 1,\n  "b": [1, 2,\n  "c": 3\n}'; ta.dispatchEvent(new Event('input')); });
-    await page.waitForTimeout(500);
+    await setEditorText('{\n  "a": 1,\n  "b": [1, 2,\n  "c": 3\n}');
+    await page.waitForTimeout(700);
     const st = await page.evaluate(() => ({ text: document.querySelector('#edStatus').textContent.trim(), disabled: document.querySelector('#edStatus').disabled }));
     if (!/Line \d+, column \d+/.test(st.text)) failures.push('the error should say which line and column: "' + st.text + '"');
     if (/^Invalid$/.test(st.text)) failures.push('the error only says Invalid');
+    if (!(await page.evaluate(() => !!document.querySelector('structra-editor .cv-error')))) failures.push('the place where the JSON breaks should be marked in the text');
     await page.locator('#edStatus').click();
-    const sel = await page.evaluate(() => ({ start: document.querySelector('#editorArea').selectionStart, line: document.querySelector('#editorArea').value.slice(0, document.querySelector('#editorArea').selectionStart).split('\n').length }));
-    if (!(sel.line >= 3 && sel.line <= 5)) failures.push('clicking the error should select near the problem (line 3 to 5), it selected line ' + sel.line);
+    const sel = await page.evaluate(() => { const cm = document.querySelector('structra-editor .CodeMirror').CodeMirror; return { line: cm.getCursor('from').line + 1, text: cm.getSelection() }; });
+    if (!(sel.line >= 3 && sel.line <= 5) || sel.text.length !== 1) failures.push('clicking the error should select the character at the problem (line 3 to 5), it selected ' + JSON.stringify(sel));
 
     // ---- Apply refuses invalid text and says why ----
-    await page.locator('#editorArea').evaluate(() => 0);
     await page.locator('structra-editor [data-action="apply"]').click();
     await page.waitForTimeout(300);
     if (!/cannot be applied/.test(await toasts())) failures.push('Apply on invalid JSON should say the changes cannot be applied: ' + (await toasts()));
 
     // ---- Apply a good change: the tab is marked, and undo brings the original back ----
-    await page.locator('#editorArea').evaluate((ta) => { ta.value = '{"edited": true, "n": [1, 2, 3]}'; ta.dispatchEvent(new Event('input')); });
-    await page.waitForTimeout(300);
+    await setEditorText('{"edited": true, "n": [1, 2, 3]}');
+    await page.waitForTimeout(500);
     await page.locator('structra-editor [data-action="apply"]').click();
     await page.waitForTimeout(800);
     const applied = await page.evaluate(() => ({ data: JSON.stringify(Structra.state.jsonData), modified: document.querySelector('.doc-tab.active').classList.contains('modified') }));

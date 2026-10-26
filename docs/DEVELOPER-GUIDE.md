@@ -77,14 +77,40 @@ Add the key and action name to the shortcut map in `core/constants.js`, then han
 **Show a message**
 `Structra.toast('Plain words', 'warning')`. Types are `info` (default), `warning` and `error`. Write for people who do not know the code: say what happened and what to do next.
 
-## 6. Writing style for text people see
+## 6. Code boxes
+
+Every box that shows or edits code (the SQL editor, the JSON editor, generated code, schemas, snippets) comes from one file, `src/core/code-view.js` (`Structra.codeView`). It is the only file that knows which editor library is behind them (CodeMirror 5 in `src/libs/codemirror`), so changing the library later means changing that file.
+
+```js
+// An editable box (SQL, JSON, ...). The host element needs a definite height; only the visible lines are drawn.
+const box = await Structra.codeView.create(host, { mode: 'json', value: text, label: 'JSON text' });
+box.getValue(); box.setValue(text); box.onChange(fn); box.markError(offset); box.gotoOffset(offset, { select: true });
+
+// Colour text that is already on the page, with no editor (generated code, a schema, a snippet)
+Structra.codeView.colorize(preElement, text, 'typescript');
+```
+
+Languages: `sql json javascript typescript xml yaml toml python csharp java go rust powerfx powerautomate text`. Each loads its file the first time it is used (`src/core/libs.js` lists them). Power Fx and Power Automate expressions are small modes written in `code-view.js`, because CodeMirror has none.
+
+Rules that keep large documents fast (all measured with `node tests/perf/codeview.js <file>` and `node tests/perf/editor-large.js <file>`):
+- **Give the box a fixed height.** `growsWithText` draws every line, so use it only for a short query box. A box without it draws only the visible lines, whatever the text length.
+- **JSON uses our own line-by-line mode** (`jsonline`). CodeMirror's JSON mode remembers a state from line to line, so colouring line 900,000 means colouring the 899,999 before it. JSON strings never cross a line break, so each line can be coloured alone.
+- **Folding is left off above 1.5 MB**, because finding where each `{` ends would scan most of the document. The undo history is shortened above 4 MB.
+- **Do not read the whole text on every keystroke** (`getValue()` copies it). The Editor view checks the text after a pause that grows with its size.
+- **One very long line cannot be shown smoothly.** Minify refuses to make a line over 2 MB.
+
+Colours are in `src/css/codeview.css` and use the theme's syntax colours. CodeMirror's own stylesheet loads later and sets light-theme colours, so the rules there start with `.CodeMirror` to win. If you add a language token colour, check it in the dark themes (`npm run ui:themes`).
+
+Measured on this machine (Edge): a 37 MB file (49 MB of text, 2.2 million lines) opens in the Editor in about 3 seconds and a keystroke takes about 15 ms; an 88 MB file (134 MB of text, 6.9 million lines) opens in about 16 seconds, with keystrokes at about 50 ms and about 1.5 GB of memory. The Editor view opens files up to 100 MB (`MAX_EDIT_BYTES` in `structra-editor.js`).
+
+## 7. Writing style for text people see
 
 - Short, plain words. No jargon: say "list" and "value", not "array" and "payload", where you can.
 - Say what happened and what to do next.
 - No em dashes. Use a full stop, a colon or a comma.
 - Buttons and titles use sentence case ("Open a file").
 
-## 7. Running and testing
+## 8. Running and testing
 
 ```bash
 npm install
@@ -98,6 +124,6 @@ npm run ui:audit         # UI audit across all themes and screen sizes
 - Set `PW_CHANNEL=msedge` to use installed Edge instead of downloading Chromium.
 - When you change text that a test checks, update the test in the same change.
 
-## 8. Branches and deployment
+## 9. Branches and deployment
 
 `dev` then `test` then `prod`. Pushing `prod` deploys GitHub Pages and resets `main` to match it. See the README.

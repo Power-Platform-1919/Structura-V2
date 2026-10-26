@@ -1,6 +1,17 @@
 /* ============================================================
    STRUCTRA V2 - Editor View Component
-   <structra-editor> - raw JSON editor (format/minify/validate/apply)
+   <structra-editor> - raw JSON editor (format/minify/repair/apply)
+
+   The text box is a code box from Structra.codeView (core/code-view.js): colours, line numbers, folding, bracket
+   matching and undo come from it. It draws only the lines on screen, so a large document (tens of millions of
+   characters) stays smooth. What this file adds is the JSON side:
+     - checking the text as it is typed (after a pause that grows with the size of the text) and saying what and where
+     - Apply, which turns the text into the open document
+     - Format, Minify and Repair
+     - a draft per tab: text typed but not applied is kept for that tab, and the tab shows a dot
+
+   Size: the open document is turned into text (JSON.stringify) when this view opens. Files up to MAX_EDIT_BYTES open;
+   above that a short note is shown instead, because the text would not fit in memory comfortably.
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: tabs:closed, editor:repair, editor:format, editor:minify, state:jsonData,
@@ -12,9 +23,18 @@
 class StructraEditor extends StructraElement {
   static get observedAttributes() { return ['readonly']; }
 
+  /** The biggest file (as it was on disk) that opens in the editor */
+  static get MAX_EDIT_BYTES() { return 100 * 1024 * 1024; }
+  /** A single line longer than this cannot be shown smoothly (Minify makes one line of the whole document) */
+  static get MAX_LINE_CHARS() { return 2 * 1000 * 1000; }
+  /** From this size on, opening says it may take a few seconds */
+  static get SLOW_BYTES() { return 1024 * 1024; }
+
   init() {
     this._stale = false;
-    this.on('tabs:closed', (id) => { if (this._drafts) this._drafts.delete(id); if (this._baseline) this._baseline.delete(id); });
+    this._drafts = new Map();     // tab id -> typed text that was not applied
+    this._dataOf = new Map();     // tab id -> the document the draft was typed against
+    this.on('tabs:closed', (id) => { this._drafts.delete(id); this._dataOf.delete(id); });
     this.on('editor:repair', () => this._repair());
     this.on('editor:format', () => this._format());
     this.on('editor:minify', () => this._minify());
@@ -24,9 +44,12 @@ class StructraEditor extends StructraElement {
       if (Structra.state.activeView === 'editor') this._loadData();
     });
     this.on('view:switched', (view) => {
-      if (view === 'editor' && this._stale) {
-        Structra.log.info('Editor', 'View switched to editor - loading data');
-        this._loadData();
+      if (view === 'editor') {
+        if (this._box) this._box.refresh();             // it was hidden while it was drawn
+        if (this._stale) {
+          Structra.log.info('Editor', 'View switched to editor - loading data');
+          this._loadData();
+        }
       }
     });
   }
@@ -42,21 +65,15 @@ class StructraEditor extends StructraElement {
           <button type="button" class="ed-status valid" id="edStatus" disabled>${Structra.icons.svg('check', { size: 14, color: 'success' })} Valid JSON</button>
         </div>
         <div class="editor-body">
-          <div class="editor-gutter" id="edGutter" aria-hidden="true"></div>
-          <textarea class="editor-textarea" id="editorArea" spellcheck="false" wrap="off" aria-label="JSON text"></textarea>
+          <div class="editor-host" id="editorHost"></div>
         </div>
       </div>`;
 
-    const area = this.$('#editorArea');
-    area.addEventListener('input', () => { this._gutter(); this._validate(); this._keepDraft(); });
-    area.addEventListener('scroll', () => this._gutterWindow(false));
     // The status names the problem; a click goes to it
     this.$('#edStatus').addEventListener('click', () => {
-      if (this._errorAt == null) return;
-      area.focus();
-      area.setSelectionRange(this._errorAt, Math.min(area.value.length, this._errorAt + 1));
-      const line = area.value.slice(0, this._errorAt).split('\n').length;
-      area.scrollTop = Math.max(0, (line - 4) * parseFloat(getComputedStyle(area).lineHeight));
+      if (this._errorAt == null || !this._box) return;
+      this._box.markError(this._errorAt);
+      this._box.gotoOffset(this._errorAt, { select: true });
     });
 
     this.addEventListener('click', (e) => {
@@ -72,94 +89,132 @@ class StructraEditor extends StructraElement {
     this._loadData();
   }
 
-  /** Text typed in the box but not applied is kept for its tab, and the tab shows a dot */
-  _keepDraft() {
+  /** The code box, created the first time it is needed */
+  _ensureBox() {
+    if (!this._boxPromise) {
+      this._boxPromise = Structra.codeView.create(this.$('#editorHost'), { mode: 'json', label: 'JSON text' })
+        .then((box) => {
+          this._box = box;
+          box.onChange(() => this._edited());
+          return box;
+        })
+        .catch((err) => {
+          this._boxPromise = null;
+          Structra.log.error('Editor', 'The code box could not load: ' + err.message);
+          return null;
+        });
+    }
+    return this._boxPromise;
+  }
+
+  /** Put text in the box without it counting as something the person typed */
+  _setText(text) {
+    this._quiet = true;
+    try { this._box.setValue(text); } finally { this._quiet = false; }
+  }
+
+  /** Something was typed or pasted: remember it as a draft, and check it once typing pauses */
+  _edited() {
+    if (this._quiet || this._loading) return;
+    this._box.clearError();
+    this._dirty = true;
     const id = Structra.tabs.activeId;
     const tab = Structra.tabs.list.find((t) => t.id === id);
-    const area = this.$('#editorArea');
-    if (!tab || !area) return;
-    if (!this._drafts) this._drafts = new Map();
-    this._drafts.set(id, area.value);
-    if (!this._baseline) this._baseline = new Map();
-    if (!this._baseline.has(id)) this._baseline.set(id, JSON.stringify(Structra.state.jsonData, null, 2));
-    if (!tab.draft) { tab.draft = true; Structra.events.emit('tabs:changed'); }
+    if (tab && !tab.draft) { tab.draft = true; Structra.events.emit('tabs:changed'); }
+    this._dataOf.set(id, Structra.state.jsonData);
+    // The text itself is read later (when checking, or when the tab is left): reading it on every key would copy it each time
+    const lines = this._box.lineCount();
+    const wait = Math.min(2500, 150 + Math.floor(lines / 1500));
+    if (wait > 400) this._showChecking();
+    clearTimeout(this._checkTimer);
+    this._checkTimer = setTimeout(() => this._validate(), wait);
   }
 
   _dropDraft(id) {
-    if (this._drafts) this._drafts.delete(id);
+    this._drafts.delete(id);
+    this._dataOf.delete(id);
     const tab = Structra.tabs.list.find((t) => t.id === id);
     if (tab && tab.draft) { tab.draft = false; Structra.events.emit('tabs:changed'); }
   }
 
-  /** A big document takes a few seconds to lay out: say so first, and draw it after the message is shown */
+  /** A big document takes a few seconds to prepare: say so first, and start after the message is shown */
   _loadData() {
     const size = Structra.state.fileSize || 0;
-    if (size < 1024 * 1024) { this._loadDataNow(); return; }
     this._stale = false;
-    Structra.events.emit('loading:show', 'Preparing the editor…');
-    setTimeout(() => { try { this._loadDataNow(); } finally { Structra.events.emit('loading:hide'); } }, 40);
+    if (size < StructraEditor.SLOW_BYTES) { this._loadDataNow(); return; }
+    Structra.events.emit('loading:show', size > 20 * 1024 * 1024 ? 'Preparing the editor… a large file can take several seconds' : 'Preparing the editor…');
+    setTimeout(async () => { try { await this._loadDataNow(); } finally { Structra.events.emit('loading:hide'); } }, 40);
   }
 
-  _loadDataNow() {
+  async _loadDataNow() {
     this._stale = false;
-    const area = this.$('#editorArea');
-    if (!area) return;
-    const tabId = Structra.tabs.activeId;
-    const data = Structra.state.jsonData;
-    if (!data) { area.value = ''; this._gutter(); return; }
-    // Guard: skip JSON.stringify for very large data to avoid "Invalid string length"
-    const size = Structra.state.fileSize || 0;
-    if (size > 10 * 1024 * 1024) {
-      Structra.log.warn('Editor', 'File too large for editor (' + (size / 1048576).toFixed(1) + ' MB) - skipping stringify');
-      area.value = '// File too large for editor (' + (size / 1048576).toFixed(1) + ' MB)\n// Use the tree view to explore this data.';
-      const status = this.$('#edStatus');
-      if (status) { status.innerHTML = Structra.icons.svg('triangle-alert', { size: 14, color: 'warning' }) + ' Too large'; status.className = 'ed-status warn'; }
-      return;
-    }
+    this._loading = true;
     try {
-      Structra.log.info('Editor', 'JSON.stringify (' + (size / 1024).toFixed(1) + ' KB)...');
-      const t0 = performance.now();
-      const canon = JSON.stringify(data, null, 2);
-      Structra.log.perf('Editor', 'JSON.stringify', performance.now() - t0);
-      // Typed-but-not-applied text stays while the document is the same as when it was typed; if the document changed, it is obsolete
-      if (!this._baseline) this._baseline = new Map();
-      if (this._drafts && this._drafts.has(tabId) && this._baseline.get(tabId) === canon) area.value = this._drafts.get(tabId);
-      else { this._dropDraft(tabId); area.value = canon; }
-      this._baseline.set(tabId, canon);
-    } catch (e) {
-      Structra.log.error('Editor', 'JSON.stringify failed: ' + e.message, e);
-      area.value = '// Could not stringify data: ' + e.message;
+      const box = await this._ensureBox();
+      if (!box) { this._status('warn', 'triangle-alert', 'The editor could not load'); return; }
+      // Text typed in the tab that was open until now is kept before the box is reused
+      if (this._dirty && this._boxTabId != null) this._drafts.set(this._boxTabId, box.getValue());
+      this._dirty = false;
+      clearTimeout(this._checkTimer);
+
+      const tabId = Structra.tabs.activeId;
+      const data = Structra.state.jsonData;
+      this._tooLarge = false;
+      box.setReadOnly(false);
+      if (!data) { this._setText(''); this._boxTabId = tabId; this._validate(); return; }
+
+      const size = Structra.state.fileSize || 0;
+      if (size > StructraEditor.MAX_EDIT_BYTES) {
+        Structra.log.warn('Editor', 'File too large for editor (' + (size / 1048576).toFixed(1) + ' MB)');
+        this._tooLarge = true;
+        this._setText('// This file is too large to edit here (' + (size / 1048576).toFixed(0) + ' MB).\n// The Tree, Table, Query and Overview views work on it.');
+        box.setReadOnly(true);
+        this._boxTabId = tabId;
+        this._status('warn', 'triangle-alert', 'Too large to edit');
+        return;
+      }
+
+      // Typed-but-not-applied text stays while the document is the one it was typed against; if the document changed, it is obsolete
+      let text;
+      if (this._drafts.has(tabId) && this._dataOf.get(tabId) === data) {
+        text = this._drafts.get(tabId);
+        this._dirty = true;
+      } else {
+        this._dropDraft(tabId);
+        try {
+          const t0 = performance.now();
+          text = JSON.stringify(data, null, 2);
+          Structra.log.perf('Editor', 'JSON.stringify', performance.now() - t0);
+        } catch (e) {
+          Structra.log.error('Editor', 'JSON.stringify failed: ' + e.message, e);
+          text = '// This document could not be turned into text: ' + e.message;
+        }
+      }
+      this._setText(text);
+      this._boxTabId = tabId;
+      box.refresh();
+    } finally {
+      this._loading = false;
     }
-    this._gutter();
     this._validate();
   }
 
-  /**
-   * Line numbers beside the text. Only the numbers in view (and a few above and below) are drawn, so a document of
-   * 200,000 lines costs no more than one of 200.
-   */
-  _gutter() {
-    const area = this.$('#editorArea');
-    const gutter = this.$('#edGutter');
-    if (!area || !gutter) return;
-    this._lines = area.value.split('\n').length;
-    this._lh = parseFloat(getComputedStyle(area).lineHeight) || 24;
-    this._gutterWindow(true);
+  _status(kind, icon, html, color) {
+    const status = this.$('#edStatus');
+    if (!status) return;
+    const tone = { valid: 'success', error: 'danger', warn: 'warning' }[kind];
+    status.innerHTML = Structra.icons.svg(icon, { size: 14, color: color || tone }) + ' ' + html;
+    status.className = 'ed-status ' + kind;
+    status.disabled = kind !== 'error';
+    status.title = '';
   }
 
-  _gutterWindow(force) {
-    const area = this.$('#editorArea');
-    const gutter = this.$('#edGutter');
-    if (!area || !gutter || !this._lines) return;
-    const lh = this._lh || 24;
-    const first = Math.max(0, Math.floor(area.scrollTop / lh) - 20);
-    if (!force && this._winFirst !== undefined && Math.abs(first - this._winFirst) < 15) { gutter.scrollTop = area.scrollTop; return; }
-    this._winFirst = first;
-    const last = Math.min(this._lines, first + Math.ceil((area.clientHeight || 600) / lh) + 40);
-    let out = '';
-    for (let i = first + 1; i <= last; i++) out += i + '\n';
-    gutter.innerHTML = `<div style="position:relative;height:${this._lines * lh}px"><div style="position:absolute;top:${first * lh}px;right:0;white-space:pre">${out}</div></div>`;
-    gutter.scrollTop = area.scrollTop;
+  _showChecking() {
+    const status = this.$('#edStatus');
+    if (!status) return;
+    status.innerHTML = 'Checking…';
+    status.className = 'ed-status checking';
+    status.disabled = true;
   }
 
   /** The parser's wording, said the way a maker would: what is wrong, not which token */
@@ -181,44 +236,54 @@ class StructraEditor extends StructraElement {
 
   async _validate() {
     const status = this.$('#edStatus');
-    const area = this.$('#editorArea');
-    if (!status || !area) return;
+    const box = this._box;
+    if (!status || !box || this._tooLarge) return;
+    const token = (this._checkToken = (this._checkToken || 0) + 1);     // a newer check replaces an older one still running
+    const text = box.getValue();
     this._errorAt = null;
     try {
-      await Structra.parseJsonAsync(area.value);
-      status.innerHTML = Structra.icons.svg('check', { size: 14, color: 'success' }) + ' Valid JSON';
-      status.className = 'ed-status valid';
-      status.disabled = true;
-      status.title = '';
+      await Structra.parseJsonAsync(text);
+      if (token !== this._checkToken) return;
+      this._status('valid', 'check', 'Valid JSON');
     } catch (e) {
+      if (token !== this._checkToken) return;
       // Say what is wrong and where: the browser's own parser knows the position
       let why = e.message;
-      try { JSON.parse(area.value); } catch (native) { why = native.message; }
+      try { JSON.parse(text); } catch (native) { why = native.message; }
       const pos = /position\s+(\d+)/i.exec(why);
       const lc = /line\s+(\d+)\s+column\s+(\d+)/i.exec(why);
       let where = '';
       if (pos) {
         this._errorAt = Number(pos[1]);
-        const before = area.value.slice(0, this._errorAt);
-        where = `line ${before.split('\n').length}, column ${before.length - before.lastIndexOf('\n')}`;
+        const at = box.cm.posFromIndex(this._errorAt);
+        where = `Line ${at.line + 1}, column ${at.ch + 1}`;
+        box.markError(this._errorAt);
       } else if (lc) {
-        where = `line ${lc[1]}, column ${lc[2]}`;
+        where = `Line ${lc[1]}, column ${lc[2]}`;
       }
       const reason = why.replace(/\s*in JSON at position.*$/i, '').replace(/\s*\(line.*\)$/i, '').replace(/^JSON\.parse:\s*/i, '').trim();
-      status.innerHTML = `${Structra.icons.svg('x', { size: 14, color: 'danger' })} ${Structra.util.esc(where ? `Line ${where.slice(5)}: ` : '')}${Structra.util.esc(this._plainReason(reason, area.value, this._errorAt).slice(0, 110))}`;
-      status.className = 'ed-status error';
+      this._status('error', 'x', `${Structra.util.esc(where ? where + ': ' : '')}${Structra.util.esc(this._plainReason(reason, text, this._errorAt).slice(0, 110))}`);
       status.disabled = this._errorAt == null;
       status.title = this._errorAt == null ? '' : 'Click to go to the problem';
     }
   }
 
+  /** Swap the text for new text. It counts as an edit, so the tab shows a draft and the text is checked again */
+  _replaceText(text) {
+    this._box.replaceAll(text);
+  }
+
+  _blocked() {
+    if (!this._tooLarge) return false;
+    Structra.toast('This file is too large to edit here. Use the Tree, Table or Query views.');
+    return true;
+  }
+
   async _format() {
-    const area = this.$('#editorArea');
+    if (!this._box || this._blocked()) return;
     try {
-      const data = await Structra.parseJsonAsync(area.value);
-      area.value = JSON.stringify(data, null, 2);
-      this._gutter();
-      this._validate();
+      const data = await Structra.parseJsonAsync(this._box.getValue());
+      this._replaceText(JSON.stringify(data, null, 2));
       Structra.toast('Formatted');
     } catch (e) {
       Structra.toast('This is not valid JSON');
@@ -226,12 +291,15 @@ class StructraEditor extends StructraElement {
   }
 
   async _minify() {
-    const area = this.$('#editorArea');
+    if (!this._box || this._blocked()) return;
     try {
-      const data = await Structra.parseJsonAsync(area.value);
-      area.value = JSON.stringify(data);
-      this._gutter();
-      this._validate();
+      const data = await Structra.parseJsonAsync(this._box.getValue());
+      const text = JSON.stringify(data);
+      if (text.length > StructraEditor.MAX_LINE_CHARS) {
+        Structra.toast('The minified text is one line of ' + (text.length / 1048576).toFixed(1) + ' MB, which the editor cannot show smoothly. The text was left as it is.');
+        return;
+      }
+      this._replaceText(text);
       Structra.toast('Minified');
     } catch (e) {
       Structra.toast('This is not valid JSON');
@@ -239,21 +307,20 @@ class StructraEditor extends StructraElement {
   }
 
   async _repair() {
-    const area = this.$('#editorArea');
-    if (!area || !area.value.trim()) { Structra.toast('Nothing to repair'); return; }
+    if (!this._box || this._blocked()) return;
+    const before = this._box.getValue();
+    if (!before.trim()) { Structra.toast('Nothing to repair'); return; }
     try {
-      await Structra.parseJsonAsync(area.value);
+      await Structra.parseJsonAsync(before);
       Structra.toast('Already valid JSON');
       return;
     } catch { /* invalid: fall through to repair */ }
-    const before = area.value;
     try {
-      area.value = await Structra.jsonTools.repair(before);
-      this._gutter();
-      await this._validate();
+      const fixed = await Structra.jsonTools.repair(before);
+      this._replaceText(fixed);
       // Say how much changed, so the repair is not a leap of faith
       const lines = (t) => t.split(/\r?\n/);
-      const was = lines(before), now = lines(area.value);
+      const was = lines(before), now = lines(fixed);
       let changed = Math.abs(was.length - now.length);
       for (let i = 0; i < Math.min(was.length, now.length); i++) if (was[i] !== now[i]) changed++;
       Structra.toast(`Repaired: about ${changed} line${changed === 1 ? '' : 's'} changed. Review it, then Apply. Ctrl+Z in the box undoes the repair.`);
@@ -266,13 +333,14 @@ class StructraEditor extends StructraElement {
   }
 
   async _apply() {
-    const area = this.$('#editorArea');
+    if (!this._box || this._blocked()) return;
     try {
-      const data = await Structra.parseJsonAsync(area.value);
+      const data = await Structra.parseJsonAsync(this._box.getValue());
       // Keep the document as it was, so Ctrl+Z can bring it back, and mark the tab as changed
       const tabId = Structra.tabs.activeId;
       Structra.undoStack.push(Structra.state.jsonData, 'Before editing', tabId);
       this._dropDraft(tabId);
+      this._dirty = false;
       Structra.set('jsonData', data);
       Structra.undoStack.push(data, 'Edited in the Editor', tabId);
       const tab = Structra.tabs.list.find((t) => t.id === tabId);

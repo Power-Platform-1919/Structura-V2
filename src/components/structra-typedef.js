@@ -97,17 +97,22 @@ class StructraTypedef extends StructraOverlay {
     const data = Structra.state.jsonData;
     if (!data) {
       this._code = '// No data loaded';
-      this.$('#typedefCode').textContent = this._code;
+      this._show();
       return;
     }
 
     try {
       this._code = Structra.codeGen.generate(this._lang, data, this._rootName);
-      this.$('#typedefCode').textContent = this._code;
+      this._show();
     } catch (err) {
       this._code = `// Error generating ${this._lang}: ${err.message}`;
-      this.$('#typedefCode').textContent = this._code;
+      this._show();
     }
+  }
+
+  /** Show the code in colour for its language */
+  _show() {
+    Structra.codeView.colorize(this.$('#typedefCode'), this._code, this._lang);
   }
 
   _copy() {

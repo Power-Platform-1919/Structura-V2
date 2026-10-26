@@ -9,11 +9,23 @@ main('01-themes-colors', async ({ browser, base, rep }) => {
   const page = await newPage(browser);
   await open(page, base);
   await inject(page);
+  // The SQL editor lives in the Query panel: open it in SQL mode with text that has every kind of colour in it
+  const sqlView = async (pg) => {
+    await view(pg, 'tree');
+    await pg.evaluate(() => Structra.set('queryPanelOpen', true));
+    await pg.locator('.seg-btn[data-mode="sql"]').click();
+    await pg.waitForSelector('#sqlColumns .qp-sql-col', { state: 'attached', timeout: 60000 });
+    await pg.evaluate(() => {
+      const text = ['-- how many open items', "SELECT COUNT(*) AS n, 'text' AS label, 42 AS num", 'FROM data WHERE amount > 1.5 AND name = "x"'].join('\n');
+      document.querySelector('.qp-sql-host .CodeMirror').CodeMirror.setValue(text);
+    });
+    await pg.waitForTimeout(300);
+  };
   const themes = await page.evaluate(() => Structra.theme.list().map((t) => ({ id: t.id, name: t.name })));
   for (const t of themes) {
     await page.evaluate((id) => Structra.theme.use(id), t.id);
-    for (const v of ['overview', 'tree', 'table', 'editor']) {
-      await view(page, v);
+    for (const v of ['overview', 'tree', 'table', 'editor', 'sql']) {
+      if (v === 'sql') await sqlView(page); else await view(page, v);
       await shot(page, `theme-${t.id}-${v}`);
       const low = await page.evaluate(() => window.__ui.textContrast().filter((x) => x.ratio < (x.large ? 3 : 4.5) && !x.disabled));
       const seen = new Set();
