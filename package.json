@@ -50,6 +50,7 @@
     "test:responsive": "node tests/smoke/responsive.js"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@codemirror/autocomplete": "^6.20.4",
     "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-go": "^6.0.1",

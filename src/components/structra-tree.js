@@ -46,7 +46,7 @@ class StructraTree extends StructraComponent {
   }
 
   render() {
-    this.innerHTML = '<div class="json-view" id="jsonView" tabindex="0" role="tree" aria-label="JSON tree. Arrow keys move, Left and Right fold, Enter selects."></div>';
+    this.innerHTML = '<div class="json-view" id="jsonView" tabindex="0" role="group" aria-label="JSON tree. Arrow keys move, Left and Right fold, Enter selects."></div>';
     this._bindKeys();
     this.renderTree();
   }

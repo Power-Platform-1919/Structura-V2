@@ -349,7 +349,7 @@ Structra.codeView = (() => {
       bracketMatching(),
       syntaxHighlighting(highlightStyle),
       options.placeholder ? placeholder(options.placeholder) : [],
-      EditorView.contentAttributes.of({ 'aria-label': options.label || 'Code', spellcheck: 'false', autocorrect: 'off', autocapitalize: 'off' }),
+      EditorView.contentAttributes.of({ 'aria-label': options.label || 'Code', tabindex: '0', spellcheck: 'false', autocorrect: 'off', autocapitalize: 'off' }),
       EditorView.updateListener.of((update) => { if (update.docChanged) handlers.forEach((handler) => handler()); }),
       shadeField,
       errorField,

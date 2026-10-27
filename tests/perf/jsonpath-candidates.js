@@ -21,7 +21,7 @@ const load = (relative) => import(pathToFileURL(path.join(folder, 'node_modules'
   const plus = await load('jsonpath-plus/dist/index-node-esm.js');
   const libraries = {
     'jsonpath-rfc9535': (selector, document) => rfc.query(document, selector),
-    'json-p3': (selector, document) => p3.jsonpath.query(selector, document).values(),
+    'json-p3': (selector, document) => Array.from(p3.jsonpath.query(selector, document).values(), (node) => node.value),
     'jsonpath-plus': (selector, document) => plus.JSONPath({ path: selector, json: document, wrap: true, eval: 'safe' }) || [],
   };
 

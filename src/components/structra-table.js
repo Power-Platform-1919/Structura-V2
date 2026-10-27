@@ -82,7 +82,7 @@ class StructraTable extends StructraComponent {
     this.innerHTML = `
       <div class="table-container" id="tableContainer">
         <div class="table-toolbar" id="tablePager"></div>
-        <div class="table-scroll" id="tableScroll">
+        <div class="table-scroll" id="tableScroll" tabindex="0" role="region" aria-label="Table rows">
           <table class="data-table">
             <thead id="tableHead"></thead>
             <tbody id="tableBody"></tbody>
