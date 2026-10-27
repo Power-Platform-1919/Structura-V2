@@ -1,0 +1,559 @@
+# Feature and technology map: what each part is built with, why, and what we plan to change
+
+Written 2026-10-27 from the code (every file under `src/`), the vendored libraries, the tests, and web research. Where a reason is written down in a code comment or doc, it is marked **recorded**. Where I worked out the reason from the code, it is marked **inferred**. Where there is no way to tell, it says so.
+
+How this document is organised: section 1 is the app in numbers, section 2 goes through every UI component function by function (what it is built with, whether it is hand-written, what it depends on, who uses it, what we plan), section 3 explains each planned change with reasons, pros and cons, section 4 is the suggested order, 5 and 6 are what I could not verify and the sources, 7 is what I need from you.
+
+Companion documents: [deep-dive-analysis-2026-10.md](deep-dive-analysis-2026-10.md) (bugs found and fixed), [mature-libraries-plan.md](mature-libraries-plan.md) (measurements and the CodeMirror Tree MVP).
+
+Verdict words used below:
+
+| Word | Meaning |
+|---|---|
+| KEEP | stays as it is |
+| FIX | stays our own code, with a known problem to fix |
+| UPGRADE | same library, newer version |
+| REPLACE | swap our code or an old library for a better one |
+| PLATFORM | use a browser feature instead of our code |
+| WATCH | wait for something outside our control |
+| DECIDE | needs your decision |
+| DONE / IN PR | already changed (the pull request number is given) |
+
+## 1. The app in numbers
+
+- Vanilla JavaScript custom elements. No framework, no build for the app. Everything hangs off one global, `window.Structra`.
+- 41 components (11,106 lines), 34 core modules (9,378 lines), 5 workers, 3,890 lines of CSS in 12 files. The biggest files: `structra-table.js` (1,394), `data-engine.js` (2,094), `json-tree-renderer.js` (1,078), `structra-input-panel.js` (941), `power-platform-expressions.js` (862).
+- Tests: 10 unit test files, 32 browser test files (35 runs), 9 UI audit scripts (one of them axe-core), CI with 4 jobs. Browsers: Chromium, Firefox and WebKit.
+- Hosting: static files, GitHub Pages from the `prod` branch. Data never leaves the page (recorded in `memory-bank.md`). Everything including fonts and icons is served from the app's own folder (recorded in `library-loader.js` and `fonts.css`).
+
+### Libraries inside the app (vendored in `src/libs`, `src/vendor`)
+
+| Library | Version here | Latest | Size here | Used for | Notes |
+|---|---|---|---|---|---|
+| CodeMirror 6 | built with esbuild from npm | current | 800 KB folder, lazy | every code box | modern, mature |
+| DuckDB-Wasm | engine v1.1.1 (September 2024) | npm 1.33.1-dev57; 2.0 announced as a draft | 35.7 MB wasm, lazy | SQL, filter, pivot, find at scale | about two years behind |
+| jsondiffpatch | 0.7.x | 0.7.6 | 143 KB | Compare | current |
+| Ajv | **6.12.6 (2020)** | **8.20.0** | 122 KB | schema validation | end of life, see 3.6 |
+| jsonrepair | current | 3.15.0 | 6 KB | "Fix it for me" | current |
+| PapaParse | 5.5.3 | 5.5.x | 19 KB | CSV | current |
+| js-yaml | 4.1.0 | 4.1.x | 39 KB | YAML | current |
+| toml | **4.1.1** | **5.0.1 (TOML 1.1)** | 33 KB | TOML | one major behind |
+| html2canvas | **1.4.1 (January 2022)** | same, no newer release | 199 KB, lazy | save as PNG | not updated in almost 5 years |
+| Lucide | **0.468.0** | **1.62.0** | **358 KB, the whole set, loaded at start** | icons | 41 icons used |
+| json-p3 | 3.0.1 | 3.0.1 | 64 KB | JSONPath | IN PR #7 |
+| jsonc-parser | 3.3.1 | 3.3.1 | 21 KB | where JSON is broken | IN PR #6 |
+| @tanstack/virtual-core | 3.19.8 | 3.19.8 | 33 KB | Table scrollbar | Table branch, not merged |
+| IBM Plex Sans, JetBrains Mono | self-hosted woff2 | | | fonts | offline and private |
+
+## 2. UI components, function by function
+
+How to read this section. Each heading is one UI component (a custom element such as `<structra-tree>`, or a piece of the page shell). Under it, each row is one thing a person can do with it, or one job it does.
+
+| Column | Meaning |
+|---|---|
+| **Built with** | what actually does the work |
+| **Origin** | **Own** = hand-written by us. **Library** = a third-party library does the work. **Browser** = a feature of the browser itself. **Own + library** and **Own + browser** = our code around one of them. |
+| **Depends on** | the shared modules (section 2.7) and libraries it calls |
+| **Used by** | who embeds this component or calls this function; for events, who listens |
+| **Plan** | the verdict (words at the top of this document); details in section 3 |
+
+Every component is built on one small base class, `StructraComponent` (own, 94 lines). Twelve of them (Charts, Compare, Null finder, Pivot, Settings, Shortcuts, Snippets, Theme, Typedef, Validate, Welcome, Workspace) are dialogs built on our own `StructraDialog` (plan: the browser's `<dialog>`, see 3.4). The command palette and the input panel are overlays with their own code. All the Lucide icons come through one module, `Structra.icons`.
+
+### 2.1 The page frame
+
+#### Page shell and bootstrap: `index.html`, `src/app.js`, `layout.css`, `shell.css`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Lay out the header, tab bar, rail, query panel, canvas, context panel, status bar | CSS grid | Own | design tokens (`tokens.css`) | everything | KEEP |
+| Create the first tab, mount the six views into their panels, wire keyboard shortcuts (find, filter, new tab, close tab, zoom) | plain JavaScript | Own | `Structra.tabs`, `constants` (shortcut map) | the whole app | KEEP; split later (372 lines) |
+| Load libraries on demand | `Structra.libraryLoader` (82 lines) | Own | the vendored files in `src/libs` | CodeMirror, DuckDB, jsondiffpatch, Ajv, jsonrepair, html2canvas, jsonc-parser, json-p3, virtual-core | KEEP |
+
+#### View switcher: `<structra-view-switcher>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Show one of six view panels (overview, tree, table, graph, schema, editor) and announce `view:switched` | CSS classes and an event | Own | `constants.VIEWS` | `app.js`; listeners of `view:switched`: editor, graph, heatmap, minimap, overview, schema, table | KEEP |
+
+#### Header: `<structra-header>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Brand and a hidden page heading | HTML | Own | icons | `index.html` | KEEP (heading added in PR #6 for accessibility) |
+| Back and forward through the paths you visited (Alt+Left, Alt+Right) | `Structra.pathHistory`, one history per tab | Own | pathHistory | the header; also the command palette | KEEP |
+| Path bar: type a path or click an element, press Enter | text input plus `dataPaths` | Own | dataPaths | emits `tree:navigate-path`, which the Tree listens to | KEEP |
+| Copy the path | Clipboard API with a fallback | Own + browser | sharedHelpers | header, command palette | KEEP |
+| Bookmark this path (Ctrl+B) and the list of bookmarks | `Structra.bookmarks`, saved in localStorage per file name | Own | bookmarks | Tree (markers), context panel (list), workspace export | KEEP |
+| Light and dark switch | theme engine | Own | themeEngine | header | KEEP |
+| Button that opens the command palette | HTML | Own | | header | KEEP |
+
+#### Path suggestions: `<structra-autocomplete>` (inside the header)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Suggest the next key or index while typing a path, from the open document itself | own completion logic | Own | dataPaths, sharedHelpers | header path bar | KEEP |
+
+#### Breadcrumb: `<structra-breadcrumb>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Show the selected path as clickable segments; click one to jump back up | HTML | Own | dataPaths | `state:currentPath` | KEEP |
+
+#### Document tabs: `<structra-tabs>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| New tab (Alt+N), switch, close, reopen a closed tab | own tab model (`Structra.tabs`) | Own | dataEngine (one dataset per tab), constants | header, rail, command palette; `tabs:*` events are heard by editor, query, expressions, filter, overview, pivot, schemagen, status, undo stack, path history | KEEP |
+| Rename a tab | HTML input | Own | | tabs | KEEP |
+| Reorder tabs by dragging | native HTML drag and drop | Browser | | tabs | FIX: no keyboard way (3.13) |
+| Arrow keys move between tabs, Enter or Space switches | key handler, `role="tablist"` | Own | | tabs | KEEP |
+| Tab context menu | own positioned menu | Own | | tabs | KEEP |
+| Save and restore the open tabs, their data and view | IndexedDB through `Structra.browserDatabase` (267 lines) | Own + browser | browserDatabase | dataEngine | KEEP |
+
+#### Left rail: `<structra-rail>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Icon buttons: open data, Query and Transform, Power Platform, Overview, Themes, Settings | HTML buttons | Own | icons | `index.html`; opens the input panel, query panel, drawer, settings | KEEP |
+
+#### Canvas header: `<structra-canvas-header>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| View tabs (Overview, Tree, Table, Graph, Schema, Editor) | HTML | Own | constants | `state:activeView` | KEEP |
+| Tree toolbar: expand all, collapse all, show levels 1, 2, 3, wrap long values | buttons that emit `tree:*` events | Own | | the Tree listens | KEEP |
+| Find, Filter, Copy JSON buttons | buttons | Own + browser (clipboard) | sharedHelpers | find, filter bars | KEEP |
+| Hide toolbar buttons you do not use, "more" menu | context menu, saved in localStorage | Own | | canvas header | KEEP |
+
+#### Status bar: `<structra-status>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Ready dot, file name and size, current path | HTML | Own | dataEngine | `state:*` events | KEEP |
+| Duplicate keys warning | engine finding | Own | `state:duplicateKeys` | status | KEEP |
+| SQL engine state (idle, starting, ready, failed) | `engine:duckdb-*` events | Own | dataEngine | status | KEEP |
+| Developer: console log mode (click to cycle) | `Structra.log` | Own | log | status | KEEP |
+
+#### Small shell parts
+
+| Component | Function | Built with | Origin | Depends on / Used by | Plan |
+|---|---|---|---|---|---|
+| `<structra-toast>` | Floating message, can hold a button, stays while hovered, screen reader announces it (`aria-live`) | HTML, CSS | Own | listens to `toast`; used by almost every component | KEEP |
+| `<structra-loading>` | Full-screen spinner while a big operation runs | HTML, CSS | Own | `loading:show`, `loading:hide` from data engine, editor, input panel, Tree | KEEP |
+| `<structra-zoom>` | Ctrl plus and minus zoom, fit to screen, reset, remembered | CSS variable, localStorage | Own | keyboard shortcuts | KEEP |
+| `<structra-welcome>` | First visit dialog: what the app is for, pick light or dark, open a sample | dialog base | Own | command palette, first run | KEEP |
+| `<structra-settings>` | Appearance, shortcuts, turn the SQL engine on or off, clear what is saved in this browser | dialog base, localStorage | Own | rail, command palette; depends on appSettings, dataEngine | KEEP |
+| `<structra-shortcuts>` | List of keyboard shortcuts by category | dialog base | Own | command palette, settings | KEEP |
+| `<structra-workspace>` | Export or import everything (tabs and data, settings, bookmarks, query history, snippets, undo history) as one file | dialog base | Own | command palette | KEEP |
+| `<structra-theme>` | Light, dark or system; 8 built-in themes; build your own with live preview and contrast check (4.5 to 1); export and import as JSON | dialog base, `themeEngine` (17 base colours, the rest derived with CSS `color-mix()`) | Own | rail, header, command palette | KEEP |
+| Fonts | IBM Plex Sans and JetBrains Mono, self-hosted woff2 | Library (open fonts, our copy) | | `fonts.css` | KEEP |
+
+### 2.2 Getting data in: `<structra-input-panel>` (941 lines, the same card in the empty state and as an overlay)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Open a file by picker or drag and drop | File API, drag and drop | Own + browser | sharedHelpers | `index.html` empty state; rail and command palette show its tabs (`input:show-tab`) | KEEP |
+| Paste text, or press Ctrl+V anywhere on an empty tab, with a banner when the clipboard looks like data | paste events | Own + browser | | the whole page | KEEP |
+| Work out the format: JSON, CSV or TSV, XML, YAML, TOML, JSON lines; say plainly when a file is a zip or an Excel workbook | own detection (`_detectFormat`, `_binaryKind`) | Own | | input panel | KEEP |
+| Read JSON | `JSON.parse` on the main thread, after a scan that keeps numbers the browser would round (`protectBigNumbers`) | Own + browser | parseJsonAsync | input panel, editor | KEEP (recorded: a worker is slower here) |
+| Read CSV or TSV | PapaParse in a worker | Library | parseCsvAsync, worker pool | input panel | KEEP |
+| Read XML | the browser's `DOMParser` in a worker | Browser | parseXmlAsync | input panel | KEEP |
+| Read YAML | js-yaml 4.1.0 in a worker | Library | parseYamlAsync | input panel | KEEP |
+| Read TOML | toml 4.1.1 in a worker | Library | parseTomlAsync | input panel | UPGRADE to 5.0.1 (3.9) |
+| Load from a URL: method, headers, auth fields, send | `fetch` | Own + browser | | input panel | KEEP (only works where the server allows it) |
+| Decode a JWT (the pasted token's parts) | own decoding | Own | | input panel | KEEP |
+| Recent files | list saved in IndexedDB and localStorage | Own + browser | browserDatabase | input panel | KEEP |
+| Open a sample | built-in data | Own | | input panel, welcome | KEEP |
+| Explain why text is not valid and offer "Fix it for me" | own message reading, jsonrepair | Own + library | jsonRepairAndValidation | input panel | **FIX**: the place ("around line N") is read from the browser's message, so Safari and Firefox show no place. Use jsonc-parser here too (3.14) |
+| Command: Share as link, Export as CSV, YAML, XML, image | see the command palette (2.6) | | | | |
+
+### 2.3 The views (mounted by `app.js` into the view switcher)
+
+#### Overview: `<structra-overview>` (698 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| One sentence on what the file is, headline figures, findings worth a look (each with a jump link), the biggest lists grouped by pattern | `Structra.overviewInsights` turns the engine's analysis into plain language | Own | dataEngine, overviewInsights, powerPlatformExpressions | first screen when a file opens; the rail | KEEP (the product's main idea) |
+| Type distribution (bar pills) | HTML and CSS | Own | dataEngine | overview | KEEP |
+| Data quality score (donut, completeness, consistency, uniqueness) | hand-made SVG | Own | dataEngine | overview | KEEP |
+| Arrays found: click to open, drill into nested arrays, go back | HTML | Own | dataPaths | overview | KEEP |
+| Key coverage table: present, empty, missing; show the rows that miss a key; nested drill; list of row numbers | HTML with its own windowing (`_setupVirtualScroll`) | Own | dataEngine | overview | KEEP |
+| Field profiler: type, coverage, min, max, average, top values, distribution | HTML, SVG | Own | dataEngine | overview; also opened from the drawer stats | KEEP |
+| Jump to the Tree, Find or drawer from a finding | events (`tree:node-selected`, `tree:search-key`, `drawer:show`) | Own | | Tree, Find, drawer | KEEP |
+
+#### Tree: `<structra-tree>` and `json-tree-renderer.js` (1,410 lines together)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Draw the document as an indented tree with a line-number margin | own renderer building HTML | Own | dataPaths | `app.js`; listeners: context panel (`tree:node-selected`), heatmap, minimap | REPLACE option: CodeMirror view behind a switch (3.1) |
+| Long lists drawn 100 items at a time while you scroll; chunks far away are emptied and drawn again | own chunking, `IntersectionObserver` | Own + browser | | Tree | KEEP in Classic |
+| Collapse or expand a block, all blocks, or to depth 1, 2, 3 | own, state kept in `treeState` | Own | | canvas header buttons, command palette, keyboard | KEEP |
+| Click a line to select its path; click a key to highlight the same key everywhere; double-click a key to find it; double-click a value to edit it | delegated events | Own | dataPaths | Tree | KEEP |
+| Right-click menu: copy path, value, subtree; Power Automate expression; Power Fx formula; copy as type definition (7 languages); show as a table; open a text value that holds JSON in a new tab; find this value; copy mock data; bookmark | own menu | Own | powerPlatformExpressions, typeCodeGenerator, mockDataGenerator, bookmarks | Tree | KEEP |
+| Keyboard: arrows, Home, End, PageUp, PageDown, Enter, Left and Right to fold | own key handler | Own | | Tree | KEEP |
+| Wrap long values | CSS | Own | | canvas header | KEEP |
+| Show Find matches and hide non-matching lines (filter) | classes set from the engine's matched paths | Own | dataEngine | Find, Filter | KEEP |
+| Show bookmarked lines | class on the line | Own | bookmarks | Tree | KEEP |
+| Hidden and direction-changing characters shown as marks | own list of characters | Own | | Tree | DONE (PR #6) |
+
+#### Table: `<structra-table>` (1,394 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Rows and columns of the main list (or of a Find, Filter or SQL result) | engine data, own HTML builder | Own | dataEngine, dataPaths | `app.js`; consumers of its `tree:node-selected` | KEEP |
+| Sort by a column (header click, Enter, or menu) | engine sort | Own | dataEngine | Table | KEEP |
+| Filter a column: text, pick values, conditions | own filter panel | Own | | Table | KEEP |
+| Hide, show, move columns; "draw more columns" past 80 | own | Own | | Table | KEEP |
+| Split an object column into sub-columns and join back | own projection | Own | | Table | KEEP |
+| Column menu: chart this column, summary, every different value, copy the column's values | own | Own | charts (opened by event) | Table | KEEP |
+| Show nested values as readable text (Choice, Person, Lookup fields), decimals kept, numbers right-aligned | own formatter | Own | | Table | KEEP |
+| Short lists a page at a time (25 to 500 per page) | own pager | Own | appSettings | Table | KEEP |
+| Long lists: only the rows on screen are drawn, the scrollbar is the true length | `@tanstack/virtual-core` | Own + library | libraryLoader | Table | decision needed (3.2) |
+| Grid for screen readers and keyboard (roles, row index, arrows, Page keys, Home, End, Enter, Shift+F10) | WAI-ARIA grid pattern | Own | | Table | decision needed (3.2) |
+| Selected row follows the path chosen in the Tree, the path bar or Find | `state:currentPath` | Own | | Table | decision needed (3.2) |
+
+#### Graph: `<structra-graph>` (387 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Draw the document as nodes and lines (at most 5 items per list and 8 keys per object, depth limited) | own tree layout, SVG | Own | dataEngine | `app.js` | KEEP |
+| Zoom in, out, fit, reset to 100 percent; drag to pan | own transform | Own | | Graph | KEEP |
+| Expand a collapsed node or a "more" node | own | Own | | Graph | KEEP |
+| Select a node (it becomes the current path) and keyboard activation | `role="button"` on each node | Own | | Graph | FIX: label rule (3.15) |
+
+#### Schema: `<structra-schema>` (120 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| List every field with its types and whether every record has it | engine inference | Own | dataEngine | `app.js` | KEEP |
+| Copy as a JSON Schema ready for the Parse JSON action | `parseJsonSchemaGenerator` | Own | parseJsonSchemaGenerator | Schema | KEEP |
+
+#### Editor: `<structra-editor>` (369 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Edit the raw JSON text with colours, line numbers, folding, bracket matching | CodeMirror 6 through `Structra.codeView` | Library | codeView | `app.js` | KEEP |
+| Check the text as you type; say where and why it is wrong; click to go there | jsonc-parser | Library + own | jsonRepairAndValidation | Editor | DONE (PR #6) |
+| Format, minify, repair, apply | `JSON.stringify`, jsonrepair | Own + library | parseJsonAsync, jsonRepairAndValidation | Editor, command palette | KEEP |
+| Keep an unsent draft per tab; refuse to edit very large files | own | Own | undoStack | Editor | KEEP |
+
+#### Minimap and heatmap
+
+| Component | Function | Built with | Origin | Depends on / Used by | Plan |
+|---|---|---|---|---|---|
+| `<structra-minimap>` | Bird's-eye picture of the structure with a viewport box; click or drag to scroll | `<canvas>` | Own + browser | listens to view and Tree events | KEEP |
+| `<structra-heatmap>` | Colour lines by the byte size of their values (Tree and Table) | own size walk, CSS | Own | command palette toggles it | KEEP |
+
+### 2.4 Search and query
+
+#### Find: `<structra-find>` (380 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Find text, `key:name`, `$.path` or `SELECT ...` | engine search, DuckDB when ready | Own + library | dataEngine, jsonpathQuery | canvas header, Ctrl+F; opened by the Tree (double-click a key), context panel, command palette | KEEP |
+| Fuzzy mode: close matches (substring or Jaro-Winkler 0.8) | own | Own | dataEngine | Find | KEEP |
+| Pattern mode: regular expression | `RegExp` | Browser | dataEngine | Find | KEEP |
+| Enter and Shift+Enter step through matches, count announced | own | Own | | Find | DONE (PR #6) |
+| Replace one or all (text values only) with Ctrl+Z | own | Own | undoStack | Find | KEEP |
+
+#### Filter bar: `<structra-filter>` (328 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Structured conditions (column, operator, value, AND or OR) | DuckDB, JavaScript fallback | Own + library | dataEngine | canvas header, Ctrl+Shift+F; every view reads the result (`engine:filter-changed`: Tree, Table, Graph) | KEEP |
+| Other modes: JSONPath, pattern, JavaScript expression | json-p3, `RegExp`, `new Function` | Own + library | jsonpathQuery, dataEngine | Filter | FIX the JavaScript mode (3.8) |
+
+#### Query panel: `<structra-query>` (722 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Path query (our own syntax) | `dataPaths` | Own | dataPaths | rail "Query and Transform" | KEEP |
+| JSONPath query | json-p3 | Library + own adapter | jsonpathQuery | Query panel | DONE (PR #7) |
+| Pattern query | `RegExp` with a freeze check | Browser + own | | Query panel | KEEP |
+| JavaScript query | `new Function`, tried first in a worker with a time limit | Own + browser | sharedHelpers (`tryCodeInWorker`) | Query panel | FIX (3.8) |
+| SQL: editor with suggestions, history, run, export CSV | CodeMirror editor, DuckDB | Library + own | codeView, dataEngine | Query panel | KEEP; DuckDB upgrade WATCH (3.7) |
+| Results list: show in the Tree, copy Power Automate or Power Fx expression, copy or open all matches in a tab | own | Own | powerPlatformExpressions, jsonTreeRenderer | Query panel | KEEP |
+| Transform: presets and steps (`map`, `filter`, `groupBy`, `sum` ...) | own registry of patterns, `new Function` behind a word blocklist | Own + browser | transformStepOperations | Query panel | FIX (3.8) |
+| Open Pivot | event `pivot:open` | Own | | Query panel | KEEP |
+
+#### Null finder: `<structra-nullfinder>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Scan for null, empty and missing values; next and previous; show in the Tree | DuckDB `IS NULL` queries, in-memory fallback | Own + library | dataEngine, dataPaths | command palette | KEEP |
+
+### 2.5 Side and bottom panels
+
+#### Node panel: `<structra-context>` (the right panel)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Show the selected value (preview in a code box), its type and size | CodeMirror for the preview | Library + own | codeView, dataPaths | `tree:node-selected` from Tree, Table, Graph, Overview, header | KEEP |
+| Detect patterns in a text value (email, date, URL ...) | own regexes | Own | | Node panel | KEEP |
+| Copy value, copy path, find every place this value appears | own | Own + browser | sharedHelpers | Node panel | KEEP |
+| Bookmark and the list of bookmarks | `Structra.bookmarks` | Own | bookmarks | Node panel | KEEP |
+| Copy the Power Automate or Power Fx expression; copy mock data | own | Own | powerPlatformExpressions, mockDataGenerator | Node panel | KEEP |
+
+#### Bottom drawer: `<structra-drawer>` and its three tabs
+
+| Component | Function | Built with | Origin | Depends on / Used by | Plan |
+|---|---|---|---|---|---|
+| `<structra-drawer>` | Tabbed panel that folds, grows and can be dragged taller | own | Own | constants, icons; opened by the rail, Overview, context panel, command palette | KEEP |
+| `<structra-drawer-stats>` | Mini stats: rows, keys, gaps, quality bar, link to the profiler | own | Own | dataEngine | KEEP |
+| `<structra-expressions>` | Power Automate and Power Fx expressions for the selected path: a source bar (action, trigger, item, custom), sub-tabs (Power Automate, Canvas app, Flow actions, Helpers), a column picker, click to copy | own logic, CodeMirror boxes | Own + library | powerPlatformExpressions, codeView | KEEP (our unique value) |
+| `<structra-schemagen>` | Parse JSON schema with options: whole file or selected path, read every item for optional and nullable keys, integer typing, `required` | own generator, CodeMirror box | Own + library | parseJsonSchemaGenerator, codeView | KEEP |
+
+### 2.6 Tools and dialogs
+
+#### Command palette: `<structra-command>` (611 lines, Ctrl+K)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Search about 55 commands by "contains" on label, id, category | own list and filter | Own | constants | header button, Ctrl+K | later: ranked fuzzy matching (3.12) |
+| Switch view (tree, table, graph, schema, editor, overview) | `setState('activeView')` | Own | | | KEEP |
+| Power Platform: expressions, copy Power Automate or Power Fx, Parse JSON schema, flow actions, columns | `powerPlatformExpressions`, `parseJsonSchemaGenerator` | Own | | | KEEP |
+| Transform: sort keys, flatten, unflatten | own | Own | | | KEEP |
+| Mask and unmask personal data | `personalDataMasker` (own regexes) | Own | | | KEEP |
+| Mock data and sample data | `mockDataGenerator` (own, 145 lines) | Own | | | KEEP |
+| Types: TypeScript, Python, Go, C#, Rust, SQL | `typeCodeGenerator` (own, 467 lines) | Own | | | KEEP |
+| Export CSV, YAML, XML | `formatConversion` | Own + library (PapaParse, js-yaml) | | | KEEP |
+| Share as a link | URL hash with gzip through `CompressionStream` | Own + browser | shareLink | | KEEP |
+| Save as an image | html2canvas, loaded on first use | Library | imageCapture | | WATCH (3.10) |
+| Repair, format, minify JSON | jsonrepair, `JSON.stringify` | Own + library | jsonRepairAndValidation | | KEEP |
+| Undo and redo (Ctrl+Z, Ctrl+Y) | `Structra.undoStack` (snapshots, 60 MB per tab) | Own | undoStack | | later: differences (3.11) |
+| Open Find, Filter, Fuzzy, SQL, Validate, Charts, Duplicate keys, Compare, Theme, Welcome, zoom, wrap, expand and collapse | events | Own | | | KEEP |
+
+#### Compare: `<structra-diff>` (366 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Choose the two sides: an open tab or pasted text; swap sides | own | Own | | command palette | KEEP |
+| Work out the differences (values only left, only right, changed; same list items that moved) | jsondiffpatch through `Structra.jsonDiff` | Library + own | jsonDiff | Compare | KEEP |
+| Show them as a list, side by side with synchronized scrolling, or inline | CodeMirror panes | Library + own | codeView | Compare | KEEP |
+| Copy the changes as a JSON Patch (RFC 6902) | jsondiffpatch's JSON Patch format | Library | jsonDiff | Compare | KEEP |
+
+#### Pivot: `<structra-pivot>` (251 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Drag fields to rows, columns and values; choose count, sum, average and so on | native drag and drop | Browser + own | | Query panel, command palette | FIX: needs a keyboard way (3.13) |
+| Run the grouping | DuckDB GROUP BY | Library | dataEngine | Pivot | KEEP |
+| Copy every row for Excel; open every row as a table in a new tab | own | Own + browser | | Pivot | KEEP |
+
+#### Charts: `<structra-charts>` (221 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| For one column: summary, histogram, trend line (numbers); most common values (text and flags) | hand-drawn inline SVG, no chart library | Own | dataEngine | Table column menu | KEEP |
+
+#### Validate: `<structra-validate>` (114 lines)
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Paste a schema, or start from one inferred from the data | `parseJsonSchemaGenerator` | Own | | command palette | KEEP |
+| Validate and list errors with "show the first one in the tree" | Ajv 6.12.6 | Library | jsonRepairAndValidation | Validate | UPGRADE or keep, decision needed (3.6) |
+
+#### Type definitions: `<structra-typedef>`; Snippets: `<structra-snippets>`
+
+| Function | Built with | Origin | Depends on | Used by | Plan |
+|---|---|---|---|---|---|
+| Show generated code per language tab with colours; copy; download | `typeCodeGenerator`, CodeMirror colouring | Own + library | codeView | Tree right-click, command palette | KEEP |
+| Save, use, copy, delete reusable JSON fragments; filter the list | localStorage | Own + browser | sharedHelpers, dataPaths | command palette | KEEP |
+
+### 2.7 Shared building blocks (core modules) and who uses them
+
+The counts are taken from the code: how many files call the module.
+
+| Module | What it is | Built with | Origin | Used by | Plan |
+|---|---|---|---|---|---|
+| `dataEngine` (2,094 lines) | the data model: one dataset per tab, analysis, search, sort, filter, aggregate, schema, stats, SQL registration, persistence | plain JavaScript, optional DuckDB | Own + library | 18 files: charts, command, drawer-stats, duckdb-adapter, filter, find, graph, input-panel, overview, pivot, power-platform-expressions, query, schema, settings, status, table, tabs, workspace | KEEP; split into modules |
+| `duckdbAdapter` | loads DuckDB-Wasm, runs SQL; the JavaScript path is the fallback | DuckDB-Wasm v1.1.1 | Library | dataEngine | WATCH (3.7) |
+| `dataPaths` | parse, resolve and format paths | own | Own | 16 files (header, tree, table, query, overview, context ...) | KEEP |
+| `jsonpathQuery` | JSONPath | json-p3 plus an adapter | Library + own | query, data engine | DONE (PR #7) |
+| `sharedHelpers` | small helpers (escape, debounce, clipboard, download, regex safety check, run code in a worker) | own | Own | about 30 files | KEEP |
+| `icons` | every icon | Lucide 0.468.0, whole set | Library | 26 files | UPGRADE and trim (3.5) |
+| `codeView` | every code box | CodeMirror 6 | Library + own wrapper | context, diff, editor, expressions, input-panel, query, schemagen, typedef | KEEP |
+| `jsonTreeRenderer` | the Tree's renderer | own | Own | tree, query | see 3.1 |
+| `powerPlatformExpressions` (862 lines) | Power Automate, Power Fx and flow action text for a path | own | Own | command, context, expressions, overview-insights, tree | KEEP (unique) |
+| `parseJsonSchemaGenerator` | Parse JSON schema | own | Own | command, schema, schemagen, validate | KEEP (unique) |
+| `typeCodeGenerator`, `mockDataGenerator`, `personalDataMasker` | code, sample data, masking | own | Own | tree, typedef, command, context | KEEP |
+| `overviewInsights` | plain-language summary | own | Own | overview | KEEP |
+| `jsonRepairAndValidation` | repair, duplicate keys, error place, schema validation | jsonrepair, jsonc-parser, Ajv | Library + own | command, editor, input-panel, json-diff, validate | see 3.6 |
+| `jsonDiff` | compare two documents | jsondiffpatch | Library + own | diff | KEEP |
+| `undoStack` | undo per tab | own snapshots | Own | command, diff, editor, find, workspace | later (3.11) |
+| `bookmarks`, `pathHistory` | saved paths, back and forward | localStorage | Own | bookmarks: command, context, header, tree; history: command, header | KEEP |
+| `formatConversion`, `shareLink`, `imageCapture` | export, share, PNG | PapaParse, js-yaml, CompressionStream, html2canvas | Own + library + browser | command | see 3.10 |
+| `transformStepOperations` | Transform steps | own, `new Function` | Own | query | FIX (3.8) |
+| `themeEngine` | themes | own, CSS `color-mix()` | Own + browser | header, theme, welcome, workspace | KEEP |
+| `appSettings`, `safeStorage`, `browserDatabase` | settings, storage fallbacks, IndexedDB | localStorage, IndexedDB | Own + browser | data engine, input panel, logger, settings, table | KEEP |
+| `workerPool` and the parse workers | CSV, XML, YAML, TOML parsing off the main thread | own pool, PapaParse, DOMParser, js-yaml, toml | Own + library | input panel | FIX: cache (3.14) |
+| `libraryLoader` | load libraries on first use | own | Own | code view, DuckDB, diff, repair, JSONPath, share, table | KEEP |
+| `StructraComponent`, `StructraDialog`, `Structra.events`, `Structra.state`, `Structra.log`, `panelResizer` | base classes, event bus, state, logger, resizer | own | Own | all components | FIX (3.14), dialogs 3.4 |
+
+### 2.8 How much is hand-written?
+
+Counted from the function rows in section 2 (each row is one function of one component):
+
+| Origin | Functions | Share |
+|---|---|---|
+| Own only | 92 | 66 percent |
+| Own around a browser feature | 18 | 13 percent |
+| Own around a library | 18 | 13 percent |
+| Library only | 8 | 6 percent |
+| Browser only | 3 | 2 percent |
+| **All function rows** | **139** | |
+
+By code volume it is the other way round. Our own JavaScript is about 1.0 MB (about 21,000 lines) plus 165 KB of CSS. The vendored third-party code is about 2.7 MB of JavaScript (DuckDB's loader 986 KB, CodeMirror 780 KB, Lucide 358 KB, html2canvas 199 KB, the rest about 420 KB) plus 36 MB of DuckDB WebAssembly. So we write most of the behavior, and libraries make up most of the bytes shipped. Only the Lucide set (358 KB) is loaded at the start; DuckDB, CodeMirror, html2canvas and the diff, validation and repair libraries load on first use.
+
+Read it as: most of the app is our own code around the browser's features. The libraries sit behind a handful of modules (`codeView`, `dataEngine` and DuckDB, `jsonDiff`, `jsonRepairAndValidation`, `icons`, the parse workers). The things nothing else could provide are the Power Platform expressions, the Parse JSON schema generator, the Overview insights, the path model and the way all views follow one selected path.
+
+## 3. Planned changes: reason, pros, cons
+
+### 3.1 Tree: a CodeMirror Tree behind a switch (approved, not built)
+
+- **Reason:** the Tree is our own 1,078-line renderer. The deep dive found 5 real bugs in it. CodeMirror already gives line numbers, folding, keyboard, accessibility and search, and it is already in the app.
+- **Plan:** read-only CodeMirror view of the pretty-printed document, behind a setting "Tree engine: Classic or Code". Classic stays the default and the answer above the size cap (about 40 MB). A line-to-path index (measured: 79 MB for an 88 MB file, 1 microsecond per lookup) maps clicks to paths.
+- **Pros:** much less code of ours to maintain; mature folding and keyboard behavior; measured to open a 134 MB text in under a second.
+- **Cons:** two engines to keep working and test; memory about 660 MB for the largest file; needs a size cap; behavior must match Classic item by item (the plan has the checklist).
+- **Status:** approved scope; waiting for the Table decision before starting.
+
+### 3.2 Table: true scrollbar, grid roles, keyboard (built on a branch, decision needed)
+
+- **Reason (measured):** the scrollbar knew only the rows already drawn (100,723 px for 100,000 rows), so you could not drag to row 80,000. No ARIA grid roles. No keyboard navigation. The selected row lost its mark when rows were redrawn. A row chosen in the Tree did not show.
+- **What changed (branch `feature/table-grid`, not pushed):** only the rows on screen are drawn between two spacer rows, the scroll arithmetic comes from `@tanstack/virtual-core` (33 KB). The table is a grid (rowcount, rowindex, sort state), with arrows, Home, End, Page keys, Enter and Shift+F10. It follows the selected path. Lists above 400,000 rows are shown a page at a time (a browser cannot make an element taller than about 17 million px in Firefox). The old `virtual-list.js` was deleted because nothing else used it. A new test (`table-grid.js`, 40 checks) passes in Chromium, Firefox and WebKit.
+- **Pros:** a scrollbar that means something; usable with a keyboard and a screen reader; fewer lines of our own virtual-list code; edge cases tested (0, 1, 200, 201, 450,000 rows, 150 columns, window resize).
+- **Cons:** a new library dependency (33 KB); lists above 400,000 rows lose continuous scrolling; I removed `virtual-list.js` without asking you first.
+- **Alternative you may prefer:** restore `virtual-list.js` and give it the true-scrollbar logic ourselves: no dependency, more code to maintain and test.
+- **Not recommended:** Tabulator (101 KB gzipped, arrow keys do nothing by default) and AG Grid Community (345 KB gzipped). Ours was already as fast and lighter.
+
+### 3.3 JSONPath: json-p3 (done, PR #7)
+
+- **Reason:** our engine passed 34 percent of the official standard, accepted 126 invalid selectors, rejected 322 valid ones, and froze on `$[::-1]`.
+- **Pros:** 715 of 715 tests, fastest of the candidates (122 ms for 200,000 records), MIT, 64 KB, one file.
+- **Cons:** two behavior changes (a `null` field now exists in `[?(@.x)]`; `==` no longer treats "5" and 5 as equal); the query call is now asynchronous; our `=~` pattern test needs a small adapter (done).
+
+### 3.4 Dialogs: the browser's own `<dialog>` (proposed)
+
+- **Reason:** we maintain our own focus trap, Escape and backdrop logic.
+- **Pros:** the browser makes the rest of the page inert and traps focus; one file changes and all 10 dialogs follow; supported since Chrome 37, Firefox 98, Safari 15.4 (MDN data).
+- **Cons:** the look of the backdrop and animations must be re-checked; the layout and shell tests need a pass.
+
+### 3.5 Icons: trim and upgrade Lucide (proposed)
+
+- **Reason:** a blocking 358 KB script loads the full icon set (about 1,500 icons) at start, and only **41** are used. The version is 0.468.0 against 1.62.0 today.
+- **Plan:** use Lucide's own recommended way, importing only the icons used (their docs say so), and bundle once with esbuild like the other vendored files.
+- **Pros:** about 300 KB less on the first load; newer artwork.
+- **Cons:** a new icon must be added to the list; a small build step when icons change (the same one-time step as the other vendored libraries); some icon names changed between 0.468 and 1.x, so a check of the 41 names is needed.
+
+### 3.6 Schema validation: Ajv 6 or 8 (decision needed)
+
+- **Reason:** Ajv 6.12.6 is from 2020 and no longer maintained. Ajv 8 is current.
+- **Fact from the research:** Ajv 7 and 8 **dropped draft-04**. The `ajv-draft-04` package brings it back. Some old Parse JSON schemas use draft-04 style; I could not confirm what Power Automate itself uses.
+- **Option A, upgrade:** Ajv 8 plus `ajv-draft-04`. Pros: supported, drafts 2019 and 2020. Cons: API changes (`dataPath` becomes `instancePath`, `jsonPointers` is gone), a small adapter, some risk for old schemas.
+- **Option B, keep 6 for now:** no work. Cons: unmaintained code in the app.
+- **My lean:** A, but only after a test with real Power Automate schemas. Please tell me whether you have some.
+
+### 3.7 DuckDB-Wasm (watch)
+
+- **Reason:** the engine is v1.1.1 from September 2024. Newer versions exist (npm 1.33.1-dev57), and a **2.0 announcement is drafted** (smaller binary, simpler bundles, larger-than-memory queries). A September 2026 DuckDB post says the npm "latest" at that time created OPFS files but never wrote to them, so a persistence claim in our adapter ("database file persists across reloads") should be re-checked.
+- **Pros of upgrading:** performance, features, possibly a much smaller download.
+- **Cons:** 35 MB to re-vendor, SQL behavior differences, a big test pass.
+- **Plan:** WATCH until 2.0 is released and stable, then upgrade with a full test run. Re-check the persistence claim now (cheap).
+
+### 3.8 User-written code: run it in one sandboxed worker (proposed)
+
+- **Reason:** `new Function` runs user-typed JavaScript in four places (Query panel JavaScript mode, the row filter in the data engine, Transform steps, the engine worker). The Query panel tries the code in a worker first, then runs it again on the main thread. Transform blocks words like `constructor` with a regular expression, which is easy to get around. The user is running their own code, so this is not a break-in. It is a risk when someone pastes an expression from somewhere else, and it can still freeze the page if the second run behaves differently.
+- **Plan:** one worker runs all user code (no access to the page), keeps the data inside, is stopped when the time limit passes. Keep the current syntax.
+- **Pros:** safer; the page can never freeze; one mechanism instead of four.
+- **Cons:** the data is copied into the worker (memory for very large files); results come back as copies; Transform steps must be reworked to run there.
+- **Also considered:** JSONata (MIT, about 25 KB gzipped) or jq compiled to WebAssembly as safer expression languages. The research found nothing on how either handles untrusted expressions, and they would change the language users write, so this is an addition for later, not a replacement.
+
+### 3.9 TOML: 4.1.1 to 5.0.1 (proposed, small)
+
+- **Reason:** 5.0.1 is TOML 1.1 compliant. `smol-toml` is another maintained option (also 1.1).
+- **Pros:** newer spec, bug fixes. **Cons:** a new major version needs one re-test of the TOML fixtures.
+
+### 3.10 Save as PNG: html2canvas (watch, low)
+
+- **Reason:** html2canvas 1.4.1 was published in January 2022 and has had no release since. `modern-screenshot` (4.7.0, April 2026) and `html-to-image` (1.11.13, February 2025) are maintained.
+- **Pros of switching:** maintained code, fewer rendering gaps (comparisons say html-to-image is closer to the real page). **Cons:** the output differs a little for complex CSS; the sources are comparison articles, not benchmarks. It is only used for one lazy button, so this can wait.
+
+### 3.11 Undo: store differences instead of whole copies (proposed)
+
+- **Reason:** each step is a full copy of the document, capped at 60 MB per tab (PR #6). jsondiffpatch is already in the app.
+- **Pros:** much less memory on big files; more steps possible. **Cons:** a change to a core module; undo of an edit that touched many places must be tested well.
+
+### 3.12 Command palette: ranked fuzzy matching (proposed, low)
+
+- **Reason:** it only matches by "contains". **Plan:** uFuzzy (4 KB gzipped, MIT) for typo tolerant, ranked results.
+- **Pros:** finds "exp col" for "Expand collapse"; **Cons:** one more dependency; ranking needs a little tuning.
+
+### 3.13 Keyboard alternatives for drag and drop (proposed)
+
+- **Reason:** tab reordering and Pivot field placement use drag and drop. The research is clear that SortableJS has no keyboard support and native drag and drop has none either, so a library would not fix it.
+- **Plan:** "Move left, Move right" for tabs (a keyboard shortcut and a menu item) and "Add to rows, columns, values" buttons for Pivot. **Pros:** a real keyboard path. **Cons:** a little more UI.
+
+### 3.14 Small fixes of our own code
+
+- Components: record subscriptions and remove them when an element is removed (`StructraComponent` never does). Also remove a `super.disconnectedCallback()` call in the Table that would throw, because the base class has no such method.
+- Input panel: the place of a JSON error ("around line N") is still read from the browser's message, so Safari and Firefox show no place there. Use `explainParseError` (jsonc-parser), as the Editor now does.
+- Worker pool: remove `?v=Date.now()` from worker URLs so workers are cached.
+- `data-engine.js` (2,094 lines): split into modules.
+- `components.css` (2,116 lines): split by view.
+- **Pros:** fewer surprises, faster visits, easier to change. **Cons:** pure maintenance, no visible feature.
+
+### 3.15 Graph node labels (decision from you needed)
+
+- axe-core flags 18 graph nodes: the visible text ends in an ellipsis, the accessible name is the whole label. You asked why not wrap the text. Wrapping fits: draw the label over 2 or 3 lines inside the node and make the node taller (the layout uses one fixed node height, so it needs a per-node height). **Pros:** the full label is visible and the rule passes. **Cons:** the tree layout becomes slightly taller, and the layout code must handle different node heights.
+
+### 3.16 Considered and not recommended
+
+| Option | Why not |
+|---|---|
+| Lit or another component framework | It would mean rewriting 41 components for a small gain. Sources say Lit is about 5 KB and handles updates for you, but we have no update problem that needs it. The listener bugs came from missing cleanup, which a small fix covers. |
+| Tabulator, AG Grid, Perspective for the Table | Heavier, and our Table was already faster or equal (measured). |
+| vanilla-jsoneditor for the Tree | 362 KB gzipped on top of CodeMirror, pages arrays 100 items at a time, different experience. |
+| Cytoscape, elkjs for the Graph | The Graph is depth limited; elkjs is EPL or GPL licensed. |
+| Chart.js, uPlot, ECharts | 22 to 100+ KB for charts that are about 220 lines of SVG. |
+| quicktype-core, faker | Megabytes; ours is small and tuned for this app. |
+| lossless-json | Our own scan already keeps risky numbers; it is also slower than native parsing. |
+| SortableJS | No keyboard support. |
+| CSS frameworks | The design tokens and 12 CSS files work; a framework would change every screen. |
+
+## 4. Suggested order
+
+| Wave | What | Why this order |
+|---|---|---|
+| 1, small and safe | worker cache fix, TOML 5, Lucide subset and upgrade, native `<dialog>`, component cleanup | quick, measurable, low risk |
+| 2, decisions made | Table (merge or redo), CodeMirror Tree MVP, graph label wrapping, sandboxed user code | the biggest visible changes; the Tree needs the Table settled first |
+| 3, when ready | Ajv 8 (after real schema test), DuckDB 2.0 (when released), undo differences, palette fuzzy matching, keyboard reordering | each needs a measurement or an outside event first |
+| 4, upkeep | split `data-engine.js` and `components.css`, PNG library | no user-visible change |
+
+## 5. What I could not verify
+
+- What Power Automate's Parse JSON action accepts as a schema draft (the searches found nothing).
+- DuckDB-Wasm 2.0 is a draft announcement dated after today; its size and speed claims are unconfirmed.
+- Whether jq in WebAssembly, JSONata or JMESPath evaluate untrusted expressions safely (no source found).
+- The sizes of `modern-screenshot` and `html-to-image` (comparison sites disagree) and any rendering benchmark between them and html2canvas.
+- Lucide's exact subset size: the sources say about 1 KB per icon and I did not measure it yet.
+- The reasons for some old choices are not written down anywhere (marked inferred).
+
+## 6. Sources
+
+- Ajv v6 to v8 migration, draft-04 removed: https://ajv.js.org/v6-to-v8-migration.html and the `ajv-draft-04` package: https://github.com/ajv-validator/ajv-draft-04
+- DuckDB-Wasm OPFS post (September 2026): https://duckdb.org/2026/09/18/opfs-wasm ; the draft 2.0 announcement: https://github.com/duckdb/duckdb-web/pull/7539 ; releases: https://github.com/duckdb/duckdb-wasm/releases
+- Lucide for vanilla JavaScript: https://lucide.dev/guide/lucide
+- Compression Streams API (baseline widely available): https://developer.mozilla.org/en-US/docs/Web/API/Compression_Streams_API
+- SortableJS and keyboard support: https://docs.tabler.io/ui/plugins/sortable
+- smol-toml, TOML 1.1: https://cdn.jsdelivr.net/npm/smol-toml@1.9.0/README.md
+- Screenshot libraries compared: https://dev.to/shaishav_patel_271fdcd61a/html2canvas-vs-dom-to-image-vs-html-to-image-browser-screenshot-library-comparison-4h5c
+- Lit and web components 2026: https://attr-action.pages.dev/blog/2026-03-19-web-components-2026-adoption/
+- Package versions and dates: the npm registry (read 2026-10-27). Browser support: MDN browser-compat-data.
+
+## 7. Decisions I need from you
+
+1. **Table:** keep my windowed version (library for the scroll arithmetic), or restore `virtual-list.js` and upgrade it ourselves?
+2. **Ajv:** do you have real Power Automate Parse JSON schemas I can test with, so we can choose between 3.6 option A and B?
+3. **Graph labels:** is a taller node with wrapped text acceptable?
+4. **User-written code:** approve moving all of it into one sandboxed worker (3.8)?
+5. **Wave 1:** may I start with it (worker cache, TOML 5, Lucide subset, native dialog, component cleanup)?
