@@ -409,7 +409,7 @@ class StructraOverview extends StructraComponent {
       : '';
 
     let html = `<div class="stats-section" id="covSection"><div class="stats-section-title">Key Coverage: ${Structra.sharedHelpers.escapeHtml(path)} (${rows.length} rows)${backButton}</div>`;
-    html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th title="Rows where the key is there and not empty">Has a value</th><th></th></tr></thead><tbody>';
+    html += '<table class="cov-table"><thead><tr><th>Key</th><th>Present</th><th>Empty</th><th>Missing</th><th title="Rows where the key is there and not empty">Has a value</th><th><span class="sr-only">Share of rows</span></th></tr></thead><tbody>';
 
     const sorted = [...coverage].sort((first, second) => second.missing - first.missing || second.empty - first.empty || first.key.localeCompare(second.key));
     for (const key of sorted) {

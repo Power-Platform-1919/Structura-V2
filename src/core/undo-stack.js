@@ -14,6 +14,9 @@ Structra.undoStack = (() => {
   const MAX_SNAPSHOTS = 20;
   // Each snapshot is a JSON string, so a very large document would cost 20 copies; skip those
   const MAX_SNAPSHOT_CHARS = 25 * 1024 * 1024;
+  // ...and the steps of one tab together stay under this, so 20 steps of a 20 MB file do not hold 400 MB: the oldest go first,
+  // but the last two always stay (the document and the step before it), so one Undo is always there
+  const MAX_TAB_CHARS = 60 * 1024 * 1024;
   const histories = new Map();   // tabId → { stack: [{ data, label, timestamp }], index }
 
   const activeTab = () => Structra.tabs && Structra.tabs.activeId;
@@ -35,6 +38,8 @@ Structra.undoStack = (() => {
     tabHistory.stack = tabHistory.stack.slice(0, tabHistory.index + 1);                                // a new change ends the redo path
     tabHistory.stack.push({ data: snapshot, label, timestamp: Date.now() });
     if (tabHistory.stack.length > MAX_SNAPSHOTS) tabHistory.stack.shift();
+    let held = tabHistory.stack.reduce((sum, step) => sum + step.data.length, 0);
+    while (held > MAX_TAB_CHARS && tabHistory.stack.length > 2) held -= tabHistory.stack.shift().data.length;
     tabHistory.index = tabHistory.stack.length - 1;
     return true;
   }

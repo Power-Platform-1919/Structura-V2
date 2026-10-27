@@ -138,9 +138,23 @@ npm install
 npm run lint             # code checks (ESLint)
 npm run serve            # http://localhost:8765/index.html
 npm test                 # unit tests
-npm run test:all         # every browser smoke test
+npm run test:all         # unit tests, then every browser smoke test (several at a time, up to 8)
+npm run test:browser     # only the browser tests
+npm run test:firefox     # the same tests in Firefox (first: npx playwright install firefox)
+npm run test:webkit      # the same tests in WebKit, the engine of Safari (first: npx playwright install webkit)
 npm run ui:audit         # UI audit across all themes and screen sizes
+npm run test:everything  # lint, unit tests, browser tests and UI audit, with a time for each step
 ```
+
+### Keeping the tests fast
+
+The browser tests are written so that a full run takes a few minutes. Keep them that way:
+
+- **Browsers are shared.** `tests/run-smoke.js` starts one browser per slot and each test connects to it (`tests/launch-browser.js`), so no test pays for a browser start. Start your browser in a test with `launchBrowser(chromium)`, not `chromium.launch()`, and make your own context (`browser.newContext()`) so storage stays separate. Run a test on its own and it starts its own browser as before. `--own-browsers` does that for a whole run.
+- **Wait for the thing, not for a time.** A fixed `page.waitForTimeout(1500)` is too long when the app is quick and too short when the computer is busy. Use `uploadAndWait(page, file)` after choosing a file and `waitForIdle(page)` after an action (both in `tests/page-helpers.js`), or `page.waitForFunction()` for what you expect to see. A short fixed wait is acceptable only for an animation you cannot observe.
+- **Split heavy tests.** A test that loops over many documents can read `process.env.SHARD` ("0/4") and take every fourth one, as `fixtures.js` does. Add its name to `SHARDS` in `tests/run-smoke.js`.
+- **A time limit stops a stuck test** after 300 seconds (`TEST_TIMEOUT_SECONDS`) instead of holding the run.
+- **The UI audit** runs its scripts side by side (`AUDITS_AT_A_TIME`, default 2 to 5 from the cores). Each script writes its own `findings-<name>.json`; `findings.json` is made from them.
 
 - The first-run welcome dialog covers the page. Tests start as a returning visitor by setting `localStorage['structra.welcomeSeen'] = '1'`.
 - Set `PW_CHANNEL=msedge` to use installed Edge instead of downloading Chromium.

@@ -12,6 +12,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const FIXTURES = path.join(ROOT, 'tests', 'fixtures');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
@@ -37,7 +39,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1280, height: 720 } })).newPage();
   const failures = [];
   const errors = [];
@@ -47,8 +49,7 @@ function serve() {
     await page.goto(base);
     await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
     await page.keyboard.press('Escape');
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(FIXTURES, 'sp_getitems.json'));
-    await page.waitForTimeout(1500);
+    await uploadAndWait(page, path.join(FIXTURES, 'sp_getitems.json'));
 
     // ---- Overview scrolls with the mouse wheel, and its scroll area ends inside the view ----
     await page.evaluate(() => Structra.setState('activeView', 'overview'));

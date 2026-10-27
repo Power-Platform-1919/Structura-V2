@@ -13,6 +13,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -37,7 +39,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1360, height: 900 } })).newPage();
   const failures = [];
   const errors = [];
@@ -53,8 +55,7 @@ function serve() {
       { id: 3, name: 'Cy', region: 'North', amount: 200, active: true },
       { id: 4, name: 'Di', region: 'East', amount: null, active: true },
     ];
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles({ name: 'sales.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(rows)) });
-    await page.waitForTimeout(1200);
+    await uploadAndWait(page, { name: 'sales.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(rows)) });
     await page.evaluate(() => Structra.setState('queryPanelOpen', true));
     await page.waitForTimeout(300);
 

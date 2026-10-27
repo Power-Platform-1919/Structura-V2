@@ -13,6 +13,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -37,7 +39,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
   const failures = [];
   const errors = [];
@@ -105,8 +107,7 @@ function serve() {
 
     // ---- Find counts every matching value, and shows it inside the record that holds it ----
     await page.evaluate(() => Structra.events.emit('tabs:add'));
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
-    await page.waitForTimeout(1500);
+    await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.evaluate(() => Structra.setState('activeView', 'tree'));
     const expected = await page.evaluate(() => { let n = 0; const walk = (v) => { if (v && typeof v === 'object') Object.values(v).forEach(walk); else if (typeof v === 'string' && /contoso/i.test(v)) n++; }; walk(Structra.state.jsonData); return n; });
     await page.evaluate(() => Structra.setState('findBarOpen', true));
@@ -114,7 +115,8 @@ function serve() {
     await page.keyboard.press('Enter');
     await page.waitForTimeout(900);
     const found = await page.evaluate(() => ({ count: document.querySelector('#findCount').textContent, lit: document.querySelectorAll('.j-line.find-match').length, visible: [...document.querySelectorAll('.j-line:not(.filter-hidden):not(.j-close)')].length }));
-    if (found.count !== expected + ' found') failures.push('Find should count every matching value (' + expected + '): "' + found.count + '"');
+    // Enter searches and goes to the first match, so the count reads 1/N
+    if (found.count !== '1/' + expected) failures.push('Find should count every matching value (' + expected + '): "' + found.count + '"');
     if (found.lit < 1) failures.push('the matching lines should be highlighted in the Tree');
     if (found.visible <= found.lit) failures.push('the lines around a match (its record) should stay visible: ' + JSON.stringify(found));
     await page.evaluate(() => Structra.setState('findBarOpen', false));
@@ -145,8 +147,7 @@ function serve() {
     await page.goto(base);
     await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
     await page.keyboard.press('Escape');
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
-    await page.waitForTimeout(1500);
+    await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.evaluate(() => { Structra.setState('currentPath', '$.value[0].Title'); });
     await page.locator('structra-header [data-action="bookmark"]').click();
     await page.waitForTimeout(200);
@@ -175,8 +176,7 @@ function serve() {
     // ---- A second document starts on Analyze and its Tree has no repeated lines after switching back and forth ----
     await page.evaluate(() => Structra.events.emit('drawer:show', 'expressions'));
     await page.evaluate(() => Structra.events.emit('tabs:add'));
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'edge_odata.json'));
-    await page.waitForTimeout(1500);
+    await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'edge_odata.json'));
     const tabNow = await page.evaluate(() => (document.querySelector('.drawer-tabs .tab.active') || {}).dataset.tab);
     if (tabNow !== 'analyze') failures.push('a newly opened document should start on the Analyze tab, the drawer is on: ' + tabNow);
     await page.evaluate(() => Structra.setState('activeView', 'tree'));
@@ -236,8 +236,7 @@ function serve() {
     await page.goto(base);
     await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
     await page.keyboard.press('Escape');
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
-    await page.waitForTimeout(1500);
+    await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.evaluate(() => Structra.setState('activeView', 'tree'));
     const ask = async (mode, text) => {
       await page.evaluate(() => Structra.setState('findBarOpen', true));
@@ -248,9 +247,9 @@ function serve() {
       return page.evaluate(() => ({ count: document.querySelector('#findCount').textContent, lit: document.querySelectorAll('.j-line.find-match').length, sql: Structra.dataEngine.duckReady }));
     };
     let fz = await ask('fuzzy', 'Laptp refresh');
-    if (fz.count !== '1 found' || fz.lit < 1) failures.push('Fuzzy "Laptp refresh" should find the Laptop refresh title and mark it: ' + JSON.stringify(fz));
+    if (fz.count !== '1/1' || fz.lit < 1) failures.push('Fuzzy "Laptp refresh" should find the Laptop refresh title and mark it: ' + JSON.stringify(fz));
     fz = await ask('regex', '^ann@');
-    if (!/^[1-9]\d* found$/.test(fz.count)) failures.push('Pattern ^ann@ should find the email: ' + JSON.stringify(fz));
+    if (!/^1\/[1-9]\d*$/.test(fz.count)) failures.push('Pattern ^ann@ should find the email: ' + JSON.stringify(fz));
     fz = await ask('regex', '(');
     if (fz.count !== 'Not a valid pattern') failures.push('a broken pattern should say so: ' + fz.count);
     fz = await ask('text', '(');

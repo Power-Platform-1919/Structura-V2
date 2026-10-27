@@ -16,6 +16,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const FIXTURES = path.join(ROOT, 'tests', 'fixtures');
 const VIEWS = ['tree', 'table', 'graph', 'schema', 'editor', 'overview'];
@@ -42,7 +44,7 @@ function serve() {
   const files = fs.readdirSync(FIXTURES).filter((f) => f.endsWith('.json') && (!filter || f.includes(filter))).sort().filter((_, i) => i % shards === shard);
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});   // PW_CHANNEL=msedge or chrome uses the installed browser
+  const browser = await launchBrowser(chromium);   // PW_CHANNEL=msedge or chrome uses the installed browser
   const failures = [];
 
   for (const f of files) {
@@ -54,8 +56,7 @@ function serve() {
       await page.goto(base);
       await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
       await page.keyboard.press('Escape');                  // close the welcome dialog
-      await page.locator('#canvasEmpty input[type=file]').setInputFiles(path.join(FIXTURES, f));
-      await page.waitForTimeout(1200);
+      await uploadAndWait(page, path.join(FIXTURES, f));
 
       const headline = await page.evaluate(() => (document.querySelector('.ovw-headline') || {}).textContent || null);
       if (headline === null && !NO_OVERVIEW.test(f)) failures.push(`${f}: no overview headline`);

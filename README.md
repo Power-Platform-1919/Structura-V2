@@ -87,11 +87,14 @@ Then open a pull request into `dev`. See [Branches and deployment](#branches-and
 npm run lint       # ESLint: names that do not exist, code that cannot run, unused variables
 npm test           # unit tests (Node)
 npm run test:smoke # opens every fixture in a real browser
-npm run test:all   # the full smoke suite
-npm run ui:audit   # UI audit: themes, layout, accessibility
+npm run test:all   # unit tests, then every browser test (several at a time)
+npm run ui:audit   # UI audit: themes, layout, accessibility, random clicking
+npm run test:everything   # lint, unit tests, browser tests and UI audit, with a time for each step
 ```
 
-The same checks and tests run on GitHub for every pull request into `dev`, `test` and `prod` (`.github/workflows/ci.yml`).
+The same checks and tests run on GitHub for every pull request into `dev`, `test` and `prod` (`.github/workflows/ci.yml`). Lint and unit tests, the browser tests and the UI audit run as three jobs at the same time.
+
+Every test run prints a clock time for each test and a table of how long each took, slowest first, so it is easy to see where the time goes.
 
 The browser tests use [Playwright](https://playwright.dev). Set `PW_CHANNEL=msedge` to use an installed Edge instead of downloading Chromium.
 

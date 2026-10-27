@@ -38,6 +38,7 @@ class StructraHeader extends StructraComponent {
 
   render() {
     this.innerHTML = `
+      <h1 class="sr-only">Structra, a JSON analyzer</h1>
       <div class="brand">
         ${Structra.icons.svg('box')}
         Structra

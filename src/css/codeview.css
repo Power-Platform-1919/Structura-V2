@@ -39,6 +39,9 @@
 .cv .cm-editor .cm-matchingBracket, .cv .cm-editor.cm-focused .cm-matchingBracket { color: var(--text); background: var(--accent-soft); outline: 1px solid var(--accent); }
 .cv .cm-editor .cm-nonmatchingBracket, .cv .cm-editor.cm-focused .cm-nonmatchingBracket { color: var(--danger); background: transparent; }
 
+/* ----- characters that cannot be seen (zero-width, direction changing, control codes), drawn as a marker so they are never hidden ----- */
+.cv .cm-editor .cm-specialChar { color: var(--danger); background: var(--danger-soft); border-radius: 2px; }
+
 /* ----- a mistake the editor points at (for example the place where JSON stops being valid) ----- */
 .cv .cv-error { background: color-mix(in srgb, var(--danger) 25%, transparent); border-bottom: 2px solid var(--danger); }
 .cv .cv-error-line { background: color-mix(in srgb, var(--danger) 8%, transparent); }

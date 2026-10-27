@@ -30,7 +30,7 @@ class StructraSchema extends StructraComponent {
   }
 
   render() {
-    this.innerHTML = '<div class="schema-bar"><span class="schema-hint">Every field the file has. Click one to see its expressions.</span><button class="btn btn-sm" type="button" data-schema-copy title="Copy this as a JSON Schema, ready for the Parse JSON action">Copy schema</button></div><div class="schema-container" id="schemaContainer"></div>';
+    this.innerHTML = '<div class="schema-bar"><span class="schema-hint">Every field the file has. Click one to see its expressions.</span><button class="btn btn-sm" type="button" data-schema-copy title="Copy this as a JSON Schema, ready for the Parse JSON action">Copy schema</button></div><div class="schema-container" id="schemaContainer" tabindex="0" role="region" aria-label="Schema fields"></div>';
     this.renderSchema();
     // A field is a place in the document: click it to see its expressions, like a node in the Tree
     this.addEventListener('click', (event) => {

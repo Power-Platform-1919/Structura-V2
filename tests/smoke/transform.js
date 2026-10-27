@@ -13,6 +13,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const FIXTURES = path.join(ROOT, 'tests', 'fixtures');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
@@ -39,7 +41,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const failures = [];
 
   for (const file of DOCS) {
@@ -50,8 +52,7 @@ function serve() {
       await page.goto(base);
       await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
       await page.keyboard.press('Escape');
-      await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(FIXTURES, file));
-      await page.waitForTimeout(1200);
+      await uploadAndWait(page, path.join(FIXTURES, file));
       const original = await page.evaluate(() => JSON.stringify(Structra.state.jsonData));
 
       await page.evaluate(() => Structra.setState('queryPanelOpen', true));

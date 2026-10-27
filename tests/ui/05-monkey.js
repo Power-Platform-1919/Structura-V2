@@ -16,7 +16,8 @@ function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 10139
 main('05-monkey', async ({ browser, base, rep }) => {
   const seed = Number(process.env.SEED || 1);
   const steps = Number(process.env.STEPS || 160);
-  for (const fx of FIXTURES) {
+  // The documents are tried side by side, each in its own page and context, so the run takes as long as the slowest one
+  await Promise.all(FIXTURES.map(async (fx) => {
     const rnd = rng(seed + fx.length);
     const page = await newPage(browser);
     await open(page, base, fx);
@@ -89,7 +90,7 @@ main('05-monkey', async ({ browser, base, rep }) => {
     console.log(`${fx}: ${trail.length} actions, ${new Set(trail).size} different controls, ended in view ${await page.evaluate(() => Structra.state.activeView)}, ${await page.evaluate(() => Structra.tabs.list.length)} tab(s)`);
     await shot(page, `monkey-end-${fx}`);
     await page.context().close();
-  }
+  }));
   // Collapse repeats
   const seen = new Set();
   rep.list.splice(0, rep.list.length, ...rep.list.filter((f) => { const k = f.area + f.what.split('  after:')[0]; if (seen.has(k)) return false; seen.add(k); return true; }));

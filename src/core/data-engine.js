@@ -925,6 +925,8 @@ Structra.dataEngine = (() => {
 
   /** Store query result and notify views */
   function _setActiveQuery(result) {
+    // Every find (text, key, path, pattern, fuzzy) ends here, so Next and Previous always walk the matches in document order
+    if (Array.isArray(result.matchedPaths)) result.matchedPaths = _inDocumentOrder(result.matchedPaths);
     _activeFilter = result;
     Structra.events.emit('engine:filter-changed', result);
   }
@@ -1865,6 +1867,24 @@ Structra.dataEngine = (() => {
     if (Structra.sharedHelpers.isRiskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
     const expression = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
     return _findInMemory(dataset, pattern, expression);
+  }
+
+  /**
+   * Matches in the order they appear in the document: [2] before [10], not after it. Next and Previous walk this list, so the
+   * order it comes in (from the database, or from a search that ran in pieces) must not decide where Next goes first.
+   */
+  function _inDocumentOrder(paths) {
+    const keyed = paths.map((path) => ({ path, parts: path.split(/\[(\d+)\]/) }));   // text, number, text, number ...
+    keyed.sort((a, b) => {
+      const length = Math.min(a.parts.length, b.parts.length);
+      for (let i = 0; i < length; i++) {
+        if (a.parts[i] === b.parts[i]) continue;
+        if (i % 2) return Number(a.parts[i]) - Number(b.parts[i]);
+        return a.parts[i] < b.parts[i] ? -1 : 1;
+      }
+      return a.parts.length - b.parts.length;
+    });
+    return keyed.map((item) => item.path);
   }
 
   /** Store matched paths as the active find result */

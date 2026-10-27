@@ -12,6 +12,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const FIXTURES = path.join(ROOT, 'tests', 'fixtures');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
@@ -38,7 +40,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
   const failures = [];
   const errors = [];
@@ -52,8 +54,7 @@ function serve() {
     await page.keyboard.press('Escape');
     for (let i = 0; i < DOCS.length; i++) {
       if (i) await page.evaluate(() => Structra.events.emit('tabs:add'));
-      await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(FIXTURES, DOCS[i]));
-      await page.waitForTimeout(1100);
+      await uploadAndWait(page, path.join(FIXTURES, DOCS[i]));
     }
     let names = await order();
     if (names.join() !== DOCS.join()) failures.push('tabs are not in the order they were opened: ' + names.join());

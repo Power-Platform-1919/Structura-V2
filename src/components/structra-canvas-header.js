@@ -48,9 +48,9 @@ class StructraCanvasHeader extends StructraComponent {
           <span class="tb-label">Collapse</span>
         </button>
         <span class="tb-group-label" title="Show only this many levels">Levels</span>
-        <button class="toolbar-btn" data-action="depth-1" title="Show only the first level" aria-label="Show only the first level">1</button>
-        <button class="toolbar-btn" data-action="depth-2" title="Show two levels" aria-label="Show two levels">2</button>
-        <button class="toolbar-btn" data-action="depth-3" title="Show three levels" aria-label="Show three levels">3</button>
+        <button class="toolbar-btn" data-action="depth-1" title="Show only the first level" aria-label="Level 1: show only the first level">1</button>
+        <button class="toolbar-btn" data-action="depth-2" title="Show two levels" aria-label="Level 2: show two levels">2</button>
+        <button class="toolbar-btn" data-action="depth-3" title="Show three levels" aria-label="Level 3: show three levels">3</button>
       </div>
       <span class="sep"></span>
       <div class="canvas-right">
@@ -69,7 +69,7 @@ class StructraCanvasHeader extends StructraComponent {
           ${Structra.icons.svg('wrap-text')}
           <span class="tb-label">Wrap</span>
         </button>
-        <button class="toolbar-btn" data-action="copy-json" title="Copy the whole document as JSON" aria-label="Copy the document as JSON">
+        <button class="toolbar-btn" data-action="copy-json" title="Copy the whole document as JSON" aria-label="Copy JSON: the whole document">
           ${Structra.icons.svg('copy')}
           <span class="tb-label">Copy JSON</span>
         </button>

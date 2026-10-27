@@ -12,6 +12,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -36,7 +38,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
   const failures = [];
   const errors = [];
@@ -46,8 +48,7 @@ function serve() {
     await page.goto(base);
     await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
     await page.keyboard.press('Escape');
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
-    await page.waitForTimeout(1500);
+    await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await page.evaluate(() => Structra.setState('activeView', 'graph'));
     await page.waitForTimeout(600);
 
@@ -89,7 +90,8 @@ function serve() {
     await page.locator('.minimap-close').click();
     if (await page.evaluate(() => document.querySelector('#minimapContainer').style.display !== 'none')) failures.push('the Minimap close button does not close it');
     await page.evaluate(() => Structra.events.emit('diff:open', { left: { a: 1, b: 2, c: 3 }, right: { a: 1, b: 5, d: 4 } }));
-    await page.waitForTimeout(500);
+    // wait for the result itself (a busy computer takes longer), not a fixed time
+    await page.waitForFunction(() => /changed/.test((document.querySelector('#diffStats') || {}).textContent || ''), null, { timeout: 30000 }).catch(() => {});
     const stats = await page.evaluate(() => document.querySelector('#diffStats').textContent);
     if (!/added/.test(stats) || !/removed/.test(stats) || !/changed/.test(stats)) failures.push('the Diff counts should be labelled: "' + stats + '"');
   } catch (err) {

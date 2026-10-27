@@ -14,6 +14,7 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -38,7 +39,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
   const failures = [];
   const errors = [];
@@ -89,11 +90,12 @@ function serve() {
     // Compare offers the other open tab
     await load('two.json', JSON.stringify({ user: { name: 'Bo' }, count: 4 }));
     await page.evaluate(() => Structra.events.emit('diff:open', {}));
-    await page.waitForTimeout(500);
+    await page.waitForSelector('#diffRightSrc option[value^="tab:"]', { state: 'attached', timeout: 20000 }).catch(() => {});   // the other tab is offered
     const opts = await page.evaluate(() => [...document.querySelectorAll('#diffRightSrc option')].map((o) => o.value));
     if (!opts.some((v) => v.startsWith('tab:'))) failures.push('Compare should offer another open tab: ' + opts.join());
     await page.selectOption('#diffRightSrc', opts.find((v) => v.startsWith('tab:')));
-    await page.waitForTimeout(700);
+    // wait for the result itself (a busy computer takes longer), not a fixed time
+    await page.waitForFunction(() => /changed/.test((document.querySelector('#diffStats') || {}).textContent || ''), null, { timeout: 30000 }).catch(() => {});
     const stats = await page.evaluate(() => document.querySelector('#diffStats').textContent);
     if (!/changed/.test(stats) || /^0 added 0 removed 0 changed/.test(stats.trim())) failures.push('comparing two tabs should show differences: ' + stats);
     await page.keyboard.press('Escape');
