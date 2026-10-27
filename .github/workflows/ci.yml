@@ -69,7 +69,11 @@ jobs:
   other-browsers:
     name: Browser tests in ${{ matrix.engine }}
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 25
+    # Not required yet: this job is new, and its time is still being tuned. It reports, but a failure here does not block a merge.
+    # (The first run on GitHub lost 39 minutes installing the WebKit system packages, then was cancelled; the install step now
+    # has its own time limit, so a stall fails quickly and can be re-run.)
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -89,9 +93,11 @@ jobs:
           key: playwright-${{ matrix.engine }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install the browser
         if: steps.browser-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 8
         run: npx playwright install --with-deps ${{ matrix.engine }}
       - name: Install the system libraries the browser needs
         if: steps.browser-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 8
         run: npx playwright install-deps ${{ matrix.engine }}
       - name: Browser tests in ${{ matrix.engine }}
         run: node tests/run-smoke.js --engine=${{ matrix.engine }} 3
