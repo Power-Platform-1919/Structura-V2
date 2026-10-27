@@ -51,11 +51,11 @@ class StructraTree extends StructraComponent {
     this.renderTree();
   }
 
-  /** Up and Down move between lines, Right opens and Left closes a block, Enter selects the line */
+  /** Up and Down move between lines, PageUp and PageDown by a page, Right opens and Left closes a block, Enter selects the line */
   _bindKeys() {
     const view = this._getView();
     view.addEventListener('keydown', (event) => {
-      if (event.ctrlKey || event.metaKey || event.altKey || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Home', 'End'].includes(event.key)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) return;
       const lines = [...view.querySelectorAll('.j-line')].filter((line) => line.offsetParent !== null);
       if (!lines.length) return;
       event.preventDefault();
@@ -75,6 +75,11 @@ class StructraTree extends StructraComponent {
       const open = toggle && toggle.textContent.trim() === '\u25BC';
       if (event.key === 'ArrowDown') select(lines[Math.min(lines.length - 1, current + 1)]);
       else if (event.key === 'ArrowUp') select(lines[Math.max(0, current - 1)]);
+      else if (event.key === 'PageDown' || event.key === 'PageUp') {
+        // A page is the number of lines that fit, less one so the line before stays in view (CodeMirror's PageUp and PageDown do this)
+        const page = Math.max(1, Math.floor(view.clientHeight / (lines[0].offsetHeight || 22)) - 1);
+        select(lines[Math.max(0, Math.min(lines.length - 1, Math.max(current, 0) + (event.key === 'PageDown' ? page : -page)))]);
+      }
       else if (event.key === 'Home') select(lines[0]);
       else if (event.key === 'End') select(lines[lines.length - 1]);
       else if (event.key === 'ArrowRight') { if (toggle && !open) toggle.click(); else select(lines[Math.min(lines.length - 1, current + 1)]); }

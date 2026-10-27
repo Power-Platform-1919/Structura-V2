@@ -19,6 +19,7 @@
    Its width is set once for the biggest number in the file (--ln-digits, set by json-tree-renderer.js), so text lines up on every line: a digit is about 0.65 of the number font size wide, and the rest is the padding. */
 .json-view { --ln-width: calc(var(--ln-digits, 4) * 0.65 * var(--fs-xs) + var(--sp-2) + var(--sp-3) + 1px); }
 .json-view .j-line::before { content: attr(data-ln) / ""; position: sticky; left: 0; display: inline-block; width: var(--ln-width); box-sizing: border-box; margin-right: var(--sp-3); padding: 0 var(--sp-2) 0 var(--sp-3); text-align: right; color: var(--text-muted); user-select: none; border-right: 1px solid var(--border-subtle); font-size: var(--fs-xs); background: var(--surface-alt); z-index: 1; }
+.json-view .j-line.highlighted::before { color: var(--text); }
 .json-view.wrap-mode { white-space: pre-wrap; word-break: break-word; }
 .json-view.wrap-mode > * { width: auto; min-width: 0; }
 .json-view.wrap-mode .j-line { padding-left: calc(var(--ln-width) + var(--sp-3)); text-indent: calc(-1 * (var(--ln-width) + var(--sp-3))); }
@@ -29,6 +30,7 @@
 .j-key.j-key-hl { background: var(--syn-key-hl-bg); border-radius: 2px; box-shadow: 0 0 0 1px var(--syn-key-hl-ring); }
 .j-str { color: var(--syn-string); }
 .j-esc { color: var(--syn-escape); font-weight: 700; }
+.j-special { color: var(--danger); background: var(--danger-soft); border-radius: 2px; }
 .j-num { color: var(--syn-number); }
 .j-bool { color: var(--syn-boolean); }
 .j-null { color: var(--syn-null); }
