@@ -76,6 +76,16 @@ function serve() {
     r = await ask('jsonpath', '$..Value');
     if (countOf(r) < 4) failures.push('JSONPath $..Value should find at least 4 values, said: ' + r.summary);
 
+    // The standard's own forms and the pattern test (JSONPath is json-p3, plus the app's conveniences)
+    r = await ask('jsonpath', '$.value[?@.Cost > 100].Title');
+    if (countOf(r) !== 1 || !/Laptop/.test(r.rows[0].text)) failures.push('JSONPath filter without parentheses should find Laptop, said: ' + r.summary);
+    r = await ask('jsonpath', '$.value[?(@.Title =~ /^LAP/i)].Cost');
+    if (countOf(r) !== 1) failures.push('JSONPath =~ with the i flag should find 1, said: ' + r.summary);
+    r = await ask('jsonpath', '$.value[::-1].Title');
+    if (countOf(r) !== 3 || !/Parking/.test(r.rows[0].text)) failures.push('JSONPath [::-1] should list the items backwards, said: ' + r.summary + ' / ' + (r.rows[0] && r.rows[0].text));
+    r = await ask('jsonpath', '$.value[');
+    if (!r.error || !/character/.test(r.summary)) failures.push('a broken JSONPath should show an error that says where, said: ' + r.summary);
+
     r = await ask('regex', '^ann@');
     if (countOf(r) < 1) failures.push('Regex ^ann@ should find the email, said: ' + r.summary);
 

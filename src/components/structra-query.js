@@ -24,7 +24,7 @@ class StructraQuery extends StructraComponent {
   static get MODE_HELP() {
     return {
       path: { example: 'value[*].Title', hint: 'A path through the data. [*] means every item, so value[*].Title lists every Title.' },
-      jsonpath: { example: '$.value[?(@.Cost > 100)].Title', hint: 'JSONPath: $ is the document, [?(...)] keeps items that pass a test, $..name finds name at any depth.' },
+      jsonpath: { example: '$.value[?(@.Cost > 100)].Title', hint: 'JSONPath (the standard): $ is the document, [?(...)] keeps items that pass a test (== != < > && ||, and @.field =~ /pattern/i for text), $..name finds name at any depth, [::-1] goes backwards.' },
       regex: { example: '^[A-Z][a-z]+$', hint: 'Finds text values that match a pattern (not case sensitive).' },
       js: { example: 'data.value.filter(x => x.Approved)', hint: 'JavaScript where data is the whole document. It runs only in this browser.' },
       sql: { example: 'SELECT * FROM data LIMIT 100', hint: 'The open file is a table named data. Suggestions appear as you type (Tab or Enter picks one, Ctrl+Space asks for them). Ctrl+Enter runs. Select part of the text to run only that part. Queries only read the data, they never change it.' },
@@ -600,7 +600,7 @@ class StructraQuery extends StructraComponent {
 
     try {
       let matches = [];
-      if (this._mode === 'path' || this._mode === 'jsonpath') matches = Structra.jsonpathQuery.query(data, input);
+      if (this._mode === 'path' || this._mode === 'jsonpath') matches = await Structra.jsonpathQuery.query(data, input);
       else if (this._mode === 'regex') matches = this._queryRegex(data, input);
       else if (this._mode === 'js') {
         // The code is tried first in a separate thread, so one that never ends cannot freeze the page

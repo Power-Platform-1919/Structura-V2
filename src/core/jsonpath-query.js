@@ -1,243 +1,131 @@
 /**
  * JSONPath - find values by path.
  *
- *   Structra.jsonpathQuery.query(data, '$.value[*].Requester.Email')
+ *   await Structra.jsonpathQuery.query(data, '$.value[*].Requester.Email')
  *     → [{ path: '$.value[0].Requester.Email', value: 'ann@contoso.com' }, ...]
  *
- * Supported (the parts people use):
- *   $              the whole document (optional at the start: 'value[0].Title' works too)
- *   .key  ['key']  a field            .*  [*]  every field or item
- *   [2]  [-1]      an item            [0:3] [1:]  a range of items
- *   ..key          the field at any depth
- *   [?(@.Cost > 100 && @.Approved == true)]   items that pass a test (== != > >= < <= =~, && ||)
- *   ['a','b'] [0,2]  several at once
+ * The engine is json-p3 (MIT, src/libs/json-p3), which passes all 715 tests of the official JSONPath standard (RFC 9535).
+ * This file is the thin layer around it that keeps what people of this app are used to:
+ *   - the leading $ is optional:  'value[0].Title' works too
+ *   - a dot before an index:      'value.0.Title' works too (it is tried as [0], and as the key "0" when that finds nothing)
+ *   - a pattern test:             [?(@.Email =~ /^ann/i)]  (a real JavaScript pattern: \d, flags i m s; the standard's own
+ *                                 match() and search() work as well)
+ * and gives results the way the rest of the app reads them: a path like $.value[0]['odd key'].
+ *
+ * Where the standard and the old engine of this app differed, the standard wins:
+ *   - [?(@.Email)] is true when the field exists, also when its value is null (it used to skip null; write @.Email != null for that)
+ *   - == compares without converting: "5" and 5 are different (it used to treat them as equal)
+ *
+ *   await Structra.jsonpathQuery.queryStrict(data, expression)   the standard only, no conveniences (the compliance tool uses it)
  */
 Structra.jsonpathQuery = (() => {
+  const SIMPLE_KEY = /^[A-Za-z_$][\w$]*$/;
+  const LOGICAL_TYPE = 1;
+  const VALUE_TYPE = 3;
 
-  /* ---------- reading the expression ---------- */
+  /* ---------- results the way the app reads them ---------- */
 
-  function parse(expression) {
-    const source = String(expression).trim();
-    let i = 0;
-    const steps = [];
-    const fail = (message) => { throw new Error(`${message} (at character ${i + 1} of "${source}")`); };
+  const childPath = (path, key) => (typeof key === 'number' ? `${path}[${key}]` : (SIMPLE_KEY.test(key) ? `${path}.${key}` : `${path}['${String(key).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}']`));
+  const pathOf = (location) => location.reduce((path, key) => childPath(path, key), '$');
 
-    if (source[i] === '$') i++;
-    while (i < source.length) {
-      if (source.startsWith('..', i)) {
-        i += 2;
-        steps.push({ type: 'descend' });
-        if (source[i] === '[') continue;                       // ..[?(...)]
-        if (source[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
-        const name = readName();
-        if (!name) fail('Expected a field name after ..');
-        steps.push({ type: 'keys', keys: [name] });
-      } else if (source[i] === '.') {
-        i++;
-        if (source[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
-        const name = readName();
-        if (!name) fail('Expected a field name after .');
-        steps.push({ type: 'keys', keys: [name] });
-      } else if (source[i] === '[') {
-        steps.push(readBracket());
-      } else if (steps.length === 0 || /\s/.test(source[i])) {
-        // 'value[0].Title' or '*.email' without the leading $
-        if (/\s/.test(source[i])) { i++; continue; }
-        if (source[i] === '*') { i++; steps.push({ type: 'wild' }); continue; }
-        const name = readName();
-        if (!name) fail('Unexpected character');
-        steps.push({ type: 'keys', keys: [name] });
-      } else {
-        fail('Unexpected character');
-      }
-    }
-    return steps;
+  /* ---------- the engine ---------- */
 
-    function readName() {
-      const match = /^[^.\[\]\s,()=<>!&|*]+/.exec(source.slice(i));
-      if (!match) return '';
-      i += match[0].length;
-      return match[0];
-    }
+  let environment = null;
 
-    function readBracket() {
-      i++;                                                   // [
-      while (source[i] === ' ') i++;
-      if (source[i] === '*') { i++; closeBracket(); return { type: 'wild' }; }
-      if (source[i] === '?') {
-        i++;
-        if (source[i] === '(') {
-          let depth = 0, start = i;
-          for (; i < source.length; i++) {
-            if (source[i] === '(') depth++;
-            else if (source[i] === ')' && --depth === 0) { i++; break; }
-            else if (source[i] === '"' || source[i] === "'") { const quote = source[i]; i++; while (i < source.length && source[i] !== quote) i++; }
-          }
-          const body = source.slice(start + 1, i - 1);
-          closeBracket();
-          return { type: 'filter', test: parseTest(body) };
+  async function load() {
+    if (environment) return environment;
+    const library = await Structra.libraryLoader.loadLibrary('jsonp3');
+    // The library stops a descendant search (..) at 100 levels by default; real files go deeper. The engine's own stack gives out near 3,000.
+    environment = new library.JSONPathEnvironment({ maxRecursionDepth: 100000 });
+    // =~ in a filter is turned into regex(@.field, 'pattern', 'flags'): the standard's match() and search() only know a small
+    // pattern language (no \d, no flags), and people write ordinary JavaScript patterns
+    const compiled = new Map();
+    environment.functions.regex = {
+      argTypes: [VALUE_TYPE, VALUE_TYPE, VALUE_TYPE],
+      returnType: LOGICAL_TYPE,
+      call(value, pattern, flags) {
+        if (typeof value !== 'string' || typeof pattern !== 'string') return false;
+        const key = flags + '/' + pattern;
+        let expression = compiled.get(key);
+        if (expression === undefined) {
+          // A pattern that can run for ever on some text must not freeze the page
+          if (Structra.sharedHelpers.isRiskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
+          try { expression = new RegExp(pattern, typeof flags === 'string' ? flags : ''); } catch { expression = null; }
+          compiled.set(key, expression);
         }
-        fail('A filter looks like [?(@.field == "value")]');
-      }
-      // names, numbers, slices, separated by commas
-      const items = [];
-      for (;;) {
-        while (source[i] === ' ') i++;
-        if (source[i] === "'" || source[i] === '"') {
-          const quote = source[i++]; let text = '';
-          while (i < source.length && source[i] !== quote) { if (source[i] === '\\') i++; text += source[i++]; }
-          if (source[i] !== quote) fail('A quote is not closed');
-          i++;
-          items.push({ key: text });
-        } else {
-          const match = /^(-?\d*)(?::(-?\d*))?(?::(-?\d*))?/.exec(source.slice(i));
-          if (!match || !match[0]) fail('Expected a number, a range or a quoted name');
-          i += match[0].length;
-          if (match[0].includes(':')) items.push({ slice: [match[1] === '' ? null : +match[1], match[2] === undefined || match[2] === '' ? null : +match[2], match[3] === undefined || match[3] === '' ? 1 : +match[3]] });
-          else items.push({ index: +match[1] });
-        }
-        while (source[i] === ' ') i++;
-        if (source[i] === ',') { i++; continue; }
-        break;
-      }
-      closeBracket();
-      return { type: 'select', items };
-    }
-
-    function closeBracket() {
-      while (source[i] === ' ') i++;
-      if (source[i] !== ']') fail('Expected ]');
-      i++;
-    }
-  }
-
-  /* ---------- filters: @.a.b == 3 && @.c ---------- */
-
-  function parseTest(body) {
-    // split on || first, then &&, outside quotes
-    const splitOn = (text, operation) => {
-      const out = []; let current = '', quote = null;
-      for (let position = 0; position < text.length; position++) {
-        const character = text[position];
-        if (quote) { current += character; if (character === quote) quote = null; continue; }
-        if (character === '"' || character === "'") { quote = character; current += character; continue; }
-        if (text.startsWith(operation, position)) { out.push(current); current = ''; position += operation.length - 1; continue; }
-        current += character;
-      }
-      out.push(current);
-      return out;
+        return expression ? expression.test(value) : false;
+      },
     };
-    const orGroups = splitOn(body, '||').map((part) => splitOn(part, '&&').map(parseComparison));
-    return (node) => orGroups.some((andGroup) => andGroup.every((predicate) => predicate(node)));
+    return environment;
   }
 
-  function parseComparison(text) {
-    const condition = text.trim();
-    const match = /^(@[^\s=!<>~]*)\s*(==|!=|>=|<=|=~|>|<)\s*(.+)$/.exec(condition);
-    const read = (reference) => {
-      const keys = reference.replace(/^@\.?/, '').split('.').filter(Boolean);
-      return (node) => keys.reduce((value, index) => (value === null || value === undefined ? undefined : value[index]), node);
-    };
-    if (!match) {
-      if (/^!?@[\w$.]*$/.test(condition)) { const isNegated = condition[0] === '!'; const get = read(condition.replace(/^!/, '')); return (node) => (get(node) !== undefined && get(node) !== null && get(node) !== false) !== isNegated; }
-      throw new Error(`Cannot read the filter test "${condition}". Try @.field == "value"`);
-    }
-    const get = read(match[1]);
-    const literalValue = literal(match[3].trim());
-    const operation = match[2];
-    return (node) => {
-      const found = get(node);
-      switch (operation) {
-        case '==': return found === literalValue || (found != null && literalValue != null && typeof found !== 'object' && String(found) === String(literalValue));
-        case '!=': return !(found === literalValue || (found != null && literalValue != null && typeof found !== 'object' && String(found) === String(literalValue)));
-        case '>': return found > literalValue;
-        case '>=': return found >= literalValue;
-        case '<': return found < literalValue;
-        case '<=': return found <= literalValue;
-        case '=~': return typeof found === 'string' && literalValue instanceof RegExp && literalValue.test(found);
-        default: return false;
+  /* ---------- the conveniences, written as the standard's own syntax ---------- */
+
+  /** @.field =~ /pattern/flags  →  regex(@.field, 'pattern', 'flags') */
+  function rewritePatternTests(source) {
+    return source.replace(/(@[^\s=!<>~&|()]*)\s*=~\s*\/((?:\\.|[^/\\])+)\/([a-z]*)/g, (whole, reference, pattern, flags) => {
+      const quote = (text) => "'" + text.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+      return `regex(${reference}, ${quote(pattern)}, ${quote(flags)})`;
+    });
+  }
+
+  /** .0 between names: tried as [0] first, as ['0'] when that finds nothing (a key can be a number) */
+  function dotNumbers(source, form) {
+    let out = '', depth = 0, quote = null, found = false;
+    for (let i = 0; i < source.length; i++) {
+      const character = source[i];
+      if (quote) { out += character; if (character === '\\') { out += source[++i] || ''; } else if (character === quote) quote = null; continue; }
+      if (character === '"' || character === "'") { quote = character; out += character; continue; }
+      if (character === '[' || character === '(') depth++;
+      else if (character === ']' || character === ')') depth--;
+      else if (character === '.' && depth === 0 && source[i - 1] !== '.' && source[i + 1] !== '.') {
+        const number = /^\d+(?![\w$])/.exec(source.slice(i + 1));
+        if (number) { out += form(number[0]); i += number[0].length; found = true; continue; }
       }
-    };
-  }
-
-  function literal(text) {
-    if (/^(['"]).*\1$/.test(text)) return text.slice(1, -1);
-    if (text === 'true') return true;
-    if (text === 'false') return false;
-    if (text === 'null') return null;
-    if (/^-?\d+(\.\d+)?$/.test(text)) return Number(text);
-    const pattern = /^\/(.*)\/([a-z]*)$/.exec(text);
-    if (pattern) return new RegExp(pattern[1], pattern[2]);
-    return text;
-  }
-
-  /* ---------- running it ---------- */
-
-  const childPath = (path, key) => (typeof key === 'number' ? `${path}[${key}]` : (/^[A-Za-z_$][\w$]*$/.test(key) ? `${path}.${key}` : `${path}['${String(key).replace(/'/g, "\\'")}']`));
-  const children = (node) => {
-    const value = node.value;
-    if (Array.isArray(value)) return value.map((x, i) => ({ path: childPath(node.path, i), value: x, key: i }));
-    if (value && typeof value === 'object') return Object.keys(value).map((key) => ({ path: childPath(node.path, key), value: value[key], key: key }));
-    return [];
-  };
-
-  function query(data, expression) {
-    const steps = parse(expression);
-    let nodes = [{ path: '$', value: data }];
-    for (const step of steps) {
-      const next = [];
-      for (const node of nodes) {
-        const value = node.value;
-        if (step.type === 'keys') {
-          if (value && typeof value === 'object' && !Array.isArray(value)) {
-            for (const key of step.keys) if (Object.prototype.hasOwnProperty.call(value, key)) next.push({ path: childPath(node.path, key), value: value[key] });
-          } else if (Array.isArray(value) && /^\d+$/.test(step.keys[0])) {
-            const index = Number(step.keys[0]);
-            if (index < value.length) next.push({ path: childPath(node.path, index), value: value[index] });
-          }
-        } else if (step.type === 'wild') {
-          next.push(...children(node));
-        } else if (step.type === 'descend') {
-          const stack = [node];
-          while (stack.length) {
-            const node = stack.shift();
-            next.push(node);
-            stack.unshift(...children(node));
-          }
-        } else if (step.type === 'select') {
-          for (const item of step.items) {
-            if (item.key !== undefined) {
-              if (value && typeof value === 'object' && !Array.isArray(value) && Object.prototype.hasOwnProperty.call(value, item.key)) next.push({ path: childPath(node.path, item.key), value: value[item.key] });
-            } else if (Array.isArray(value)) {
-              if (item.index !== undefined) {
-                const index = item.index < 0 ? value.length + item.index : item.index;
-                if (index >= 0 && index < value.length) next.push({ path: childPath(node.path, index), value: value[index] });
-              } else {
-                // Slice rules of RFC 9535: a negative step walks backwards ([::-1] reverses), a step of 0 selects nothing.
-                // (A negative step used to loop forever and freeze the page.)
-                const [start, end, sliceStep] = item.slice;
-                const length = value.length;
-                const fromEnd = (n) => (n < 0 ? length + n : n);
-                if (sliceStep > 0) {
-                  const lower = start === null ? 0 : Math.min(Math.max(fromEnd(start), 0), length);
-                  const upper = end === null ? length : Math.min(Math.max(fromEnd(end), 0), length);
-                  for (let index = lower; index < upper; index += sliceStep) next.push({ path: childPath(node.path, index), value: value[index] });
-                } else if (sliceStep < 0) {
-                  const upper = start === null ? length - 1 : Math.min(Math.max(fromEnd(start), -1), length - 1);
-                  const lower = end === null ? -1 : Math.min(Math.max(fromEnd(end), -1), length - 1);
-                  for (let index = upper; index > lower; index += sliceStep) next.push({ path: childPath(node.path, index), value: value[index] });
-                }
-              }
-            }
-          }
-        } else if (step.type === 'filter') {
-          for (const child of children(node)) if (child.value !== null && typeof child.value === 'object' ? step.test(child.value) : step.test(child.value)) next.push(child);
-        }
-      }
-      nodes = next;
+      out += character;
     }
-    return nodes.map(({ path, value }) => ({ path, value }));
+    return { text: out, found };
   }
 
-  return { query, parse };
+  function prepare(expression) {
+    let source = String(expression).trim();
+    source = rewritePatternTests(source);
+    if (!source.startsWith('$')) source = source.startsWith('[') ? '$' + source : (source.startsWith('.') ? '$' + source : '$.' + source);
+    const asIndex = dotNumbers(source, (number) => `[${number}]`);
+    const asKey = dotNumbers(source, (number) => `['${number}']`);
+    return { changed: source !== String(expression), index: asIndex.text, key: asKey.found ? asKey.text : null };
+  }
+
+  /** The library's message, with where it went wrong when the text is the one the person wrote */
+  function explain(error, expression, changed) {
+    if (error instanceof RangeError) return new Error('This document is nested too deeply for this query');
+    const span = error && error.span;
+    const at = Array.isArray(span) ? span[0] : (span && typeof span === 'object' ? span.start : span);
+    const where = !changed && Number.isInteger(at) ? ` (at character ${at + 1} of "${expression}")` : (changed ? ` (in "${expression}")` : '');
+    return new Error(String((error && error.message) || error).replace(/\s+$/, '') + where);
+  }
+
+  const toMatches = (nodes) => nodes.map((node) => ({ path: pathOf(node.location), value: node.value }));
+
+  async function query(data, expression) {
+    const engine = await load();
+    const prepared = prepare(expression);
+    try {
+      let found = toMatches(engine.find(prepared.index, data));
+      if (!found.length && prepared.key) found = toMatches(engine.find(prepared.key, data));
+      return found;
+    } catch (error) {
+      throw explain(error, String(expression).trim(), prepared.changed);
+    }
+  }
+
+  async function queryStrict(data, expression) {
+    const engine = await load();
+    return toMatches(engine.find(expression, data));
+  }
+
+  // The engine is a small file: fetch it when the page is idle, so the first query does not wait for it
+  if (Structra.sharedHelpers && Structra.sharedHelpers.runWhenIdle && typeof document !== 'undefined') Structra.sharedHelpers.runWhenIdle(() => { load().catch(() => { /* loaded again when a query needs it */ }); });
+
+  return { query, queryStrict };
 })();
