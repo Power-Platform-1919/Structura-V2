@@ -135,13 +135,22 @@ function serve() {
     // ---- Drawer: nothing without a document, one click folds it, and it can never take over the window ----
     const drawer = await page.evaluate(async () => {
       const d = document.querySelector('structra-drawer');
+      // The drawer animates: wait until its height has stopped changing (a fixed wait is too short on a busy computer)
+      const settled = async () => {
+        let last = -1, steady = 0;
+        for (let i = 0; i < 200 && steady < 5; i++) {
+          await new Promise((r) => requestAnimationFrame(r));
+          const now = d.getBoundingClientRect().height;
+          steady = now === last ? steady + 1 : 0;
+          last = now;
+        }
+        return last;
+      };
       const h0 = d.getBoundingClientRect().height;
       d.querySelector('[data-action="cycle"]').click();
-      await new Promise((r) => setTimeout(r, 400));
-      const folded = d.getBoundingClientRect().height;
+      const folded = await settled();
       d.querySelector('[data-action="cycle"]').click();
-      await new Promise((r) => setTimeout(r, 400));
-      const reopened = d.getBoundingClientRect().height;
+      const reopened = await settled();
       return { open: h0, folded, reopened, window: innerHeight, hiddenBefore: false };
     });
     if (!(drawer.folded < 60)) failures.push(`Drawer: one click on the arrow should fold it away, it is ${drawer.folded}px`);
