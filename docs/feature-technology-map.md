@@ -634,11 +634,43 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ## 8. Gap audit: where our code misses cases that mature code handles
 
-You named two directions, and both need checking. Direction 1: replace our code where mature code is better. Direction 2: keep our code where it is the right idea, but add the cases and break points that mature code already handles, which we may not have thought of. Direction 2 is the easy one to miss, because nothing looks wrong until the odd input arrives.
+### 8.0 The rule
+
+For every hand-written area we ask one question: **which is better, ours or the mature option?**
+
+1. **Mature is better: replace ours.** (Examples: JSONPath, the CSV writer, the error place reader.)
+2. **Ours is better** (it is tuned to this app, or nothing equivalent exists): **keep it, and add to it the cases and break points that mature code already handles**, so we do not miss them. The mature code and its test suites are the checklist, not the replacement. (Examples: the path model, the Power Platform expressions, the Parse JSON schema generator, the type generator, the Overview insights.)
+
+The second kind is the easy one to miss, because nothing looks wrong until the odd input arrives. It applies only where ours is the better choice; where mature code wins, we replace and there is nothing to harden.
+
+Sorting the audit results by this rule:
+
+| Area | Which is better | Direction | Section |
+|---|---|---|---|
+| JSONPath | json-p3 | Replace (done, PR #7) | 3.3 |
+| Where JSON is invalid | jsonc-parser | Replace (Editor done; input panel to do) | 3.14 |
+| CSV export | PapaParse `unparse` | Replace our writer | 3.18 |
+| Regex freeze protection | a worker with a time limit (and optionally recheck) | Replace our guess-based guard | 3.19 |
+| Table scrollbar and grid | virtual-core for the arithmetic, the WAI-ARIA grid pattern | Replace the arithmetic, keep and harden the rest | 3.2 |
+| Tree | CodeMirror (option) | Replace behind a switch; Classic stays and is hardened | 3.1 |
+| Path model (the dotted form, the Power Platform formatters) | ours: no library knows our path language | **Keep and harden**: borrow JSON Pointer and normalized path rules | 3.17 |
+| Power Automate and Power Fx expressions | ours: nothing else exists | **Keep and harden** (quoting, nulls, odd keys; checked against Microsoft's syntax rules) | 8.3 |
+| Parse JSON schema generator | ours: tuned for the Parse JSON action | **Keep and harden** against the official JSON Schema suite and genson or quicktype on optional and nullable cases | 8.3 |
+| Type code generator | ours: merges all rows, remembers nullable fields | **Keep and harden** (compile the output with real compilers; keywords and identifiers per language) | 8.3 |
+| Overview insights, quality score, key coverage | ours: the product's main idea | **Keep and harden** (edge cases: empty lists, mixed types, huge arrays) | 8.3 |
+| Number safety (`protectBigNumbers`) | ours: JSON.parse alone cannot do it | **Keep and harden** (JSONTestSuite and number edge cases; already passes 14 of 14) | 8.3 |
+| CSV cell typing (`csv-typing.js`) | ours: thousands separators, decimals kept | **Keep and harden** (csv-spectrum cases) | 8.3 |
+| XML mapping (JSON to and from XML) | our own mapping rules | **Keep and harden** (well-formedness, name collisions, attributes, CDATA) | 8.3 |
+| Fuzzy search over data values | ours: a different job than list matching | **Keep and harden** (compare recall with uFuzzy and Fuse on typos) | 8.3 |
+| Personal data masking | ours: small and tuned | **Keep and harden** (Luhn check for cards, tighter phone pattern) | 8.3 |
+| Charts, Graph, Minimap, Heatmap | ours: small and tuned | **Keep and harden** (empty, single value, huge or negative values) | 8.3 |
+| Undo, bookmarks, history, tabs, theme engine | ours | **Keep and harden** (limits and odd states; undo moves to differences later) | 3.11 |
+
+The audits below follow this sorting: a "replace" area is fixed by replacing; a "keep and harden" area gets its mature oracle turned into permanent tests, and every failure becomes a fix to our code.
 
 ### 8.1 Method
 
-For each hand-written area, find an **oracle**: a standard, an official test suite, or a mature library that answers the same question. Run our code against it with awkward input (hostile keys, huge numbers, odd whitespace, Unicode, very large files). Anything that disagrees is either a bug to fix or a reason to replace our code. Then keep the check as a permanent test, so it cannot regress.
+For each hand-written area that we keep, find an **oracle**: a standard, an official test suite, or a mature library that answers the same question. Run our code against it with awkward input (hostile keys, huge numbers, odd whitespace, Unicode, very large files). Anything that disagrees is either a bug to fix or a reason to replace our code. Then keep the check as a permanent test, so it cannot regress.
 
 ### 8.2 Audits already run
 
