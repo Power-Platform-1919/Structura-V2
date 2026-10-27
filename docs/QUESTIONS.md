@@ -8,13 +8,9 @@ All questions in one place. Answer when you like, in any order, as we develop. N
 
 ## Open
 
-| Id | Question | Options | My recommendation (and default) | Blocks |
-|---|---|---|---|---|
-| Q3 | **Path model.** You asked for clarity: see the explanation below. A or B? | **A** or **B** | A | 18.1 |
-| Q18 | **Offline install.** You asked if this is about using the app without internet: yes, see the explanation below. Wanted? | **yes** or **no** | no for now (optional later) | 18.4.9 |
-| Q21 | **Archive folder.** I will create `archive/` at the top of the repository (outside `src`, so it is never shipped, linted or published) with a README that says what is in it, why, and the date, so we can review and delete later. It will hold `structra-v2.html`, `samples/`, `engine-worker.js` and the old `virtual-list.js`. Fine? | **yes** or another name | yes | 18.4 |
+None right now.
 
-### Q3 in plain words: what is the "path model"?
+### Q3 in plain words (answered: A): what is the "path model"?
 
 Every value in a document has an address, like "the Title of the first item in the list called value": `value[0].Title`. The Tree, Find, the Table, Compare, the Query panel and the Power Automate expressions all need to agree on how an address is written and read.
 
@@ -27,7 +23,7 @@ Every value in a document has an address, like "the Title of the first item in t
 
 **Option B:** change what is stored inside to an official standard called JSON Pointer (`/value/0/@odata.etag`), which has no ambiguity at all, and turn it into the readable form only for display. Cleaner in theory, but every saved bookmark, session and workspace file has to be converted and every part that reads addresses changes.
 
-### Q18 in plain words: offline install
+### Q18 in plain words (answered: no for now): offline install
 
 The app already makes **no outside requests** while it runs: fonts, icons and libraries are all served from the app's own folder, and your data never leaves the page. But to **open** the page you still need to reach the site (or a local server) at least once, and a browser may drop its cached copy. A **service worker** (a small background script) plus a **web manifest** would let the browser keep the whole app so it opens with **no internet at all**, even after a restart, and would offer "Install" so it looks like a normal desktop app. It is optional, small to add, and has one cost: after each release, installed copies must update themselves, which needs a little care.
 
@@ -67,3 +63,6 @@ D1 (real Parse JSON schemas) and D2 (real flows) came from your own developer en
 | 2026-10-27 | Q17 | Content-Security-Policy | "go with your recommendation" | decide after the sandbox worker; study only for now |
 | 2026-10-27 | Q19 | DuckDB upgrade | "if it improves the performance then upgrade else wait" | benchmark the current against the newest, decide by numbers (22.2) |
 | 2026-10-27 | Q20 | Bug report button | "yes, along with raising an issue when we receive a bug report, but future things" | later: a button that opens a prefilled GitHub issue (task 28) |
+| 2026-10-27 | Q3 | Path model | "proceed with your recommendation" | option A: keep the dotted form, one writer, one reader (18.1) |
+| 2026-10-27 | Q18 | Offline install | "proceed with your recommendation" | no for now; stays on the watch list (30.5) |
+| 2026-10-27 | Q21 | Archive folder | "proceed with your recommendation" | `archive/` at the repo root (18.4) |

@@ -2312,13 +2312,13 @@
         {
           "id": "18.1",
           "title": "One path model (3.17): keep our dotted form, one writer, one reader, tested against hostile keys",
-          "status": "todo",
+          "status": "in_progress",
           "subtasks": [
             {
               "id": "18.1.1",
               "title": "DECISION: option A (keep the dotted form, recommended) or option B (JSON Pointer inside)",
-              "status": "blocked",
-              "note": "waiting for you (Q3: explained in docs/QUESTIONS.md)"
+              "status": "done",
+              "note": "Q3: option A chosen"
             },
             {
               "id": "18.1.2",
@@ -4010,7 +4010,7 @@
           "id": "30.5",
           "title": "Offline install: if you want it (Q18)",
           "status": "blocked",
-          "note": "watch"
+          "note": "Q18: no for now; optional later"
         },
         {
           "id": "30.6",
