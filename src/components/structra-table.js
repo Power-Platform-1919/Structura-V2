@@ -2,16 +2,20 @@
    STRUCTRA V2 - Table View Component
    <structra-table> - tabular data view with:
    - Engine-backed sorting + pagination
-   - Virtual scrolling via Structra.virtualList for large datasets
+   - Long lists drawn a window at a time (only the rows on screen are in the page) with a true scrollbar (@tanstack/virtual-core)
    - Sticky header, row selection, column sort indicators
-   - Page-size selector + keyboard navigation
+   - A grid for screen readers and the keyboard (the WAI-ARIA grid pattern): arrows, Home, End, Page keys, Enter, Shift+F10
+   - Follows the selected path (from the Tree, the path bar or Find)
+   - Page-size selector
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Listens to: state:jsonData, view:switched, engine:ingested, settings:changed,
-          engine:filter-changed
+          engine:filter-changed, state:currentPath
      Emits: tree:node-selected, charts:open
      Sets state: currentPath
    ============================================================ */
+
+const NO_RECORDS = '<tr><td style="color:var(--text-muted);padding:var(--sp-4)">There is no list of records in this file to show as a table. Use the Tree to browse it.</td></tr>';
 
 class StructraTable extends StructraComponent {
   static get observedAttributes() { return ['path']; }
@@ -26,9 +30,16 @@ class StructraTable extends StructraComponent {
     this._keys = [];
     this._basePath = '$';
     this._rows = null;       // Full sorted array reference (for virtual scroll)
-    this._vlist = null;       // VirtualList controller (if active)
-    this._ROW_HEIGHT = 32;    // Estimated row height in px for virtual scroll
-    this._VIRTUAL_THRESHOLD = 200; // Use virtual scroll above this many rows
+    this._virtualizer = null; // the window of a long list, while one is shown
+    this._rowHeight = 32;     // the height of one row, measured from a real row once drawn (every row is one line)
+    this._VIRTUAL_THRESHOLD = 200;      // above this many rows the list scrolls as one, drawn a window at a time
+    // A browser cannot make an element taller than about 17 million pixels (Firefox) or 33 million (Chrome), and the scrollbar is
+    // as long as all the rows: 400,000 rows of 32 px is 12.8 million. A longer list is shown a page at a time.
+    this._MAX_WINDOWED_ROWS = 400000;
+    this._active = { row: -1, col: 0 };   // the cell the keyboard is on: row -1 is the header
+    this._selectedRowPath = null;
+    this._renderToken = 0;
+    this._listening = false;
     this._colFilters = {};    // {colName: filterValue}
     this._hiddenCols = new Set();
     this._colOrder = null;            // array of column names, or null for data order
@@ -49,6 +60,8 @@ class StructraTable extends StructraComponent {
       this._colOrder = null;
       this._expanded = new Map();
       this._expandParent = new Map();
+      this._selectedRowPath = null;
+      this._active = { row: -1, col: 0 };
       Structra.log.debug('Table', 'jsonData changed - stale=true');
       if (Structra.state.activeView === 'table') this.renderTable();
     });
@@ -56,6 +69,8 @@ class StructraTable extends StructraComponent {
       if (view === 'table' && this._stale) {
         Structra.log.info('Table', 'View switched to table - rendering');
         this.renderTable();
+      } else if (view === 'table') {
+        this._followPath(Structra.state.currentPath);       // a row chosen in another view while this one was hidden
       }
     });
     this.on('engine:ingested', () => {
@@ -76,13 +91,15 @@ class StructraTable extends StructraComponent {
       this._page = 0;
       if (Structra.state.activeView === 'table') this.renderTable();
     });
+    // A row selected elsewhere (the Tree, the path bar, Find) is shown here: marked, and scrolled to
+    this.on('state:currentPath', (change) => this._followPath(change.value));
   }
 
   render() {
     this.innerHTML = `
       <div class="table-container" id="tableContainer">
         <div class="table-toolbar" id="tablePager"></div>
-        <div class="table-scroll" id="tableScroll" tabindex="0" role="region" aria-label="Table rows">
+        <div class="table-scroll" id="tableScroll" role="region" aria-label="Table rows">
           <table class="data-table">
             <thead id="tableHead"></thead>
             <tbody id="tableBody"></tbody>
@@ -90,6 +107,8 @@ class StructraTable extends StructraComponent {
         </div>
       </div>`;
     this.renderTable();
+    if (this._listening) return;      // render() can run again (an attribute changed): the listeners below are added once
+    this._listening = true;
 
     this.addEventListener('click', (event) => {
       // Column filter icon (must be checked BEFORE th sort)
@@ -103,6 +122,7 @@ class StructraTable extends StructraComponent {
       const header = event.target.closest('th[data-col]');
       if (header) {
         const column = header.dataset.col;
+        this._active = this._positionOf(header);
         if (this._sortCol === column) this._sortAsc = !this._sortAsc;
         else { this._sortCol = column; this._sortAsc = true; }
         this._page = 0;
@@ -124,15 +144,11 @@ class StructraTable extends StructraComponent {
         this.renderTable();
         return;
       }
-      // Row selection
+      // Row selection; the clicked cell is where the keyboard continues from
+      const cell = event.target.closest('tbody td');
       const row = event.target.closest('tbody tr[data-path]');
-      if (row) {
-        this.queryAll('tbody tr.row-sel').forEach(row => row.classList.remove('row-sel'));
-        row.classList.add('row-sel');
-        this._selectedRowPath = row.dataset.path;
-        Structra.setState('currentPath', row.dataset.path);
-        Structra.events.emit('tree:node-selected', row.dataset.path);
-      }
+      if (cell) this._setActiveFromCell(cell);
+      if (row) this._selectRow(row);
     });
 
     // Column header right-click menu
@@ -143,6 +159,8 @@ class StructraTable extends StructraComponent {
         this._showColumnMenu(event.clientX, event.clientY, header.dataset.col);
       }
     });
+
+    this.addEventListener('keydown', (event) => this._onKeyDown(event));
   }
 
   /* ======== DATA RESOLUTION ======== */
@@ -285,9 +303,12 @@ class StructraTable extends StructraComponent {
     Structra.log.info('Table', 'renderTable()');
     const startTime = performance.now();
 
-    // Destroy previous virtual list if any, and the row groups it added to the table
-    if (this._vlist) { this._vlist.destroy(); this._vlist = null; }
-    this.queryAll('table.data-table > tbody.vl-chunk, table.data-table > tbody.vl-sentinel').forEach((element) => element.remove());
+    // The window of the last list goes; a render still waiting for the helper to load is told it is out of date
+    this._destroyWindow();
+    this._windowFailed = false;
+    const token = ++this._renderToken;
+    if (this.contains(document.activeElement) && document.activeElement.closest('table.data-table')) this._wantFocus = true;   // the focus comes back to the same cell
+    this._setGrid(false);
 
     const head = this.queryOne('#tableHead');
     const body = this.queryOne('#tableBody');
@@ -306,12 +327,19 @@ class StructraTable extends StructraComponent {
         return;
       }
       head.innerHTML = '';
-      body.innerHTML = '<tr><td style="color:var(--text-muted);padding:var(--sp-4)">There is no list of records in this file to show as a table. Use the Tree to browse it.</td></tr>';
+      body.innerHTML = NO_RECORDS;
       if (pager) pager.innerHTML = '';
       return;
     }
 
     const { allRows, totalRows, keys, basePath } = resolved;
+    // A list of plain values (numbers, text) has no columns: rows without cells would be a grid of nothing
+    if (!keys.length) {
+      head.innerHTML = '';
+      body.innerHTML = NO_RECORDS;
+      if (pager) pager.innerHTML = '';
+      return;
+    }
     this._totalRows = totalRows;
     this._keys = keys;
     this._basePath = basePath;
@@ -322,19 +350,22 @@ class StructraTable extends StructraComponent {
     this._applyColumnWidths(keys, allRows);
 
     // Render toolbar (show filter indicator if filtered)
+    this._lastFiltered = !!resolved.filtered;
     this._renderToolbar(pager, totalRows, !!resolved.filtered);
+    // The keyboard position stays on the list: a shorter list or fewer columns brings it back inside
+    if (this._active.row >= totalRows) this._active = { row: -1, col: this._active.col };
+    this._active.col = Math.min(this._active.col, Math.max(0, (this._visibleKeys || keys).length - 1));
 
     if (totalRows === 0 && resolved.filtered) {
       body.innerHTML = `<tr class="table-empty"><td colspan="${Math.max(1, keys.length)}">No rows match the filter. Change the condition or press Clear.</td></tr>`;
       return;
     }
 
-    // Choose rendering strategy
-    if (totalRows > this._VIRTUAL_THRESHOLD) {
-      this._renderVirtual(body, allRows, keys, basePath, totalRows);
-    } else {
-      this._renderPage(body, allRows, keys, basePath, totalRows);
-    }
+    // Choose rendering strategy: a window for a long list, a page otherwise
+    this._setGrid(true, totalRows, (this._visibleKeys || keys).length);
+    this._pendingFollow = true;
+    if (this._isWindowed(totalRows)) this._renderWindowed(body, allRows, keys, basePath, totalRows, token);
+    else this._renderPage(body, allRows, keys, basePath, totalRows);
 
     Structra.log.perf('Table', 'renderTable()', performance.now() - startTime);
   }
@@ -381,6 +412,7 @@ class StructraTable extends StructraComponent {
       for (const row of sample) { const value = row ? row[column] : undefined; if (value === null || value === undefined) continue; if (typeof value !== 'number') return false; seen++; }
       return seen > 0;
     }));
+    const ariaSort = (column) => (this._sortCol === column ? ` aria-sort="${this._sortAsc ? 'ascending' : 'descending'}"` : '');
     const sortIcon = (column) => {
       if (this._sortCol !== column) return '';
       return this._sortAsc ? ' ↑' : ' ↓';
@@ -389,8 +421,8 @@ class StructraTable extends StructraComponent {
       const isFiltered = this._colFilters && this._colFilters[column];
       return `<span class="th-filter-icon${isFiltered ? ' th-filter-active' : ''}" data-col-filter="${Structra.sharedHelpers.escapeHtml(column)}" title="Filter this column">${Structra.icons.svg('list-filter', { size: 12 })}</span>`;
     };
-    head.innerHTML = '<tr>' + visibleKeys.map(column =>
-      `<th data-col="${Structra.sharedHelpers.escapeHtml(column)}"${this._numericCols.has(column) ? ' class="num"' : ''}><span class="th-label">${Structra.sharedHelpers.escapeHtml(column)}${sortIcon(column)}</span>${filterIcon(column)}</th>`
+    head.innerHTML = '<tr aria-rowindex="1">' + visibleKeys.map((column, columnIndex) =>
+      `<th data-col="${Structra.sharedHelpers.escapeHtml(column)}"${this._numericCols.has(column) ? ' class="num"' : ''}${this._active.row === -1 && this._active.col === columnIndex ? ' tabindex="0"' : ''}${ariaSort(column)}><span class="th-label">${Structra.sharedHelpers.escapeHtml(column)}${sortIcon(column)}</span>${filterIcon(column)}</th>`
     ).join('') + '</tr>';
     this._visibleKeys = visibleKeys;
   }
@@ -411,7 +443,8 @@ class StructraTable extends StructraComponent {
       `<span class="table-size-opt ${size === this._pageSize ? 'active' : ''}" data-page-size="${size}">${size}</span>`
     ).join('');
 
-    const useVirtual = totalRows > this._VIRTUAL_THRESHOLD;
+    const useVirtual = this._isWindowed(totalRows);
+    const tooLong = totalRows > this._MAX_WINDOWED_ROWS;
     const filterBadge = filtered
       ? `<span class="filter-badge" title="Filtered results">${icon('filter')} filtered</span>`
       : '';
@@ -425,7 +458,7 @@ class StructraTable extends StructraComponent {
     // Scrolling replaces pages for a long list: no page buttons or page sizes then
     const pages = useVirtual
       ? `<span class="table-page-info">${totalRows.toLocaleString()} rows</span>`
-      : `<button data-page-action="first" ${this._page === 0 ? 'disabled' : ''} title="First page" aria-label="First page">${icon('chevrons-left')}</button>
+      : `${tooLong ? '<span class="table-page-info" title="A list this long is shown a page at a time">very long list</span>' : ''}<button data-page-action="first" ${this._page === 0 ? 'disabled' : ''} title="First page" aria-label="First page">${icon('chevrons-left')}</button>
       <button data-page-action="prev" ${this._page === 0 ? 'disabled' : ''} title="Previous page" aria-label="Previous page">${icon('chevron-left')}</button>
       <span class="table-page-info">${from.toLocaleString()}–${to.toLocaleString()} of ${totalRows.toLocaleString()}</span>
       <button data-page-action="next" ${this._page >= maxPage ? 'disabled' : ''} title="Next page" aria-label="Next page">${icon('chevron-right')}</button>
@@ -436,65 +469,126 @@ class StructraTable extends StructraComponent {
     pager.innerHTML = `${filterBadge}${hiddenBadge}${moreColumns}${pages}`;
   }
 
-  /* ======== PAGINATED RENDER (small datasets) ======== */
+  /* ======== PAGED RENDER (a short list, or a list too long to scroll as one) ======== */
 
   _renderPage(body, allRows, keys, basePath, totalRows) {
     const offset = this._page * this._pageSize;
     const rows = allRows.slice(offset, offset + this._pageSize);
     body.innerHTML = this._buildRowsHtml(rows, keys, basePath, offset);
+    this._afterPaint();
   }
 
-  /* ======== VIRTUAL SCROLL RENDER (large datasets) ======== */
+  /* ======== WINDOWED RENDER (a long list: only the rows on screen are in the page, the scrollbar is the true size) ======== */
 
-  _renderVirtual(body, allRows, keys, basePath, totalRows) {
-    body.innerHTML = '';
-    const self = this;
-    const chunkSize = this._pageSize; // Reuse page size as chunk size
+  /**
+   * The rows that are on screen (and a few more above and below) are drawn between two empty spacer rows whose heights stand for
+   * the rows that are not, so the scrollbar is as long as the whole list and can be dragged to any row. The arithmetic (which rows
+   * are visible, how tall the whole list is, where to scroll to) is Structra.rowWindow (src/core/row-window.js).
+   * Every row is one line (cells do not wrap), so every row is the same height; it is measured from a real row.
+   */
+  async _renderWindowed(body, allRows, keys, basePath, totalRows, token) {
+    const scroll = this.queryOne('#tableScroll');
+    const head = this.queryOne('#tableHead');
+    let rowWindow;
+    try {
+      rowWindow = await Structra.rowWindow.create({
+        scrollElement: scroll,
+        count: totalRows,
+        rowHeight: this._rowHeight || 32,
+        headerHeight: head.offsetHeight,
+        onChange: () => this._paintWindow(),
+      });
+    } catch (error) {
+      // The helper could not be loaded: show the list a page at a time instead of showing nothing
+      Structra.log.warn('Table', 'virtual-core did not load, paging instead: ' + error.message);
+      this._windowFailed = true;
+      if (token === this._renderToken) { this._renderToolbar(this.queryOne('#tablePager'), totalRows, !!this._lastFiltered); this._renderPage(body, allRows, keys, basePath, totalRows); }
+      return;
+    }
+    if (token !== this._renderToken) { rowWindow.destroy(); return; }
 
-    // Chunks are <tbody> row groups inside the <table>; the scroll box is #tableScroll
-    this._vlist = Structra.virtualList.create({
-      container: this.queryOne('table.data-table'),
-      root: this.queryOne('#tableScroll'),
-      chunkTag: 'tbody',
-      totalItems: totalRows,
-      chunkSize,
-      offscreenPx: 2000,
+    this._windowRows = allRows;
+    this._windowKeys = keys;
+    this._windowBase = basePath;
+    this._paintedRange = null;
+    this._rowHeight = this._rowHeight || 32;
+    this._virtualizer = rowWindow;
+    this._paintWindow();
+  }
 
-      buildChunk(start, end) {
-        const rows = allRows.slice(start, end);
-        return self._buildRowsHtml(rows, keys, basePath, start);
-      },
+  /** Draw the rows the window asks for, between two spacers. Does nothing when the same rows are already drawn. */
+  _paintWindow() {
+    const virtualizer = this._virtualizer;
+    const body = this.queryOne('#tableBody');
+    if (!virtualizer || !body || !this._windowRows) return;
+    const items = virtualizer.items();
+    const first = items.length ? items[0].index : -1;
+    const last = items.length ? items[items.length - 1].index : -1;
+    const range = first + ':' + last;
+    if (range === this._paintedRange) return;
+    this._paintedRange = range;
 
-      rehydrate(chunkElement, start, end) {
-        const rows = allRows.slice(start, end);
-        chunkElement.innerHTML = self._buildRowsHtml(rows, keys, basePath, start);
-      },
+    const hadFocus = body.contains(document.activeElement);
+    const margin = virtualizer.margin();
+    const columns = Math.max(1, (this._visibleKeys || this._windowKeys).length);
+    const spacer = (pixels) => (pixels > 0 ? `<tr class="vl-spacer" aria-hidden="true" style="height:${pixels}px"><td colspan="${columns}"></td></tr>` : '');
+    if (!items.length) { body.innerHTML = ''; return; }
+    const above = items[0].start - margin;
+    const below = Math.max(0, virtualizer.totalSize() - (items[items.length - 1].end - margin));
+    body.innerHTML = spacer(above) + this._buildRowsHtml(this._windowRows.slice(first, last + 1), this._windowKeys, this._windowBase, first) + spacer(below);
 
-      sentinelHtml(remaining) {
-        return `<tr class="vl-sentinel-row"><td colspan="${Math.max(1, (self._visibleKeys || keys).length)}" style="color:var(--text-muted);text-align:center;padding:var(--sp-2)">Loading ${Math.min(remaining, chunkSize)} more of ${remaining.toLocaleString()} rows…</td></tr>`;
-      },
-    });
+    this._measureRows();
+    if (hadFocus) this._focusActive({ preventScroll: true });
+    this._afterPaint();
+  }
 
-    this._vlist.init();
-    Structra.log.info('Table', `Virtual scroll active: ${totalRows} rows, chunk=${chunkSize}`);
+  /** The real height of a row and of the header can differ from the guess (the view was hidden when it was first drawn): correct it once */
+  _measureRows() {
+    const virtualizer = this._virtualizer;
+    const row = this.queryOne('#tableBody tr[data-index]');
+    const head = this.queryOne('#tableHead');
+    if (!virtualizer || !row) return;
+    const height = row.getBoundingClientRect().height;
+    const headerHeight = head ? head.offsetHeight : 0;
+    const rowChanged = height > 8 && Math.abs(height - this._rowHeight) > 0.5;
+    const headerChanged = headerHeight > 0 && headerHeight !== virtualizer.margin();
+    if (!rowChanged && !headerChanged) return;
+    if (rowChanged) this._rowHeight = height;
+    this._paintedRange = null;
+    virtualizer.setMeasurements({ rowHeight: this._rowHeight, headerHeight });
+  }
+
+  _destroyWindow() {
+    if (this._virtualizer) this._virtualizer.destroy();
+    this._virtualizer = null;
+    this._windowRows = null;
+    this._paintedRange = null;
   }
 
   /* ======== ROW HTML BUILDER ======== */
 
+  /**
+   * The rows as HTML. startOffset is the position of the first row in the whole list (not in the page or the window), so every row
+   * knows its place: data-index for the keyboard, aria-rowindex for a screen reader (row 1 is the header, so the first row is 2).
+   */
   _buildRowsHtml(rows, keys, basePath, startOffset) {
     const visibleKeys = this._visibleKeys || keys;
+    const escapeHtml = Structra.sharedHelpers.escapeHtml;
     let html = '';
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
+      const index = startOffset + i;
       const path = this._pathFor(row);
+      const isActiveRow = this._active.row === index;
       let cells = '';
-      for (let index = 0; index < visibleKeys.length; index++) {
-        const value = row ? row[visibleKeys[index]] : undefined;
-        cells += `<td${this._numericCols && this._numericCols.has(visibleKeys[index]) ? ' class="num"' : ''}>${this._formatCell(value, visibleKeys[index])}</td>`;
+      for (let columnIndex = 0; columnIndex < visibleKeys.length; columnIndex++) {
+        const value = row ? row[visibleKeys[columnIndex]] : undefined;
+        const tab = isActiveRow && this._active.col === columnIndex ? ' tabindex="0"' : '';
+        cells += `<td${this._numericCols && this._numericCols.has(visibleKeys[columnIndex]) ? ' class="num"' : ''}${tab}>${this._formatCell(value, visibleKeys[columnIndex])}</td>`;
       }
-      // The selected row keeps its mark when its rows are drawn again after being recycled
-      const selected = path && path === this._selectedRowPath ? ' class="row-sel"' : '';
-      html += path ? `<tr data-path="${Structra.sharedHelpers.escapeHtml(path)}"${selected}>${cells}</tr>` : `<tr>${cells}</tr>`;
+      // The selected row keeps its mark when its rows are drawn again (after a scroll, a sort or a page change)
+      const selected = path && path === this._selectedRowPath ? ' class="row-sel" aria-selected="true"' : '';
+      html += `<tr${path ? ` data-path="${escapeHtml(path)}"` : ''} data-index="${index}" aria-rowindex="${index + 2}"${selected}>${cells}</tr>`;
     }
     return html;
   }
@@ -513,6 +607,197 @@ class StructraTable extends StructraComponent {
     const index = this._indexMap.get(source);
     if (index === undefined) return '';
     return `${Structra.dataPaths.strip(this._basePath)}[${index}]`;
+  }
+
+  /* ======== THE GRID: roles, selection, keyboard ======== */
+
+  /**
+   * The table is a grid for a screen reader and for the keyboard (the WAI-ARIA grid pattern): one cell is the tab stop (tabindex 0),
+   * the arrow keys move between cells, and Tab leaves the grid. this._active is that cell: row -1 is the header, rows 0 and up are
+   * data rows counted in the whole list, col counts the columns shown.
+   */
+  _setGrid(on, totalRows, columnCount) {
+    const table = this.queryOne('table.data-table');
+    const scroll = this.queryOne('#tableScroll');
+    if (!table || !scroll) return;
+    if (on) {
+      table.setAttribute('role', 'grid');
+      table.setAttribute('aria-rowcount', String(totalRows + 1));
+      table.setAttribute('aria-colcount', String(columnCount));
+      table.setAttribute('aria-label', `${totalRows.toLocaleString()} rows`);
+      scroll.removeAttribute('tabindex');       // a cell is the tab stop now
+    } else {
+      for (const name of ['role', 'aria-rowcount', 'aria-colcount', 'aria-label']) table.removeAttribute(name);
+      scroll.tabIndex = 0;                      // a message or a field list: the box itself must be reachable
+    }
+  }
+
+  _isWindowed(totalRows) {
+    return !this._windowFailed && totalRows > this._VIRTUAL_THRESHOLD && totalRows <= this._MAX_WINDOWED_ROWS;
+  }
+
+  /** The cell element at a place, or null when that row is not drawn */
+  _cellEl(row, col) {
+    if (row < 0) return this.querySelector(`#tableHead th:nth-child(${col + 1})`);
+    const tr = this.querySelector(`#tableBody tr[data-index="${row}"]`);
+    return tr ? tr.children[col] || null : null;
+  }
+
+  _positionOf(cell) {
+    const tr = cell.closest('tr');
+    return { row: cell.tagName === 'TH' ? -1 : Number(tr.dataset.index), col: cell.cellIndex };
+  }
+
+  /** Make a cell the one the keyboard continues from (a click does this); focus moves to it */
+  _setActiveFromCell(cell) {
+    this._active = this._positionOf(cell);
+    this._focusActive({ preventScroll: true });
+  }
+
+  /** Give the active cell the tab stop and the focus. Returns false when that row is not drawn. */
+  _focusActive({ preventScroll = false } = {}) {
+    const cell = this._cellEl(this._active.row, this._active.col);
+    if (!cell) return false;
+    this.querySelectorAll('table.data-table [tabindex]').forEach((other) => { if (other !== cell) other.removeAttribute('tabindex'); });
+    cell.tabIndex = 0;
+    cell.focus({ preventScroll });
+    return true;
+  }
+
+  /** After rows are drawn: something must be the tab stop, the focus comes back if it was in the grid, the selected path is followed */
+  _afterPaint() {
+    if (!this.querySelector('table.data-table [tabindex="0"]')) {
+      const header = this.querySelector('#tableHead th');
+      if (header) header.setAttribute('tabindex', '0');
+    }
+    if (this._wantFocus && this._focusActive({ preventScroll: true })) this._wantFocus = false;
+    if (this._pendingFollow) { this._pendingFollow = false; this._followPath(Structra.state.currentPath); }
+  }
+
+  /** The last data row the keyboard can reach: the end of the list, or the end of this page when the list is paged */
+  _lastRowIndex() {
+    if (this._isWindowed(this._totalRows)) return this._totalRows - 1;
+    return Math.min(this._totalRows, (this._page + 1) * this._pageSize) - 1;
+  }
+
+  _firstRowIndex() {
+    return this._isWindowed(this._totalRows) ? 0 : this._page * this._pageSize;
+  }
+
+  _rowsPerScreen() {
+    const scroll = this.queryOne('#tableScroll');
+    const head = this.queryOne('#tableHead');
+    const visible = (scroll ? scroll.clientHeight : 0) - (head ? head.offsetHeight : 0);
+    return Math.max(1, Math.floor(visible / (this._rowHeight || 32)) - 1);
+  }
+
+  /** Move the keyboard position. A row that is not drawn (far down a long list) is scrolled to first, and gets the focus when it is drawn. */
+  _moveTo(row, col) {
+    this._active = { row, col };
+    if (this._focusActive()) return;
+    if (this._virtualizer && row >= 0) {
+      this._wantFocus = true;
+      this._virtualizer.scrollToIndex(row, { align: 'auto' });
+    }
+  }
+
+  _onKeyDown(event) {
+    if (event.altKey || event.metaKey || (event.ctrlKey && event.key !== 'Home' && event.key !== 'End')) return;
+    const cell = event.target && event.target.closest ? event.target.closest('table.data-table th, table.data-table td') : null;
+    if (!cell || event.target !== cell) return;           // a key typed inside a control in the cell is not ours
+    let { row, col } = this._positionOf(cell);
+    const firstRow = this._firstRowIndex();
+    const lastRow = this._lastRowIndex();
+    const lastCol = Math.max(0, (this._visibleKeys || this._keys || []).length - 1);
+    switch (event.key) {
+      case 'ArrowDown': row = row < firstRow ? firstRow : Math.min(lastRow, row + 1); break;
+      case 'ArrowUp': row = row <= firstRow ? -1 : row - 1; break;
+      case 'ArrowRight': col = Math.min(lastCol, col + 1); break;
+      case 'ArrowLeft': col = Math.max(0, col - 1); break;
+      case 'Home': col = 0; if (event.ctrlKey) row = -1; break;
+      case 'End': col = lastCol; if (event.ctrlKey) row = lastRow; break;
+      case 'PageDown': row = Math.min(lastRow, Math.max(row, firstRow - 1) + this._rowsPerScreen()); break;
+      case 'PageUp': row = row - this._rowsPerScreen() < firstRow ? (row > firstRow ? firstRow : -1) : row - this._rowsPerScreen(); break;
+      case 'Enter':
+      case ' ': {
+        event.preventDefault();
+        if (row === -1) cell.click();                      // a header sorts, as a click does
+        else { const tr = cell.closest('tr'); if (tr && tr.dataset.path) this._selectRow(tr); }
+        return;
+      }
+      case 'ContextMenu':
+      case 'F10': {
+        if (event.key === 'F10' && !event.shiftKey) return;
+        if (row !== -1 || !cell.dataset.col) return;
+        event.preventDefault();
+        const box = cell.getBoundingClientRect();
+        this._showColumnMenu(box.left, box.bottom, cell.dataset.col);
+        return;
+      }
+      default: return;
+    }
+    event.preventDefault();
+    this._moveTo(row, col);
+  }
+
+  /** Select a row: the mark, the path bar, the Node panel and the other views follow */
+  _selectRow(tr) {
+    this.queryAll('tbody tr.row-sel').forEach((other) => { other.classList.remove('row-sel'); other.removeAttribute('aria-selected'); });
+    tr.classList.add('row-sel');
+    tr.setAttribute('aria-selected', 'true');
+    this._selectedRowPath = tr.dataset.path;
+    Structra.setState('currentPath', tr.dataset.path);
+    Structra.events.emit('tree:node-selected', tr.dataset.path);
+  }
+
+  /* ======== FOLLOWING THE SELECTED PATH (from the Tree, the path bar, Find ...) ======== */
+
+  /** "value[12].Title" in a table of the list at "value" is row 12: the path of the row, or '' when it is not a row of this table */
+  _rowPathOf(path) {
+    if (!path || !this._rows) return '';
+    const base = Structra.dataPaths.strip(this._basePath);
+    const stripped = Structra.dataPaths.strip(path);
+    const escaped = base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = new RegExp('^' + escaped + '\\[(\\d+)\\]').exec(stripped);
+    return match ? `${base}[${match[1]}]` : '';
+  }
+
+  /** Where a row is in the list as shown (after sorting and filtering), or -1 */
+  _displayIndexOf(rowPath) {
+    const rows = this._rows;
+    if (!rows) return -1;
+    const wanted = /\[(\d+)\]$/.exec(rowPath);
+    if (this._baseRows === rows && wanted && Number(wanted[1]) < rows.length) return Number(wanted[1]);   // the list is in the document's order
+    for (let i = 0; i < rows.length; i++) if (this._pathFor(rows[i]) === rowPath) return i;
+    return -1;
+  }
+
+  _followPath(path) {
+    if (Structra.state.activeView !== 'table' || !this._rows) return;
+    const rowPath = this._rowPathOf(path);
+    if (!rowPath || rowPath === this._selectedRowPath) return;
+    const index = this._displayIndexOf(rowPath);
+    if (index < 0) return;
+    this._selectedRowPath = rowPath;
+    this._active = { row: index, col: this._active.col };
+    if (this._virtualizer) {
+      this.queryAll('tbody tr.row-sel').forEach((other) => { other.classList.remove('row-sel'); other.removeAttribute('aria-selected'); });
+      this._paintedRange = null;
+      this._virtualizer.scrollToIndex(index, { align: 'center' });
+      this._paintWindow();
+    } else {
+      const page = Math.floor(index / this._pageSize);
+      if (page !== this._page) { this._page = page; this.renderTable(); }
+      else {
+        this.queryAll('tbody tr.row-sel').forEach((other) => { other.classList.remove('row-sel'); other.removeAttribute('aria-selected'); });
+        const tr = this.querySelector(`#tableBody tr[data-index="${index}"]`);
+        if (tr) { tr.classList.add('row-sel'); tr.setAttribute('aria-selected', 'true'); tr.scrollIntoView({ block: 'nearest' }); }
+      }
+    }
+  }
+
+  disconnectedCallback() {
+    this._destroyWindow();
   }
 
   /* ======== PAGE ACTIONS ======== */
@@ -1094,11 +1379,6 @@ class StructraTable extends StructraComponent {
       case 'regex': try { return new RegExp(condition.val, 'i').test(text); } catch { return false; }
       default: return true;
     }
-  }
-
-  disconnectedCallback() {
-    if (this._vlist) { this._vlist.destroy(); this._vlist = null; }
-    super.disconnectedCallback();
   }
 }
 

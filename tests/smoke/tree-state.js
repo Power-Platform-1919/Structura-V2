@@ -193,23 +193,7 @@ async function openJson(page, name, value) {
     await step('Shift+Enter', '[1].name 1/');
     await page.evaluate(() => Structra.setState('findBarOpen', false));
 
-    /* ---- 4. Table: the selected row keeps its mark when its rows are drawn again ---- */
-    await page.evaluate(() => Structra.setState('activeView', 'table'));
-    await page.waitForSelector('table.data-table tbody tr[data-path]', { timeout: 10000 });
-    const rowKept = await page.evaluate(async () => {
-      const scroll = document.querySelector('#tableScroll');
-      const until = async (test) => { const began = performance.now(); while (!test() && performance.now() - began < 15000) await new Promise((resolve) => setTimeout(resolve, 30)); return test(); };
-      scroll.scrollTop = 0;
-      document.querySelector('table.data-table tbody tr[data-path]').click();
-      if (!document.querySelector('tr.row-sel')) return 'the click did not select a row';
-      const firstGroup = () => document.querySelector('table.data-table > tbody.vl-chunk');
-      const recycled = await until(() => { scroll.scrollTop = scroll.scrollHeight; return firstGroup().dataset.vlRecycled; });
-      if (!recycled) return 'the first rows were never recycled';
-      scroll.scrollTop = 0;
-      await until(() => !firstGroup().dataset.vlRecycled);
-      return document.querySelector('tr.row-sel') ? 'ok' : 'the selected row lost its mark';
-    });
-    if (rowKept !== 'ok') failures.push('Table: ' + rowKept);
+    // The Table's rows, selection and keyboard are tested in table-grid.js
   } catch (err) {
     failures.push('crashed: ' + err.message.split(/\r?\n/).slice(0, 4).join(' / '));
   }

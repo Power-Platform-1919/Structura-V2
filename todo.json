@@ -1,7 +1,7 @@
 {
   "title": "Structra V2: pending items carried over from V1",
   "basis": "Gap analysis done from source code only (the .md docs are treated as stale). Status values: todo, in_progress, done, blocked.",
-  "updated": "2026-10-22",
+  "updated": "2026-10-27",
   "tasks": [
     {
       "id": "1",
@@ -1898,6 +1898,2133 @@
           "status": "done"
         }
       ]
+    },
+    {
+      "id": "15",
+      "title": "Deep dive: fixes found by comparing our code with CodeMirror and other mature code (PR #6)",
+      "status": "in_progress",
+      "brief": "docs/deep-dive-analysis-2026-10.md. Branch feature/tree-line-number-gutter, pull request #6 into dev.",
+      "subtasks": [
+        {
+          "id": "15.1",
+          "title": "Read the relevant parts of CodeMirror 6 (view, gutters, folding, special characters, keymaps, scroll anchoring)",
+          "status": "done"
+        },
+        {
+          "id": "15.2",
+          "title": "Test each suspicion in a real browser before changing code, so only real problems are fixed",
+          "status": "done"
+        },
+        {
+          "id": "15.3",
+          "title": "Tree: line-number margin sized once for the biggest number, like the Editor",
+          "status": "done"
+        },
+        {
+          "id": "15.4",
+          "title": "Tree: closed blocks survive chunk recycling",
+          "status": "done"
+        },
+        {
+          "id": "15.5",
+          "title": "Tree: selected line, search marks, bookmark markers and key highlight survive recycling",
+          "status": "done"
+        },
+        {
+          "id": "15.6",
+          "title": "Tree: jump to a row in a chunk that is not drawn yet (placeholders in between)",
+          "status": "done"
+        },
+        {
+          "id": "15.7",
+          "title": "Tree: stop adding another set of click handlers on every render",
+          "status": "done"
+        },
+        {
+          "id": "15.8",
+          "title": "Tree: show hidden and direction-changing characters",
+          "status": "done"
+        },
+        {
+          "id": "15.9",
+          "title": "Tree: PageUp and PageDown",
+          "status": "done"
+        },
+        {
+          "id": "15.10",
+          "title": "Find: Enter searches and goes to the next match; Shift+Enter goes back",
+          "status": "done"
+        },
+        {
+          "id": "15.11",
+          "title": "Find: matches in document order",
+          "status": "done"
+        },
+        {
+          "id": "15.12",
+          "title": "Find: a failed search does not step through the old result",
+          "status": "done"
+        },
+        {
+          "id": "15.13",
+          "title": "Find bar: input labels, live match count, pressed state on mode buttons",
+          "status": "done"
+        },
+        {
+          "id": "15.14",
+          "title": "Table (old list): loading row spans only the visible columns",
+          "status": "done"
+        },
+        {
+          "id": "15.15",
+          "title": "Undo: memory budget of 60 MB per tab",
+          "status": "done"
+        },
+        {
+          "id": "15.16",
+          "title": "Panel resizer: a cancelled drag ends cleanly",
+          "status": "done"
+        },
+        {
+          "id": "15.17",
+          "title": "Code boxes: fold lines that close and open a block; stop folding pasted huge text; clean up on destroy",
+          "status": "done"
+        },
+        {
+          "id": "15.18",
+          "title": "Code boxes: show hidden characters, no on-screen keyboard when read-only, keyboard folding",
+          "status": "done"
+        },
+        {
+          "id": "15.19",
+          "title": "JSONPath: negative-step slices no longer hang the page",
+          "status": "done"
+        },
+        {
+          "id": "15.20",
+          "title": "Editor: the place of a JSON error comes from jsonc-parser (Safari and Firefox lost it before)",
+          "status": "done"
+        },
+        {
+          "id": "15.21",
+          "title": "Accessibility: axe-core as a dev dependency and an audit script (tests/ui/06-axe.js)",
+          "status": "done"
+        },
+        {
+          "id": "15.22",
+          "title": "Accessibility fixes: landmarks, page heading, names that contain visible text, group role for the Tree box, keyboard access to scroll boxes, table header",
+          "status": "done"
+        },
+        {
+          "id": "15.23",
+          "title": "Tests: shared browsers, condition waits instead of fixed sleeps, parallel UI audit, per-script findings files",
+          "status": "done"
+        },
+        {
+          "id": "15.24",
+          "title": "Tests: closing shared browsers ends the whole process tree (the old kill left 8 browsers running per run)",
+          "status": "done"
+        },
+        {
+          "id": "15.25",
+          "title": "Tests: the same 35 browser runs in Firefox and WebKit (npm run test:firefox, test:webkit)",
+          "status": "done"
+        },
+        {
+          "id": "15.26",
+          "title": "Tests: clipboard helper that works in every engine",
+          "status": "done"
+        },
+        {
+          "id": "15.27",
+          "title": "Tests: page loads wait up to 90 s on a busy computer; fixed waits replaced in inputs, robust, layout",
+          "status": "done"
+        },
+        {
+          "id": "15.28",
+          "title": "New tests: tree-state, tree-margin, parse errors (unit), axe audit",
+          "status": "done"
+        },
+        {
+          "id": "15.29",
+          "title": "CI: jobs for lint and unit, Chromium, Firefox and WebKit (non-blocking, install time limit), UI audit",
+          "status": "done"
+        },
+        {
+          "id": "15.30",
+          "title": "Write the deep-dive analysis and the plan documents",
+          "status": "done"
+        },
+        {
+          "id": "15.31",
+          "title": "Open pull request #6 into dev; CI green except the WebKit install stall (handled)",
+          "status": "done"
+        },
+        {
+          "id": "15.32",
+          "title": "Review and merge pull request #6 into dev",
+          "status": "todo",
+          "note": "waiting for you (Q8)"
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "title": "JSONPath: json-p3 replaces our own engine (PR #7)",
+      "status": "in_progress",
+      "brief": "Section 3.3 of the map. Branch feature/json-p3, stacked on #6.",
+      "subtasks": [
+        {
+          "id": "16.1",
+          "title": "Research candidates: licenses, sizes, versions from the npm registry",
+          "status": "done"
+        },
+        {
+          "id": "16.2",
+          "title": "Run the official RFC 9535 suite against our engine (243 of 715, 3 hangs)",
+          "status": "done"
+        },
+        {
+          "id": "16.3",
+          "title": "Run the candidates on the suite (json-p3 715, jsonpath-rfc9535 674, jsonpath-plus 121)",
+          "status": "done"
+        },
+        {
+          "id": "16.4",
+          "title": "Vendor json-p3 (64 KB, one file) with its license",
+          "status": "done"
+        },
+        {
+          "id": "16.5",
+          "title": "Adapter: optional leading $",
+          "status": "done"
+        },
+        {
+          "id": "16.6",
+          "title": "Adapter: dotted index (value.0.Title), tried as [0] then as the key \"0\"",
+          "status": "done"
+        },
+        {
+          "id": "16.7",
+          "title": "Adapter: =~ pattern test as a regex() function with real JavaScript patterns and the freeze check",
+          "status": "done"
+        },
+        {
+          "id": "16.8",
+          "title": "Adapter: result shape {path, value} and our path format",
+          "status": "done"
+        },
+        {
+          "id": "16.9",
+          "title": "Adapter: queryStrict (the standard only) for the compliance tool",
+          "status": "done"
+        },
+        {
+          "id": "16.10",
+          "title": "Raise the descendant search depth limit to 100000; plain message on stack overflow",
+          "status": "done"
+        },
+        {
+          "id": "16.11",
+          "title": "Make query() asynchronous; update the three callers",
+          "status": "done"
+        },
+        {
+          "id": "16.12",
+          "title": "Prefetch the library when the page is idle",
+          "status": "done"
+        },
+        {
+          "id": "16.13",
+          "title": "Unit tests (27)",
+          "status": "done"
+        },
+        {
+          "id": "16.14",
+          "title": "Browser test of the standard forms and error messages in three engines",
+          "status": "done"
+        },
+        {
+          "id": "16.15",
+          "title": "Compliance tool: strict 715 of 715, with conveniences 712 (3 deliberate differences)",
+          "status": "done"
+        },
+        {
+          "id": "16.16",
+          "title": "Update the Query panel hint text",
+          "status": "done"
+        },
+        {
+          "id": "16.17",
+          "title": "Open pull request #7 (stacked on #6)",
+          "status": "done"
+        },
+        {
+          "id": "16.18",
+          "title": "Merge #7 after #6, then retarget it to dev",
+          "status": "todo",
+          "note": "waiting for you (Q8)"
+        },
+        {
+          "id": "16.19",
+          "title": "DECISION: if json-p3 fails to load, show an error (today) or add a simple fallback",
+          "status": "done",
+          "note": "Q13: plain error message"
+        },
+        {
+          "id": "16.20",
+          "title": "Mark JSONPath as done in the map and the plan",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "title": "Table: true scrollbar, grid roles, keyboard (branch feature/table-grid, not pushed)",
+      "status": "in_progress",
+      "brief": "Section 3.2 of the map.",
+      "subtasks": [
+        {
+          "id": "17.1",
+          "title": "Measure our Table against Tabulator at 100,000 and 500,000 rows",
+          "status": "done"
+        },
+        {
+          "id": "17.2",
+          "title": "Vendor @tanstack/virtual-core (33 KB) with a build tool",
+          "status": "done"
+        },
+        {
+          "id": "17.3",
+          "title": "Draw only the rows on screen between two spacer rows; true scroll height",
+          "status": "done"
+        },
+        {
+          "id": "17.4",
+          "title": "Measure the real row height and header height once drawn and correct the estimate",
+          "status": "done"
+        },
+        {
+          "id": "17.5",
+          "title": "Above 400,000 rows show a page at a time, with a note (browser element height limit)",
+          "status": "done"
+        },
+        {
+          "id": "17.6",
+          "title": "Grid roles: role, aria-rowcount, aria-colcount, aria-rowindex, aria-sort, aria-selected",
+          "status": "done"
+        },
+        {
+          "id": "17.7",
+          "title": "One tab stop (roving tabindex); the scroll box is not a second tab stop",
+          "status": "done"
+        },
+        {
+          "id": "17.8",
+          "title": "Keyboard: arrows, Home, End, Ctrl+Home, Ctrl+End, Page keys, Enter and Space, Shift+F10",
+          "status": "done"
+        },
+        {
+          "id": "17.9",
+          "title": "The selected row keeps its mark when rows are redrawn",
+          "status": "done"
+        },
+        {
+          "id": "17.10",
+          "title": "Follow the path chosen in the Tree, the path bar or Find (also when the Table is shown later)",
+          "status": "done"
+        },
+        {
+          "id": "17.11",
+          "title": "Guard against stacked listeners; remove the broken super.disconnectedCallback() call",
+          "status": "done"
+        },
+        {
+          "id": "17.12",
+          "title": "A list of plain values shows \"no list of records\" instead of blank rows",
+          "status": "done"
+        },
+        {
+          "id": "17.13",
+          "title": "Remove the old virtual-list.js (nothing else used it)",
+          "status": "done"
+        },
+        {
+          "id": "17.14",
+          "title": "Test table-grid.js: roles, true scroll height, keyboard, selection, sort, following a path, 0 / 1 / 200 / 201 / 450,000 rows, 150 columns, resize, hidden columns, no stacked handlers",
+          "status": "done"
+        },
+        {
+          "id": "17.15",
+          "title": "Table test passes in Chromium, Firefox and WebKit",
+          "status": "done"
+        },
+        {
+          "id": "17.16",
+          "title": "Full pipeline green with the Table branch",
+          "status": "done"
+        },
+        {
+          "id": "17.17",
+          "title": "DECISION: keep the windowed version (library does the arithmetic) or restore virtual-list.js and upgrade it ourselves",
+          "status": "done",
+          "note": "Q1: keep the library for the arithmetic"
+        },
+        {
+          "id": "17.18",
+          "title": "Wrap virtual-core behind one core module (the \"one door per library\" rule)",
+          "status": "done"
+        },
+        {
+          "id": "17.19",
+          "title": "Commit the branch",
+          "status": "todo"
+        },
+        {
+          "id": "17.20",
+          "title": "Open the pull request (stacked on #7)",
+          "status": "todo"
+        },
+        {
+          "id": "17.21",
+          "title": "Update the map and the plan",
+          "status": "todo"
+        },
+        {
+          "id": "17.22",
+          "title": "If the decision is \"restore\": give virtual-list.js a true scrollbar and scroll-to-row; remove virtual-core; re-run the Table test",
+          "status": "done",
+          "note": "not needed (Q1)"
+        },
+        {
+          "id": "17.23",
+          "title": "Merge the Table pull request into dev after CI is green",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "title": "Wave 0: correctness bugs found by the gap audit",
+      "status": "in_progress",
+      "brief": "Sections 2.9, 3.17 to 3.20 and 8 of the map. Do these before the other waves.",
+      "subtasks": [
+        {
+          "id": "18.1",
+          "title": "One path model (3.17): keep our dotted form, one writer, one reader, tested against hostile keys",
+          "status": "in_progress",
+          "subtasks": [
+            {
+              "id": "18.1.1",
+              "title": "DECISION: option A (keep the dotted form, recommended) or option B (JSON Pointer inside)",
+              "status": "done",
+              "note": "Q3: option A chosen"
+            },
+            {
+              "id": "18.1.2",
+              "title": "Write the hostile-key list as shared test data: dots, brackets, quotes, backslash, empty, $-prefix, unicode, __proto__, numeric text, very long, key ending in \"]",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.3",
+              "title": "Add Structra.dataPaths.child(path, key): writes any key so it reads back exactly",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.4",
+              "title": "Make tokenize read escaped quotes and backslashes, an empty key, a key containing \"]",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.5",
+              "title": "Fix strip() so a first-level key starting with $ is not taken for the root",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.6",
+              "title": "Replace the writer: Tree renderer (json-tree-renderer.js)",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.7",
+              "title": "Replace the writer: Graph (structra-graph.js _childPath)",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.8",
+              "title": "Replace the writer: Query panel results (structra-query.js)",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.9",
+              "title": "Replace the writer: Compare (structra-diff.js)",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.10",
+              "title": "Replace the writer: data engine search",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.11",
+              "title": "Replace the writer: data engine schema inference",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.12",
+              "title": "Replace the writer: data engine path index",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.13",
+              "title": "Replace the writer: data engine first array",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.14",
+              "title": "Replace the writer: data engine all arrays",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.15",
+              "title": "Replace the writer: data engine fuzzy search",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.16",
+              "title": "Replace the writer: duplicate-key finder (json-repair-and-validation.js)",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.17",
+              "title": "Replace the writer: JSONPath adapter (jsonpath-query.js childPath)",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.18",
+              "title": "Check the readers: path autocomplete (_joinPath)",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.19",
+              "title": "Check the readers: breadcrumb segments",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.20",
+              "title": "Check the readers: path history and bookmarks",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.21",
+              "title": "Check the readers: Node panel, Expressions (splitAtItem), Table (_rowPathOf), heatmap, null finder, Overview jumps",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.22",
+              "title": "Property test: every writer times every hostile key must resolve to the same value; json-p3 normalized paths as the oracle",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.23",
+              "title": "Browser tests: Find Next and Previous on odata and Dataverse keys; Tree highlight; Table follow; Compare; Query results",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.24",
+              "title": "Backward compatibility: bookmarks, session and workspace files written in the old format still resolve",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.25",
+              "title": "Large-file check: the path index is not slower (37 MB and 88 MB fixtures)",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.26",
+              "title": "Run all browser tests in three engines",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.27",
+              "title": "Docs: mark 2.9 as fixed; add \"never write a path by hand\" to DEVELOPER-GUIDE",
+              "status": "todo"
+            },
+            {
+              "id": "18.1.28",
+              "title": "Guard: a test that fails when a new hand-written path pattern appears in src",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "18.2",
+          "title": "CSV export through PapaParse, with formula protection (3.18)",
+          "status": "in_progress",
+          "subtasks": [
+            {
+              "id": "18.2.1",
+              "title": "DECISION: formula protection on by default, as a setting",
+              "status": "done",
+              "note": "Q4: always on"
+            },
+            {
+              "id": "18.2.2",
+              "title": "Replace escCsv and generateCsv with Papa.unparse and escapeFormulae (text cells that start with = + - @ get an apostrophe; real numbers untouched)",
+              "status": "todo"
+            },
+            {
+              "id": "18.2.3",
+              "title": "No setting: protection is always on",
+              "status": "done",
+              "note": "Q4"
+            },
+            {
+              "id": "18.2.4",
+              "title": "Keep nested objects as JSON text in the cell; keep header row and column order",
+              "status": "todo"
+            },
+            {
+              "id": "18.2.5",
+              "title": "Unit test: round trip of awkward cells (commas, quotes, line breaks, carriage return, spaces, unicode)",
+              "status": "todo"
+            },
+            {
+              "id": "18.2.6",
+              "title": "Unit test: cells starting with = + - @ are protected when the setting is on",
+              "status": "todo"
+            },
+            {
+              "id": "18.2.7",
+              "title": "Update the exports browser test",
+              "status": "todo"
+            },
+            {
+              "id": "18.2.8",
+              "title": "Docs: README and map",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "18.3",
+          "title": "Regular expressions never freeze the page (3.19)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "18.3.1",
+              "title": "List every place a user pattern runs: Find (Pattern), Filter bar, Query panel Pattern, JSONPath =~, data engine regex search",
+              "status": "todo"
+            },
+            {
+              "id": "18.3.2",
+              "title": "Add the ten known catastrophic patterns as a unit test against the current guard (8 of 10 caught today)",
+              "status": "todo"
+            },
+            {
+              "id": "18.3.3",
+              "title": "Route user patterns through the sandbox worker (task 19) with a time limit",
+              "status": "todo"
+            },
+            {
+              "id": "18.3.4",
+              "title": "Show a plain message when a pattern is stopped",
+              "status": "todo"
+            },
+            {
+              "id": "18.3.5",
+              "title": "Evaluate a ReDoS analyzer library (recheck) as an early warning; decide",
+              "status": "todo"
+            },
+            {
+              "id": "18.3.6",
+              "title": "Tests: (a|aa)+$ and the other missed pattern are stopped, ordinary patterns are not slower",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "18.4",
+          "title": "Cleanup and hardening (3.20)",
+          "status": "in_progress",
+          "subtasks": [
+            {
+              "id": "18.4.1",
+              "title": "Move src/workers/engine-worker.js to archive/ (nothing loads it)",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.2",
+              "title": "Delete the empty templates/ folder",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.3",
+              "title": "Archive policy decided: unused and unwanted code goes to archive/, reviewed and deleted later",
+              "status": "done",
+              "note": "Q5"
+            },
+            {
+              "id": "18.4.4",
+              "title": "Change deploy-pages.yml so samples/ is not published",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.5",
+              "title": "Global error handler: window error and unhandledrejection; short message; keep the last errors",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.6",
+              "title": "Global error handler: \"copy a bug report\" (version, browser, last errors, no document data)",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.7",
+              "title": "Global error handler: tests that throw on purpose in a component, a worker and a promise",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.8",
+              "title": "Study a Content-Security-Policy meta tag (what breaks: new Function, blob workers, WebAssembly); decide",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.9",
+              "title": "Decide on offline install (web manifest and service worker); optional",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.10",
+              "title": "Add THIRD-PARTY.md: name, version, license, source and build command for every vendored library",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.11",
+              "title": "Extend the map test so a new vendored library must be listed in THIRD-PARTY.md",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.12",
+              "title": "Create archive/ at the top of the repository with a README (what is in it, why, the date, \"review and delete later\")",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.13",
+              "title": "Move structra-v2.html and samples/ into archive/",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.14",
+              "title": "Move the old virtual-list.js into archive/ (it was removed on the Table branch)",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.15",
+              "title": "Keep archive/ out of the lint, the tests, the deploy and the map test",
+              "status": "todo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "title": "User-written code runs in one sandbox worker (3.8)",
+      "status": "in_progress",
+      "brief": "Four places use new Function today: Query panel JavaScript mode, the data engine row filter, Transform steps, the engine worker (unused).",
+      "subtasks": [
+        {
+          "id": "19.1",
+          "title": "DECISION: approve moving all user code into one sandbox worker",
+          "status": "done",
+          "note": "Q6: yes, as one shared service"
+        },
+        {
+          "id": "19.2",
+          "title": "Inventory the places that run user code and what each needs (data, result shape, time limit)",
+          "status": "todo"
+        },
+        {
+          "id": "19.3",
+          "title": "Measure the cost of copying a large document into a worker (37 MB and 88 MB)",
+          "status": "todo"
+        },
+        {
+          "id": "19.4",
+          "title": "Design the worker protocol: load data once, run code, return result, cancel",
+          "status": "todo"
+        },
+        {
+          "id": "19.5",
+          "title": "Implement the sandbox worker (no access to the page)",
+          "status": "todo"
+        },
+        {
+          "id": "19.6",
+          "title": "Time limit and stop: the worker is ended when the limit passes",
+          "status": "todo"
+        },
+        {
+          "id": "19.7",
+          "title": "Migrate Query panel JavaScript mode",
+          "status": "todo"
+        },
+        {
+          "id": "19.8",
+          "title": "Migrate the Filter bar expression mode and the data engine row filter",
+          "status": "todo"
+        },
+        {
+          "id": "19.9",
+          "title": "Migrate Transform steps (rewrite the step runner to run inside the worker; remove the word blocklist)",
+          "status": "todo"
+        },
+        {
+          "id": "19.10",
+          "title": "Remove the main-thread new Function calls",
+          "status": "todo"
+        },
+        {
+          "id": "19.11",
+          "title": "Keep the current syntax so saved queries still work; test with the existing presets",
+          "status": "todo"
+        },
+        {
+          "id": "19.12",
+          "title": "Tests: infinite loop, huge result, error message, cancel, data changes while running",
+          "status": "todo"
+        },
+        {
+          "id": "19.13",
+          "title": "Tests in three engines; memory check on the large fixtures",
+          "status": "todo"
+        },
+        {
+          "id": "19.14",
+          "title": "Follow-up: allow a stricter Content-Security-Policy (task 18-D)",
+          "status": "todo"
+        },
+        {
+          "id": "19.15",
+          "title": "Design it as one generic shared job service: a single worker protocol any module can use (user code, patterns, transforms, later other heavy work), written once",
+          "status": "todo"
+        },
+        {
+          "id": "19.16",
+          "title": "Document the service in DEVELOPER-GUIDE so new features use it and do not write their own",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "title": "One Tree for the whole app: research CodeMirror for large files, decide by numbers, build it once (3.1)",
+      "status": "in_progress",
+      "brief": "Q12: only one tree, uniform in every place it is shown. CodeMirror if it can meet every requirement on large files; otherwise our own hand-written tree for the whole app. Research: docs/codemirror-tree-research.md. No engine switch.",
+      "subtasks": [
+        {
+          "id": "20.1",
+          "title": "Spike done earlier: path index (line to path and back) measured at 37 MB and 88 MB",
+          "status": "done"
+        },
+        {
+          "id": "20.2",
+          "title": "Spike done earlier: CodeMirror on one 30 MB text value and on 89 MB, 5 million lines",
+          "status": "done"
+        },
+        {
+          "id": "20.3",
+          "title": "Write the requirements down (every Tree behavior, and \"uniform everywhere\")",
+          "status": "todo"
+        },
+        {
+          "id": "20.4",
+          "title": "Find every place a tree is drawn (Tree view, Query results, others) and what each needs",
+          "status": "todo"
+        },
+        {
+          "id": "20.5",
+          "title": "Research how others make CodeMirror work as a tree on huge documents (docs, forum, source, prior art, other viewers)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "20.5.1",
+              "title": "CodeMirror documentation and source: folding, decorations, replace widgets, viewport, huge documents",
+              "status": "todo"
+            },
+            {
+              "id": "20.5.2",
+              "title": "Forum threads and prior art for tree-like or collapsible views in CodeMirror 6",
+              "status": "todo"
+            },
+            {
+              "id": "20.5.3",
+              "title": "How large-JSON viewers work (visible-row list, virtual tree) and what that means for CodeMirror",
+              "status": "todo"
+            },
+            {
+              "id": "20.5.4",
+              "title": "List the possible designs: full text with folds; the visible rows as the document; a hybrid",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "20.6",
+          "title": "Prototype A: full text with folds (already measured: collapse of 165,000 records 2.2 s, one million fold effects 22 s)",
+          "status": "done"
+        },
+        {
+          "id": "20.7",
+          "title": "Prototype B: the document holds only the visible rows (collapsed blocks are one line, huge lists show a window with a \"more\" line); expand and collapse replace small ranges",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "20.7.1",
+              "title": "Model: a visible-row list built from the data and the collapse state",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.2",
+              "title": "Document projection and incremental updates through CodeMirror transactions",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.3",
+              "title": "File line numbers in the gutter (not visible-row numbers)",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.4",
+              "title": "Toggle markers in a custom gutter and keyboard folding",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.5",
+              "title": "Row to path and path to row mapping (the path index)",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.6",
+              "title": "Huge arrays: a window of items with \"show more\" lines",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.7",
+              "title": "Click, selection and keyboard mapping to paths",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.8",
+              "title": "Find marks, filter (hide non-matching), bookmarks, key highlight as decorations",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.9",
+              "title": "Inline value editing",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.10",
+              "title": "Accessibility: roles, labels, keyboard, screen reader behavior",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.11",
+              "title": "Measure on the 37 MB and 88 MB files: open, expand, collapse all, scroll, memory, in three browsers",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "20.8",
+          "title": "Compare A, B and our current tree against the requirements and the numbers; decide ONE tree",
+          "status": "blocked",
+          "note": "decision by numbers (Q12)"
+        },
+        {
+          "id": "20.9",
+          "title": "If CodeMirror: build it for real, replace the hand-written renderer everywhere, delete it (to archive/ first)",
+          "status": "todo"
+        },
+        {
+          "id": "20.10",
+          "title": "If hand-written: keep our renderer as the only tree, add every behavior CodeMirror would have given (the keep-and-harden rule), and make every place use it",
+          "status": "todo"
+        },
+        {
+          "id": "20.11",
+          "title": "Make every place that shows a tree use the same renderer",
+          "status": "todo"
+        },
+        {
+          "id": "20.12",
+          "title": "Tests: every existing Tree test, in three browsers, plus the large-file budget test",
+          "status": "todo"
+        },
+        {
+          "id": "20.13",
+          "title": "Update the map, the plan and DEVELOPER-GUIDE",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "21",
+      "title": "Wave 1: small, safe improvements",
+      "status": "in_progress",
+      "brief": "Sections 3.4, 3.5, 3.9, 3.13, 3.14, 3.15 of the map.",
+      "subtasks": [
+        {
+          "id": "21.1",
+          "title": "Worker cache: remove ?v=Date.now() from worker URLs (3.14)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "21.1.1",
+              "title": "Replace with a version string from one place",
+              "status": "todo"
+            },
+            {
+              "id": "21.1.2",
+              "title": "Check CSV, XML, YAML, TOML workers still pick up changes after an upgrade",
+              "status": "todo"
+            },
+            {
+              "id": "21.1.3",
+              "title": "Test: second page load serves the worker from cache",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "21.2",
+          "title": "TOML 4.1.1 to 5.0.1 (3.9)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "21.2.1",
+              "title": "Run the TOML fixtures and a TOML test suite sample against the new version",
+              "status": "todo"
+            },
+            {
+              "id": "21.2.2",
+              "title": "Re-vendor and update THIRD-PARTY.md",
+              "status": "todo"
+            },
+            {
+              "id": "21.2.3",
+              "title": "Test dates, arrays of tables, big integers; browser test in three engines",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "21.3",
+          "title": "Icons: use only the icons we use and upgrade Lucide (3.5)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "21.3.1",
+              "title": "List the 41 icons in use from the code",
+              "status": "todo"
+            },
+            {
+              "id": "21.3.2",
+              "title": "Check each name still exists in the current Lucide (names changed between 0.468 and 1.x)",
+              "status": "todo"
+            },
+            {
+              "id": "21.3.3",
+              "title": "Build a subset bundle once (esbuild) and add the build tool",
+              "status": "todo"
+            },
+            {
+              "id": "21.3.4",
+              "title": "Remove the blocking full-set script from index.html",
+              "status": "todo"
+            },
+            {
+              "id": "21.3.5",
+              "title": "Keep Structra.icons API the same",
+              "status": "todo"
+            },
+            {
+              "id": "21.3.6",
+              "title": "Test: every icon in the code renders; offline test stays green",
+              "status": "todo"
+            },
+            {
+              "id": "21.3.7",
+              "title": "Measure the first-load saving",
+              "status": "todo"
+            },
+            {
+              "id": "21.3.8",
+              "title": "Visual check of every icon in every theme after the upgrade: nothing breaks, nothing looks awkward (Q9)",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "21.4",
+          "title": "Native <dialog> for dialogs (3.4)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "21.4.1",
+              "title": "Prototype in StructraDialog: showModal, Escape, backdrop click, focus return",
+              "status": "todo"
+            },
+            {
+              "id": "21.4.2",
+              "title": "Check each of the 12 dialogs: charts, diff, nullfinder, pivot, settings, shortcuts, snippets, theme, typedef, validate, welcome, workspace",
+              "status": "todo"
+            },
+            {
+              "id": "21.4.3",
+              "title": "Keep Structra.closeTop (Escape closes one thing at a time) working",
+              "status": "todo"
+            },
+            {
+              "id": "21.4.4",
+              "title": "Re-check backdrop and animation looks in all themes",
+              "status": "todo"
+            },
+            {
+              "id": "21.4.5",
+              "title": "Update shell and layout tests; axe audit",
+              "status": "todo"
+            },
+            {
+              "id": "21.4.6",
+              "title": "Never block an older browser: feature-detect HTMLDialogElement.showModal, keep the old dialog code as the fallback, show a note and keep running (Q10)",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "21.5",
+          "title": "Components clean up after themselves (3.14)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "21.5.1",
+              "title": "Base class: record event-bus subscriptions and remove them on disconnect",
+              "status": "todo"
+            },
+            {
+              "id": "21.5.2",
+              "title": "Base class: an AbortController for DOM listeners",
+              "status": "todo"
+            },
+            {
+              "id": "21.5.3",
+              "title": "Re-subscribe when an element is added again",
+              "status": "todo"
+            },
+            {
+              "id": "21.5.4",
+              "title": "Unit test: remove and re-add a component; no double handling",
+              "status": "todo"
+            },
+            {
+              "id": "21.5.5",
+              "title": "Audit components that add document-level listeners (menus, paste)",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "21.6",
+          "title": "Input panel: the place of a JSON error from jsonc-parser (3.14)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "21.6.1",
+              "title": "Use explainParseError in _explainError",
+              "status": "todo"
+            },
+            {
+              "id": "21.6.2",
+              "title": "Test the message in Chromium, Firefox and WebKit",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "21.7",
+          "title": "Graph node labels (3.15)",
+          "status": "in_progress",
+          "subtasks": [
+            {
+              "id": "21.7.1",
+              "title": "DECISION: wrap the label over 2 or 3 lines in a taller node (you suggested it)",
+              "status": "done",
+              "note": "you suggested it (Q11, assumed yes)"
+            },
+            {
+              "id": "21.7.2",
+              "title": "Per-node height in the layout code",
+              "status": "todo"
+            },
+            {
+              "id": "21.7.3",
+              "title": "Wrap text in SVG (tspans), keep the full label as the name",
+              "status": "todo"
+            },
+            {
+              "id": "21.7.4",
+              "title": "Check zoom, fit, pan and the minimap",
+              "status": "todo"
+            },
+            {
+              "id": "21.7.5",
+              "title": "axe audit shows 0 findings",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "21.8",
+          "title": "Tabs: keyboard way to reorder (3.13)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "21.8.1",
+              "title": "Move left and Move right: shortcut and menu item",
+              "status": "todo"
+            },
+            {
+              "id": "21.8.2",
+              "title": "Announce the change for screen readers",
+              "status": "todo"
+            },
+            {
+              "id": "21.8.3",
+              "title": "Test with keyboard only",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "21.9",
+          "title": "Pivot: keyboard way to place fields (3.13)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "21.9.1",
+              "title": "\"Add to rows, columns, values\" buttons on each field",
+              "status": "todo"
+            },
+            {
+              "id": "21.9.2",
+              "title": "Test with keyboard only",
+              "status": "todo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "22",
+      "title": "Wave 3: when a measurement or an outside event allows",
+      "status": "in_progress",
+      "brief": "Sections 3.6, 3.7, 3.10, 3.11, 3.12 of the map.",
+      "subtasks": [
+        {
+          "id": "22.1",
+          "title": "Ajv 6 to 8 (3.6)",
+          "status": "done",
+          "subtasks": [
+            {
+              "id": "22.1.1",
+              "title": "Collect real Parse JSON schemas (23 schemas from 15 flows in your own developer environments, read-only)",
+              "status": "done"
+            },
+            {
+              "id": "22.1.2",
+              "title": "Test them with Ajv 6.12.6 and Ajv 8 (strict and not strict): all 23 compile in both, same speed; only the error format differs",
+              "status": "done"
+            },
+            {
+              "id": "22.1.3",
+              "title": "Decision: keep Ajv 6; no benefit for real schemas today (none uses $schema or newer keywords). Revisit on the watch list (task 30)",
+              "status": "done",
+              "note": "Q14"
+            }
+          ]
+        },
+        {
+          "id": "22.2",
+          "title": "DuckDB-Wasm (3.7)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "22.2.1",
+              "title": "Re-check the OPFS persistence claim in the adapter now",
+              "status": "todo"
+            },
+            {
+              "id": "22.2.2",
+              "title": "Benchmark the current DuckDB (engine 1.1.1) against the newest available: load time, start time, query time on 100,000 rows, memory, download size",
+              "status": "todo"
+            },
+            {
+              "id": "22.2.3",
+              "title": "Decide by the numbers (Q19): upgrade if it helps performance, otherwise wait for 2.0",
+              "status": "todo"
+            },
+            {
+              "id": "22.2.4",
+              "title": "If upgrading: branch, run the SQL, filter, pivot, null finder and find tests in three engines; re-vendor; update THIRD-PARTY.md",
+              "status": "todo",
+              "note": "only if the numbers say so"
+            }
+          ]
+        },
+        {
+          "id": "22.3",
+          "title": "Undo stores differences (3.11)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "22.3.1",
+              "title": "Design with jsondiffpatch deltas behind the same Structra.undoStack API",
+              "status": "todo"
+            },
+            {
+              "id": "22.3.2",
+              "title": "Edge cases: many changes at once, replace all, redo after undo",
+              "status": "todo"
+            },
+            {
+              "id": "22.3.3",
+              "title": "Memory check on the large fixtures",
+              "status": "todo"
+            },
+            {
+              "id": "22.3.4",
+              "title": "Keep the 60 MB budget as a safety net",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "22.4",
+          "title": "Command palette: ranked fuzzy matching (3.12)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "22.4.1",
+              "title": "Try uFuzzy on the command list",
+              "status": "todo"
+            },
+            {
+              "id": "22.4.2",
+              "title": "Keep exact and category matching ranked first",
+              "status": "todo"
+            },
+            {
+              "id": "22.4.3",
+              "title": "Tests for typos and partial words",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "22.5",
+          "title": "Save as PNG: html2canvas replacement (3.10)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "22.5.1",
+              "title": "Compare modern-screenshot and html-to-image on our themes and fonts",
+              "status": "todo"
+            },
+            {
+              "id": "22.5.2",
+              "title": "Decide; replace behind Structra.imageCapture",
+              "status": "todo"
+            },
+            {
+              "id": "22.5.3",
+              "title": "Update THIRD-PARTY.md",
+              "status": "todo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "23",
+      "title": "Keep and harden: run the oracles against our own code (section 8.3)",
+      "status": "todo",
+      "brief": "For each area we keep, turn the mature oracle into permanent tests and fix what fails.",
+      "subtasks": [
+        {
+          "id": "23.1",
+          "title": "JSON reading: JSONTestSuite against our parse path and the big-number scan",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.1.1",
+              "title": "Get the suite",
+              "status": "todo"
+            },
+            {
+              "id": "23.1.2",
+              "title": "Run and list differences",
+              "status": "todo"
+            },
+            {
+              "id": "23.1.3",
+              "title": "Fix or document each difference",
+              "status": "todo"
+            },
+            {
+              "id": "23.1.4",
+              "title": "Keep as a permanent test",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.2",
+          "title": "CSV and TSV import: csv-spectrum cases against csv-typing.js and PapaParse",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.2.1",
+              "title": "Get the cases",
+              "status": "todo"
+            },
+            {
+              "id": "23.2.2",
+              "title": "Run",
+              "status": "todo"
+            },
+            {
+              "id": "23.2.3",
+              "title": "Fix cell typing differences",
+              "status": "todo"
+            },
+            {
+              "id": "23.2.4",
+              "title": "Permanent test",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.3",
+          "title": "XML import and export: well-formedness, name collisions, attributes, namespaces, CDATA",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.3.1",
+              "title": "Decide the mapping rules and write them down",
+              "status": "todo"
+            },
+            {
+              "id": "23.3.2",
+              "title": "Fix a and b collisions (a b and a_b)",
+              "status": "todo"
+            },
+            {
+              "id": "23.3.3",
+              "title": "Round-trip tests with DOMParser",
+              "status": "todo"
+            },
+            {
+              "id": "23.3.4",
+              "title": "Compare with fast-xml-parser behavior",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.4",
+          "title": "TOML and YAML import: toml-test and yaml-test-suite through our workers",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.4.1",
+              "title": "Run both suites",
+              "status": "todo"
+            },
+            {
+              "id": "23.4.2",
+              "title": "Check the options we pass",
+              "status": "todo"
+            },
+            {
+              "id": "23.4.3",
+              "title": "Permanent test",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.5",
+          "title": "JSON Patch: RFC 6902 tests against Compare's \"copy as JSON Patch\"",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.5.1",
+              "title": "Get the test collection",
+              "status": "todo"
+            },
+            {
+              "id": "23.5.2",
+              "title": "Apply our patches with an independent applier",
+              "status": "todo"
+            },
+            {
+              "id": "23.5.3",
+              "title": "Fix failures",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.6",
+          "title": "Parse JSON schema generator: the official JSON Schema suite; compare with genson and quicktype on optional and nullable fields",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.6.1",
+              "title": "Ajv self-validation as a permanent test (57 of 57 pass today)",
+              "status": "todo"
+            },
+            {
+              "id": "23.6.2",
+              "title": "Official suite",
+              "status": "todo"
+            },
+            {
+              "id": "23.6.3",
+              "title": "Compare optional and nullable handling with genson",
+              "status": "todo"
+            },
+            {
+              "id": "23.6.4",
+              "title": "Fix differences that matter for the Parse JSON action",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.7",
+          "title": "Type generator: compile the output with real compilers",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.7.1",
+              "title": "TypeScript with tsc",
+              "status": "todo"
+            },
+            {
+              "id": "23.7.2",
+              "title": "Go",
+              "status": "todo"
+            },
+            {
+              "id": "23.7.3",
+              "title": "Rust",
+              "status": "todo"
+            },
+            {
+              "id": "23.7.4",
+              "title": "C#",
+              "status": "todo"
+            },
+            {
+              "id": "23.7.5",
+              "title": "Python (mypy or compileall)",
+              "status": "todo"
+            },
+            {
+              "id": "23.7.6",
+              "title": "Java",
+              "status": "todo"
+            },
+            {
+              "id": "23.7.7",
+              "title": "Fix what does not compile",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.8",
+          "title": "Power Automate and Power Fx expressions: Microsoft syntax rules and real flows",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.8.1",
+              "title": "Collect real flows from you",
+              "status": "blocked",
+              "note": "waiting for you (D2)"
+            },
+            {
+              "id": "23.8.2",
+              "title": "Check quoting, null-safe steps, body detection against documented examples",
+              "status": "todo"
+            },
+            {
+              "id": "23.8.3",
+              "title": "Odd keys (after the path model fix)",
+              "status": "todo"
+            },
+            {
+              "id": "23.8.4",
+              "title": "Permanent tests",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.9",
+          "title": "Fuzzy search: compare recall and speed with uFuzzy and Fuse on typos",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.9.1",
+              "title": "Build a typo test set",
+              "status": "todo"
+            },
+            {
+              "id": "23.9.2",
+              "title": "Compare",
+              "status": "todo"
+            },
+            {
+              "id": "23.9.3",
+              "title": "Tune the threshold or keep",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.10",
+          "title": "Personal data masking: Luhn check for cards, tighter phone pattern, a list of known PII formats",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.10.1",
+              "title": "Add the check digit test",
+              "status": "todo"
+            },
+            {
+              "id": "23.10.2",
+              "title": "Tighten the phone pattern",
+              "status": "todo"
+            },
+            {
+              "id": "23.10.3",
+              "title": "Unit tests with real-looking examples",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.11",
+          "title": "Overview insights and quality score: edge cases (empty lists, mixed types, huge arrays, all-null columns)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.11.1",
+              "title": "List the edge cases",
+              "status": "todo"
+            },
+            {
+              "id": "23.11.2",
+              "title": "Test each",
+              "status": "todo"
+            },
+            {
+              "id": "23.11.3",
+              "title": "Fix",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.12",
+          "title": "Charts, Graph, Minimap, Heatmap: empty, single value, huge and negative values",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.12.1",
+              "title": "Charts",
+              "status": "todo"
+            },
+            {
+              "id": "23.12.2",
+              "title": "Graph",
+              "status": "todo"
+            },
+            {
+              "id": "23.12.3",
+              "title": "Minimap",
+              "status": "todo"
+            },
+            {
+              "id": "23.12.4",
+              "title": "Heatmap",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.13",
+          "title": "Startup cost: Lighthouse and a bundle report",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.13.1",
+              "title": "Run Lighthouse on the built site",
+              "status": "todo"
+            },
+            {
+              "id": "23.13.2",
+              "title": "List what loads at start and its size",
+              "status": "todo"
+            },
+            {
+              "id": "23.13.3",
+              "title": "Set a size budget and add it to CI",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.14",
+          "title": "Security of generated HTML: extend hostile.js to every view",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.14.1",
+              "title": "Markup in keys and values in Overview, Tree, Table, Graph, Schema, Node panel, Compare, Query results",
+              "status": "todo"
+            },
+            {
+              "id": "23.14.2",
+              "title": "Check titles and attributes, not only text",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "23.15",
+          "title": "Large files in all three engines (37 MB and 88 MB): time and memory",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "23.15.1",
+              "title": "Firefox",
+              "status": "todo"
+            },
+            {
+              "id": "23.15.2",
+              "title": "WebKit",
+              "status": "todo"
+            },
+            {
+              "id": "23.15.3",
+              "title": "Record the numbers in the docs",
+              "status": "todo"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "24",
+      "title": "Seams between our code and the libraries (section 8.5, rule 3)",
+      "status": "in_progress",
+      "brief": "Neither world may cause trouble for the other.",
+      "subtasks": [
+        {
+          "id": "24.1",
+          "title": "Contract test for the Ajv adapter",
+          "status": "todo"
+        },
+        {
+          "id": "24.2",
+          "title": "Contract test for the jsondiffpatch adapter",
+          "status": "todo"
+        },
+        {
+          "id": "24.3",
+          "title": "Contract test for the share link (size limits, base64url, gzip)",
+          "status": "todo"
+        },
+        {
+          "id": "24.4",
+          "title": "Contract tests for the parse workers (CSV, XML, YAML, TOML)",
+          "status": "todo"
+        },
+        {
+          "id": "24.5",
+          "title": "Test that freezes the document and runs every library path: nothing may change it",
+          "status": "todo"
+        },
+        {
+          "id": "24.6",
+          "title": "Collect library globals under Structra.libs if a clash appears (watch only)",
+          "status": "todo"
+        },
+        {
+          "id": "24.7",
+          "title": "Upgrade checklist written in DEVELOPER-GUIDE: re-run the oracle, three browsers, offline test, THIRD-PARTY.md",
+          "status": "todo"
+        },
+        {
+          "id": "24.8",
+          "title": "Memory check added to the large-file test (two copies of a big document)",
+          "status": "todo"
+        },
+        {
+          "id": "24.9",
+          "title": "Decide the json-p3 fallback (see task 16)",
+          "status": "done",
+          "note": "Q13: plain error message"
+        }
+      ]
+    },
+    {
+      "id": "25",
+      "title": "Upkeep and structure",
+      "status": "todo",
+      "brief": "No visible change; makes later work easier.",
+      "subtasks": [
+        {
+          "id": "25.1",
+          "title": "Split data-engine.js (2,094 lines) into modules",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "25.1.1",
+              "title": "Map its parts: datasets, analysis, search, sort, filter, schema, stats, SQL, persistence",
+              "status": "todo"
+            },
+            {
+              "id": "25.1.2",
+              "title": "Move one part at a time with the tests green",
+              "status": "todo"
+            },
+            {
+              "id": "25.1.3",
+              "title": "Update the map",
+              "status": "todo"
+            }
+          ]
+        },
+        {
+          "id": "25.2",
+          "title": "Split components.css (2,116 lines) by view",
+          "status": "todo"
+        },
+        {
+          "id": "25.3",
+          "title": "Refresh memory-bank.md and DEVELOPER-GUIDE.md",
+          "status": "todo"
+        },
+        {
+          "id": "25.4",
+          "title": "Keep this list and the map current: node tools/todo.mjs for every change of status",
+          "status": "todo"
+        },
+        {
+          "id": "25.5",
+          "title": "Move the old design prototypes out of the root (see 18-D)",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "26",
+      "title": "Process: branches, pull requests, releases, CI",
+      "status": "todo",
+      "brief": "Nothing is merged or promoted to test or prod unless you say so.",
+      "subtasks": [
+        {
+          "id": "26.1",
+          "title": "Merge order: #6 into dev, then #7, then the Table pull request",
+          "status": "todo"
+        },
+        {
+          "id": "26.2",
+          "title": "After #6 merges, retarget #7 and the Table pull request to dev",
+          "status": "todo",
+          "note": "after the first merge"
+        },
+        {
+          "id": "26.3",
+          "title": "Promote dev to test and prod only when you say so",
+          "status": "blocked",
+          "note": "waiting for you each time (Q16)"
+        },
+        {
+          "id": "26.4",
+          "title": "CI: make the Firefox and WebKit job blocking, or keep it optional",
+          "status": "blocked",
+          "note": "optional until tuned (Q15)"
+        },
+        {
+          "id": "26.5",
+          "title": "CI: measure the time of every job on GitHub; cache apt packages for WebKit; try fewer shards",
+          "status": "todo"
+        },
+        {
+          "id": "26.6",
+          "title": "CI: UI audit takes about 10 minutes on GitHub; look for savings",
+          "status": "todo"
+        },
+        {
+          "id": "26.7",
+          "title": "Each change: lint, unit, browser tests, UI audit, three engines before the pull request",
+          "status": "todo"
+        },
+        {
+          "id": "26.8",
+          "title": "Merge PR #6 into dev after CI is green (Q7)",
+          "status": "todo"
+        },
+        {
+          "id": "26.9",
+          "title": "Retarget PR #7 to dev, wait for CI, merge (Q7)",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "27",
+      "title": "Shared architecture: write generic logic once (rule 4)",
+      "status": "todo",
+      "brief": "Your rule: generic code is written once and reused. Examples already found: paths written in 16 places, four ways to run user code, a menu and outside-click handler per component.",
+      "subtasks": [
+        {
+          "id": "27.1",
+          "title": "Add rule 4 to the map and DEVELOPER-GUIDE: shared architecture, one place per job",
+          "status": "todo"
+        },
+        {
+          "id": "27.2",
+          "title": "Scan the code for duplicated logic with a mature tool (jscpd), list the biggest repeats",
+          "status": "todo"
+        },
+        {
+          "id": "27.3",
+          "title": "Candidate: one path writer and reader (task 18.1)",
+          "status": "todo"
+        },
+        {
+          "id": "27.4",
+          "title": "Candidate: one job service for user code and patterns (task 19)",
+          "status": "todo"
+        },
+        {
+          "id": "27.5",
+          "title": "Candidate: one menu and popover service (Tree menu, Table column menu, tabs menu, canvas header menu each build their own and close on outside click their own way)",
+          "status": "todo"
+        },
+        {
+          "id": "27.6",
+          "title": "Candidate: one Escape and outside-click handling for overlays",
+          "status": "todo"
+        },
+        {
+          "id": "27.7",
+          "title": "Candidate: one copy-to-clipboard button pattern (buttons repeated in many panels)",
+          "status": "todo"
+        },
+        {
+          "id": "27.8",
+          "title": "Candidate: one empty-state and error-state block",
+          "status": "todo"
+        },
+        {
+          "id": "27.9",
+          "title": "Candidate: one number, size and date formatting set (check what is repeated)",
+          "status": "todo"
+        },
+        {
+          "id": "27.10",
+          "title": "Candidate: one place for the \"one door per library\" modules (windowed rows, share, parse workers)",
+          "status": "todo"
+        },
+        {
+          "id": "27.11",
+          "title": "Rank the candidates by how much they remove and how risky they are; agree the order with you",
+          "status": "todo"
+        },
+        {
+          "id": "27.12",
+          "title": "For each chosen candidate: write the shared piece, move one user at a time with tests green, delete the copies (to archive/ first)",
+          "status": "todo"
+        },
+        {
+          "id": "27.13",
+          "title": "Add a duplication budget check to CI so new copies are noticed",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "28",
+      "title": "Bug reports: a button that opens a prefilled GitHub issue (future, Q20)",
+      "status": "todo",
+      "brief": "Later. A \"Report a problem\" button that never includes document data.",
+      "subtasks": [
+        {
+          "id": "28.1",
+          "title": "Design the report: version, browser, last errors, settings; never document data",
+          "status": "todo"
+        },
+        {
+          "id": "28.2",
+          "title": "Prefilled GitHub issue link (no token needed) and an issue template",
+          "status": "todo"
+        },
+        {
+          "id": "28.3",
+          "title": "Depends on the global error handler (task 18.4)",
+          "status": "todo"
+        },
+        {
+          "id": "28.4",
+          "title": "Decide how issues are triaged and linked to tasks",
+          "status": "todo"
+        },
+        {
+          "id": "28.5",
+          "title": "Tests: the report never contains document text",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "29",
+      "title": "Real Power Platform data through the installed tools (D1 and D2)",
+      "status": "in_progress",
+      "brief": "Done with your permission: read-only, your own developer environments only, nothing stored in the repository. Results: map section 8.6.",
+      "subtasks": [
+        {
+          "id": "29.1",
+          "title": "Check the connection (whoami, doctor): works for listing environments",
+          "status": "done"
+        },
+        {
+          "id": "29.2",
+          "title": "The plugin cannot list flows here: the company network inspects HTTPS and the tool does not trust the certificate. I did not turn off certificate checks; used the Azure CLI you are signed into instead",
+          "status": "done"
+        },
+        {
+          "id": "29.3",
+          "title": "List flows in IHSM_DEV, IHSM_Developer_Environment_2 and your personal environment (125 flows)",
+          "status": "done"
+        },
+        {
+          "id": "29.4",
+          "title": "Fetch the definitions of the 15 flows that contain Parse JSON (kept in the scratch folder only)",
+          "status": "done"
+        },
+        {
+          "id": "29.5",
+          "title": "Extract the 23 real Parse JSON schemas and survey their keywords (none has $schema)",
+          "status": "done"
+        },
+        {
+          "id": "29.6",
+          "title": "Compare Ajv 6 and Ajv 8 on them (task 22.1)",
+          "status": "done"
+        },
+        {
+          "id": "29.7",
+          "title": "Extract 481 real expressions: which functions and which kinds of keys appear",
+          "status": "done"
+        },
+        {
+          "id": "29.8",
+          "title": "Check that our generators cover the functions real flows use (they do)",
+          "status": "done"
+        },
+        {
+          "id": "29.9",
+          "title": "Real key kinds found: 61 contain a slash (the dynamic-content form body/field), 2 contain a dot, 2 contain @",
+          "status": "done"
+        },
+        {
+          "id": "29.10",
+          "title": "Add the dynamic-content style (outputs('Action')?['body/field']) as an extra output of the expression generator",
+          "status": "todo"
+        },
+        {
+          "id": "29.11",
+          "title": "Build synthetic test fixtures that copy the shapes (nested items, oneOf, slash keys, odata keys) without any real names or data",
+          "status": "todo"
+        },
+        {
+          "id": "29.12",
+          "title": "Optional: ask IT for the company CA bundle (NODE_EXTRA_CA_CERTS) so the plugin itself can list flows",
+          "status": "todo",
+          "note": "optional"
+        }
+      ]
+    },
+    {
+      "id": "30",
+      "title": "Watch list: revisit when a reason appears",
+      "status": "blocked",
+      "brief": "Things we decided not to do now, and what would make us do them.",
+      "subtasks": [
+        {
+          "id": "30.1",
+          "title": "Ajv 8: when a schema needs draft 2019 or 2020, or a security advisory appears for Ajv 6",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.2",
+          "title": "DuckDB 2.0: when released, run the benchmark in 22.2 again",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.3",
+          "title": "json-p3 fallback: only if the library ever fails to load in practice",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.4",
+          "title": "Content-Security-Policy: after the sandbox worker (task 19)",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.5",
+          "title": "Offline install: if you want it (Q18)",
+          "status": "blocked",
+          "note": "Q18: no for now; optional later"
+        },
+        {
+          "id": "30.6",
+          "title": "Cytoscape or a graph engine: only if the Graph needs more than a depth-limited tree",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.7",
+          "title": "A table library: only if the Table needs features ours cannot reasonably get",
+          "status": "blocked",
+          "note": "watch"
+        }
+      ]
     }
   ],
   "principles": [
@@ -1911,5 +4038,6 @@
     "Top-level null, false, 0 and empty string documents cannot be opened (jsonData doubles as the has-data flag). The app shows a clear message instead.",
     "Large files (above 120 MB) open on the tree, and there is no cancel button. Parsing stays on the main thread because copying data to a worker cost more than parsing it.",
     "Fixed after the light-mode pass: the side-by-side diff never highlighted changed lines (line numbers were never set); it now marks changed, removed and added lines by data path. The font-size token now matches the 14 px the app actually runs at."
-  ]
+  ],
+  "howToUpdate": "node tools/todo.mjs set <id> <done|in_progress|todo|blocked> [note]. A task with subtasks follows its subtasks. docs/TODO.md is made from this file: node tools/todo.mjs render. tests/unit/todo.test.js fails when they differ."
 }

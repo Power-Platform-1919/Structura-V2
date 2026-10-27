@@ -380,6 +380,11 @@
 }
 
 .data-table tr:hover td { background: var(--surface-alt); }
+.data-table tr.vl-spacer:hover td { background: none; }
+/* The cell the keyboard is on (inside the cell: the box clips an outline drawn outside) */
+.data-table th:focus-visible, .data-table td:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* Scrolling a cell into view must not leave it under the sticky header */
+.data-table td { scroll-margin-top: 44px; }
 .data-table tr.row-sel td { background: var(--accent-soft); }
 
 /* ===== BOOLEAN BADGES ===== */

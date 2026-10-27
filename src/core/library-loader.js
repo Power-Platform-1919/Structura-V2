@@ -19,6 +19,8 @@ Structra.libraryLoader = (() => {
   // Everything is served from this app's own folder: nothing is downloaded from another site
   const REGISTRY = {
     jsonrepair:  { type: 'script', urls: ['src/libs/jsonrepair.min.js'] },
+    // @tanstack/virtual-core (MIT): which rows of a long list are on screen, and how tall the whole list is (tools/build-virtual-core.mjs)
+    virtualcore: { type: 'module', urls: ['src/libs/virtual-core/virtual-core.min.js'] },
     // json-p3 (MIT): JSONPath, all 715 tests of the official standard (RFC 9535). One file, no imports. src/core/jsonpath-query.js uses it.
     jsonp3:      { type: 'module', urls: ['src/libs/json-p3/json-p3.min.js'] },
     // jsonc-parser (MIT, Microsoft): where JSON is broken, the same in every browser (tools/build-jsonc-parser.mjs makes the file)
