@@ -77,9 +77,9 @@ class StructraFind extends StructraComponent {
             <button class="fb-mode" data-mode="fuzzy" title="Find close matches, so a small typo still finds the value">Fuzzy</button>
             <button class="fb-mode" data-mode="regex" title="Find by pattern, for example \d{3}-\d{4}">Pattern</button>
           </div>
-          <input type="text" class="find-input" id="findInput"
+          <input type="text" class="find-input" id="findInput" aria-label="Find"
             placeholder="Find… (text, /regex/, key:name, $.path, SELECT…)" autocomplete="off">
-          <span class="fb-count" id="findCount">0/0</span>
+          <span class="fb-count" id="findCount" role="status" aria-live="polite">0/0</span>
           <button class="fb-btn" data-action="prev" title="Previous (Shift+Enter)">
             ${Structra.icons.svg('chevron-up')}
           </button>
@@ -94,7 +94,7 @@ class StructraFind extends StructraComponent {
           </button>
         </div>
         <div class="replace-row" id="replaceRow" style="display:none">
-          <input type="text" class="find-input" id="replaceInput"
+          <input type="text" class="find-input" id="replaceInput" aria-label="Replace with"
             placeholder="Replace with…" autocomplete="off">
           <button class="fb-btn fb-replace-btn" data-action="replaceOne" title="Replace the next match">Replace</button>
           <button class="fb-btn fb-replace-btn" data-action="replaceAll" title="Replace all matches">Replace all</button>
@@ -112,13 +112,7 @@ class StructraFind extends StructraComponent {
     findInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
-        if (event.shiftKey) this._goToPreviousMatch();
-        else {
-          clearTimeout(this._debounceTimer);
-          const query = findInput.value.trim();
-          if (query) this._doFind(query);
-          else this._goToNextMatch();
-        }
+        this._stepFromInput(event.shiftKey);
       }
       if (event.key === 'Escape') this._close();
     });
@@ -150,11 +144,26 @@ class StructraFind extends StructraComponent {
     });
   }
 
+  /**
+   * Enter and Shift+Enter: search first when the text changed since the last search, then go to the next (or previous) match.
+   * Before, Enter searched again every time and never moved on, although the button says "Next (Enter)".
+   */
+  async _stepFromInput(backwards) {
+    clearTimeout(this._debounceTimer);
+    const query = this._getInput();
+    // A search that failed (a broken pattern) leaves the old result active: do not step through that
+    if (query && query !== this._lastQuery && await this._doFind(query) === false) return;
+    if (backwards) this._goToPreviousMatch(); else this._goToNextMatch();
+  }
+
   _getInput() { const element = this.queryOne('#findInput'); return element ? element.value.trim() : ''; }
 
   _setMode(mode) {
     this._mode = mode;
-    this.querySelectorAll('.fb-mode').forEach(element => element.classList.toggle('active', element.dataset.mode === mode));
+    this.querySelectorAll('.fb-mode').forEach(element => {
+      element.classList.toggle('active', element.dataset.mode === mode);
+      element.setAttribute('aria-pressed', element.dataset.mode === mode ? 'true' : 'false');
+    });
     const input = this.queryOne('#findInput');
     if (input) {
       const placeholders = {
@@ -199,19 +208,13 @@ class StructraFind extends StructraComponent {
   /* ======== QUERY DISPATCH ======== */
 
   async _doFind(query) {
+    this._lastQuery = query;
     // SQL always takes priority regardless of mode
-    if (/^\s*(SELECT|WITH)\s/i.test(query)) {
-      await this._doSqlFind(query);
-      return;
-    }
+    if (/^\s*(SELECT|WITH)\s/i.test(query)) return this._doSqlFind(query);
 
-    if (this._mode === 'fuzzy') {
-      await this._doFuzzyFind(query);
-    } else if (this._mode === 'regex') {
-      await this._doRegexFind(query);
-    } else {
-      await this._doDbFind(query);
-    }
+    if (this._mode === 'fuzzy') return this._doFuzzyFind(query);
+    if (this._mode === 'regex') return this._doRegexFind(query);
+    return this._doDbFind(query);
   }
 
   /* --- Fuzzy search (engine.fuzzySearch) --- */
@@ -221,9 +224,11 @@ class StructraFind extends StructraComponent {
       const total = (results && results.total) || 0;
       this._idx = -1;
       this.queryOne('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
+      return true;
     } catch (error) {
       Structra.log.warn('Find', 'Fuzzy search failed', error.message);
       this.queryOne('#findCount').textContent = 'Error';
+      return false;
     }
   }
 
@@ -234,9 +239,11 @@ class StructraFind extends StructraComponent {
       const total = (results && results.total) || 0;
       this._idx = -1;
       this.queryOne('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
+      return true;
     } catch (error) {
       Structra.log.warn('Find', 'Regex search failed', error.message);
       this.queryOne('#findCount').textContent = 'Not a valid pattern';
+      return false;
     }
   }
 
@@ -249,9 +256,11 @@ class StructraFind extends StructraComponent {
       } else {
         this.queryOne('#findCount').textContent = '0 found';
       }
+      return true;
     } catch (error) {
       Structra.log.warn('Find', 'Find failed', error.message);
       this.queryOne('#findCount').textContent = 'Error';
+      return false;
     }
   }
 
@@ -267,9 +276,11 @@ class StructraFind extends StructraComponent {
       } else {
         this.queryOne('#findCount').textContent = result.total + ' rows';
       }
+      return !result.error;
     } catch (error) {
       Structra.log.warn('Find', 'SQL query failed', error.message);
       this.queryOne('#findCount').textContent = 'SQL Error';
+      return false;
     }
   }
 
@@ -356,6 +367,7 @@ class StructraFind extends StructraComponent {
   _clearSearch() {
     clearTimeout(this._debounceTimer);
     this._idx = -1;
+    this._lastQuery = null;
     const countElement = this.queryOne('#findCount');
     if (countElement) countElement.textContent = '0/0';
     const input = this.queryOne('#findInput');

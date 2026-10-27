@@ -60,15 +60,23 @@ Structra.panelResizer = (() => {
       const sign = edge === 'right' ? 1 : -1;
 
       const move = (event) => apply(clamp(startW + sign * (event.clientX - startX)));
+      let stopped = false;
       const stopDragging = () => {
+        if (stopped) return;
+        stopped = true;
         handle.classList.remove('dragging');
         document.body.style.userSelect = '';
         handle.removeEventListener('pointermove', move);
         handle.removeEventListener('pointerup', stopDragging);
+        handle.removeEventListener('pointercancel', stopDragging);
+        handle.removeEventListener('lostpointercapture', stopDragging);
         save(name, Math.round(panel.getBoundingClientRect().width));
       };
       handle.addEventListener('pointermove', move);
       handle.addEventListener('pointerup', stopDragging);
+      // Without these, a cancelled drag left the page unselectable (user-select none on the body) until the next drag
+      handle.addEventListener('pointercancel', stopDragging);
+      handle.addEventListener('lostpointercapture', stopDragging);
     });
 
     handle.addEventListener('keydown', (event) => {

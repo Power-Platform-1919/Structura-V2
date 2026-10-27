@@ -115,7 +115,8 @@ function serve() {
     await page.keyboard.press('Enter');
     await page.waitForTimeout(900);
     const found = await page.evaluate(() => ({ count: document.querySelector('#findCount').textContent, lit: document.querySelectorAll('.j-line.find-match').length, visible: [...document.querySelectorAll('.j-line:not(.filter-hidden):not(.j-close)')].length }));
-    if (found.count !== expected + ' found') failures.push('Find should count every matching value (' + expected + '): "' + found.count + '"');
+    // Enter searches and goes to the first match, so the count reads 1/N
+    if (found.count !== '1/' + expected) failures.push('Find should count every matching value (' + expected + '): "' + found.count + '"');
     if (found.lit < 1) failures.push('the matching lines should be highlighted in the Tree');
     if (found.visible <= found.lit) failures.push('the lines around a match (its record) should stay visible: ' + JSON.stringify(found));
     await page.evaluate(() => Structra.setState('findBarOpen', false));
@@ -246,9 +247,9 @@ function serve() {
       return page.evaluate(() => ({ count: document.querySelector('#findCount').textContent, lit: document.querySelectorAll('.j-line.find-match').length, sql: Structra.dataEngine.duckReady }));
     };
     let fz = await ask('fuzzy', 'Laptp refresh');
-    if (fz.count !== '1 found' || fz.lit < 1) failures.push('Fuzzy "Laptp refresh" should find the Laptop refresh title and mark it: ' + JSON.stringify(fz));
+    if (fz.count !== '1/1' || fz.lit < 1) failures.push('Fuzzy "Laptp refresh" should find the Laptop refresh title and mark it: ' + JSON.stringify(fz));
     fz = await ask('regex', '^ann@');
-    if (!/^[1-9]\d* found$/.test(fz.count)) failures.push('Pattern ^ann@ should find the email: ' + JSON.stringify(fz));
+    if (!/^1\/[1-9]\d*$/.test(fz.count)) failures.push('Pattern ^ann@ should find the email: ' + JSON.stringify(fz));
     fz = await ask('regex', '(');
     if (fz.count !== 'Not a valid pattern') failures.push('a broken pattern should say so: ' + fz.count);
     fz = await ask('text', '(');

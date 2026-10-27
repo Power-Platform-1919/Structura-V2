@@ -129,6 +129,7 @@ class StructraTable extends StructraComponent {
       if (row) {
         this.queryAll('tbody tr.row-sel').forEach(row => row.classList.remove('row-sel'));
         row.classList.add('row-sel');
+        this._selectedRowPath = row.dataset.path;
         Structra.setState('currentPath', row.dataset.path);
         Structra.events.emit('tree:node-selected', row.dataset.path);
       }
@@ -470,7 +471,7 @@ class StructraTable extends StructraComponent {
       },
 
       sentinelHtml(remaining) {
-        return `<tr class="vl-sentinel-row"><td colspan="${keys.length}" style="color:var(--text-muted);text-align:center;padding:var(--sp-2)">Loading ${Math.min(remaining, chunkSize)} more of ${remaining.toLocaleString()} rows…</td></tr>`;
+        return `<tr class="vl-sentinel-row"><td colspan="${Math.max(1, (self._visibleKeys || keys).length)}" style="color:var(--text-muted);text-align:center;padding:var(--sp-2)">Loading ${Math.min(remaining, chunkSize)} more of ${remaining.toLocaleString()} rows…</td></tr>`;
       },
     });
 
@@ -491,7 +492,9 @@ class StructraTable extends StructraComponent {
         const value = row ? row[visibleKeys[index]] : undefined;
         cells += `<td${this._numericCols && this._numericCols.has(visibleKeys[index]) ? ' class="num"' : ''}>${this._formatCell(value, visibleKeys[index])}</td>`;
       }
-      html += path ? `<tr data-path="${Structra.sharedHelpers.escapeHtml(path)}">${cells}</tr>` : `<tr>${cells}</tr>`;
+      // The selected row keeps its mark when its rows are drawn again after being recycled
+      const selected = path && path === this._selectedRowPath ? ' class="row-sel"' : '';
+      html += path ? `<tr data-path="${Structra.sharedHelpers.escapeHtml(path)}"${selected}>${cells}</tr>` : `<tr>${cells}</tr>`;
     }
     return html;
   }
