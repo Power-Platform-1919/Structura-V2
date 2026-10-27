@@ -14,6 +14,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const FIXTURES = path.join(ROOT, 'tests', 'fixtures');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
@@ -39,7 +41,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
   const failures = [];
   const errors = [];
@@ -68,8 +70,7 @@ function serve() {
     bad.forEach((b) => failures.push('XML is not well-formed for ' + b));
 
     // ---- Image export in every view, light and dark ----
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(FIXTURES, 'sp_getitems.json'));
-    await page.waitForTimeout(1500);
+    await uploadAndWait(page, path.join(FIXTURES, 'sp_getitems.json'));
     await page.evaluate(() => { window.__saved = []; const d = Structra.sharedHelpers.downloadFile; Structra.sharedHelpers.downloadFile = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); }; });
     // SHARD=0/2 or 1/2 (set by the parallel runner) takes only some of the modes, so the slow part is split across processes
     const [shard, shards] = (process.env.SHARD || '0/1').split('/').map(Number);

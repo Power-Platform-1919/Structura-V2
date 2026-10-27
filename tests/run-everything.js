@@ -13,7 +13,7 @@ const node = process.execPath;
 const STAGES = [
   { name: 'lint', command: [node, path.join(root, 'node_modules', 'eslint', 'bin', 'eslint.js'), '.'] },
   { name: 'unit tests', command: [node, path.join(__dirname, 'unit', 'run.js')] },
-  { name: 'browser tests', command: [node, path.join(__dirname, 'run-smoke.js'), '4'] },
+  { name: 'browser tests', command: [node, path.join(__dirname, 'run-smoke.js')] },
   { name: 'UI audit', command: [node, path.join(__dirname, 'ui', 'run-all.js')] },
 ];
 const clock = startClock();

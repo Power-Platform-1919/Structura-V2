@@ -13,6 +13,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -37,7 +39,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const origin = `http://127.0.0.1:${server.address().port}`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const ctx = await newCtx(browser, { viewport: { width: 1360, height: 800 } });
   const outside = [];
   // Nothing may leave this computer: any request to another site is recorded and blocked
@@ -56,8 +58,7 @@ function serve() {
     await page.goto(origin + '/index.html');
     await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
     await page.keyboard.press('Escape');
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
-    await page.waitForTimeout(1500);
+    await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
 
     const icons = await page.evaluate(() => document.querySelectorAll('svg').length);
     if (icons < 10) failures.push('the icons did not load without the internet: ' + icons + ' svg elements');

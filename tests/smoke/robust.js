@@ -14,6 +14,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -38,7 +40,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
   const failures = [];
   const errors = [];
@@ -214,8 +216,7 @@ function serve() {
     await p2.goto(base);
     await p2.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
     await p2.keyboard.press('Escape');
-    await p2.locator('#canvasEmpty input[type=file]').first().setInputFiles(path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
-    await p2.waitForTimeout(1500);
+    await uploadAndWait(p2, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
     await p2.evaluate(() => Structra.events.emit('settings:open'));
     await p2.waitForTimeout(400);
     const opened = await p2.evaluate(() => !!document.querySelector('structra-settings .ov.show'));

@@ -8,6 +8,7 @@
    Run all:   node tests/ui/run-all.js
 */
 const http = require('http');
+const { launchBrowser } = require('../launch-browser');
 const fs = require('fs');
 const path = require('path');
 
@@ -76,6 +77,16 @@ async function shot(page, name) {
   return file;
 }
 
+/** findings.json: every finding of every script, in script order (read from the findings-<script>.json files) */
+function mergeFindings() {
+  const all = [];
+  for (const name of fs.readdirSync(OUT).filter((f) => /^findings-.*\.json$/.test(f)).sort()) {
+    try { all.push(...JSON.parse(fs.readFileSync(path.join(OUT, name), 'utf8'))); } catch { /* a file being written: the next merge has it */ }
+  }
+  fs.writeFileSync(path.join(OUT, 'findings.json'), JSON.stringify(all, null, 2));
+  return all;
+}
+
 /** Collects findings: { area, severity, what, where } */
 function reporter(script) {
   const list = [];
@@ -83,11 +94,10 @@ function reporter(script) {
     add(area, severity, what, where = '') { list.push({ script, area, severity, what, where }); },
     list,
     save() {
-      const file = path.join(OUT, 'findings.json');
-      let all = [];
-      try { all = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* first run */ }
-      all = all.filter((f) => f.script !== script).concat(list);
-      fs.writeFileSync(file, JSON.stringify(all, null, 2));
+      // Each script writes its own file, so scripts that run at the same time cannot overwrite each other's findings.
+      // findings.json is rebuilt from all of them (tests/ui/run-all.js does the same once every script has finished).
+      fs.writeFileSync(path.join(OUT, 'findings-' + script + '.json'), JSON.stringify(list, null, 2));
+      mergeFindings();
       console.log(`${script}: ${list.length} finding(s)`);
       for (const f of list) console.log(`  [${f.severity}] ${f.area}: ${f.what}${f.where ? '  @ ' + f.where : ''}`);
     },
@@ -97,7 +107,7 @@ function reporter(script) {
 async function main(script, fn) {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch({ ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}), headless: !process.env.PW_HEADED, slowMo: process.env.PW_HEADED ? 250 : 0 });
+  const browser = await launchBrowser(chromium, { headless: !process.env.PW_HEADED, slowMo: process.env.PW_HEADED ? 250 : 0 });
   const rep = reporter(script);
   try { await fn({ browser, base, rep }); }
   catch (err) { rep.add('script', 'high', 'the audit script crashed: ' + err.message.slice(0, 200)); }
@@ -106,4 +116,4 @@ async function main(script, fn) {
   server.close();
 }
 
-module.exports = { ROOT, FIXTURES, OUT, VIEWS, newPage, open, view, shot, inject, main };
+module.exports = { ROOT, FIXTURES, OUT, VIEWS, newPage, open, view, shot, inject, main, mergeFindings };

@@ -2,6 +2,12 @@ name: CI
 
 # Runs the checks and tests on every pull request into dev, test or prod, and on every push to dev and test.
 # Pushes to prod are not checked here: by then the same code has already passed on dev and test, and prod deploys the site.
+#
+# Three jobs run at the same time, so the run takes as long as the slowest one:
+#   checks          lint and unit tests (seconds)
+#   browser         the browser tests, four at a time in shared browsers (tests/run-smoke.js)
+#   ui-audit        colours in every theme, layout, accessibility and random clicking (tests/ui/run-all.js)
+# The browser download is cached between runs (about a minute saved each time).
 
 on:
   pull_request:
@@ -34,9 +40,9 @@ jobs:
         run: npm test
 
   browser:
-    name: Browser tests and UI audit
+    name: Browser tests
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,11 +50,45 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Remember the downloaded browser
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install the browser
+        if: steps.browser-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+      - name: Install the system libraries the browser needs
+        if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - name: Browser tests
-        run: npm run test:all
-      - name: UI audit (colours in every theme, layout, accessibility)
+        run: npm run test:browser
+
+  ui-audit:
+    name: UI audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Remember the downloaded browser
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install the browser
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Install the system libraries the browser needs
+        if: steps.browser-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: UI audit (colours in every theme, layout, accessibility, random clicking)
         run: npm run ui:audit
       - name: Keep the audit screenshots when something fails
         if: failure()

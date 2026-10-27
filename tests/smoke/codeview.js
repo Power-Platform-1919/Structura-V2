@@ -13,6 +13,8 @@ try { ({ chromium } = require('playwright')); } catch {
   process.exit(2);
 }
 
+const { launchBrowser } = require('../launch-browser');
+const { uploadAndWait } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -37,7 +39,7 @@ function serve() {
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
+  const browser = await launchBrowser(chromium);
   const page = await (await newCtx(browser, { viewport: { width: 1360, height: 900 } })).newPage();
   const failures = [];
   const errors = [];
@@ -51,8 +53,7 @@ function serve() {
       { id: 1, name: 'Ann', amount: 120.5, active: true, tags: ['a', 'b'] },
       { id: 2, name: 'Bo', amount: 80, active: false, tags: [] },
     ];
-    await page.locator('#canvasEmpty input[type=file]').first().setInputFiles({ name: 'rows.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(rows)) });
-    await page.waitForTimeout(1200);
+    await uploadAndWait(page, { name: 'rows.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(rows)) });
 
     // ---- Generated code is coloured in every language, and still copies as the same text ----
     for (const lang of ['typescript', 'python', 'csharp', 'go', 'rust', 'java', 'powerfx', 'sql']) {
@@ -192,6 +193,55 @@ function serve() {
     if (foldCases.smallArrows < 1 || foldCases.pastedArrows !== 0) failures.push('text pasted in that is larger than the fold limit should lose its fold arrows: ' + JSON.stringify(foldCases));
     if (foldCases.pastedMs > 500) failures.push('a large pasted text should stay quick to use, it took ' + foldCases.pastedMs + ' ms');
     if (foldCases.classesAfterDestroy) failures.push('destroy() should remove the cv classes from the host: ' + JSON.stringify(foldCases.classesAfterDestroy));
+
+    // ---- Features a mature editor has and a data tool needs: hidden characters, no keyboard on read-only text, folding by key ----
+    const extras = await page.evaluate(async () => {
+      const make = async (options) => {
+        const host = document.createElement('div');
+        host.style.cssText = 'position:fixed;left:0;top:0;width:700px;height:200px;z-index:99999';
+        document.body.appendChild(host);
+        const box = await Structra.codeView.create(host, { mode: 'json', label: 'extras', ...options });
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        return { host, box };
+      };
+      const out = {};
+      // a zero-width space, a right-to-left override and a NUL byte are drawn as markers, so "adm<ZWSP>in" cannot pass for "admin"
+      let c = await make({ value: '{\n  "na​me": "ad‮min",\n  "nul": "a\u0000b"\n}', readOnly: true });
+      out.markers = c.host.querySelectorAll('.cm-specialChar').length;
+      // a read-only box must not open the on-screen keyboard on a phone; a box that can be edited must not ask for none
+      out.readOnlyInputmode = c.host.querySelector('.cm-content').getAttribute('inputmode');
+      c.box.setReadOnly(false);
+      await new Promise((r) => requestAnimationFrame(r));
+      out.editableInputmode = c.host.querySelector('.cm-content').getAttribute('inputmode');
+      c.box.setReadOnly(true);
+      await new Promise((r) => requestAnimationFrame(r));
+      out.readOnlyAgain = c.host.querySelector('.cm-content').getAttribute('inputmode');
+      c.box.destroy(); c.host.remove();
+      return out;
+    });
+    if (extras.markers < 3) failures.push('zero-width, direction-changing and control characters should be shown as markers, found ' + extras.markers + ': ' + JSON.stringify(extras));
+    if (extras.readOnlyInputmode !== 'none' || extras.readOnlyAgain !== 'none') failures.push('a read-only box should ask for no on-screen keyboard: ' + JSON.stringify(extras));
+    if (extras.editableInputmode) failures.push('a box that can be edited should not set inputmode: ' + JSON.stringify(extras));
+    // folding with the keyboard: Ctrl+Shift+[ folds the block the cursor is in, Ctrl+Shift+] opens it
+    await page.evaluate(async () => {
+      const host = document.createElement('div');
+      host.id = 'keyFoldHost';
+      host.style.cssText = 'position:fixed;left:0;top:0;width:700px;height:200px;z-index:99999';
+      document.body.appendChild(host);
+      const box = await Structra.codeView.create(host, { mode: 'json', value: '{\n  "a": {\n    "n": 1\n  }\n}', label: 'key fold' });
+      box.setCursor(1, 4);
+      box.focus();
+    });
+    await page.waitForTimeout(200);
+    await page.keyboard.press('Control+Shift+BracketLeft');
+    await page.waitForTimeout(200);
+    const keyFolded = await page.evaluate(() => !!document.querySelector('#keyFoldHost .cm-foldPlaceholder'));
+    await page.keyboard.press('Control+Shift+BracketRight');
+    await page.waitForTimeout(200);
+    const keyUnfolded = await page.evaluate(() => !document.querySelector('#keyFoldHost .cm-foldPlaceholder'));
+    await page.evaluate(() => { const host = document.getElementById('keyFoldHost'); host.codeView.destroy(); host.remove(); });
+    if (!keyFolded) failures.push('Ctrl+Shift+[ should fold the block at the cursor');
+    if (!keyUnfolded) failures.push('Ctrl+Shift+] should open a folded block');
 
     // ---- Large text: folding is left off, and the editor still works ----
     const big = await page.evaluate(async () => {
