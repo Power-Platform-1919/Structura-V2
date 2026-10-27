@@ -213,11 +213,20 @@ Structra.jsonpathQuery = (() => {
                 const index = item.index < 0 ? value.length + item.index : item.index;
                 if (index >= 0 && index < value.length) next.push({ path: childPath(node.path, index), value: value[index] });
               } else {
-                let [start, end, step] = item.slice;
+                // Slice rules of RFC 9535: a negative step walks backwards ([::-1] reverses), a step of 0 selects nothing.
+                // (A negative step used to loop forever and freeze the page.)
+                const [start, end, sliceStep] = item.slice;
                 const length = value.length;
-                start = start === null ? 0 : (start < 0 ? Math.max(0, length + start) : Math.min(start, length));
-                end = end === null ? length : (end < 0 ? Math.max(0, length + end) : Math.min(end, length));
-                for (let index = start; index < end; index += step || 1) next.push({ path: childPath(node.path, index), value: value[index] });
+                const fromEnd = (n) => (n < 0 ? length + n : n);
+                if (sliceStep > 0) {
+                  const lower = start === null ? 0 : Math.min(Math.max(fromEnd(start), 0), length);
+                  const upper = end === null ? length : Math.min(Math.max(fromEnd(end), 0), length);
+                  for (let index = lower; index < upper; index += sliceStep) next.push({ path: childPath(node.path, index), value: value[index] });
+                } else if (sliceStep < 0) {
+                  const upper = start === null ? length - 1 : Math.min(Math.max(fromEnd(start), -1), length - 1);
+                  const lower = end === null ? -1 : Math.min(Math.max(fromEnd(end), -1), length - 1);
+                  for (let index = upper; index > lower; index += sliceStep) next.push({ path: childPath(node.path, index), value: value[index] });
+                }
               }
             }
           }

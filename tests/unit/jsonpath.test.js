@@ -4,6 +4,20 @@ const J = Structra.jsonpathQuery;
 
 console.log('jsonpath');
 
+// Slices with a step (RFC 9535). A negative step used to loop forever.
+test('slice steps: forwards, backwards, and zero', () => {
+  const list = [0, 1, 2, 3, 4];
+  const take = (expr) => J.query(list, expr).map((m) => m.value);
+  eq(take('$[::2]'), [0, 2, 4]);
+  eq(take('$[::-1]'), [4, 3, 2, 1, 0]);
+  eq(take('$[2::-1]'), [2, 1, 0]);
+  eq(take('$[::-2]'), [4, 2, 0]);
+  eq(take('$[3:0:-1]'), [3, 2, 1]);
+  eq(take('$[-1:-4:-1]'), [4, 3, 2]);
+  eq(take('$[::0]'), []);
+  eq(take('$[7::-1]'), [4, 3, 2, 1, 0]);
+});
+
 const sp = {
   value: [
     { Title: 'Laptop', Cost: 1299.5, Approved: false, Requester: { Email: 'ann@x.com' }, Tags: [{ Value: 'IT' }, { Value: 'HW' }] },

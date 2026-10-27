@@ -5,7 +5,7 @@ Evidence: [deep-dive-analysis-2026-10.md](deep-dive-analysis-2026-10.md).
 
 ## 1. The idea in one paragraph
 
-Our app has two kinds of code. Some of it is unique to us: Power Platform expressions, the Overview insights, data paths, Parse JSON schema generation, the find-across-everything flow. The rest solves problems that mature libraries and the browser itself already solve and test: showing a long list, folding, keyboard handling, dialogs, undo, tables. The deep dive found 13 real bugs in the second kind within one session. The plan is to keep our own code only where it does something nothing else does, and to move everything else to mature code, one area at a time, each behind a switch so nothing breaks while we compare.
+Our app has two kinds of code. Some of it is unique to us: Power Platform expressions, the Overview insights, data paths, Parse JSON schema generation, the find-across-everything flow. The rest solves problems that mature libraries and the browser itself already solve and test: showing a long list, folding, keyboard handling, dialogs, undo, tables. The deep dive found 14 real bugs in the second kind within one session. The plan is to keep our own code only where it does something nothing else does, and to move everything else to mature code, one area at a time, each behind a switch so nothing breaks while we compare.
 
 ## 2. The rule for choosing (decision rubric)
 
@@ -33,12 +33,15 @@ Verdict key: KEEP (ours on purpose), ADOPT (move now), SPIKE (time-boxed trial, 
 | Compare / diff | jsondiffpatch | already adopted | KEEP | Also the base for undo deltas (below). |
 | Repair, schema validation, CSV, YAML, TOML, icons | jsonrepair, Ajv, PapaParse, js-yaml, toml, Lucide | already adopted | KEEP | |
 | Dialogs | `StructraDialog` with own focus trap | Native `<dialog>` with `showModal()` | **PLATFORM (quick win)** | The browser makes the rest of the page inert and traps focus, Escape works. One base class changes, every dialog follows. Support is broad for `<dialog>`; check the exact versions we target in browser-compat data before relying on any claim. |
-| Menus and tooltips (context menu, positions) | Own positioning code | Popover API, `@floating-ui/dom` as a fallback | **LATER** | Popover is widely supported. CSS anchor positioning is newer: Chromium and recent Firefox have it, Safari support must be re-checked before use. |
+| Menus and tooltips (context menu, positions) | Own positioning code | Popover API plus CSS anchor positioning | **LATER (low)** | MDN compatibility data (read 2026-10-27): `anchor-name` is in Chrome 125, Firefox 147, Safari 26, so all three engines have it. Keep `@floating-ui/dom` (3 KB gzipped) in mind only if we must support older browsers. |
+| Accessibility audit (tests only) | Own checks in `tests/ui/04-a11y-relevance.js` (names, duplicate ids, landmarks) | `@axe-core/playwright` (axe-core, hundreds of WCAG rules) | **ADOPT (dev only)** | Costs the app nothing: it only runs in tests. Needs your approval to add a dev dependency. |
+| Component base class | `StructraComponent`: no cleanup, `on()` records nothing, no `disconnectedCallback` | Pattern from Lit controllers (track subscriptions, remove on disconnect) | **FIX (small)** | Today harmless because components are created once. It will matter when components are created and destroyed (switchable engines, dialogs). Track subscriptions and an `AbortController` for DOM listeners; re-subscribe on reconnect. |
+| Offscreen rendering in the Classic Tree | Own recycle code (about 100 lines) | CSS `content-visibility: auto` | **SPIKE (low)** | MDN: Chrome 85, Firefox 125, Safari 18. The browser skips rendering offscreen lines, so the manual emptying and rebuilding could shrink. Does not reduce memory (nodes stay). Measure before touching. |
 | Undo | Full JSON snapshots, now with a 60 MB budget | jsondiffpatch deltas (already shipped) | **ADOPT (medium)** | Stores small diffs instead of full copies: much less memory on big files. Must keep the same `Structra.undoStack` API; tests exist. |
-| JSONPath | Own 234-line engine (a useful subset) | An RFC 9535 library, if one passes | **SPIKE (cheap, measurable)** | Run the official JSONPath compliance test suite against our engine first. If we pass what users use, keep it. If not, evaluate json-p3 or similar. jsonpath-plus follows the older spec, not RFC 9535. |
+| JSONPath | Own 234-line engine (a useful subset) | An RFC 9535 library: `jsonpath-rfc9535` (Apache-2.0, 8 KB gzipped, no dependencies, claims 100 percent of the suite) or `json-p3` (MIT, 15 KB gzipped) | **ADOPT (measured, see section 10)** | Measured: our engine passes 34 percent of the official suite (32 percent before the hang fix), 126 invalid selectors are accepted, 322 valid ones are rejected (for example RFC filters without parentheses, unions with a wildcard, strict whitespace). It had 3 hangs, now fixed. Our `=~` regex test is not RFC (the RFC uses `match()` and `search()`), so an adapter keeps it. The candidates' pass rates are their own claims; I was not allowed to run them here, run them yourself (section 10). |
 | Table | Own virtual list plus table, 1,102 lines, no keyboard navigation | Tabulator (vanilla, virtual DOM, MIT per the benchmark source, confirm in package) or AG Grid Community (MIT, bigger) or TanStack Table plus virtual-core (headless, we write the markup) | **SPIKE after the Tree MVP** | A 2026 benchmark source reports all three keep about 60 fps at 500,000 rows. Our gaps are keyboard, resize, copy, selection, not speed. Verify license text and size on the packages before deciding. |
 | Virtual list (shared) | `virtual-list.js`, 270 lines | `@tanstack/virtual-core` (framework-free core) or `virtua` | **LATER** | Only if the Table stays ours. If Tabulator is adopted this goes away. |
-| Graph | Own SVG graph, zoom and pan | Cytoscape.js; layout from `elkjs` or `d3-hierarchy` | **MEASURE FIRST** | Measure our limit (nodes before it gets slow). Replace only if the limit is too low for real files. Sources found were thin: benchmark ourselves. |
+| Graph | Own SVG graph, zoom and pan | `d3-hierarchy` for the tree layout (ISC, 5 KB gzipped); Cytoscape.js (MIT, 138 KB gzipped) only if we need a real graph engine | **MEASURE FIRST** | Our graph is an expandable tree, so a layout helper is enough and a graph engine is overkill. Avoid `elkjs`: it is EPL-2.0 or GPL-3.0 and 7.8 MB unpacked (the CALM ADR found by search puts its WebAssembly binary near 300 KB). No reliable benchmark exists: measure our own limit (nodes before it gets slow). |
 | Charts | Own inline SVG, about 220 lines, no library | uPlot, Chart.js | KEEP | Tiny and enough. Adopt only if zoom or hover is wanted. A library costs 10 to 150 KB for little gain. |
 | Large numbers | Worker finds numbers that would be rounded and keeps them as text | lossless-json | KEEP | Already handled. lossless-json is slower than native parse and not needed. |
 | Parsing in workers | Own worker pool with queue, scale up and idle stop | Comlink (small RPC helper) | KEEP, fix one thing | Fix now: the pool adds `?v=Date.now()` to worker URLs so workers are never cached between page loads. |
@@ -72,9 +75,16 @@ Goal: one working version to look at and compare, not a rewrite.
 | Wrap toggle | `EditorView.lineWrapping` |
 | Special characters shown | `highlightSpecialChars` (already in our wrapper) |
 | Theme, light and dark | Existing CodeMirror theme in `code-view.js` |
-| Large file | Cap about 20 to 40 MB for the first version; above the cap the Classic Tree opens and says why |
+| Large file | Cap about 40 MB for the first version (see section 9); above the cap the Classic Tree opens and says why. This matches how other large-JSON viewers work: they use a virtualized tree over a flat index (not an editor) for files of hundreds of MB, and a Mozilla bug shows Firefox devtools turning CodeMirror off for big response bodies. Our Classic Tree is that design, so it stays the answer above the cap. |
 
-**The hard part (be honest about it): the path index.** CodeMirror shows text, our features work on paths. We need a map from a line to its path and back. Build it once per document, in a worker, while the text is generated: for each line that opens a container record its path and nesting. Memory cost is one small record per container, not per line. Spike this first, it decides whether the MVP is feasible within the cap.
+**The hard part: the path index (now measured, feasible).** CodeMirror shows text, our features work on paths, so we need a map from a line to its path and back. Spike (own code, your fixtures, one scan over `JSON.stringify(data, null, 2)`, three typed arrays: parent line, index in the parent array, key id):
+
+| File | Lines | Pretty-print | Index scan | Index memory | Line to path | Path to line |
+|---|---|---|---|---|---|---|
+| 37 MB (`perf_100k.json`) | 2.2 million | 0.35 s | 0.34 s | 25 MB | 100,000 lookups in 80 ms | not timed |
+| 88 MB (`perf_150k_complex.json`) | 6.9 million | 1.2 s | 1.1 s | 79 MB | 100,000 lookups in 97 ms | 23 to 41 ms (scan, round trip correct) |
+
+So the index is cheap and fast at both sizes, and it is better than CodeMirror's own way (walking the syntax tree up from the cursor, where each array level costs time proportional to the array length, per a CodeMirror forum thread). Memory for the 88 MB file would be roughly 226 MB (data) plus 134 MB (text) plus about 220 MB (CodeMirror, from the earlier 89 MB spike) plus 79 MB (index), about 660 MB: heavy but bounded. For 40 MB it is about 300 MB. Do the pretty-printing and index in a worker.
 
 **Other known risks:** very long single lines are slow in CodeMirror (mitigate: show a long string truncated with a "show all" action, as the Classic Tree could do too); pretty-printing a 40 MB document on the main thread (do it in the worker); two copies of the document in memory (the parsed data and the text).
 
@@ -131,6 +141,94 @@ Search quality note: several searches returned thin results. Every figure marked
 ## 9. Decisions needed from you
 
 1. Approve the MVP scope in section 4 (Code Tree behind a switch, Classic stays default).
-2. The size cap for the first version (suggested: 20 MB, raise after measuring).
+2. The size cap for the first version. The path index measured fine up to 88 MB, so the cap is now decided by CodeMirror's memory, not by the index: suggested 40 MB, then measure and raise toward 90 MB.
 3. Do you want the vanilla-jsoneditor comparison spike now, or only if the CodeMirror Tree falls short?
 4. May I push the current branch and open a PR into `dev` first (Phase 0)?
+5. May I add `@axe-core/playwright` as a dev dependency for the accessibility audit (tests only, no effect on the app)?
+6. Will you run the JSONPath candidate check yourself, or allow me to run downloaded packages? (see section 10.2)
+
+## 10. Research round 2 (measured facts)
+
+Everything here was measured or read from a primary source on 2026-10-27. Where it is a claim by a package, it says so.
+
+### 10.1 Exact package facts (npm registry, latest versions)
+
+Size is minified and gzipped, measured from jsDelivr's bundled builds. Packages with dependencies are understated because their dependencies stay separate imports, except where noted.
+
+| Package | Version | License | Unpacked | Gzipped | Notes |
+|---|---|---|---|---|---|
+| vanilla-jsoneditor | 3.13.0 | ISC | 10 MB, 26 dependencies | 362 KB (standalone build, 1.2 MB minified) | on top of our CodeMirror (our own bundle is 25 KB entry plus lazy chunks) |
+| tabulator-tables | 6.7.1 | MIT | 29 MB (docs and dist) | 101 KB plus 3 KB CSS | no dependencies |
+| ag-grid-community | 36.2.0 | MIT | 21 MB | 345 KB | |
+| @tanstack/table-core | 9.3.1 | MIT | 1 MB | 28 KB | headless: we write the markup |
+| @tanstack/virtual-core | 3.19.8 | MIT | 628 KB | 9 KB | headless virtualizer, framework-free |
+| virtua | 0.54.0 | MIT | 2.7 MB | 10 KB | |
+| @headless-tree/core | 1.8.0 | MIT | 525 KB | 12 KB | accessible tree logic; its docs show only React usage and no 1M-node benchmark |
+| jsonpath-rfc9535 | 1.3.0 | Apache-2.0 | 1 MB | 8 KB | no dependencies; claims 100 percent of the compliance suite |
+| json-p3 | 3.0.1 | MIT | 469 KB | 15 KB | |
+| jsonpath-plus | 11.2.1 | MIT | 838 KB | 9 KB | follows the older spec, not RFC 9535 |
+| jsonc-parser | 3.3.1 | MIT | 208 KB | 6 KB | streaming parse with offsets: an alternative way to build a path index |
+| d3-hierarchy | 3.1.2 | ISC | 133 KB | 5 KB | tree layouts |
+| cytoscape | 3.34.4 | MIT | 5.5 MB | 138 KB | |
+| elkjs | 0.12.0 | EPL-2.0 OR GPL-3.0 | 7.8 MB | not measured | license needs a review before any use |
+| uplot | 1.6.32 | MIT | 533 KB | 22 KB | |
+| chart.js | 4.6.1 | MIT | 6 MB | 66 KB | |
+| lossless-json | 4.3.3 | MIT | 356 KB | 3 KB | not needed (our worker already keeps risky numbers as text) |
+| @floating-ui/dom | 1.8.0 | MIT | 170 KB | 3 KB | |
+| lit | 3.3.3 | BSD-3-Clause | 104 KB | not measured | |
+| idb | 8.0.4 | ISC | 81 KB | 1 KB | |
+| comlink | 4.4.2 | Apache-2.0 | 246 KB | 2 KB | |
+| @codemirror/search | 6.7.2 | MIT | 134 KB | 7 KB | in-editor Ctrl+F, only if wanted |
+| @codemirror/merge | 6.12.3 | MIT | 179 KB | 10 KB | side-by-side and unified text diff view |
+| @leeoniya/ufuzzy | 1.0.19 | MIT | 131 KB | 4 KB | fuzzy matching |
+| fuse.js | 7.5.0 | Apache-2.0 | 407 KB | 9 KB | fuzzy matching |
+| jsondiffpatch | 0.7.6 | MIT | 159 KB | 5 KB | already shipped |
+
+Not adopted on purpose: sigma (98 KB gzipped, WebGL graph), jsonata (25 KB gzipped, a different query language), immer and mutative (about 1 MB unpacked, not needed with jsondiffpatch).
+
+### 10.2 JSONPath: our engine against the official suite
+
+Tool: `tests/perf/jsonpath-compliance.js` (runs each test in its own process with a time limit).
+
+| | Before | After the hang fix |
+|---|---|---|
+| Passed | 229 of 715 (32 percent) | 243 of 715 (34 percent) |
+| Hangs | 3 (`$[::-1]`, `$[2::-1]`, `$[::-2]`) | 0 |
+| Invalid selectors we accept | 126 | 126 |
+| Valid selectors we reject | 322 | 322 |
+| Wrong results | 35 | 24 |
+
+Failures by group: whitespace 139 of 168, filter 128 of 188, name selector 113 of 137, functions 57 of 80, slice 21 of 74, basic 8 of 48, index 6 of 20. Examples: `$[?@.a=='b']` (filter without parentheses) is rejected, `$[*,1]` (wildcard in a union) is rejected, `$ ` (trailing space) is accepted.
+Most of the whitespace and name failures are strictness (we accept more than the standard), which is harmless for users. The ones that matter are valid RFC syntax we reject, because people copy expressions from documentation.
+
+I also prepared a script that runs `jsonpath-rfc9535`, `json-p3` and `jsonpath-plus` against the same suite plus our own test expressions plus a 200,000 record filter benchmark. It was blocked because it executes freshly downloaded packages. The script is saved as `tests/perf/jsonpath-candidates.js` (its header says how to run it). To run it yourself: install the three packages in a scratch folder and run the script, or tell me to run it.
+
+### 10.3 Path index spike
+
+See the table in section 4. Own code, your fixtures. Conclusion: not a blocker up to 88 MB.
+
+### 10.4 Browser features (MDN browser-compat-data)
+
+| Feature | Chrome | Firefox | Safari |
+|---|---|---|---|
+| `<dialog>` | 37 | 98 | 15.4 |
+| CSS `anchor-name` (anchor positioning) | 125 | 147 | 26 |
+| CSS `content-visibility` | 85 | 125 | 18 |
+
+The compat entries for `popover` and `inert` were not found at the paths I tried: verify them before relying on them.
+
+### 10.5 How other large-JSON tools are built (sources)
+
+- Open-source viewers for files of hundreds of MB avoid putting the text in an editor. They scan the file once into a flat index of offsets and structure and draw only the visible rows (BigJSON describes a memory-mapped file with a single tokenizer pass; OmniJSON reports a 189 MB, 6.4 million node reference run with about 7 s of worker parse and about 22 s to ready, MIT). These figures are self-reported and I could not verify them. Our Classic Tree is the same design.
+- A Mozilla bug report shows Firefox devtools disabling CodeMirror above 10,240 bytes by default for response bodies, because editor-style rendering is costly at scale.
+- CodeMirror 6 has no documented limit for very long single lines, and I found no benchmark. The old CodeMirror 5 had real problems with long lines full of special characters. Treat very long lines as a risk to test, not as solved.
+- CodeMirror's own JSON path from cursor (forum thread): walk up from the syntax node, each array level counts siblings (cost proportional to the array length), and property names are decoded with `JSON.parse` (can throw on partial input).
+
+### 10.6 What is still open
+
+- The three candidates' compliance and speed (blocked, see 10.2).
+- Tabulator keyboard and screen reader behaviour: searches returned nothing on it. Check its docs or test it in the spike. AG Grid's accessibility claim is not verified either.
+- Real numbers for our own Graph and Table limits (nodes and rows before they slow down).
+- `popover` and `inert` support data.
+- OmniJSON page could not be fetched a second time (connection reset), its numbers come from the search summary only.
+- Perspective (FINOS, Apache-2.0, WebAssembly grid and charts): licence and design look interesting for Table, Pivot and Charts together, but I found no size or large-row benchmark. It would be a large addition (WebAssembly), so only a spike candidate if the Tabulator trial disappoints.

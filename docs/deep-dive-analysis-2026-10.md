@@ -56,6 +56,10 @@ Commit `02968e8`:
 Test pipeline (commit `9268fdd`):
 13. Closing the shared test browsers with an un-awaited `kill()` left 8 browsers running per run (about 3 GB) because `process.exit` cut the kill off. Fix: end the whole process tree with `taskkill /T /F` (or a process group kill) and wait for it; 4 browsers close in 1.4 s and none are left.
 
+Found while researching candidates (second round):
+14. JSONPath: a negative step slice (`$[::-1]`, `$[2::-1]`, `$[::-2]`) looped forever and froze the page, because the loop condition `index < end` can never end when the step is negative. Fix: slice rules of RFC 9535 (negative step walks backwards, step 0 selects nothing). Unit test added (`tests/unit/jsonpath.test.js`, 17 tests pass). Found by running the official compliance suite against our engine (`tests/perf/jsonpath-compliance.js`): 32 percent before, 34 percent after, see the plan section 10.2.
+15. Not a bug yet, a hazard: `StructraComponent` never removes its event subscriptions (no `disconnectedCallback`, `on()` records nothing). Fine while components are created once; it will matter when components are created and destroyed. In the plan as a small fix.
+
 Tests added: `tests/smoke/tree-state.js` (run against the old code it fails in 11 places; passes on the fix). `tests/smoke/inputs.js` was updated for the new Enter behaviour (count reads `1/N` after Enter).
 
 ## 5. Measurements to keep
