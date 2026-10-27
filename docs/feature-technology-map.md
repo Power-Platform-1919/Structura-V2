@@ -2,6 +2,8 @@
 
 Written 2026-10-27 from the code (every file under `src/`), the vendored libraries, the tests, and web research. Where a reason is written down in a code comment or doc, it is marked **recorded**. Where I worked out the reason from the code, it is marked **inferred**. Where there is no way to tell, it says so.
 
+Important: the first version of this map was incomplete, and an audit of every file against it found gaps (section 1.2). A second audit ran hand-written code against standards and mature libraries and found real bugs (sections 2.9 and 8). Treat sections 1.2, 2.9 and 8 as part of the map.
+
 How this document is organised: section 1 is the app in numbers, section 2 goes through every UI component function by function (what it is built with, whether it is hand-written, what it depends on, who uses it, what we plan), section 3 explains each planned change with reasons, pros and cons, section 4 is the suggested order, 5 and 6 are what I could not verify and the sources, 7 is what I need from you.
 
 Companion documents: [deep-dive-analysis-2026-10.md](deep-dive-analysis-2026-10.md) (bugs found and fixed), [mature-libraries-plan.md](mature-libraries-plan.md) (measurements and the CodeMirror Tree MVP).
@@ -44,6 +46,26 @@ Verdict words used below:
 | jsonc-parser | 3.3.1 | 3.3.1 | 21 KB | where JSON is broken | IN PR #6 |
 | @tanstack/virtual-core | 3.19.8 | 3.19.8 | 33 KB | Table scrollbar | Table branch, not merged |
 | IBM Plex Sans, JetBrains Mono | self-hosted woff2 | | | fonts | offline and private |
+
+### 1.2 Parts of the product that are not UI components
+
+An audit of every file in the repository against this document found these were missing from the first version. They are part of the product and of its upkeep.
+
+| Part | What it is | Notes and plan |
+|---|---|---|
+| Deployment | `deploy-pages.yml`: every push to `prod` publishes `index.html`, `src`, `icons` and **`samples`** to GitHub Pages | `samples/` holds five old design prototypes and is published to the public site: stop publishing it (3.20) |
+| Branch mirror | `mirror-prod-to-main.yml`: makes `main` identical to `prod` | KEEP |
+| CI | `ci.yml`: lint and unit tests; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
+| Old prototypes | `structra-v2.html` (root, "Final Design", not loaded by the app) and `samples/option-*.html` | design experiments (recorded in `memory-bank.md`); archive them out of the root (3.20) |
+| `templates/` | an empty folder (not in git) | delete |
+| `todo.json` | the task list carried over from V1 (tasks 1 to 12) | KEEP; refresh |
+| Tooling | `eslint.config.js`, `package.json` (dev dependencies: Playwright, axe-core), the VS Code workspace file | KEEP |
+| `tools/` | three build scripts that produce vendored libraries once: CodeMirror (`build-editor.mjs`), jsonc-parser, virtual-core | KEEP |
+| CSS system (12 files, all own, no CSS framework) | `fonts.css` self-hosted fonts; `tokens.css` design tokens (colours, spacing, type); `base.css` reset, typography, `.sr-only`; `ui.css` shared patterns (dialogs, segmented buttons, menus, fields, cards, tags); `layout.css` the app grid; `shell.css` header, rail, tab bar, status bar; `overview.css`; `panels.css` query and node panels; `codeview.css` the CodeMirror look; `overlays.css`; `components.css` (2,116 lines, the older view styles: tree, table, graph, input panel); `theme-panel.css` | KEEP; split `components.css` by view when touched |
+| Small shared modules | `component-base.js` (the base class); `dialog-base.js` (`StructraDialog`, and `Structra.closeTop`, which makes Escape close one thing at a time); `safe-storage.js` (a memory store when the browser blocks localStorage); `src/libs/csv-typing.js` (own: types CSV cells, reads "1,200.00" as 1200, keeps decimals) | KEEP; the base classes get cleanup (3.14) |
+| `src/workers/engine-worker.js` | claims to move search, filter, sort and aggregate of large data into a worker | **not used by anything**, and holds two more copies of the path rule: delete or wire it (3.20) |
+| Saved in the browser | localStorage keys: `structra.theme`, `structra.welcomeSeen`, `structra.toolbarHidden`, `structra.drawerH`, `structra.panelWidth.<name>`, `structra.logMode`, `structra.ppSource`, `structra.sqlHistory`, one-time tip flags, `structra_setting_<name>` (font size, page size ...), `structra_bookmarks`, `structra_query_history`, `structra_recent`, `structra_snippets`. IndexedDB: recents, the original text of each file (by content hash), the session, URL history. DuckDB's database file in OPFS (claimed in the adapter, to be re-checked, 3.7) | KEEP; `Settings` can clear it |
+| Not present | a service worker or web manifest (no install, no offline cache); a **global error handler** (an uncaught error reaches only the console); a Content-Security-Policy | see 3.20 |
 
 ## 2. UI components, function by function
 
@@ -407,6 +429,24 @@ By code volume it is the other way round. Our own JavaScript is about 1.0 MB (ab
 
 Read it as: most of the app is our own code around the browser's features. The libraries sit behind a handful of modules (`codeView`, `dataEngine` and DuckDB, `jsonDiff`, `jsonRepairAndValidation`, `icons`, the parse workers). The things nothing else could provide are the Power Platform expressions, the Parse JSON schema generator, the Overview insights, the path model and the way all views follow one selected path.
 
+### 2.9 Where the path of a value is written (one idea, six rules)
+
+The path ("which value is this") is the center of the app, and it is written by hand in at least 16 places. They do not agree. A path written by one place cannot always be read back by another.
+
+| Place | File | Rule it uses | Breaks on |
+|---|---|---|---|
+| Tree lines | `json-tree-renderer.js` | `.key`; `["key"]` only when the key contains `.` `[` or `]`; quotes in the key are not escaped | an empty key, a key that starts with `$`, a key with a quote |
+| Graph nodes | `structra-graph.js` | `.key` for letters, digits and underscore; else `["key"]` with the quote escaped | a key with a quote (the reader cannot undo the escape) |
+| Query results (JavaScript, pattern) | `structra-query.js` | `.key` for simple keys, else `['key']` with no escape | a key with a quote |
+| Compare | `structra-diff.js` | always `.key` | any key with a dot or bracket |
+| Find, Fuzzy, schema inference, path index, first array, all arrays | `data-engine.js` (about 8 places) | always `.key` | any key with a dot or bracket, an empty key |
+| Duplicate-key finder | `json-repair-and-validation.js` | `.key` for simple keys, else `["key"]` with no escape | a key with a quote |
+| Engine worker (unused) | `engine-worker.js` | always `.key` | the same |
+| JSONPath results | `jsonpath-query.js` | `.key` for simple keys, else `['key']` with backslash escapes (the standard's form) | the reader cannot read the escapes |
+| **The reader** | `data-paths.js` (`tokenize`, `resolve`, `strip`) | reads `.key` up to the next `.` or `[`; `["..."]` up to the next quote and bracket; no escapes; `strip` treats a leading `$` as the root marker | a key with a dot written unquoted, a key that starts with `$`, an escaped quote |
+
+Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for 5 (`odata.type`, `@odata.etag`, the Dataverse key `_createdby_value@OData.Community.Display.V1.FormattedValue`, `a[0]`, the empty key); the Tree's rule failed for 2 (the empty key and `$ref`); the JSONPath adapter's rule failed for 2 (a key with a quote and a key with a backslash). `$schema` and `$ref` as first-level keys do not resolve at all. Keys like these are normal in Power Platform payloads (OData, Dataverse) and in JSON Schema, OpenAPI and OData metadata documents. See 3.17.
+
 ## 3. Planned changes: reason, pros, cons
 
 ### 3.1 Tree: a CodeMirror Tree behind a switch (approved, not built)
@@ -520,10 +560,40 @@ Read it as: most of the app is our own code around the browser's features. The l
 | SortableJS | No keyboard support. |
 | CSS frameworks | The design tokens and 12 CSS files work; a framework would change every screen. |
 
+### 3.17 One path model (correctness, first priority, proposed)
+
+- **Reason:** section 2.9. Find returns paths that cannot be read back for any key with a dot or bracket, which is common in the payloads this app exists for. Find's Next and Previous, the highlight, the counts and Compare all depend on it.
+- **What mature code does:** JSON Pointer (RFC 6901) and the standard's normalized path (RFC 9535) define exactly how every possible key is written and read. json-p3, which we already ship, produces and reads both (`JSONPointer`, `normalizedPath`).
+- **Option A (recommended):** keep our readable dotted form for display and for the Power Platform formatters. Add one function, `Structra.dataPaths.child(path, key)`, that writes every key so it reads back exactly (dotted when the key is simple, `["key"]` with JSON escapes otherwise). Make `tokenize` read escapes and `$`-prefixed keys. Replace the 16 hand-written copies with that one call. Use json-p3 as the oracle in a permanent property test: every path we write must resolve to the same value json-p3 finds with its own normalized path. Saved bookmarks and workspace files keep working, because the new form is a superset of the old.
+- **Option B:** make JSON Pointer the internal form and convert to the dotted form only for display. Cleanest in theory. Cons: every saved bookmark, session and workspace file must be converted, and every consumer changes.
+- **Pros of A:** fixes a real bug class, deletes duplicated code, one place to maintain, protected by a test. **Cons of A:** touches the data engine (2,094 lines) and six components, so it needs the full test run in three browsers.
+
+### 3.18 CSV export through PapaParse (proposed, small)
+
+- **Reason:** our own `escCsv` does not protect against **spreadsheet formula injection**: a cell that starts with `=`, `+`, `-` or `@` runs as a formula when the file is opened in Excel (measured: 4 of 8 dangerous cells came through unchanged). JSON from an API is untrusted text.
+- **Plan:** `Papa.unparse(rows, { columns, escapeFormulae: true })`. PapaParse is already in the app and has this option.
+- **Pros:** safe by default, one tested implementation, also handles line breaks, leading and trailing spaces. **Cons:** a cell that starts with `=` or `-` gets a leading apostrophe in the file (that is how the protection works), which some people will notice. Offer it as a setting, default on.
+
+### 3.19 Regular expressions: run them in the worker with a time limit (proposed)
+
+- **Reason:** the guard `isRiskyRegex` is a heuristic. Against ten well-known catastrophic patterns it caught 8 and missed `(a|aa)+$` and `^(([a-z])+.)+[A-Z]([a-z])+$`. A pattern that gets through freezes the page: it runs on the main thread in Find (Pattern mode), the Filter bar, the Query panel and the JSONPath `=~` test.
+- **Plan:** run user patterns in the sandbox worker from 3.8 (a time limit, then the worker is stopped). A ReDoS analyzer library (such as `recheck`) could add an early warning; it is optional.
+- **Pros:** the page can never freeze, whatever the pattern. **Cons:** matching a very large document means copying it into the worker (the same cost as 3.8).
+
+### 3.20 Cleanup and hardening (proposed)
+
+- Delete `src/workers/engine-worker.js` (unused) and the empty `templates/` folder.
+- Stop publishing `samples/`; move the old prototypes (`structra-v2.html`, `samples/`) into `docs/archive/`.
+- Add a **global error handler** (`window.onerror`, `unhandledrejection`): show a short message, keep the last errors, and offer "copy a bug report". Today an uncaught error only reaches the console and the person sees a broken screen. No library is needed.
+- Consider a **Content-Security-Policy** (a `<meta>` tag, because GitHub Pages cannot send headers). The app is already fully self-contained. It cannot be strict yet because the JavaScript mode needs `unsafe-eval`; once all user code runs in the sandbox worker (3.8) the main page can drop it. DuckDB's WebAssembly needs `wasm-unsafe-eval`.
+- Consider **offline install** (a web manifest and a service worker; Workbox is the mature tool). The app already makes no outside requests, so it is a small step. Optional.
+- **Pros:** less to explain and maintain, a safer public site, errors that can be reported. **Cons:** the CSP needs care with workers and blobs; a service worker adds an update story to think through.
+
 ## 4. Suggested order
 
 | Wave | What | Why this order |
 |---|---|---|
+| 0, correctness first | one path model (3.17), CSV formula protection (3.18), regular expressions in a worker (3.19, with 3.8), cleanup and global error handler (3.20) | these are real bugs found by the gap audit; the path one hits Power Platform payloads directly |
 | 1, small and safe | worker cache fix, TOML 5, Lucide subset and upgrade, native `<dialog>`, component cleanup | quick, measurable, low risk |
 | 2, decisions made | Table (merge or redo), CodeMirror Tree MVP, graph label wrapping, sandboxed user code | the biggest visible changes; the Tree needs the Table settled first |
 | 3, when ready | Ajv 8 (after real schema test), DuckDB 2.0 (when released), undo differences, palette fuzzy matching, keyboard reordering | each needs a measurement or an outside event first |
@@ -557,3 +627,57 @@ Read it as: most of the app is our own code around the browser's features. The l
 3. **Graph labels:** is a taller node with wrapped text acceptable?
 4. **User-written code:** approve moving all of it into one sandboxed worker (3.8)?
 5. **Wave 1:** may I start with it (worker cache, TOML 5, Lucide subset, native dialog, component cleanup)?
+6. **Wave 0 (new, correctness):** may I start with the path model (3.17, option A), CSV protection (3.18) and the cleanup and global error handler (3.20)? These come before Wave 1.
+7. **Path model:** option A (keep the dotted form, one writer and one reader) or option B (JSON Pointer inside)? I recommend A.
+8. **CSV:** formula protection on by default, as a setting?
+9. **Old prototypes:** may I move `structra-v2.html` and `samples/` to `docs/archive/` and stop publishing them?
+
+## 8. Gap audit: where our code misses cases that mature code handles
+
+You named two directions, and both need checking. Direction 1: replace our code where mature code is better. Direction 2: keep our code where it is the right idea, but add the cases and break points that mature code already handles, which we may not have thought of. Direction 2 is the easy one to miss, because nothing looks wrong until the odd input arrives.
+
+### 8.1 Method
+
+For each hand-written area, find an **oracle**: a standard, an official test suite, or a mature library that answers the same question. Run our code against it with awkward input (hostile keys, huge numbers, odd whitespace, Unicode, very large files). Anything that disagrees is either a bug to fix or a reason to replace our code. Then keep the check as a permanent test, so it cannot regress.
+
+### 8.2 Audits already run
+
+| Area | Oracle | What I ran | Result | Action |
+|---|---|---|---|---|
+| JSONPath | the official RFC 9535 suite (715 tests) | our engine, then json-p3 | ours 243 (34 percent), hung on negative slices; json-p3 715 | DONE (PR #7) |
+| Where JSON is invalid | the three browser engines | Editor in Chromium, Firefox, WebKit | Safari and Firefox lost the place | DONE for the Editor (PR #6); the input panel is still open (3.14) |
+| Tree against an editor | CodeMirror 6 (source and probes) | state after recycling, jump to a row, handlers | 5 bugs | DONE (PR #6) |
+| Find | expected behavior of any search bar | Enter, order of matches | 2 bugs | DONE (PR #6) |
+| Paths | JSON Pointer and json-p3's normalized paths | 3 writers against 13 hostile keys | tree rule 2 fail; Find's rule 5 fail; JSONPath adapter 2 fail; first-level `$` keys unreadable | **open, 3.17** |
+| CSV export | PapaParse (round trip), OWASP formula injection | 8 awkward cells | round trips all ok; 4 of 8 dangerous cells unprotected | **open, 3.18** |
+| YAML export | js-yaml (round trip) | 17 values, several of which YAML reads as something else (yes, null, 1e3, 0x1f, dates ...) | all ok | none |
+| Schema generator | Ajv (a schema must accept its own data) | 57 schemas: 19 test files that parse, 3 option sets each | all accepted | none; not yet compared with the official JSON Schema suite |
+| Large numbers | BigInt arithmetic | 14 cases (numbers that must be protected, numbers that must not) | all ok | none |
+| Regex guard | well-known catastrophic patterns | 10 patterns, 5 ordinary ones | 8 of 10 caught; 5 of 5 ordinary ok | **open, 3.19** |
+| Power Automate and Power Fx quoting | Microsoft syntax rules | a key with a quote and a key with a space | ok | none |
+| Type generator | each language's keywords | 7 languages, keyword-named keys | ok (TypeScript allows reserved words as property names; my first check was wrong) | none; not compiled with real compilers |
+| Accessibility | axe-core | every view, light and dark | 54 findings, now 2 | DONE (PR #6); graph labels open |
+| Browsers | Playwright, 3 engines | all 35 browser runs | 35 of 35 in each | DONE |
+| Table | the WAI-ARIA grid pattern | the dedicated Table test | passes in 3 engines | built on a branch, decision needed (3.2) |
+
+### 8.3 Audits still to run
+
+| Area | Our code | Oracle | Why it matters |
+|---|---|---|---|
+| JSON reading | `JSON.parse` plus the number scan | JSONTestSuite (318 files of valid, invalid and ambiguous JSON) | confirms what we accept and reject, and the big-number scan on odd input |
+| CSV and TSV import | `csv-typing.js` (own) plus PapaParse | the csv-spectrum cases; PapaParse's own tests | our own cell typing (thousands separators, leading zeros, decimals) is the risk |
+| XML import and export | own mapping in the XML worker and `jsonToXml` | well-formedness through `DOMParser`; fast-xml-parser's behavior for attributes, namespaces, CDATA, repeated elements | the mapping is our own choice; two keys can collide (`a b` and `a_b`) |
+| TOML and YAML import | toml, js-yaml | toml-test and yaml-test-suite | libraries are mature; confirms we pass options correctly (and covers the TOML upgrade) |
+| JSON Patch | jsondiffpatch's JSON Patch output | the RFC 6902 test collection | Compare's "copy as JSON Patch" must apply cleanly |
+| Schema generator | own | the official JSON Schema test suite, and a comparison with genson or quicktype on optional and nullable fields | the Parse JSON schema is the product's core output |
+| Type generator | own | real compilers (tsc, go, rustc, dotnet) on the output | generated code must compile |
+| Power Automate and Power Fx expressions | own | Microsoft's documented syntax, examples from real flows | no executor is available here; needs real flows from you |
+| Fuzzy search | own Jaro-Winkler | uFuzzy and Fuse behavior on typos | to see if recall and speed match |
+| Personal data masking | own regexes | a list of known PII formats, Luhn check for card numbers | the phone pattern is loose, the card pattern has no check digit |
+| Startup cost | whole app | Lighthouse (and a bundle report) | the 358 KB icon set loads at start; DuckDB loads on demand |
+| Security of generated HTML | own escaping | `hostile.js` exists; extend it to every view with markup in keys and values | the app builds HTML as text in many places |
+| Large files | own | the 37 MB and 88 MB fixtures in all three engines | memory and time, per browser |
+
+### 8.4 Keeping it from regressing
+
+Each audit above becomes a permanent test in `tests/unit` (the path round trip, the CSV round trip and injection check, the regex guard list) or in the compliance tools in `tests/perf`. The unit suite already runs in CI. New hand-written code in these areas then has to pass the oracle before it merges.
