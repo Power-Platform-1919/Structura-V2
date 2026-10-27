@@ -583,6 +583,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 ### 3.20 Cleanup and hardening (proposed)
 
 - Delete `src/workers/engine-worker.js` (unused) and the empty `templates/` folder.
+- Add `THIRD-PARTY.md`: name, version, license, source and build command for every vendored library (section 8.5).
 - Stop publishing `samples/`; move the old prototypes (`structra-v2.html`, `samples/`) into `docs/archive/`.
 - Add a **global error handler** (`window.onerror`, `unhandledrejection`): show a short message, keep the last errors, and offer "copy a bug report". Today an uncaught error only reaches the console and the person sees a broken screen. No library is needed.
 - Consider a **Content-Security-Policy** (a `<meta>` tag, because GitHub Pages cannot send headers). The app is already fully self-contained. It cannot be strict yet because the JavaScript mode needs `unsafe-eval`; once all user code runs in the sandbox worker (3.8) the main page can drop it. DuckDB's WebAssembly needs `wasm-unsafe-eval`.
@@ -641,7 +642,9 @@ For every hand-written area we ask one question: **which is better, ours or the 
 1. **Mature is better: replace ours.** (Examples: JSONPath, the CSV writer, the error place reader.)
 2. **Ours is better** (it is tuned to this app, or nothing equivalent exists): **keep it, and add to it the cases and break points that mature code already handles**, so we do not miss them. The mature code and its test suites are the checklist, not the replacement. (Examples: the path model, the Power Platform expressions, the Parse JSON schema generator, the type generator, the Overview insights.)
 
-The second kind is the easy one to miss, because nothing looks wrong until the odd input arrives. It applies only where ours is the better choice; where mature code wins, we replace and there is nothing to harden.
+3. **The goal is the best of both worlds, and neither world may cause trouble for the other.** A library must not break our code, and our code must not misuse or break a library. This is about the seams between them: who owns the data, who gets the keys and the focus, what happens when a library fails to load, what changes when a library is upgraded. Every library sits behind one of our modules, with a written list of the ways it behaves differently, and a test at that seam (section 8.5).
+
+The second kind of area (keep and harden) is the easy one to miss, because nothing looks wrong until the odd input arrives. It applies only where ours is the better choice; where mature code wins, we replace and there is nothing to harden.
 
 Sorting the audit results by this rule:
 
@@ -713,3 +716,24 @@ For each hand-written area that we keep, find an **oracle**: a standard, an offi
 ### 8.4 Keeping it from regressing
 
 Each audit above becomes a permanent test in `tests/unit` (the path round trip, the CSV round trip and injection check, the regex guard list) or in the compliance tools in `tests/perf`. The unit suite already runs in CI. New hand-written code in these areas then has to pass the oracle before it merges.
+
+### 8.5 The seams between our code and the libraries (rule 3)
+
+Checked against the code on 2026-10-27. "Holds" means I verified it; "to check" means I have not.
+
+| Seam | What could go wrong | How we guard it | Status |
+|---|---|---|---|
+| One door per library | a component calls a library directly, so a swap or upgrade touches many files | each library is used from exactly one of our modules: PapaParse and js-yaml in the format and worker modules, jsonc-parser, Ajv and jsonrepair in `json-repair-and-validation`, html2canvas in `share-and-capture`, Lucide in `icons`, CodeMirror in `code-view` | holds, with **one exception**: the Table calls virtual-core directly (my change on `feature/table-grid`). Wrap it in a small core module before that branch merges |
+| Behavior differences that reach the user | the library does something different from what people were used to | the adapter writes every difference down and tests it: json-p3 treats a `null` field as existing and `==` as strict, both documented and covered by the 27 unit tests | holds for JSONPath; do the same for every future swap: list the differences before swapping |
+| A library fails to load or throws | a blank feature or a crash | fallbacks exist for DuckDB (the JavaScript path, by design), jsonc-parser (the browser's message), virtual-core (paging). json-p3 has none: if it fails to load, JSONPath shows an error | decide: acceptable for json-p3, or add a simple fallback |
+| Keys and focus | a library's shortcuts fight ours (CodeMirror's own undo against our document undo) | the global shortcut handler ignores editable targets (`app.js` line 134), so CodeMirror keeps its own keys inside a code box; `editor.js` and `codeview.js` cover it | holds |
+| Who owns the document | a library changes the document, or keeps a reference to it | json-p3 and jsonc-parser only read; DuckDB gets its own copy; jsondiffpatch's use is behind `jsonDiff` | to check: a test that freezes the document and runs every library path, so anything that changes it fails |
+| Global names | libraries add globals (`Papa`, `jsyaml`, `lucide`, `Ajv`, `JSONRepair`, `html2canvas`, `JSONC`) that could clash with each other or with the page | no clash today; not isolated | low risk; gather them under `Structra.libs` if a clash ever appears |
+| Styles | library CSS leaks into ours (CodeMirror injects its own) | `codeview.css` scopes our changes to `.cv`; the theme and axe audits run in all themes | holds |
+| Speed | a library blocks the page (DuckDB, a big diff, a big JSONPath) | DuckDB and the parsers are in workers or lazy; analysis is time-sliced; json-p3 measured 122 ms for 200,000 records on the main thread | holds; re-measure on the large fixtures when the data engine changes |
+| Memory | two copies of a big document (ours and the library's) | measured: about 660 MB for the 88 MB file with the CodeMirror Tree plan; budgets are in the plan | holds as a plan; add a memory check to the large-file test |
+| Offline and privacy | a library fetches from another site | `offline.js` blocks every outside request and must stay green when a library is added | holds |
+| Versions and licenses | a silent upgrade, or an unknown license | libraries are vendored and loaded only from our own folder; most carry a version banner | **gap**: add `THIRD-PARTY.md` with name, version, license, source and build command for every vendored library, and keep it in the map test |
+| Browser differences | a library works in one engine only | all 35 browser runs in three engines (this found the jsonc-parser case) | holds |
+| A test at every seam | an adapter changes and nothing notices | JSONPath 27 unit tests, parse errors 9, the Table test, `codeview.js`, `editor.js` | **gap**: add contract tests for the Ajv, jsondiffpatch, share link and parse-worker adapters |
+| Upgrades | a new version changes behavior | pinned and vendored; upgrades are a deliberate pull request | add a checklist: re-run the library's oracle (for example the JSONPath suite), the three browsers, the offline test, and update `THIRD-PARTY.md` |
