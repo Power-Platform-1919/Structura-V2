@@ -2,6 +2,18 @@
 
 Written 2026-10-27 from the code (every file under `src/`), the vendored libraries, the tests, and web research. Where a reason is written down in a code comment or doc, it is marked **recorded**. Where I worked out the reason from the code, it is marked **inferred**. Where there is no way to tell, it says so.
 
+## Where things stand (2026-10-27)
+
+| Item | State |
+|---|---|
+| Pull request #6 (deep-dive fixes, accessibility, Firefox and WebKit tests) | open against `dev`; CI green for lint, unit, Chromium, Firefox and the UI audit |
+| Pull request #7 (JSONPath through json-p3), stacked on #6 | open |
+| Table branch (`feature/table-grid`) | built and tested in three engines, **not pushed**: waiting for your decision (3.2) |
+| Merged, promoted to `test` or `prod` | nothing from this work yet; nothing moves without your word |
+| This map and the task list | `docs/TODO.md` (made from `todo.json`) tracks every step: 66 of 299 steps done, 14 waiting on a decision. Section 7 lists the decisions with my recommendation |
+
+**To see or change progress:** `node tools/todo.mjs list` shows every task, `node tools/todo.mjs list 18.1` shows one task with all its steps, `node tools/todo.mjs set 18.1.3 done` marks a step. The parent task, `docs/TODO.md` and the unit test follow. Each planned change in section 3 names its task.
+
 Important: the first version of this map was incomplete, and an audit of every file against it found gaps (section 1.2). A second audit ran hand-written code against standards and mature libraries and found real bugs (sections 2.9 and 8). Treat sections 1.2, 2.9 and 8 as part of the map.
 
 How this document is organised: section 1 is the app in numbers, section 2 goes through every UI component function by function (what it is built with, whether it is hand-written, what it depends on, who uses it, what we plan), section 3 explains each planned change with reasons, pros and cons, section 4 is the suggested order, 5 and 6 are what I could not verify and the sources, 7 is what I need from you.
@@ -449,7 +461,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ## 3. Planned changes: reason, pros, cons
 
-### 3.1 Tree: a CodeMirror Tree behind a switch (approved, not built)
+### 3.1 Tree: a CodeMirror Tree behind a switch (approved, not built) [task 20]
 
 - **Reason:** the Tree is our own 1,078-line renderer. The deep dive found 5 real bugs in it. CodeMirror already gives line numbers, folding, keyboard, accessibility and search, and it is already in the app.
 - **Plan:** read-only CodeMirror view of the pretty-printed document, behind a setting "Tree engine: Classic or Code". Classic stays the default and the answer above the size cap (about 40 MB). A line-to-path index (measured: 79 MB for an 88 MB file, 1 microsecond per lookup) maps clicks to paths.
@@ -457,7 +469,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Cons:** two engines to keep working and test; memory about 660 MB for the largest file; needs a size cap; behavior must match Classic item by item (the plan has the checklist).
 - **Status:** approved scope; waiting for the Table decision before starting.
 
-### 3.2 Table: true scrollbar, grid roles, keyboard (built on a branch, decision needed)
+### 3.2 Table: true scrollbar, grid roles, keyboard (built on a branch, decision needed) [task 17]
 
 - **Reason (measured):** the scrollbar knew only the rows already drawn (100,723 px for 100,000 rows), so you could not drag to row 80,000. No ARIA grid roles. No keyboard navigation. The selected row lost its mark when rows were redrawn. A row chosen in the Tree did not show.
 - **What changed (branch `feature/table-grid`, not pushed):** only the rows on screen are drawn between two spacer rows, the scroll arithmetic comes from `@tanstack/virtual-core` (33 KB). The table is a grid (rowcount, rowindex, sort state), with arrows, Home, End, Page keys, Enter and Shift+F10. It follows the selected path. Lists above 400,000 rows are shown a page at a time (a browser cannot make an element taller than about 17 million px in Firefox). The old `virtual-list.js` was deleted because nothing else used it. A new test (`table-grid.js`, 40 checks) passes in Chromium, Firefox and WebKit.
@@ -466,26 +478,26 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Alternative you may prefer:** restore `virtual-list.js` and give it the true-scrollbar logic ourselves: no dependency, more code to maintain and test.
 - **Not recommended:** Tabulator (101 KB gzipped, arrow keys do nothing by default) and AG Grid Community (345 KB gzipped). Ours was already as fast and lighter.
 
-### 3.3 JSONPath: json-p3 (done, PR #7)
+### 3.3 JSONPath: json-p3 (done, PR #7) [task 16]
 
 - **Reason:** our engine passed 34 percent of the official standard, accepted 126 invalid selectors, rejected 322 valid ones, and froze on `$[::-1]`.
 - **Pros:** 715 of 715 tests, fastest of the candidates (122 ms for 200,000 records), MIT, 64 KB, one file.
 - **Cons:** two behavior changes (a `null` field now exists in `[?(@.x)]`; `==` no longer treats "5" and 5 as equal); the query call is now asynchronous; our `=~` pattern test needs a small adapter (done).
 
-### 3.4 Dialogs: the browser's own `<dialog>` (proposed)
+### 3.4 Dialogs: the browser's own `<dialog>` (proposed) [task 21.4]
 
 - **Reason:** we maintain our own focus trap, Escape and backdrop logic.
 - **Pros:** the browser makes the rest of the page inert and traps focus; one file changes and all 10 dialogs follow; supported since Chrome 37, Firefox 98, Safari 15.4 (MDN data).
 - **Cons:** the look of the backdrop and animations must be re-checked; the layout and shell tests need a pass.
 
-### 3.5 Icons: trim and upgrade Lucide (proposed)
+### 3.5 Icons: trim and upgrade Lucide (proposed) [task 21.3]
 
 - **Reason:** a blocking 358 KB script loads the full icon set (about 1,500 icons) at start, and only **41** are used. The version is 0.468.0 against 1.62.0 today.
 - **Plan:** use Lucide's own recommended way, importing only the icons used (their docs say so), and bundle once with esbuild like the other vendored files.
 - **Pros:** about 300 KB less on the first load; newer artwork.
 - **Cons:** a new icon must be added to the list; a small build step when icons change (the same one-time step as the other vendored libraries); some icon names changed between 0.468 and 1.x, so a check of the 41 names is needed.
 
-### 3.6 Schema validation: Ajv 6 or 8 (decision needed)
+### 3.6 Schema validation: Ajv 6 or 8 (decision needed) [task 22.1]
 
 - **Reason:** Ajv 6.12.6 is from 2020 and no longer maintained. Ajv 8 is current.
 - **Fact from the research:** Ajv 7 and 8 **dropped draft-04**. The `ajv-draft-04` package brings it back. Some old Parse JSON schemas use draft-04 style; I could not confirm what Power Automate itself uses.
@@ -493,14 +505,14 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Option B, keep 6 for now:** no work. Cons: unmaintained code in the app.
 - **My lean:** A, but only after a test with real Power Automate schemas. Please tell me whether you have some.
 
-### 3.7 DuckDB-Wasm (watch)
+### 3.7 DuckDB-Wasm (watch) [task 22.2]
 
 - **Reason:** the engine is v1.1.1 from September 2024. Newer versions exist (npm 1.33.1-dev57), and a **2.0 announcement is drafted** (smaller binary, simpler bundles, larger-than-memory queries). A September 2026 DuckDB post says the npm "latest" at that time created OPFS files but never wrote to them, so a persistence claim in our adapter ("database file persists across reloads") should be re-checked.
 - **Pros of upgrading:** performance, features, possibly a much smaller download.
 - **Cons:** 35 MB to re-vendor, SQL behavior differences, a big test pass.
 - **Plan:** WATCH until 2.0 is released and stable, then upgrade with a full test run. Re-check the persistence claim now (cheap).
 
-### 3.8 User-written code: run it in one sandboxed worker (proposed)
+### 3.8 User-written code: run it in one sandboxed worker (proposed) [task 19]
 
 - **Reason:** `new Function` runs user-typed JavaScript in four places (Query panel JavaScript mode, the row filter in the data engine, Transform steps, the engine worker). The Query panel tries the code in a worker first, then runs it again on the main thread. Transform blocks words like `constructor` with a regular expression, which is easy to get around. The user is running their own code, so this is not a break-in. It is a risk when someone pastes an expression from somewhere else, and it can still freeze the page if the second run behaves differently.
 - **Plan:** one worker runs all user code (no access to the page), keeps the data inside, is stopped when the time limit passes. Keep the current syntax.
@@ -508,32 +520,32 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Cons:** the data is copied into the worker (memory for very large files); results come back as copies; Transform steps must be reworked to run there.
 - **Also considered:** JSONata (MIT, about 25 KB gzipped) or jq compiled to WebAssembly as safer expression languages. The research found nothing on how either handles untrusted expressions, and they would change the language users write, so this is an addition for later, not a replacement.
 
-### 3.9 TOML: 4.1.1 to 5.0.1 (proposed, small)
+### 3.9 TOML: 4.1.1 to 5.0.1 (proposed, small) [task 21.2]
 
 - **Reason:** 5.0.1 is TOML 1.1 compliant. `smol-toml` is another maintained option (also 1.1).
 - **Pros:** newer spec, bug fixes. **Cons:** a new major version needs one re-test of the TOML fixtures.
 
-### 3.10 Save as PNG: html2canvas (watch, low)
+### 3.10 Save as PNG: html2canvas (watch, low) [task 22.5]
 
 - **Reason:** html2canvas 1.4.1 was published in January 2022 and has had no release since. `modern-screenshot` (4.7.0, April 2026) and `html-to-image` (1.11.13, February 2025) are maintained.
 - **Pros of switching:** maintained code, fewer rendering gaps (comparisons say html-to-image is closer to the real page). **Cons:** the output differs a little for complex CSS; the sources are comparison articles, not benchmarks. It is only used for one lazy button, so this can wait.
 
-### 3.11 Undo: store differences instead of whole copies (proposed)
+### 3.11 Undo: store differences instead of whole copies (proposed) [task 22.3]
 
 - **Reason:** each step is a full copy of the document, capped at 60 MB per tab (PR #6). jsondiffpatch is already in the app.
 - **Pros:** much less memory on big files; more steps possible. **Cons:** a change to a core module; undo of an edit that touched many places must be tested well.
 
-### 3.12 Command palette: ranked fuzzy matching (proposed, low)
+### 3.12 Command palette: ranked fuzzy matching (proposed, low) [task 22.4]
 
 - **Reason:** it only matches by "contains". **Plan:** uFuzzy (4 KB gzipped, MIT) for typo tolerant, ranked results.
 - **Pros:** finds "exp col" for "Expand collapse"; **Cons:** one more dependency; ranking needs a little tuning.
 
-### 3.13 Keyboard alternatives for drag and drop (proposed)
+### 3.13 Keyboard alternatives for drag and drop (proposed) [tasks 21.8 and 21.9]
 
 - **Reason:** tab reordering and Pivot field placement use drag and drop. The research is clear that SortableJS has no keyboard support and native drag and drop has none either, so a library would not fix it.
 - **Plan:** "Move left, Move right" for tabs (a keyboard shortcut and a menu item) and "Add to rows, columns, values" buttons for Pivot. **Pros:** a real keyboard path. **Cons:** a little more UI.
 
-### 3.14 Small fixes of our own code
+### 3.14 Small fixes of our own code [tasks 21.1, 21.5, 21.6 and 25]
 
 - Components: record subscriptions and remove them when an element is removed (`StructraComponent` never does). Also remove a `super.disconnectedCallback()` call in the Table that would throw, because the base class has no such method.
 - Input panel: the place of a JSON error ("around line N") is still read from the browser's message, so Safari and Firefox show no place there. Use `explainParseError` (jsonc-parser), as the Editor now does.
@@ -542,7 +554,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - `components.css` (2,116 lines): split by view.
 - **Pros:** fewer surprises, faster visits, easier to change. **Cons:** pure maintenance, no visible feature.
 
-### 3.15 Graph node labels (decision from you needed)
+### 3.15 Graph node labels (decision from you needed) [task 21.7]
 
 - axe-core flags 18 graph nodes: the visible text ends in an ellipsis, the accessible name is the whole label. You asked why not wrap the text. Wrapping fits: draw the label over 2 or 3 lines inside the node and make the node taller (the layout uses one fixed node height, so it needs a per-node height). **Pros:** the full label is visible and the rule passes. **Cons:** the tree layout becomes slightly taller, and the layout code must handle different node heights.
 
@@ -560,7 +572,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 | SortableJS | No keyboard support. |
 | CSS frameworks | The design tokens and 12 CSS files work; a framework would change every screen. |
 
-### 3.17 One path model (correctness, first priority, proposed)
+### 3.17 One path model (correctness, first priority, proposed) [task 18.1]
 
 - **Reason:** section 2.9. Find returns paths that cannot be read back for any key with a dot or bracket, which is common in the payloads this app exists for. Find's Next and Previous, the highlight, the counts and Compare all depend on it.
 - **What mature code does:** JSON Pointer (RFC 6901) and the standard's normalized path (RFC 9535) define exactly how every possible key is written and read. json-p3, which we already ship, produces and reads both (`JSONPointer`, `normalizedPath`).
@@ -568,19 +580,19 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Option B:** make JSON Pointer the internal form and convert to the dotted form only for display. Cleanest in theory. Cons: every saved bookmark, session and workspace file must be converted, and every consumer changes.
 - **Pros of A:** fixes a real bug class, deletes duplicated code, one place to maintain, protected by a test. **Cons of A:** touches the data engine (2,094 lines) and six components, so it needs the full test run in three browsers.
 
-### 3.18 CSV export through PapaParse (proposed, small)
+### 3.18 CSV export through PapaParse (proposed, small) [task 18.2]
 
 - **Reason:** our own `escCsv` does not protect against **spreadsheet formula injection**: a cell that starts with `=`, `+`, `-` or `@` runs as a formula when the file is opened in Excel (measured: 4 of 8 dangerous cells came through unchanged). JSON from an API is untrusted text.
 - **Plan:** `Papa.unparse(rows, { columns, escapeFormulae: true })`. PapaParse is already in the app and has this option.
 - **Pros:** safe by default, one tested implementation, also handles line breaks, leading and trailing spaces. **Cons:** a cell that starts with `=` or `-` gets a leading apostrophe in the file (that is how the protection works), which some people will notice. Offer it as a setting, default on.
 
-### 3.19 Regular expressions: run them in the worker with a time limit (proposed)
+### 3.19 Regular expressions: run them in the worker with a time limit (proposed) [task 18.3]
 
 - **Reason:** the guard `isRiskyRegex` is a heuristic. Against ten well-known catastrophic patterns it caught 8 and missed `(a|aa)+$` and `^(([a-z])+.)+[A-Z]([a-z])+$`. A pattern that gets through freezes the page: it runs on the main thread in Find (Pattern mode), the Filter bar, the Query panel and the JSONPath `=~` test.
 - **Plan:** run user patterns in the sandbox worker from 3.8 (a time limit, then the worker is stopped). A ReDoS analyzer library (such as `recheck`) could add an early warning; it is optional.
 - **Pros:** the page can never freeze, whatever the pattern. **Cons:** matching a very large document means copying it into the worker (the same cost as 3.8).
 
-### 3.20 Cleanup and hardening (proposed)
+### 3.20 Cleanup and hardening (proposed) [task 18.4]
 
 - Delete `src/workers/engine-worker.js` (unused) and the empty `templates/` folder.
 - Add `THIRD-PARTY.md`: name, version, license, source and build command for every vendored library (section 8.5).
@@ -592,13 +604,13 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ## 4. Suggested order
 
-| Wave | What | Why this order |
-|---|---|---|
-| 0, correctness first | one path model (3.17), CSV formula protection (3.18), regular expressions in a worker (3.19, with 3.8), cleanup and global error handler (3.20) | these are real bugs found by the gap audit; the path one hits Power Platform payloads directly |
-| 1, small and safe | worker cache fix, TOML 5, Lucide subset and upgrade, native `<dialog>`, component cleanup | quick, measurable, low risk |
-| 2, decisions made | Table (merge or redo), CodeMirror Tree MVP, graph label wrapping, sandboxed user code | the biggest visible changes; the Tree needs the Table settled first |
-| 3, when ready | Ajv 8 (after real schema test), DuckDB 2.0 (when released), undo differences, palette fuzzy matching, keyboard reordering | each needs a measurement or an outside event first |
-| 4, upkeep | split `data-engine.js` and `components.css`, PNG library | no user-visible change |
+| Wave | What | Tracked as | Why this order |
+|---|---|---|---|
+| 0, correctness first | one path model (3.17), CSV formula protection (3.18), regular expressions in a worker (3.19, with 3.8), cleanup, global error handler, third-party list (3.20) | tasks 18 and 19 | real bugs found by the gap audit; the path one hits Power Platform payloads directly |
+| 1, small and safe | worker cache fix, TOML 5, Lucide subset and upgrade, native `<dialog>`, component cleanup, input panel error place, graph labels, keyboard reorder for tabs and Pivot | task 21 | quick, measurable, low risk |
+| 2, decisions made | Table (merge or redo), CodeMirror Tree MVP | tasks 17 and 20 | the biggest visible changes; the Tree needs the Table settled first |
+| 3, when ready | Ajv 8 (after a real schema test), DuckDB 2.0 (when released), undo differences, palette fuzzy matching, PNG library | task 22 | each needs a measurement or an outside event first |
+| Alongside | the keep-and-harden audits (section 8.3), the seam checks (8.5), upkeep, process | tasks 23, 24, 25, 26 | each audit becomes a permanent test; no user-visible change |
 
 ## 5. What I could not verify
 
@@ -623,15 +635,25 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ## 7. Decisions I need from you
 
-1. **Table:** keep my windowed version (library for the scroll arithmetic), or restore `virtual-list.js` and upgrade it ourselves?
-2. **Ajv:** do you have real Power Automate Parse JSON schemas I can test with, so we can choose between 3.6 option A and B?
-3. **Graph labels:** is a taller node with wrapped text acceptable?
-4. **User-written code:** approve moving all of it into one sandboxed worker (3.8)?
-5. **Wave 1:** may I start with it (worker cache, TOML 5, Lucide subset, native dialog, component cleanup)?
-6. **Wave 0 (new, correctness):** may I start with the path model (3.17, option A), CSV protection (3.18) and the cleanup and global error handler (3.20)? These come before Wave 1.
-7. **Path model:** option A (keep the dotted form, one writer and one reader) or option B (JSON Pointer inside)? I recommend A.
-8. **CSV:** formula protection on by default, as a setting?
-9. **Old prototypes:** may I move `structra-v2.html` and `samples/` to `docs/archive/` and stop publishing them?
+Each decision is also a blocked step in the task list, so it cannot be forgotten.
+
+| # | Decision | Task | My recommendation |
+|---|---|---|---|
+| 1 | Table: keep the windowed version (library does the scroll arithmetic) or restore `virtual-list.js` and upgrade it ourselves | 17.17 | Keep the windowed version: it is built, tested in three engines, and removes our own scroll code. Restore only if you want no extra dependency. |
+| 2 | Start Wave 0 (path model, CSV protection, cleanup and global error handler) | task 18 | Yes, before anything else: these are real bugs |
+| 3 | Path model: option A (keep the dotted form, one writer, one reader) or B (JSON Pointer inside) | 18.1.1 | A: no change to saved bookmarks and sessions |
+| 4 | CSV formula protection on by default, as a setting | 18.2.1 | Yes |
+| 5 | Move `structra-v2.html` and `samples/` to `docs/archive/` and stop publishing them | 18.4.3 | Yes |
+| 6 | Move all user-written code into one sandbox worker | 19.1 | Yes: safer, the page can never freeze, one mechanism instead of four |
+| 7 | Start Wave 1 (worker cache, TOML 5, Lucide subset, native dialog, component cleanup, graph labels, keyboard reorder) | task 21 | Yes, after Wave 0 |
+| 8 | Graph labels: wrap the text over 2 or 3 lines in a taller node | 21.7.1 | Yes (your suggestion) |
+| 9 | Size cap for the CodeMirror Tree in the first version | 20.3 | 40 MB, then measure and raise |
+| 10 | If json-p3 fails to load: keep the error message, or add a fallback | 16.19 and 24.9 | Keep the error message: the file is served from our own folder, so a failure means the app itself did not load |
+| 11 | Ajv: upgrade or keep. Needs real Power Automate Parse JSON schemas from you | 22.1.1 and 22.1.2 | Decide after testing your real schemas |
+| 12 | Power Automate and Power Fx checks need real flows from you | 23.8.1 | Please share a few exported flows |
+| 13 | Merge order for the pull requests: #6, then #7, then the Table | 26.1 | As written |
+| 14 | Firefox and WebKit job in CI: blocking or optional | 26.4 | Decide after the job is tuned (you said to decide on time and optimization) |
+| 15 | Promote `dev` to `test` and `prod` | 26.3 | Only when you say |
 
 ## 8. Gap audit: where our code misses cases that mature code handles
 

@@ -2,7 +2,7 @@
 
 Reference notes for the V2 codebase. Companion: `..\structra-v1\memory-bank.md` (V1, for reference only).
 Written from the code (the files in `docs/` are old and not trusted). Refreshed 2026-10-22 after the redesign, Overview, icon, Power Platform and test work.
-The task list lives in `todo.json` at the repo root (tasks 1 to 12).
+The task list lives in `todo.json` at the repo root (tasks 1 to 14 are finished work; tasks 15 and up are the plan, with every step). `docs/TODO.md` is its readable copy. Change a status with `node tools/todo.mjs set <id> <status>`. What each part is built with and what we plan to change: `docs/feature-technology-map.md`.
 
 ## 1. What the app is
 
@@ -55,7 +55,7 @@ A local JSON analyzer for everyone, with a built-in Power Platform add-on for ma
 
 ## 6. Files
 
-Core (`src/core`): `base overlay util logger settings constants theme state icons libs paths expressions schema-gen insights json-tools share navigation bookmarks resizer persistence worker-pool virtual-list json-tree engine duckdb code-gen data-mask format-convert mock-gen transform-ops undo-stack`.
+Core (`src/core`): `base overlay util logger settings constants theme state icons libs paths expressions schema-gen insights json-tools share navigation bookmarks resizer persistence worker-pool json-tree engine duckdb code-gen data-mask format-convert mock-gen transform-ops undo-stack`.
 Components (`src/components`): shell (`header tabs rail status toast breadcrumb canvas-header view-switcher drawer`), views (`overview tree table graph schema editor`), drawer panels (`drawer-stats expressions schemagen`), panels (`query context`), input (`input-panel find filter autocomplete`), dialogs on the overlay base (`theme welcome validate charts shortcuts typedef diff nullfinder pivot snippets workspace`), others (`command loading minimap heatmap zoom`).
 CSS (`src/css`, load order): `tokens base ui layout shell overview panels overlays components theme-panel`. Use `var(--*)` tokens; shared patterns (dialogs, `.seg`, `.tabs`, `.menu`, `.field`, `.card`, `.tag`) live in `ui.css`. `components.css` still holds older view styles (tree, table, graph, input panel).
 Workers: `src/workers` (csv, yaml, toml, xml parsers, engine worker). JSON itself is parsed on the main thread (copying data to a worker cost more than parsing it).
@@ -67,7 +67,7 @@ Workers: `src/workers` (csv, yaml, toml, xml parsers, engine worker). JSON itsel
 - Welcome dialog shows once (`structra.welcomeSeen`); reopen from the palette ("Welcome"). Ctrl+V on an empty tab loads the clipboard. One-time tip after the first document (`structra.tipExpressions`).
 - Rail buttons: Explorer (new tab on Recent), Query, Power Platform, Overview, Transform, Settings (Appearance). The highlight shows what is open.
 - Palette (Ctrl+K) covers every toolbar action plus views, tools, code generation, export, analysis, zoom (including fit), unmask, navigation, new tab, load from URL.
-- Table: sort, column filters, hide, move, expand object columns, chart a column; virtual list above 200 rows.
+- Table: sort, column filters, hide, move, expand object columns, chart a column; a window of rows above 200 (true scrollbar, @tanstack/virtual-core), a page at a time above 400,000; a keyboard grid (arrows, Home, End, Page keys, Enter).
 - Documents that are only null, false, 0 or an empty string cannot be opened (jsonData doubles as the has-data flag); the app says so.
 
 ## 7b. Code boxes (added later)

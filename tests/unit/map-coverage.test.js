@@ -49,3 +49,20 @@ test('every workflow and build tool is in the map', () => {
   for (const f of names('tools', (x) => x.endsWith('.mjs'))) if (!mentions(f) && !(byLibrary[f] && mentions(byLibrary[f]))) missing.push('tools/' + f);
   truthy(!missing.length, 'not in the map: ' + missing.join(', '));
 });
+
+test('every task the map names exists in todo.json', () => {
+  const ids = new Set();
+  const walk = (item) => { ids.add(item.id); (item.subtasks || []).forEach(walk); };
+  JSON.parse(fs.readFileSync(path.join(ROOT, 'todo.json'), 'utf8')).tasks.forEach(walk);
+  const text = fs.readFileSync(path.join(ROOT, 'docs', 'feature-technology-map.md'), 'utf8');
+  const named = new Set();
+  // "task 18.1", "tasks 21.8 and 21.9", "tasks 18 and 19"
+  for (const m of text.matchAll(/tasks?\s+(\d+(?:\.\d+)*(?:(?:,\s*|\s+and\s+)\d+(?:\.\d+)*)*)/gi)) for (const id of m[1].match(/\d+(?:\.\d+)*/g)) named.add(id);
+  // the "Task" column of the decisions table in section 7
+  for (const row of text.split('\n').filter((line) => /^\| \d+ \| /.test(line))) {
+    const cell = row.split('|')[3] || '';
+    for (const id of cell.replace(/task/gi, '').match(/\d+(?:\.\d+)*/g) || []) named.add(id);
+  }
+  const unknown = [...named].filter((id) => !ids.has(id));
+  truthy(!unknown.length, 'the map names tasks that todo.json does not have: ' + unknown.join(', '));
+});

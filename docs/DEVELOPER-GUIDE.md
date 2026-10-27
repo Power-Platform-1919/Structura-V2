@@ -160,6 +160,14 @@ The browser tests are written so that a full run takes a few minutes. Keep them 
 - Set `PW_CHANNEL=msedge` to use installed Edge instead of downloading Chromium.
 - When you change text that a test checks, update the test in the same change.
 
+## 9b. The task list and the map
+
+- `todo.json` is the list of work, with every step. `docs/TODO.md` is made from it: do not edit it by hand.
+- See where things stand: `node tools/todo.mjs list`, or `node tools/todo.mjs list 18.1` for one task with all its steps.
+- Mark a step: `node tools/todo.mjs set <id> <done|in_progress|todo|blocked> [note]`. A task with steps follows its steps. The unit test `todo.test.js` fails if the list and `docs/TODO.md` differ, or if a task says one thing and its steps another.
+- `docs/feature-technology-map.md` says what every UI component is built with, who uses it and what we plan. The unit test `map-coverage.test.js` fails when a component, module, worker, CSS file, library, workflow or build tool exists in the code but not in the map, or when the map names a task that does not exist.
+- Rule for hand-written code: where a mature library is better, replace ours; where ours is better, keep it and add the cases the mature code handles; and neither may cause trouble for the other (map, section 8).
+
 ## 10. Branches and deployment
 
 `dev` then `test` then `prod`. Pushing `prod` deploys GitHub Pages and resets `main` to match it. See the README.
