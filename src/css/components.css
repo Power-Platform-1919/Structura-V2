@@ -15,11 +15,13 @@
 /* ===== JSON VIEW (Virtualised V1 renderer) ===== */
 .json-view { flex: 1; overflow: auto; padding: var(--sp-2) 0; font-family: var(--font-mono); font-size: var(--fs-sm); line-height: 1.7; white-space: pre; background: var(--surface); contain: style; }
 .json-view > * { display: block; width: max-content; min-width: 100%; }
-/* The line numbers form a margin, drawn the same way as the margin of the Editor view (see codeview.css): a slightly different background, a thin divider and small muted numbers. Each line draws its own part of the margin, so it reaches the top and bottom of the view and stays in place when the text scrolls sideways. */
-.json-view .j-line::before { content: attr(data-ln) / ""; position: sticky; left: 0; display: inline-block; min-width: 3.5em; box-sizing: border-box; margin-right: var(--sp-3); padding: 0 var(--sp-2) 0 var(--sp-3); text-align: right; color: var(--text-muted); user-select: none; border-right: 1px solid var(--border-subtle); font-size: var(--fs-xs); background: var(--surface-alt); z-index: 1; }
+/* The line numbers form a margin, drawn the same way as the margin of the Editor view (see codeview.css): a slightly different background, a thin divider and small muted numbers. Each line draws its own part of the margin, so it reaches the top and bottom of the view and stays in place when the text scrolls sideways.
+   Its width is set once for the biggest number in the file (--ln-digits, set by json-tree-renderer.js), so text lines up on every line: a digit is about 0.65 of the number font size wide, and the rest is the padding. */
+.json-view { --ln-width: calc(var(--ln-digits, 4) * 0.65 * var(--fs-xs) + var(--sp-2) + var(--sp-3) + 1px); }
+.json-view .j-line::before { content: attr(data-ln) / ""; position: sticky; left: 0; display: inline-block; width: var(--ln-width); box-sizing: border-box; margin-right: var(--sp-3); padding: 0 var(--sp-2) 0 var(--sp-3); text-align: right; color: var(--text-muted); user-select: none; border-right: 1px solid var(--border-subtle); font-size: var(--fs-xs); background: var(--surface-alt); z-index: 1; }
 .json-view.wrap-mode { white-space: pre-wrap; word-break: break-word; }
 .json-view.wrap-mode > * { width: auto; min-width: 0; }
-.json-view.wrap-mode .j-line { padding-left: 5em; text-indent: -5em; }
+.json-view.wrap-mode .j-line { padding-left: calc(var(--ln-width) + var(--sp-3)); text-indent: calc(-1 * (var(--ln-width) + var(--sp-3))); }
 .json-view.hidden { display: none; }
 
 .j-key { color: var(--syn-key); cursor: pointer; }
@@ -34,11 +36,12 @@
 .j-lazy-sentinel { display: block; padding: 2px var(--sp-1); }
 .j-chunk { display: block; }
 .j-bracket { color: var(--syn-bracket); }
-.j-line { display: block; padding: 0 var(--sp-1); border-radius: 2px; }
+/* Every line keeps the same 3px left edge and nothing about a line changes its size: a highlighted or bookmarked line only changes colour, so the text never shifts sideways. */
+.j-line { display: block; padding: 0 var(--sp-1); border-radius: 2px; border-left: 3px solid transparent; }
 .j-line:hover { background: var(--surface-hover, var(--surface-alt)); }
-.j-line.highlighted { background: var(--accent-soft); border: 1px solid var(--accent); }
+.j-line.highlighted { background: var(--accent-soft); outline: 1px solid var(--accent); outline-offset: -1px; }
 .j-line.search-match { background: var(--warning-soft); }
-.j-line.bookmarked { border-left: 3px solid var(--warning); }
+.j-line.bookmarked { border-left-color: var(--warning); }
 .j-line.filter-hidden { display: none !important; }
 .j-toggle { display: inline-block; width: 12px; text-align: center; cursor: pointer; color: var(--text-muted); user-select: none; font-size: var(--fs-xxs); }
 .j-toggle:hover { color: var(--accent); }

@@ -89,6 +89,7 @@ Structra.jsonTreeRenderer = (() => {
 
     const lines = buildLines(treeState, data, '', 0);
     container.innerHTML = lines.join('');
+    sizeNumberMargin(container, treeState);
 
     setupDelegation(container, treeState);
     setupObservers(container, treeState);
@@ -99,6 +100,16 @@ Structra.jsonTreeRenderer = (() => {
   /* ============================
      LINE BUILDERS
      ============================ */
+
+  /**
+   * The line numbers sit in a margin that is as wide as the biggest number in the file, set once here (CSS reads
+   * --ln-digits). The Editor's margin works the same way: CodeMirror measures a hidden number made of 9s. Without this, a
+   * number with more digits would push its line's text to the right, and the lines would no longer line up.
+   * After buildLines, fileLine is the last line number of the whole file, including chunks that are not drawn yet.
+   */
+  function sizeNumberMargin(container, treeState) {
+    container.style.setProperty('--ln-digits', String(Math.max(2, String(treeState.fileLine).length)));
+  }
 
   function makeLine(treeState, content, path) {
     return `<span class="j-line" data-path="${escapeHtml(path)}" data-ln="${++treeState.fileLine}">${content}</span>`;
@@ -900,6 +911,7 @@ Structra.jsonTreeRenderer = (() => {
   function renderInto(container, data) {
     const treeState = initState(container, data, {});
     container.innerHTML = buildLines(treeState, data, '', 0).join('');
+    sizeNumberMargin(container, treeState);
     setupDelegation(container, treeState);
     setupObservers(container, treeState);
   }

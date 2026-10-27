@@ -269,8 +269,8 @@ Structra.codeView = (() => {
     const initial = options.value || '';
     const {
       EditorState, EditorView, Compartment, StateEffect, StateField, RangeSetBuilder, Prec, Decoration, ViewPlugin, keymap,
-      lineNumbers, drawSelection, placeholder, history, historyKeymap, defaultKeymap, bracketMatching, foldGutter, foldService,
-      closeBrackets, closeBracketsKeymap, syntaxHighlighting, autocompletion, completionKeymap, acceptCompletion, startCompletion,
+      lineNumbers, drawSelection, highlightSpecialChars, placeholder, history, historyKeymap, defaultKeymap, bracketMatching, foldGutter,
+      foldService, foldKeymap, closeBrackets, closeBracketsKeymap, syntaxHighlighting, autocompletion, completionKeymap, acceptCompletion, startCompletion,
       completionStatus,
     } = editorLibrary;
 
@@ -342,6 +342,9 @@ Structra.codeView = (() => {
     const baseExtensions = [
       options.lineNumbers !== false ? lineNumbers() : [],
       drawSelection(),
+      // Characters that cannot be seen (a zero-width space, a right-to-left override, a NUL) are drawn as a small marker. In a
+      // tool for reading data, a key or value must never hide what it contains: "adm\u200Bin" is not "admin".
+      highlightSpecialChars(),
       history({ minDepth: 10 }),
       bracketMatching(),
       syntaxHighlighting(highlightStyle),
@@ -353,8 +356,15 @@ Structra.codeView = (() => {
       Prec.highest(keymap.of(keys)),
       keymap.of([...historyKeymap, ...defaultKeymap]),
     ];
+    // A read-only box is still "editable" for the browser, so that it takes focus, shows a selection and answers the keyboard. On a
+    // phone or tablet that would open the on-screen keyboard over text nobody can change, so a read-only box asks for none.
+    const readOnlyExtensions = (isReadOnly) => [
+      EditorState.readOnly.of(isReadOnly),
+      EditorView.editable.of(true),
+      EditorView.contentAttributes.of(isReadOnly ? { inputmode: 'none' } : {}),
+    ];
     const editableParts = () => [
-      readOnlyPart.of([EditorState.readOnly.of(readOnly), EditorView.editable.of(true)]),
+      readOnlyPart.of(readOnlyExtensions(readOnly)),
       readOnly ? [] : closeBrackets(),
       readOnly ? [] : keymap.of(closeBracketsKeymap),
     ];
@@ -366,7 +376,8 @@ Structra.codeView = (() => {
 
     const foldExtensions = (text) => {
       if (options.fold === false || text.length > BIG_FOLD) return [];
-      const parts = [foldGutter({ openText: '▾', closedText: '▸' })];
+      // The arrows are for the mouse; the keys (Ctrl+Shift+[ and ], Ctrl+Alt+[ and ] for all) are for everyone else
+      const parts = [foldGutter({ openText: '▾', closedText: '▸' }), keymap.of(foldKeymap)];
       if (mode.fold === 'json') parts.push(foldService.of(jsonFoldService));
       return parts;
     };
@@ -416,7 +427,7 @@ Structra.codeView = (() => {
       setReadOnly(isReadOnly) {
         readOnly = !!isReadOnly;
         host.classList.toggle('cv-readonly', readOnly);
-        view.dispatch({ effects: readOnlyPart.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(true)]) });
+        view.dispatch({ effects: readOnlyPart.reconfigure(readOnlyExtensions(readOnly)) });
       },
       setLineClasses(map) { view.dispatch({ effects: setShade.of(map) }); },
       getSelection() { const selection = view.state.selection.main; return view.state.sliceDoc(selection.from, selection.to); },
