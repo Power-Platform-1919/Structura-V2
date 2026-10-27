@@ -140,6 +140,8 @@ npm run serve            # http://localhost:8765/index.html
 npm test                 # unit tests
 npm run test:all         # unit tests, then every browser smoke test (several at a time, up to 8)
 npm run test:browser     # only the browser tests
+npm run test:firefox     # the same tests in Firefox (first: npx playwright install firefox)
+npm run test:webkit      # the same tests in WebKit, the engine of Safari (first: npx playwright install webkit)
 npm run ui:audit         # UI audit across all themes and screen sizes
 npm run test:everything  # lint, unit tests, browser tests and UI audit, with a time for each step
 ```

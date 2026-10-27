@@ -4,6 +4,7 @@
          PW_CHANNEL=msedge node tests/run-smoke.js 6 find tabs   (6 at a time, only files whose name contains find or tabs)
          PW_CHANNEL=msedge node tests/run-smoke.js --changed     (only the tests that touch the components changed since the last commit)
          PW_CHANNEL=msedge node tests/run-smoke.js --own-browsers  (every test starts its own browser, as a single test does on its own)
+         node tests/run-smoke.js --engine=firefox                  (the same tests in Firefox; --engine=webkit uses WebKit, the engine of Safari)
 
    Each test starts its own small web server on a free port, so they do not get in each other's way.
 
@@ -18,13 +19,18 @@ const { closeSharedBrowser } = require('./launch-browser');
 const dir = path.join(__dirname, 'smoke');
 const argv = process.argv.slice(2);
 const changedOnly = argv.includes('--changed');
-const ownBrowsers = argv.includes('--own-browsers') || !!process.env.PW_NO_SHARED || !!process.env.PW_HEADED;
-const args = argv.filter((a) => a !== '--changed' && a !== '--own-browsers');
+// Firefox and WebKit are started by each test itself (tests/launch-browser.js), so a run in them uses no shared browsers
+const engineArg = argv.find((a) => a.startsWith('--engine='));
+if (engineArg) process.env.PW_BROWSER = engineArg.slice('--engine='.length);
+const ownBrowsers = argv.includes('--own-browsers') || !!engineArg || !!process.env.PW_NO_SHARED || !!process.env.PW_HEADED;
+const args = argv.filter((a) => a !== '--changed' && a !== '--own-browsers' && !a.startsWith('--engine='));
 // Default: one test per core on a small machine (a CI runner has 4), about half the cores on a big one, and never more than 8. The
 // tests mostly wait for the page, but past 8 at a time the browsers slow each other down (measured on a 22 core computer: 8 at a
 // time took 97 s, 12 took 133 s).
 const cores = require('os').cpus().length;
-const width = /^\d+$/.test(args[0] || '') ? Number(args.shift()) : Math.max(2, Math.min(8, cores <= 8 ? cores : cores >> 1));
+// (Firefox is heavier: past about 4 at a time its page loads start to time out on a busy computer.)
+const widest = engineArg && /firefox/.test(engineArg) ? 4 : 8;
+const width = /^\d+$/.test(args[0] || '') ? Number(args.shift()) : Math.max(2, Math.min(widest, cores <= 8 ? cores : cores >> 1));
 let files = fs.readdirSync(dir).filter((f) => f.endsWith('.js') && !f.startsWith('_') && (!args.length || args.some((a) => f.includes(a)))).sort();
 
 /* --changed: a changed component picks the tests that mention it; a change to shared code (core, css, index, app) runs everything */

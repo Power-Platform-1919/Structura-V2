@@ -19,6 +19,8 @@ Structra.libraryLoader = (() => {
   // Everything is served from this app's own folder: nothing is downloaded from another site
   const REGISTRY = {
     jsonrepair:  { type: 'script', urls: ['src/libs/jsonrepair.min.js'] },
+    // jsonc-parser (MIT, Microsoft): where JSON is broken, the same in every browser (tools/build-jsonc-parser.mjs makes the file)
+    jsonc:       { type: 'script', urls: ['src/libs/jsonc-parser.min.js'] },
     ajv:         { type: 'script', urls: ['src/libs/ajv.min.js'] },
     html2canvas: { type: 'script', urls: ['src/libs/html2canvas.min.js'] },
     duckdb:      { type: 'module', urls: ['src/libs/duckdb/duckdb-wasm.mjs'] },

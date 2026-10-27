@@ -247,7 +247,19 @@ class StructraEditor extends StructraComponent {
       this._status('valid', 'check', 'Valid JSON');
     } catch (error) {
       if (token !== this._checkToken) return;
-      // Say what is wrong and where: the browser's own parser knows the position
+      // Say what is wrong and where. The place comes from jsonc-parser, which gives the same answer in every browser; the browsers'
+      // own messages differ (Safari gives no place at all), so they are only the fallback when that parser could not load.
+      let found = null;
+      try { found = await Structra.jsonRepairAndValidation.explainParseError(text); } catch { /* the fallback below */ }
+      if (token !== this._checkToken) return;
+      if (found) {
+        this._errorAt = found.offset;
+        box.markError(found.offset);
+        this._status('error', 'x', Structra.sharedHelpers.escapeHtml(`Line ${found.line}, column ${found.column}: ${found.reason}`.slice(0, 130)));
+        status.disabled = false;
+        status.title = 'Click to go to the problem';
+        return;
+      }
       let why = error.message;
       try { JSON.parse(text); } catch (native) { why = native.message; }
       const position = /position\s+(\d+)/i.exec(why);

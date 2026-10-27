@@ -14,7 +14,7 @@ try { ({ chromium } = require('playwright')); } catch {
 }
 
 const { launchBrowser } = require('../launch-browser');
-const { uploadAndWait } = require('../page-helpers');
+const { uploadAndWait, allowClipboard, readClipboard } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -41,7 +41,7 @@ function serve() {
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
   const browser = await launchBrowser(chromium);
   const context = await newCtx(browser, { viewport: { width: 1360, height: 800 } });
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await allowClipboard(context);
   const page = await context.newPage();
   const failures = [];
   const errors = [];
@@ -126,7 +126,7 @@ function serve() {
     if (s.path !== '$.value[1].Title') failures.push('right-clicking a line should select it, the selection is ' + s.path);
     await page.locator('.tree-ctx-item', { hasText: 'Power Automate expression' }).click();
     await page.waitForTimeout(200);
-    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    const clip = await readClipboard(page);
     if (!/items\('Apply_to_each'\)\?\['Title'\]/.test(clip)) failures.push('the copied Power Automate expression is wrong: ' + clip);
 
     // ---- A click anywhere on a collapsed node opens it ----

@@ -16,6 +16,8 @@
     "test:transform": "node tests/smoke/transform.js",
     "test:all": "npm test && node tests/run-smoke.js",
     "test:browser": "node tests/run-smoke.js",
+    "test:firefox": "node tests/run-smoke.js --engine=firefox",
+    "test:webkit": "node tests/run-smoke.js --engine=webkit",
     "test:sql": "node tests/smoke/sql.js",
     "test:codeview": "node tests/smoke/codeview.js",
     "test:diff": "node tests/smoke/diff.js",

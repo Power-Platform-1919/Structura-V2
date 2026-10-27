@@ -15,7 +15,7 @@ try { ({ chromium } = require('playwright')); } catch {
 }
 
 const { launchBrowser } = require('../launch-browser');
-const { uploadAndWait } = require('../page-helpers');
+const { uploadAndWait, allowClipboard, readClipboard } = require('../page-helpers');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
@@ -42,12 +42,12 @@ function serve() {
   const base = `http://127.0.0.1:${server.address().port}/index.html`;
   const browser = await launchBrowser(chromium);
   const context = await newCtx(browser, { viewport: { width: 1440, height: 900 } });
-  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await allowClipboard(context);
   const page = await context.newPage();
   const failures = [];
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
-  const clip = () => page.evaluate(() => navigator.clipboard.readText());
+  const clip = () => readClipboard(page);
   const select = async (p) => {
     await page.evaluate((x) => { Structra.setState('currentPath', x); Structra.events.emit('tree:node-selected', x); }, p);
     await page.waitForTimeout(300);

@@ -42,4 +42,36 @@ async function uploadAndWait(page, files, { selector = FILE_INPUT, settleMs = 20
   await waitForIdle(page, { settleMs, timeout });
 }
 
-module.exports = { uploadAndWait, waitForIdle, FILE_INPUT };
+/**
+ * Let the page use the clipboard, and make it readable by the test. Chromium lets a test grant read and write. Firefox and
+ * WebKit refuse those permissions and refuse to let a page read the clipboard back, so there the test records what the app copies
+ * (through navigator.clipboard.writeText and through the copy command the app falls back to) and reads that record.
+ *   await allowClipboard(context);          // right after making the context
+ *   const text = await readClipboard(page); // what the app copied
+ */
+async function allowClipboard(context) {
+  if (context.browser().browserType().name() === 'chromium') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    return;
+  }
+  await context.addInitScript(() => {
+    window.__clipboardSpy = { text: '' };
+    if (navigator.clipboard) {
+      const original = navigator.clipboard.writeText ? navigator.clipboard.writeText.bind(navigator.clipboard) : null;
+      navigator.clipboard.writeText = async (text) => {
+        window.__clipboardSpy.text = String(text);
+        if (original) { try { await original(text); } catch { /* refused here: the record above is enough */ } }
+      };
+    }
+    document.addEventListener('copy', () => {
+      const box = document.activeElement;
+      if (box && typeof box.value === 'string' && box.selectionEnd > box.selectionStart) window.__clipboardSpy.text = box.value.slice(box.selectionStart, box.selectionEnd);
+    }, true);
+  });
+}
+
+function readClipboard(page) {
+  return page.evaluate(() => (window.__clipboardSpy ? window.__clipboardSpy.text : navigator.clipboard.readText()));
+}
+
+module.exports = { uploadAndWait, waitForIdle, allowClipboard, readClipboard, FILE_INPUT };

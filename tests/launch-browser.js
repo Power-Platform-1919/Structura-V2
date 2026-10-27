@@ -16,6 +16,9 @@
 const { spawn } = require('child_process');
 
 async function launchBrowser(chromium, extra = {}) {
+  // PW_BROWSER=firefox or webkit runs the same test in that engine (Safari uses WebKit). Those start their own browser.
+  const engine = process.env.PW_BROWSER && process.env.PW_BROWSER !== 'chromium' ? require('playwright')[process.env.PW_BROWSER] : null;
+  if (engine) return engine.launch(extra);
   const shared = process.env.PW_SHARED_WS;
   if (shared && !process.env.PW_HEADED) {
     try { return await chromium.connect(shared); } catch { /* the shared browser is gone: start one for this test */ }
