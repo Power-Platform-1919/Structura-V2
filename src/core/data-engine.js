@@ -496,7 +496,7 @@ Structra.dataEngine = (() => {
     }
     if (/^\s*\$[.\[]/.test(text)) {
       let matches;
-      try { matches = Structra.jsonpathQuery.query(dataset.raw, text.trim()); } catch (error) { throw new Error('This path could not be read: ' + error.message); }
+      try { matches = await Structra.jsonpathQuery.query(dataset.raw, text.trim()); } catch (error) { throw new Error('This path could not be read: ' + error.message); }
       return _setFindResult(dataset, text, matches.map((match) => match.path));
     }
     // Search the values themselves: every match carries its path, so the count is the number of matching
@@ -850,7 +850,7 @@ Structra.dataEngine = (() => {
     const dataset = getActive();
     if (!dataset) return null;
     let found;
-    try { found = Structra.jsonpathQuery.query(dataset.raw, expression); }
+    try { found = await Structra.jsonpathQuery.query(dataset.raw, expression); }
     catch (error) { throw new Error('This path could not be read: ' + error.message); }
     const isRecord = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
     const rows = found.map((match) => (isRecord(match.value) ? match.value : { path: match.path, value: match.value }));

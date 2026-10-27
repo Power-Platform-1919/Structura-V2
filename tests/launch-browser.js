@@ -15,7 +15,27 @@
    launchBrowser(chromium, extra)   extra: launch options that only matter for a browser of its own (for example slowMo) */
 const { spawn } = require('child_process');
 
+/**
+ * Every page a test opens gets a longer wait for a page to load (90 seconds, PW_NAV_TIMEOUT_MS changes it). The default 30 seconds
+ * is fine on a quiet computer, but when eight browsers start at once on a busy one the first page load can take longer, and the
+ * test then fails for a reason that has nothing to do with the app.
+ */
+function patientBrowser(browser) {
+  const milliseconds = Number(process.env.PW_NAV_TIMEOUT_MS || 90000);
+  const makeContext = browser.newContext.bind(browser);
+  browser.newContext = async (...args) => {
+    const context = await makeContext(...args);
+    context.setDefaultNavigationTimeout(milliseconds);
+    return context;
+  };
+  return browser;
+}
+
 async function launchBrowser(chromium, extra = {}) {
+  return patientBrowser(await startBrowser(chromium, extra));
+}
+
+async function startBrowser(chromium, extra) {
   // PW_BROWSER=firefox or webkit runs the same test in that engine (Safari uses WebKit). Those start their own browser.
   const engine = process.env.PW_BROWSER && process.env.PW_BROWSER !== 'chromium' ? require('playwright')[process.env.PW_BROWSER] : null;
   if (engine) return engine.launch(extra);

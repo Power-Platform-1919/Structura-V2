@@ -67,10 +67,12 @@ function serve() {
     const palette = await page.evaluate(() => !!document.querySelector('#cmdOverlay.show'));
     if (!palette) failures.push('Ctrl+K does not open the command palette after clicking the SQL chip');
     await page.keyboard.press('Escape');
+    // The palette must be gone before the next dialog opens, or it covers the buttons (on a busy computer it takes longer than a fixed wait)
+    await page.waitForFunction(() => !document.querySelector('#cmdOverlay.show'));
 
     // ---- Appearance hint follows the chosen mode ----
     await page.evaluate(() => Structra.events.emit('theme:open'));
-    await page.waitForTimeout(300);
+    await page.waitForSelector('#thMode [data-mode="light"]', { state: 'visible' });
     await page.locator('#thMode [data-mode="light"]').click();
     const hint = await page.locator('#thModeHint').textContent();
     if (!/Always light/.test(hint)) failures.push('the Appearance hint should describe Light: "' + hint + '"');

@@ -152,7 +152,7 @@ function serve() {
     await page.waitForTimeout(300);
     await page.locator('#queryInput').fill('a[*]');
     await page.locator('#queryInput').press('Enter');
-    await page.waitForTimeout(400);
+    await page.waitForFunction(() => document.querySelectorAll('#queryResults .qp-result').length > 0, null, { timeout: 15000 }).catch(() => {});
     if (!(await page.evaluate(() => document.querySelectorAll('#queryResults .qp-result').length))) failures.push('the query should find matches');
     await load('other.json', '{"z":1}');
     if (await page.evaluate(() => document.querySelectorAll('#queryResults .qp-result').length)) failures.push('query results from the closed document are still showing');
