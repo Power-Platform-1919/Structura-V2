@@ -2168,8 +2168,8 @@
         {
           "id": "16.19",
           "title": "DECISION: if json-p3 fails to load, show an error (today) or add a simple fallback",
-          "status": "blocked",
-          "note": "waiting for you (Q13)"
+          "status": "done",
+          "note": "Q13: plain error message"
         },
         {
           "id": "16.20",
@@ -2267,8 +2267,8 @@
         {
           "id": "17.17",
           "title": "DECISION: keep the windowed version (library does the arithmetic) or restore virtual-list.js and upgrade it ourselves",
-          "status": "blocked",
-          "note": "waiting for you (Q1)"
+          "status": "done",
+          "note": "Q1: keep the library for the arithmetic"
         },
         {
           "id": "17.18",
@@ -2293,15 +2293,20 @@
         {
           "id": "17.22",
           "title": "If the decision is \"restore\": give virtual-list.js a true scrollbar and scroll-to-row; remove virtual-core; re-run the Table test",
-          "status": "todo",
-          "note": "only if you choose it"
+          "status": "done",
+          "note": "not needed (Q1)"
+        },
+        {
+          "id": "17.23",
+          "title": "Merge the Table pull request into dev after CI is green",
+          "status": "todo"
         }
       ]
     },
     {
       "id": "18",
       "title": "Wave 0: correctness bugs found by the gap audit",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Sections 2.9, 3.17 to 3.20 and 8 of the map. Do these before the other waves.",
       "subtasks": [
         {
@@ -2313,7 +2318,7 @@
               "id": "18.1.1",
               "title": "DECISION: option A (keep the dotted form, recommended) or option B (JSON Pointer inside)",
               "status": "blocked",
-              "note": "waiting for you (Q3)"
+              "note": "waiting for you (Q3: explained in docs/QUESTIONS.md)"
             },
             {
               "id": "18.1.2",
@@ -2455,23 +2460,24 @@
         {
           "id": "18.2",
           "title": "CSV export through PapaParse, with formula protection (3.18)",
-          "status": "todo",
+          "status": "in_progress",
           "subtasks": [
             {
               "id": "18.2.1",
               "title": "DECISION: formula protection on by default, as a setting",
-              "status": "blocked",
-              "note": "waiting for you (Q4)"
+              "status": "done",
+              "note": "Q4: always on"
             },
             {
               "id": "18.2.2",
-              "title": "Replace escCsv and generateCsv with Papa.unparse and escapeFormulae",
+              "title": "Replace escCsv and generateCsv with Papa.unparse and escapeFormulae (text cells that start with = + - @ get an apostrophe; real numbers untouched)",
               "status": "todo"
             },
             {
               "id": "18.2.3",
-              "title": "Add the setting to Settings and remember it",
-              "status": "todo"
+              "title": "No setting: protection is always on",
+              "status": "done",
+              "note": "Q4"
             },
             {
               "id": "18.2.4",
@@ -2540,11 +2546,11 @@
         {
           "id": "18.4",
           "title": "Cleanup and hardening (3.20)",
-          "status": "todo",
+          "status": "in_progress",
           "subtasks": [
             {
               "id": "18.4.1",
-              "title": "Delete src/workers/engine-worker.js (nothing loads it)",
+              "title": "Move src/workers/engine-worker.js to archive/ (nothing loads it)",
               "status": "todo"
             },
             {
@@ -2554,9 +2560,9 @@
             },
             {
               "id": "18.4.3",
-              "title": "DECISION: move structra-v2.html and samples/ to docs/archive/ and stop publishing them",
-              "status": "blocked",
-              "note": "waiting for you (Q5)"
+              "title": "Archive policy decided: unused and unwanted code goes to archive/, reviewed and deleted later",
+              "status": "done",
+              "note": "Q5"
             },
             {
               "id": "18.4.4",
@@ -2597,6 +2603,26 @@
               "id": "18.4.11",
               "title": "Extend the map test so a new vendored library must be listed in THIRD-PARTY.md",
               "status": "todo"
+            },
+            {
+              "id": "18.4.12",
+              "title": "Create archive/ at the top of the repository with a README (what is in it, why, the date, \"review and delete later\")",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.13",
+              "title": "Move structra-v2.html and samples/ into archive/",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.14",
+              "title": "Move the old virtual-list.js into archive/ (it was removed on the Table branch)",
+              "status": "todo"
+            },
+            {
+              "id": "18.4.15",
+              "title": "Keep archive/ out of the lint, the tests, the deploy and the map test",
+              "status": "todo"
             }
           ]
         }
@@ -2605,14 +2631,14 @@
     {
       "id": "19",
       "title": "User-written code runs in one sandbox worker (3.8)",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Four places use new Function today: Query panel JavaScript mode, the data engine row filter, Transform steps, the engine worker (unused).",
       "subtasks": [
         {
           "id": "19.1",
           "title": "DECISION: approve moving all user code into one sandbox worker",
-          "status": "blocked",
-          "note": "waiting for you (Q6)"
+          "status": "done",
+          "note": "Q6: yes, as one shared service"
         },
         {
           "id": "19.2",
@@ -2678,139 +2704,168 @@
           "id": "19.14",
           "title": "Follow-up: allow a stricter Content-Security-Policy (task 18-D)",
           "status": "todo"
+        },
+        {
+          "id": "19.15",
+          "title": "Design it as one generic shared job service: a single worker protocol any module can use (user code, patterns, transforms, later other heavy work), written once",
+          "status": "todo"
+        },
+        {
+          "id": "19.16",
+          "title": "Document the service in DEVELOPER-GUIDE so new features use it and do not write their own",
+          "status": "todo"
         }
       ]
     },
     {
       "id": "20",
-      "title": "CodeMirror Tree: a switchable engine (MVP, 3.1)",
+      "title": "One Tree for the whole app: research CodeMirror for large files, decide by numbers, build it once (3.1)",
       "status": "in_progress",
-      "brief": "Approved scope: read-only CodeMirror view behind a setting, Classic stays the default, cap about 40 MB. Starts after the Table is settled.",
+      "brief": "Q12: only one tree, uniform in every place it is shown. CodeMirror if it can meet every requirement on large files; otherwise our own hand-written tree for the whole app. Research: docs/codemirror-tree-research.md. No engine switch.",
       "subtasks": [
         {
           "id": "20.1",
-          "title": "Spike: path index (line to path and back) measured at 37 MB and 88 MB",
+          "title": "Spike done earlier: path index (line to path and back) measured at 37 MB and 88 MB",
           "status": "done"
         },
         {
           "id": "20.2",
-          "title": "Spike: CodeMirror long lines (30 MB text value) measured",
+          "title": "Spike done earlier: CodeMirror on one 30 MB text value and on 89 MB, 5 million lines",
           "status": "done"
         },
         {
           "id": "20.3",
-          "title": "Decide the size cap for the first version (suggested 40 MB)",
-          "status": "blocked",
-          "note": "waiting for you (Q12)"
+          "title": "Write the requirements down (every Tree behavior, and \"uniform everywhere\")",
+          "status": "todo"
         },
         {
           "id": "20.4",
-          "title": "Setting \"Tree engine: Classic or Code\" and the ?engine= URL switch",
+          "title": "Find every place a tree is drawn (Tree view, Query results, others) and what each needs",
           "status": "todo"
         },
         {
           "id": "20.5",
-          "title": "Build the pretty-printed text and the path index in a worker",
-          "status": "todo"
+          "title": "Research how others make CodeMirror work as a tree on huge documents (docs, forum, source, prior art, other viewers)",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "20.5.1",
+              "title": "CodeMirror documentation and source: folding, decorations, replace widgets, viewport, huge documents",
+              "status": "todo"
+            },
+            {
+              "id": "20.5.2",
+              "title": "Forum threads and prior art for tree-like or collapsible views in CodeMirror 6",
+              "status": "todo"
+            },
+            {
+              "id": "20.5.3",
+              "title": "How large-JSON viewers work (visible-row list, virtual tree) and what that means for CodeMirror",
+              "status": "todo"
+            },
+            {
+              "id": "20.5.4",
+              "title": "List the possible designs: full text with folds; the visible rows as the document; a hybrid",
+              "status": "todo"
+            }
+          ]
         },
         {
           "id": "20.6",
-          "title": "Read-only CodeMirror view with the existing theme",
-          "status": "todo"
+          "title": "Prototype A: full text with folds (already measured: collapse of 165,000 records 2.2 s, one million fold effects 22 s)",
+          "status": "done"
         },
         {
           "id": "20.7",
-          "title": "Parity: line numbers",
-          "status": "todo"
+          "title": "Prototype B: the document holds only the visible rows (collapsed blocks are one line, huge lists show a window with a \"more\" line); expand and collapse replace small ranges",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "20.7.1",
+              "title": "Model: a visible-row list built from the data and the collapse state",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.2",
+              "title": "Document projection and incremental updates through CodeMirror transactions",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.3",
+              "title": "File line numbers in the gutter (not visible-row numbers)",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.4",
+              "title": "Toggle markers in a custom gutter and keyboard folding",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.5",
+              "title": "Row to path and path to row mapping (the path index)",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.6",
+              "title": "Huge arrays: a window of items with \"show more\" lines",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.7",
+              "title": "Click, selection and keyboard mapping to paths",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.8",
+              "title": "Find marks, filter (hide non-matching), bookmarks, key highlight as decorations",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.9",
+              "title": "Inline value editing",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.10",
+              "title": "Accessibility: roles, labels, keyboard, screen reader behavior",
+              "status": "todo"
+            },
+            {
+              "id": "20.7.11",
+              "title": "Measure on the 37 MB and 88 MB files: open, expand, collapse all, scroll, memory, in three browsers",
+              "status": "todo"
+            }
+          ]
         },
         {
           "id": "20.8",
-          "title": "Parity: fold and unfold, keyboard folding, \"N items\" hint",
-          "status": "todo"
+          "title": "Compare A, B and our current tree against the requirements and the numbers; decide ONE tree",
+          "status": "blocked",
+          "note": "decision by numbers (Q12)"
         },
         {
           "id": "20.9",
-          "title": "Parity: collapse all and collapse to depth 1, 2, 3 (batched fold effects)",
+          "title": "If CodeMirror: build it for real, replace the hand-written renderer everywhere, delete it (to archive/ first)",
           "status": "todo"
         },
         {
           "id": "20.10",
-          "title": "Parity: click a line selects its path (tree:node-selected, currentPath)",
+          "title": "If hand-written: keep our renderer as the only tree, add every behavior CodeMirror would have given (the keep-and-harden rule), and make every place use it",
           "status": "todo"
         },
         {
           "id": "20.11",
-          "title": "Parity: a path chosen elsewhere reveals and highlights its line",
+          "title": "Make every place that shows a tree use the same renderer",
           "status": "todo"
         },
         {
           "id": "20.12",
-          "title": "Parity: click a key highlights the same key; double-click a key opens Find",
+          "title": "Tests: every existing Tree test, in three browsers, plus the large-file budget test",
           "status": "todo"
         },
         {
           "id": "20.13",
-          "title": "Parity: double-click a value edits it (tree:inline-edit)",
-          "status": "todo"
-        },
-        {
-          "id": "20.14",
-          "title": "Parity: right-click menu",
-          "status": "todo"
-        },
-        {
-          "id": "20.15",
-          "title": "Parity: bookmarks (gutter marker and line decoration)",
-          "status": "todo"
-        },
-        {
-          "id": "20.16",
-          "title": "Parity: Find matches and filter (hide non-matching lines)",
-          "status": "todo"
-        },
-        {
-          "id": "20.17",
-          "title": "Parity: wrap toggle",
-          "status": "todo"
-        },
-        {
-          "id": "20.18",
-          "title": "Parity: hidden characters shown",
-          "status": "todo"
-        },
-        {
-          "id": "20.19",
-          "title": "Above the cap: open the Classic Tree and say why",
-          "status": "todo"
-        },
-        {
-          "id": "20.20",
-          "title": "Run the existing Tree tests against both engines (parameterized)",
-          "status": "todo"
-        },
-        {
-          "id": "20.21",
-          "title": "Perf budget test: first view and memory on the 37 MB fixture",
-          "status": "todo"
-        },
-        {
-          "id": "20.22",
-          "title": "Run everything in three engines",
-          "status": "todo"
-        },
-        {
-          "id": "20.23",
-          "title": "Acceptance check against the list in the plan (section 4)",
-          "status": "todo"
-        },
-        {
-          "id": "20.24",
-          "title": "Docs: user-facing note and the map",
-          "status": "todo"
-        },
-        {
-          "id": "20.25",
-          "title": "After a trial period: decide whether Code becomes the default",
+          "title": "Update the map, the plan and DEVELOPER-GUIDE",
           "status": "todo"
         }
       ]
@@ -2904,6 +2959,11 @@
               "id": "21.3.7",
               "title": "Measure the first-load saving",
               "status": "todo"
+            },
+            {
+              "id": "21.3.8",
+              "title": "Visual check of every icon in every theme after the upgrade: nothing breaks, nothing looks awkward (Q9)",
+              "status": "todo"
             }
           ]
         },
@@ -2935,6 +2995,11 @@
             {
               "id": "21.4.5",
               "title": "Update shell and layout tests; axe audit",
+              "status": "todo"
+            },
+            {
+              "id": "21.4.6",
+              "title": "Never block an older browser: feature-detect HTMLDialogElement.showModal, keep the old dialog code as the fallback, show a note and keep running (Q10)",
               "status": "todo"
             }
           ]
@@ -3065,45 +3130,29 @@
     {
       "id": "22",
       "title": "Wave 3: when a measurement or an outside event allows",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Sections 3.6, 3.7, 3.10, 3.11, 3.12 of the map.",
       "subtasks": [
         {
           "id": "22.1",
           "title": "Ajv 6 to 8 (3.6)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.1.1",
-              "title": "DECISION: upgrade or keep, after testing real Power Automate schemas",
-              "status": "blocked",
-              "note": "waiting for you (Q14)"
+              "title": "Collect real Parse JSON schemas (23 schemas from 15 flows in your own developer environments, read-only)",
+              "status": "done"
             },
             {
               "id": "22.1.2",
-              "title": "Collect real schemas from you",
-              "status": "blocked",
-              "note": "waiting for you (D1)"
+              "title": "Test them with Ajv 6.12.6 and Ajv 8 (strict and not strict): all 23 compile in both, same speed; only the error format differs",
+              "status": "done"
             },
             {
               "id": "22.1.3",
-              "title": "Test them with Ajv 6 and Ajv 8 with ajv-draft-04",
-              "status": "todo"
-            },
-            {
-              "id": "22.1.4",
-              "title": "Adapter: instancePath, no jsonPointers option",
-              "status": "todo"
-            },
-            {
-              "id": "22.1.5",
-              "title": "Contract test for the validate adapter",
-              "status": "todo"
-            },
-            {
-              "id": "22.1.6",
-              "title": "Re-vendor; update THIRD-PARTY.md",
-              "status": "todo"
+              "title": "Decision: keep Ajv 6; no benefit for real schemas today (none uses $schema or newer keywords). Revisit on the watch list (task 30)",
+              "status": "done",
+              "note": "Q14"
             }
           ]
         },
@@ -3114,28 +3163,24 @@
           "subtasks": [
             {
               "id": "22.2.1",
-              "title": "Watch for the 2.0 release",
-              "status": "todo"
-            },
-            {
-              "id": "22.2.2",
               "title": "Re-check the OPFS persistence claim in the adapter now",
               "status": "todo"
             },
             {
+              "id": "22.2.2",
+              "title": "Benchmark the current DuckDB (engine 1.1.1) against the newest available: load time, start time, query time on 100,000 rows, memory, download size",
+              "status": "todo"
+            },
+            {
               "id": "22.2.3",
-              "title": "Upgrade in a branch; run SQL, filter, pivot, null finder, find tests",
+              "title": "Decide by the numbers (Q19): upgrade if it helps performance, otherwise wait for 2.0",
               "status": "todo"
             },
             {
               "id": "22.2.4",
-              "title": "Measure size and start time",
-              "status": "todo"
-            },
-            {
-              "id": "22.2.5",
-              "title": "Re-vendor; update THIRD-PARTY.md",
-              "status": "todo"
+              "title": "If upgrading: branch, run the SQL, filter, pivot, null finder and find tests in three engines; re-vendor; update THIRD-PARTY.md",
+              "status": "todo",
+              "note": "only if the numbers say so"
             }
           ]
         },
@@ -3599,7 +3644,7 @@
     {
       "id": "24",
       "title": "Seams between our code and the libraries (section 8.5, rule 3)",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Neither world may cause trouble for the other.",
       "subtasks": [
         {
@@ -3645,8 +3690,8 @@
         {
           "id": "24.9",
           "title": "Decide the json-p3 fallback (see task 16)",
-          "status": "blocked",
-          "note": "waiting for you (Q13)"
+          "status": "done",
+          "note": "Q13: plain error message"
         }
       ]
     },
@@ -3709,25 +3754,25 @@
         {
           "id": "26.1",
           "title": "Merge order: #6 into dev, then #7, then the Table pull request",
-          "status": "todo",
-          "note": "waiting for you (Q8)"
+          "status": "todo"
         },
         {
           "id": "26.2",
           "title": "After #6 merges, retarget #7 and the Table pull request to dev",
-          "status": "todo"
+          "status": "todo",
+          "note": "after the first merge"
         },
         {
           "id": "26.3",
           "title": "Promote dev to test and prod only when you say so",
           "status": "blocked",
-          "note": "waiting for you (Q16)"
+          "note": "waiting for you each time (Q16)"
         },
         {
           "id": "26.4",
           "title": "CI: make the Firefox and WebKit job blocking, or keep it optional",
           "status": "blocked",
-          "note": "waiting for you (Q15)"
+          "note": "optional until tuned (Q15)"
         },
         {
           "id": "26.5",
@@ -3743,6 +3788,241 @@
           "id": "26.7",
           "title": "Each change: lint, unit, browser tests, UI audit, three engines before the pull request",
           "status": "todo"
+        },
+        {
+          "id": "26.8",
+          "title": "Merge PR #6 into dev after CI is green (Q7)",
+          "status": "todo"
+        },
+        {
+          "id": "26.9",
+          "title": "Retarget PR #7 to dev, wait for CI, merge (Q7)",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "27",
+      "title": "Shared architecture: write generic logic once (rule 4)",
+      "status": "todo",
+      "brief": "Your rule: generic code is written once and reused. Examples already found: paths written in 16 places, four ways to run user code, a menu and outside-click handler per component.",
+      "subtasks": [
+        {
+          "id": "27.1",
+          "title": "Add rule 4 to the map and DEVELOPER-GUIDE: shared architecture, one place per job",
+          "status": "todo"
+        },
+        {
+          "id": "27.2",
+          "title": "Scan the code for duplicated logic with a mature tool (jscpd), list the biggest repeats",
+          "status": "todo"
+        },
+        {
+          "id": "27.3",
+          "title": "Candidate: one path writer and reader (task 18.1)",
+          "status": "todo"
+        },
+        {
+          "id": "27.4",
+          "title": "Candidate: one job service for user code and patterns (task 19)",
+          "status": "todo"
+        },
+        {
+          "id": "27.5",
+          "title": "Candidate: one menu and popover service (Tree menu, Table column menu, tabs menu, canvas header menu each build their own and close on outside click their own way)",
+          "status": "todo"
+        },
+        {
+          "id": "27.6",
+          "title": "Candidate: one Escape and outside-click handling for overlays",
+          "status": "todo"
+        },
+        {
+          "id": "27.7",
+          "title": "Candidate: one copy-to-clipboard button pattern (buttons repeated in many panels)",
+          "status": "todo"
+        },
+        {
+          "id": "27.8",
+          "title": "Candidate: one empty-state and error-state block",
+          "status": "todo"
+        },
+        {
+          "id": "27.9",
+          "title": "Candidate: one number, size and date formatting set (check what is repeated)",
+          "status": "todo"
+        },
+        {
+          "id": "27.10",
+          "title": "Candidate: one place for the \"one door per library\" modules (windowed rows, share, parse workers)",
+          "status": "todo"
+        },
+        {
+          "id": "27.11",
+          "title": "Rank the candidates by how much they remove and how risky they are; agree the order with you",
+          "status": "todo"
+        },
+        {
+          "id": "27.12",
+          "title": "For each chosen candidate: write the shared piece, move one user at a time with tests green, delete the copies (to archive/ first)",
+          "status": "todo"
+        },
+        {
+          "id": "27.13",
+          "title": "Add a duplication budget check to CI so new copies are noticed",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "28",
+      "title": "Bug reports: a button that opens a prefilled GitHub issue (future, Q20)",
+      "status": "todo",
+      "brief": "Later. A \"Report a problem\" button that never includes document data.",
+      "subtasks": [
+        {
+          "id": "28.1",
+          "title": "Design the report: version, browser, last errors, settings; never document data",
+          "status": "todo"
+        },
+        {
+          "id": "28.2",
+          "title": "Prefilled GitHub issue link (no token needed) and an issue template",
+          "status": "todo"
+        },
+        {
+          "id": "28.3",
+          "title": "Depends on the global error handler (task 18.4)",
+          "status": "todo"
+        },
+        {
+          "id": "28.4",
+          "title": "Decide how issues are triaged and linked to tasks",
+          "status": "todo"
+        },
+        {
+          "id": "28.5",
+          "title": "Tests: the report never contains document text",
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "29",
+      "title": "Real Power Platform data through the installed tools (D1 and D2)",
+      "status": "in_progress",
+      "brief": "Done with your permission: read-only, your own developer environments only, nothing stored in the repository. Results: map section 8.6.",
+      "subtasks": [
+        {
+          "id": "29.1",
+          "title": "Check the connection (whoami, doctor): works for listing environments",
+          "status": "done"
+        },
+        {
+          "id": "29.2",
+          "title": "The plugin cannot list flows here: the company network inspects HTTPS and the tool does not trust the certificate. I did not turn off certificate checks; used the Azure CLI you are signed into instead",
+          "status": "done"
+        },
+        {
+          "id": "29.3",
+          "title": "List flows in IHSM_DEV, IHSM_Developer_Environment_2 and your personal environment (125 flows)",
+          "status": "done"
+        },
+        {
+          "id": "29.4",
+          "title": "Fetch the definitions of the 15 flows that contain Parse JSON (kept in the scratch folder only)",
+          "status": "done"
+        },
+        {
+          "id": "29.5",
+          "title": "Extract the 23 real Parse JSON schemas and survey their keywords (none has $schema)",
+          "status": "done"
+        },
+        {
+          "id": "29.6",
+          "title": "Compare Ajv 6 and Ajv 8 on them (task 22.1)",
+          "status": "done"
+        },
+        {
+          "id": "29.7",
+          "title": "Extract 481 real expressions: which functions and which kinds of keys appear",
+          "status": "done"
+        },
+        {
+          "id": "29.8",
+          "title": "Check that our generators cover the functions real flows use (they do)",
+          "status": "done"
+        },
+        {
+          "id": "29.9",
+          "title": "Real key kinds found: 61 contain a slash (the dynamic-content form body/field), 2 contain a dot, 2 contain @",
+          "status": "done"
+        },
+        {
+          "id": "29.10",
+          "title": "Add the dynamic-content style (outputs('Action')?['body/field']) as an extra output of the expression generator",
+          "status": "todo"
+        },
+        {
+          "id": "29.11",
+          "title": "Build synthetic test fixtures that copy the shapes (nested items, oneOf, slash keys, odata keys) without any real names or data",
+          "status": "todo"
+        },
+        {
+          "id": "29.12",
+          "title": "Optional: ask IT for the company CA bundle (NODE_EXTRA_CA_CERTS) so the plugin itself can list flows",
+          "status": "todo",
+          "note": "optional"
+        }
+      ]
+    },
+    {
+      "id": "30",
+      "title": "Watch list: revisit when a reason appears",
+      "status": "blocked",
+      "brief": "Things we decided not to do now, and what would make us do them.",
+      "subtasks": [
+        {
+          "id": "30.1",
+          "title": "Ajv 8: when a schema needs draft 2019 or 2020, or a security advisory appears for Ajv 6",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.2",
+          "title": "DuckDB 2.0: when released, run the benchmark in 22.2 again",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.3",
+          "title": "json-p3 fallback: only if the library ever fails to load in practice",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.4",
+          "title": "Content-Security-Policy: after the sandbox worker (task 19)",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.5",
+          "title": "Offline install: if you want it (Q18)",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.6",
+          "title": "Cytoscape or a graph engine: only if the Graph needs more than a depth-limited tree",
+          "status": "blocked",
+          "note": "watch"
+        },
+        {
+          "id": "30.7",
+          "title": "A table library: only if the Table needs features ours cannot reasonably get",
+          "status": "blocked",
+          "note": "watch"
         }
       ]
     }

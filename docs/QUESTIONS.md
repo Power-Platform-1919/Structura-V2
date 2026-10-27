@@ -1,70 +1,69 @@
 # Open questions
 
-All questions in one place. Answer them whenever you like, in any order, as we develop. Nothing waits on you: each question has a **default** that I will use if you have not answered by the time the work needs it, and I will say so when I do.
+All questions in one place. Answer when you like, in any order, as we develop. Nothing waits on you: each question has a **default** I use if you have not answered by the time the work needs it, and I say so when I do.
 
-**How to answer:** write the id and the answer, for example `Q3 A`, `Q4 yes`, `Q1 restore`, or `defaults are fine`. I will record it in the answered log at the bottom, update the task list, and carry on.
+**How to answer:** write the id and the answer, for example `Q3 A` or `Q18 yes`. I record it in the log at the bottom and update [TODO.md](TODO.md).
 
-**What never changes without your word:** nothing is merged into `dev`, `test` or `prod`, and nothing is promoted. Work happens on branches and in pull requests.
+**Rules of the road (from you):** I may open pull requests and **merge them into `dev`** myself, carefully (CI green first). Nothing goes from `dev` to `test`, from `test` to `prod`, or from `prod` to `main` without your word each time.
 
-Task ids point into [TODO.md](TODO.md). Background for each question is in [feature-technology-map.md](feature-technology-map.md).
+## Open
 
-## Needed first (they start Wave 0)
+| Id | Question | Options | My recommendation (and default) | Blocks |
+|---|---|---|---|---|
+| Q3 | **Path model.** You asked for clarity: see the explanation below. A or B? | **A** or **B** | A | 18.1 |
+| Q18 | **Offline install.** You asked if this is about using the app without internet: yes, see the explanation below. Wanted? | **yes** or **no** | no for now (optional later) | 18.4.9 |
+| Q21 | **Archive folder.** I will create `archive/` at the top of the repository (outside `src`, so it is never shipped, linted or published) with a README that says what is in it, why, and the date, so we can review and delete later. It will hold `structra-v2.html`, `samples/`, `engine-worker.js` and the old `virtual-list.js`. Fine? | **yes** or another name | yes | 18.4 |
 
-| Id | Question | Options | My recommendation | Default if you do not answer | Blocks |
-|---|---|---|---|---|---|
-| Q1 | **Table:** keep the windowed version (a library does the scroll arithmetic) or restore `virtual-list.js` and upgrade it ourselves? I removed that file without asking first. | **keep** or **restore** | keep: it is built and tested in three engines, and it removes our own scroll code | keep, then commit the branch and open a pull request | task 17 (17.17 to 17.22) |
-| Q2 | **Work order:** Wave 0 (correctness bugs) first, then the small improvements (Wave 1), then the Table and CodeMirror Tree? | **yes** or another order | yes | yes | tasks 18, 21, 17, 20 |
-| Q3 | **Path model:** keep our dotted form with one writer and one reader (A), or switch the inside to JSON Pointer (B)? | **A** or **B** | A: saved bookmarks, sessions and workspace files keep working | A | 18.1 |
-| Q4 | **CSV export:** protect against spreadsheet formulas (a leading apostrophe on cells that start with `=`, `+`, `-`, `@`), on by default, switchable in Settings? | **yes** or **no** | yes | yes | 18.2 |
-| Q5 | **Old prototypes:** move `structra-v2.html` and `samples/` into `docs/archive/` and stop publishing them to the public site? | **yes** or **no** | yes | yes | 18.4.3 and 18.4.4 |
-| Q6 | **User-written code:** move all of it (JavaScript query mode, filter expressions, Transform steps, regular expressions) into one sandbox worker? | **yes** or **no** | yes: safer, the page can never freeze, one mechanism instead of four | yes | task 19 and 18.3 |
-| Q7 | **Pull requests:** may I open a pull request into `dev` for each finished task when its tests pass? I will never merge. | **yes** or **no** | yes | yes | task 26 |
-| Q8 | **Merge order** when you are ready: #6 into `dev`, then #7, then the Table pull request? | **yes** or another order | yes | yes | 15.32, 16.18, 26.1 and 26.2 |
+### Q3 in plain words: what is the "path model"?
 
-## Needed before Wave 1
+Every value in a document has an address, like "the Title of the first item in the list called value": `value[0].Title`. The Tree, Find, the Table, Compare, the Query panel and the Power Automate expressions all need to agree on how an address is written and read.
 
-| Id | Question | Options | My recommendation | Default if you do not answer | Blocks |
-|---|---|---|---|---|---|
-| Q9 | **Icons:** newer Lucide (1.62) has some changed artwork and names. OK if a few icons look slightly different? | **yes** or **no** | yes | yes | 21.3 |
-| Q10 | **Browser support policy:** which browsers must the app work in? | e.g. the latest two versions of Chrome, Edge, Firefox and Safari | that | that | 21.4 (native dialog), CI |
-| Q11 | **Graph labels:** I assumed your "why not wrapping the text" means yes: wrap long labels over 2 or 3 lines in a taller node. Correct? | **yes** or **no** | yes | yes (already assumed) | 21.7 |
+**The problem today:** about 16 places write addresses by hand, with 6 different rules. For a key like `@odata.etag` (SharePoint and Dataverse payloads are full of them):
 
-## Needed before the CodeMirror Tree
+- the Tree writes `value[0]["@odata.etag"]` (quoted, readable),
+- Find writes `$.value[0].@odata.etag` (not quoted, so the reader thinks it means key `@odata` and then key `etag`, finds nothing, and Next, Previous and the highlight fail).
 
-| Id | Question | Options | My recommendation | Default if you do not answer | Blocks |
-|---|---|---|---|---|---|
-| Q12 | **Size cap** for the CodeMirror Tree in the first version. Larger files open in the Classic Tree. | e.g. 20, 40 or 90 MB | 40 MB, then measure and raise | 40 MB | 20.3 |
+**Option A (my recommendation):** keep how addresses look today, so bookmarks, saved sessions, workspace files, the path bar and the expression generators all stay exactly the same. Add **one** function that writes any address correctly (plain `.Title` for ordinary keys, `["@odata.etag"]` for odd ones) and make the reader understand everything that function can write. Every place that wrote addresses by hand calls that one function instead. A test then tries nasty keys (dots, brackets, quotes, backslashes, empty, starting with `$`) through every place and checks them against json-p3, which follows the official rules.
 
-## Later, when the work reaches them
+**Option B:** change what is stored inside to an official standard called JSON Pointer (`/value/0/@odata.etag`), which has no ambiguity at all, and turn it into the readable form only for display. Cleaner in theory, but every saved bookmark, session and workspace file has to be converted and every part that reads addresses changes.
 
-| Id | Question | Options | My recommendation | Default if you do not answer | Blocks |
-|---|---|---|---|---|---|
-| Q13 | **json-p3 fails to load:** keep the plain error message, or add a fallback? | **error** or **fallback** | error: the file is served from our own folder, so a failure means the app itself did not load | error | 16.19, 24.9 |
-| Q14 | **Ajv:** upgrade to version 8 (with the draft-04 add-on) or keep version 6? Needs your real schemas (see D1). | **upgrade** or **keep** | decide after testing your schemas | keep for now | 22.1 |
-| Q15 | **Firefox and WebKit in CI:** blocking for every pull request, or optional? Firefox takes about 4.5 minutes, WebKit about 2. | **blocking** or **optional** | decide after the job is tuned | optional | 26.4 |
-| Q16 | **Promote** `dev` to `test` and `prod`. | when you say | only when you say | never without your word | 26.3 |
-| Q17 | **Content-Security-Policy:** how strict may it be, given that the JavaScript query mode needs `unsafe-eval` until the sandbox worker (Q6) is in? | study first | decide after Q6 | study only | 18.4.8 |
-| Q18 | **Offline install** (web manifest and service worker): wanted? | **yes** or **no** | optional, low priority | no | 18.4.9 |
-| Q19 | **DuckDB:** wait for version 2.0, or upgrade to the current 1.33 now? | **wait** or **now** | wait | wait | 22.2 |
-| Q20 | **Bug report button:** a "copy bug report" that holds the version, browser and last errors but never any document data. OK? | **yes** or **no** | yes | yes | 18.4.6 and 18.4.7 |
+### Q18 in plain words: offline install
 
-## Things I need from you (not decisions)
+The app already makes **no outside requests** while it runs: fonts, icons and libraries are all served from the app's own folder, and your data never leaves the page. But to **open** the page you still need to reach the site (or a local server) at least once, and a browser may drop its cached copy. A **service worker** (a small background script) plus a **web manifest** would let the browser keep the whole app so it opens with **no internet at all**, even after a restart, and would offer "Install" so it looks like a normal desktop app. It is optional, small to add, and has one cost: after each release, installed copies must update themselves, which needs a little care.
 
-| Id | What | Why | Needed for |
-|---|---|---|---|
-| D1 | A few real **Power Automate Parse JSON schemas** (the ones you paste into the action) | to choose Ajv 6 or 8 (Q14) and to test the schema generator | 22.1.2 |
-| D2 | A few exported **flows** (or flow run outputs) | to check the Power Automate and Power Fx expressions against real use | 23.8.1 |
+## Things I needed from you (now done)
+
+D1 (real Parse JSON schemas) and D2 (real flows) came from your own developer environments through the Power Platform tools; results are in the map, section 8.6. Nothing from your environments is stored in the repository.
 
 ## Answered log
 
-| Date | Id | Question | Your answer | What I did |
+| Date | Id | Question | Your answer | What I did or will do |
 |---|---|---|---|---|
 | 2026-10-27 | | Use json-p3 for JSONPath | "if json-p3 is best and long term benefit, we would proceed" | adopted (PR #7) |
-| 2026-10-27 | | Table: replace or fix ours | "if you think fixing our hand made code is better, go with that" | upgraded ours, built on a branch (see Q1) |
+| 2026-10-27 | | Table: replace or fix ours | "if fixing our hand made code is better, go with that" | upgraded ours, built on a branch |
 | 2026-10-27 | | vanilla-jsoneditor | "if you think it is not good, then drop it" | dropped |
 | 2026-10-27 | | Push and open a pull request | "yes, go ahead and do a pr" | PR #6, then PR #7 |
-| 2026-10-27 | | Firefox and WebKit in CI | "we will see based on time taken and optimisation" | job added, non-blocking (see Q15) |
-| 2026-10-27 | | Graph labels | "why not wrapping the text" | taken as yes (see Q11) |
-| 2026-10-27 | | MVP scope | "i will approve the mvp scope" | approved: Code Tree behind a switch, Classic stays default |
+| 2026-10-27 | | Firefox and WebKit in CI | "we will see based on time taken and optimisation" | job added, non-blocking |
+| 2026-10-27 | | Graph labels | "why not wrapping the text" | taken as yes; confirmed by Q11 |
+| 2026-10-27 | | MVP scope | "i will approve the mvp scope" | superseded by Q12 (one tree) |
 | 2026-10-27 | | The three rules | replace where mature is better; keep and add the mature cases where ours is better; neither world may cause trouble for the other | written into the map, section 8.0 |
-| 2026-10-27 | | Permission to install test tools | "you can install required items for testing" | installed axe-core, Firefox and WebKit for Playwright; scratch packages for audits |
+| 2026-10-27 | | Permission to install test tools | "you can install required items for testing" | installed axe-core, Firefox and WebKit for Playwright, scratch packages |
+| 2026-10-27 | | D1 and D2 (schemas and flows) | "use the power platform skills and plugins already installed" | read-only, own developer environments only; see map 8.6 |
+| 2026-10-27 | Q1 | Table: keep the library for scroll arithmetic or restore virtual-list.js | "Keep the scroll arithmetic" | keep virtual-core; wrap it in one core module; commit, pull request, merge into dev |
+| 2026-10-27 | Q2 | Work order | "Yes, as recommended" | Wave 0, then Wave 1, then Table and Tree |
+| 2026-10-27 | Q4 | CSV formula protection | "on by default, as it is csv not excel, so formula should not even be included" | always on, **no setting**. Text cells that start with = + - @ get a leading apostrophe; real numbers (-5) are untouched (tested with PapaParse) |
+| 2026-10-27 | Q5 | Old prototypes | "yes move unneeded and unwanted code to archive folder and later we will review and delete them" | `archive/` for prototypes **and** unused code (see Q21); nothing is deleted yet |
+| 2026-10-27 | Q6 | Sandbox worker for user code | "if you think that is best, go with it, but better to go with shared architecture, write generic code once" | yes; designed as one generic shared job service, not four copies (task 19, and the new rule 4: shared architecture, task 27) |
+| 2026-10-27 | Q7 | Pull requests | "you can raise pr and merge also, as it is dev, you can do anything, but be careful till we push dev to test and then test to prod" | I open and merge into dev after CI is green; nothing is promoted without your word |
+| 2026-10-27 | Q8 | Merge order | "as you see fit" | #6, then #7, then the Table |
+| 2026-10-27 | Q9 | Icon artwork may change | "as we cant control it as library is upgrading, make sure nothing is breaking and ui should not look awkward" | yes; a visual check of every icon in all themes is a step (21.3) |
+| 2026-10-27 | Q10 | Browser support | "yes, but don't restrict it and stop the app" | support the latest two versions of Chrome, Edge, Firefox, Safari as the target for tests, but never block an older browser: feature detection, a note, and the app keeps running (step 21.4) |
+| 2026-10-27 | Q11 | Graph labels | "Yes, wrap long text label to multi lines" | wrap (21.7) |
+| 2026-10-27 | Q12 | CodeMirror Tree: size cap | "i want to keep only one tree, uniform across all places; if CodeMirror cannot support the requirement, our hand written code for the tree only; do deep research on how to make CodeMirror work for the tree on large files" | **no switch, one tree**. Research and prototype, then decide by numbers: docs/codemirror-tree-research.md, task 20 |
+| 2026-10-27 | Q13 | json-p3 fallback | "fallback only if other modules are already doing it, else error message" | error message: only 3 of 11 libraries have one (DuckDB by design, jsonc-parser, virtual-core); CodeMirror, Ajv, jsonrepair, jsondiffpatch, html2canvas, PapaParse do not |
+| 2026-10-27 | Q14 | Ajv upgrade | "test and see, is there any benefit for us to upgrade?" | tested on 23 real schemas: no benefit today (see map 8.6); **keep Ajv 6**, revisit on the watch list (task 30) |
+| 2026-10-27 | Q15 | Firefox and WebKit in CI | "as you recommended" | optional until tuned |
+| 2026-10-27 | Q16 | Promotion | "as we develop, we will push code from dev to test, then test to prod, then prod to main" | each step only when you say |
+| 2026-10-27 | Q17 | Content-Security-Policy | "go with your recommendation" | decide after the sandbox worker; study only for now |
+| 2026-10-27 | Q19 | DuckDB upgrade | "if it improves the performance then upgrade else wait" | benchmark the current against the newest, decide by numbers (22.2) |
+| 2026-10-27 | Q20 | Bug report button | "yes, along with raising an issue when we receive a bug report, but future things" | later: a button that opens a prefilled GitHub issue (task 28) |

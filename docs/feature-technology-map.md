@@ -8,9 +8,10 @@ Written 2026-10-27 from the code (every file under `src/`), the vendored librari
 |---|---|
 | Pull request #6 (deep-dive fixes, accessibility, Firefox and WebKit tests) | open against `dev`; CI green for lint, unit, Chromium, Firefox and the UI audit |
 | Pull request #7 (JSONPath through json-p3), stacked on #6 | open |
-| Table branch (`feature/table-grid`) | built and tested in three engines, **not pushed**: waiting for your decision (3.2) |
+| Table branch (`feature/table-grid`) | built and tested in three engines; you chose to keep the library (Q1); being finished (wrap the library in one module) and merged |
+| Your answers | recorded in [QUESTIONS.md](QUESTIONS.md) (answered log); still open: Q3 (path model, explained there), Q18 (offline install, explained there), Q21 (archive folder name) |
 | Merged, promoted to `test` or `prod` | nothing from this work yet; nothing moves without your word |
-| This map and the task list | `docs/TODO.md` (made from `todo.json`) tracks every step: 66 of 299 steps done, 14 waiting on a decision. Section 7 lists the decisions with my recommendation |
+| This map and the task list | `docs/TODO.md` (made from `todo.json`) tracks every step: 66 of 299 steps done, 14 waiting on a decision. Open questions: [QUESTIONS.md](QUESTIONS.md) |
 
 **To see or change progress:** `node tools/todo.mjs list` shows every task, `node tools/todo.mjs list 18.1` shows one task with all its steps, `node tools/todo.mjs set 18.1.3 done` marks a step. The parent task, `docs/TODO.md` and the unit test follow. Each planned change in section 3 names its task.
 
@@ -219,7 +220,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 
 | Function | Built with | Origin | Depends on | Used by | Plan |
 |---|---|---|---|---|---|
-| Draw the document as an indented tree with a line-number margin | own renderer building HTML | Own | dataPaths | `app.js`; listeners: context panel (`tree:node-selected`), heatmap, minimap | REPLACE option: CodeMirror view behind a switch (3.1) |
+| Draw the document as an indented tree with a line-number margin | own renderer building HTML | Own | dataPaths | `app.js`; listeners: context panel (`tree:node-selected`), heatmap, minimap | DECIDE by numbers: one tree for the whole app, CodeMirror or our own (3.1) |
 | Long lists drawn 100 items at a time while you scroll; chunks far away are emptied and drawn again | own chunking, `IntersectionObserver` | Own + browser | | Tree | KEEP in Classic |
 | Collapse or expand a block, all blocks, or to depth 1, 2, 3 | own, state kept in `treeState` | Own | | canvas header buttons, command palette, keyboard | KEEP |
 | Click a line to select its path; click a key to highlight the same key everywhere; double-click a key to find it; double-click a value to edit it | delegated events | Own | dataPaths | Tree | KEEP |
@@ -242,9 +243,9 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Column menu: chart this column, summary, every different value, copy the column's values | own | Own | charts (opened by event) | Table | KEEP |
 | Show nested values as readable text (Choice, Person, Lookup fields), decimals kept, numbers right-aligned | own formatter | Own | | Table | KEEP |
 | Short lists a page at a time (25 to 500 per page) | own pager | Own | appSettings | Table | KEEP |
-| Long lists: only the rows on screen are drawn, the scrollbar is the true length | `@tanstack/virtual-core` | Own + library | libraryLoader | Table | decision needed (3.2) |
-| Grid for screen readers and keyboard (roles, row index, arrows, Page keys, Home, End, Enter, Shift+F10) | WAI-ARIA grid pattern | Own | | Table | decision needed (3.2) |
-| Selected row follows the path chosen in the Tree, the path bar or Find | `state:currentPath` | Own | | Table | decision needed (3.2) |
+| Long lists: only the rows on screen are drawn, the scrollbar is the true length | `@tanstack/virtual-core` | Own + library | libraryLoader | Table | decided: keep, merging (3.2) |
+| Grid for screen readers and keyboard (roles, row index, arrows, Page keys, Home, End, Enter, Shift+F10) | WAI-ARIA grid pattern | Own | | Table | decided: keep, merging (3.2) |
+| Selected row follows the path chosen in the Tree, the path bar or Find | `state:currentPath` | Own | | Table | decided: keep, merging (3.2) |
 
 #### Graph: `<structra-graph>` (387 lines)
 
@@ -385,7 +386,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Function | Built with | Origin | Depends on | Used by | Plan |
 |---|---|---|---|---|---|
 | Paste a schema, or start from one inferred from the data | `parseJsonSchemaGenerator` | Own | | command palette | KEEP |
-| Validate and list errors with "show the first one in the tree" | Ajv 6.12.6 | Library | jsonRepairAndValidation | Validate | UPGRADE or keep, decision needed (3.6) |
+| Validate and list errors with "show the first one in the tree" | Ajv 6.12.6 | Library | jsonRepairAndValidation | Validate | KEEP Ajv 6: tested on real schemas, no benefit today (3.6) |
 
 #### Type definitions: `<structra-typedef>`; Snippets: `<structra-snippets>`
 
@@ -461,27 +462,29 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ## 3. Planned changes: reason, pros, cons
 
-### 3.1 Tree: a CodeMirror Tree behind a switch (approved, not built) [task 20]
+### 3.1 Tree: one tree for the whole app, decided by research and numbers [task 20]
 
-- **Reason:** the Tree is our own 1,078-line renderer. The deep dive found 5 real bugs in it. CodeMirror already gives line numbers, folding, keyboard, accessibility and search, and it is already in the app.
-- **Plan:** read-only CodeMirror view of the pretty-printed document, behind a setting "Tree engine: Classic or Code". Classic stays the default and the answer above the size cap (about 40 MB). A line-to-path index (measured: 79 MB for an 88 MB file, 1 microsecond per lookup) maps clicks to paths.
-- **Pros:** much less code of ours to maintain; mature folding and keyboard behavior; measured to open a 134 MB text in under a second.
-- **Cons:** two engines to keep working and test; memory about 660 MB for the largest file; needs a size cap; behavior must match Classic item by item (the plan has the checklist).
-- **Status:** approved scope; waiting for the Table decision before starting.
+- **Your decision (Q12):** keep only one tree, uniform in every place a tree is shown. Use CodeMirror if it can meet every requirement for large files; if it cannot, use our hand-written tree, for the Tree only and everywhere. There is no engine switch.
+- **Reason:** the Tree is our own 1,078-line renderer, and the deep dive found 5 real bugs in it. CodeMirror already gives line numbers, folding, keyboard, accessibility and search, and is already in the app.
+- **What is known (measured):** CodeMirror opens an 89 MB, 5 million line text in 0.87 s (about 220 MB); one 30 MB text value is fine; folding line by line does not scale (165,000 records collapsed in 2.2 s, one million fold effects 22 s). The line-to-path index is cheap (79 MB for the 88 MB file, 1 microsecond per lookup).
+- **The open question:** how to make CodeMirror behave as a tree on huge files. The research (`docs/codemirror-tree-research.md`) compares designs: the full text with folds, and a document that holds only the **visible rows** (collapsed blocks are one line, huge lists show a window), which is how large-JSON viewers work. The decision is made from a prototype's numbers and the full requirements list, not before.
+- **Pros of CodeMirror:** much less code of ours to maintain; mature selection, keyboard and accessibility. **Cons:** the tree-specific behavior (toggle markers, file line numbers, windowed lists, path mapping) still has to be written on top of it, and memory is higher for the largest files.
+- **Status:** research and prototype in progress.
 
-### 3.2 Table: true scrollbar, grid roles, keyboard (built on a branch, decision needed) [task 17]
+### 3.2 Table: true scrollbar, grid roles, keyboard (decided: keep the library; finishing and merging) [task 17]
 
 - **Reason (measured):** the scrollbar knew only the rows already drawn (100,723 px for 100,000 rows), so you could not drag to row 80,000. No ARIA grid roles. No keyboard navigation. The selected row lost its mark when rows were redrawn. A row chosen in the Tree did not show.
-- **What changed (branch `feature/table-grid`, not pushed):** only the rows on screen are drawn between two spacer rows, the scroll arithmetic comes from `@tanstack/virtual-core` (33 KB). The table is a grid (rowcount, rowindex, sort state), with arrows, Home, End, Page keys, Enter and Shift+F10. It follows the selected path. Lists above 400,000 rows are shown a page at a time (a browser cannot make an element taller than about 17 million px in Firefox). The old `virtual-list.js` was deleted because nothing else used it. A new test (`table-grid.js`, 40 checks) passes in Chromium, Firefox and WebKit.
+- **What changed (branch `feature/table-grid`, not pushed):** only the rows on screen are drawn between two spacer rows, the scroll arithmetic comes from `@tanstack/virtual-core` (33 KB). The table is a grid (rowcount, rowindex, sort state), with arrows, Home, End, Page keys, Enter and Shift+F10. It follows the selected path. Lists above 400,000 rows are shown a page at a time (a browser cannot make an element taller than about 17 million px in Firefox). The old `virtual-list.js` was removed because nothing else used it; a copy goes to `archive/`. A new test (`table-grid.js`, 40 checks) passes in Chromium, Firefox and WebKit.
 - **Pros:** a scrollbar that means something; usable with a keyboard and a screen reader; fewer lines of our own virtual-list code; edge cases tested (0, 1, 200, 201, 450,000 rows, 150 columns, window resize).
-- **Cons:** a new library dependency (33 KB); lists above 400,000 rows lose continuous scrolling; I removed `virtual-list.js` without asking you first.
-- **Alternative you may prefer:** restore `virtual-list.js` and give it the true-scrollbar logic ourselves: no dependency, more code to maintain and test.
+- **Cons:** a new library dependency (33 KB); lists above 400,000 rows lose continuous scrolling.
+- **Your decision (Q1):** keep the library for the scroll arithmetic. To follow the "one door per library" rule it is wrapped in one small core module before the pull request.
 - **Not recommended:** Tabulator (101 KB gzipped, arrow keys do nothing by default) and AG Grid Community (345 KB gzipped). Ours was already as fast and lighter.
 
 ### 3.3 JSONPath: json-p3 (done, PR #7) [task 16]
 
 - **Reason:** our engine passed 34 percent of the official standard, accepted 126 invalid selectors, rejected 322 valid ones, and froze on `$[::-1]`.
 - **Pros:** 715 of 715 tests, fastest of the candidates (122 ms for 200,000 records), MIT, 64 KB, one file.
+- **If it fails to load (Q13):** a plain error message, as for most libraries (only DuckDB, jsonc-parser and virtual-core have fallbacks; CodeMirror, Ajv, jsonrepair, jsondiffpatch, html2canvas and PapaParse do not).
 - **Cons:** two behavior changes (a `null` field now exists in `[?(@.x)]`; `==` no longer treats "5" and 5 as equal); the query call is now asynchronous; our `=~` pattern test needs a small adapter (done).
 
 ### 3.4 Dialogs: the browser's own `<dialog>` (proposed) [task 21.4]
@@ -497,25 +500,23 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Pros:** about 300 KB less on the first load; newer artwork.
 - **Cons:** a new icon must be added to the list; a small build step when icons change (the same one-time step as the other vendored libraries); some icon names changed between 0.468 and 1.x, so a check of the 41 names is needed.
 
-### 3.6 Schema validation: Ajv 6 or 8 (decision needed) [task 22.1]
+### 3.6 Schema validation: Ajv 6 or 8 (tested: keep Ajv 6) [task 22.1]
 
-- **Reason:** Ajv 6.12.6 is from 2020 and no longer maintained. Ajv 8 is current.
-- **Fact from the research:** Ajv 7 and 8 **dropped draft-04**. The `ajv-draft-04` package brings it back. Some old Parse JSON schemas use draft-04 style; I could not confirm what Power Automate itself uses.
-- **Option A, upgrade:** Ajv 8 plus `ajv-draft-04`. Pros: supported, drafts 2019 and 2020. Cons: API changes (`dataPath` becomes `instancePath`, `jsonPointers` is gone), a small adapter, some risk for old schemas.
-- **Option B, keep 6 for now:** no work. Cons: unmaintained code in the app.
-- **My lean:** A, but only after a test with real Power Automate schemas. Please tell me whether you have some.
+- **Question (Q14):** is there any benefit for us in upgrading Ajv? Ajv 6.12.6 is from 2020 and no longer maintained; Ajv 8 is current and dropped draft-04 (an add-on package brings it back).
+- **Test with real data:** 23 real Parse JSON schemas from 15 of your flows. All 23 compile in Ajv 6 and in Ajv 8 (strict and not strict), with the same speed (about 100 ms to compile all of them; 100,000 records validate in about 3 ms in both). None uses `$schema` or a newer keyword, only `type`, `properties`, `items`, `required` and once `oneOf`. The only difference users would see is the error format (`dataPath` becomes `instancePath`, the wording changes, and Ajv 8 reports a missing required property more precisely).
+- **Decision:** no benefit today, so **keep Ajv 6**. Upgrade when a schema needs draft 2019 or 2020, or a security advisory appears (watch list, task 30). The contract test for the validate adapter (task 24) makes a later upgrade safe.
 
 ### 3.7 DuckDB-Wasm (watch) [task 22.2]
 
 - **Reason:** the engine is v1.1.1 from September 2024. Newer versions exist (npm 1.33.1-dev57), and a **2.0 announcement is drafted** (smaller binary, simpler bundles, larger-than-memory queries). A September 2026 DuckDB post says the npm "latest" at that time created OPFS files but never wrote to them, so a persistence claim in our adapter ("database file persists across reloads") should be re-checked.
 - **Pros of upgrading:** performance, features, possibly a much smaller download.
 - **Cons:** 35 MB to re-vendor, SQL behavior differences, a big test pass.
-- **Plan:** WATCH until 2.0 is released and stable, then upgrade with a full test run. Re-check the persistence claim now (cheap).
+- **Your decision (Q19):** if it improves performance, upgrade; otherwise wait. **Plan:** benchmark the current engine against the newest available (load time, query time on 100,000 rows, memory, download size), decide by the numbers, and re-check the persistence claim now (task 22.2).
 
 ### 3.8 User-written code: run it in one sandboxed worker (proposed) [task 19]
 
 - **Reason:** `new Function` runs user-typed JavaScript in four places (Query panel JavaScript mode, the row filter in the data engine, Transform steps, the engine worker). The Query panel tries the code in a worker first, then runs it again on the main thread. Transform blocks words like `constructor` with a regular expression, which is easy to get around. The user is running their own code, so this is not a break-in. It is a risk when someone pastes an expression from somewhere else, and it can still freeze the page if the second run behaves differently.
-- **Plan:** one worker runs all user code (no access to the page), keeps the data inside, is stopped when the time limit passes. Keep the current syntax.
+- **Plan (approved, Q6):** one worker runs all user code (no access to the page), keeps the data inside, is stopped when the time limit passes. Keep the current syntax. **Shared architecture (your point):** it is built as one generic job service with a single worker protocol that any module can use (user code, patterns, transforms, later other heavy work), written once, and documented so new features use it and do not write their own.
 - **Pros:** safer; the page can never freeze; one mechanism instead of four.
 - **Cons:** the data is copied into the worker (memory for very large files); results come back as copies; Transform steps must be reworked to run there.
 - **Also considered:** JSONata (MIT, about 25 KB gzipped) or jq compiled to WebAssembly as safer expression languages. The research found nothing on how either handles untrusted expressions, and they would change the language users write, so this is an addition for later, not a replacement.
@@ -583,8 +584,8 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 ### 3.18 CSV export through PapaParse (proposed, small) [task 18.2]
 
 - **Reason:** our own `escCsv` does not protect against **spreadsheet formula injection**: a cell that starts with `=`, `+`, `-` or `@` runs as a formula when the file is opened in Excel (measured: 4 of 8 dangerous cells came through unchanged). JSON from an API is untrusted text.
-- **Plan:** `Papa.unparse(rows, { columns, escapeFormulae: true })`. PapaParse is already in the app and has this option.
-- **Pros:** safe by default, one tested implementation, also handles line breaks, leading and trailing spaces. **Cons:** a cell that starts with `=` or `-` gets a leading apostrophe in the file (that is how the protection works), which some people will notice. Offer it as a setting, default on.
+- **Plan (Q4):** `Papa.unparse(rows, { columns, escapeFormulae: true })`, always on, with no setting: a CSV file should never contain a formula. Tested with the PapaParse in the app: a text cell that starts with `=`, `+`, `-`, `@` or a tab gets a leading apostrophe; real numbers such as -5 are left alone.
+- **Pros:** safe by default, one tested implementation, also handles line breaks, leading and trailing spaces. **Cons:** a cell that starts with `=` or `-` gets a leading apostrophe in the file (that is how the protection works), which some people will notice (a text cell like "-5" becomes '-5, a number does not).
 
 ### 3.19 Regular expressions: run them in the worker with a time limit (proposed) [task 18.3]
 
@@ -594,9 +595,9 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ### 3.20 Cleanup and hardening (proposed) [task 18.4]
 
-- Delete `src/workers/engine-worker.js` (unused) and the empty `templates/` folder.
+- **Archive, do not delete (Q5):** create `archive/` at the top of the repository (never shipped, linted or published) with a README (what, why, date, review later), and move into it `src/workers/engine-worker.js` (unused), `structra-v2.html`, `samples/` and the old `virtual-list.js`. Delete only the empty `templates/` folder.
 - Add `THIRD-PARTY.md`: name, version, license, source and build command for every vendored library (section 8.5).
-- Stop publishing `samples/`; move the old prototypes (`structra-v2.html`, `samples/`) into `docs/archive/`.
+- Stop publishing `samples/` (the deploy workflow copies it today).
 - Add a **global error handler** (`window.onerror`, `unhandledrejection`): show a short message, keep the last errors, and offer "copy a bug report". Today an uncaught error only reaches the console and the person sees a broken screen. No library is needed.
 - Consider a **Content-Security-Policy** (a `<meta>` tag, because GitHub Pages cannot send headers). The app is already fully self-contained. It cannot be strict yet because the JavaScript mode needs `unsafe-eval`; once all user code runs in the sandbox worker (3.8) the main page can drop it. DuckDB's WebAssembly needs `wasm-unsafe-eval`.
 - Consider **offline install** (a web manifest and a service worker; Workbox is the mature tool). The app already makes no outside requests, so it is a small step. Optional.
@@ -608,7 +609,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 |---|---|---|---|
 | 0, correctness first | one path model (3.17), CSV formula protection (3.18), regular expressions in a worker (3.19, with 3.8), cleanup, global error handler, third-party list (3.20) | tasks 18 and 19 | real bugs found by the gap audit; the path one hits Power Platform payloads directly |
 | 1, small and safe | worker cache fix, TOML 5, Lucide subset and upgrade, native `<dialog>`, component cleanup, input panel error place, graph labels, keyboard reorder for tabs and Pivot | task 21 | quick, measurable, low risk |
-| 2, decisions made | Table (merge or redo), CodeMirror Tree MVP | tasks 17 and 20 | the biggest visible changes; the Tree needs the Table settled first |
+| 2, decisions made | Table (finish and merge), one Tree (research, prototype, decide by numbers) | tasks 17 and 20 | the biggest visible changes; the Tree needs the Table settled first |
 | 3, when ready | Ajv 8 (after a real schema test), DuckDB 2.0 (when released), undo differences, palette fuzzy matching, PNG library | task 22 | each needs a measurement or an outside event first |
 | Alongside | the keep-and-harden audits (section 8.3), the seam checks (8.5), upkeep, process | tasks 23, 24, 25, 26 | each audit becomes a permanent test; no user-visible change |
 
@@ -637,7 +638,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 All open questions are in one file: [QUESTIONS.md](QUESTIONS.md). Each has an id (Q1 to Q20), my recommendation, the default I use if you have not answered, and the tasks it blocks. Two items are things I need from you and not decisions: real Power Automate schemas (D1) and exported flows (D2). Answered questions are kept in a log at the bottom of that file.
 
-The ones that start the work (Q1 to Q8): the Table choice, the work order, the path model, CSV protection, the old prototypes, the sandbox worker for user code, pull requests, and the merge order.
+Most questions are answered (see the log in that file). Still open: Q3 (path model), Q18 (offline install) and Q21 (archive folder).
 
 ## 8. Gap audit: where our code misses cases that mature code handles
 
@@ -650,6 +651,8 @@ For every hand-written area we ask one question: **which is better, ours or the 
 
 3. **The goal is the best of both worlds, and neither world may cause trouble for the other.** A library must not break our code, and our code must not misuse or break a library. This is about the seams between them: who owns the data, who gets the keys and the focus, what happens when a library fails to load, what changes when a library is upgraded. Every library sits behind one of our modules, with a written list of the ways it behaves differently, and a test at that seam (section 8.5).
 
+4. **Shared architecture: generic logic is written once.** If a job is needed in more than one place (writing a path, running user code, closing a menu, copying to the clipboard), it lives in one shared module and every place calls it. A new copy is a defect. This is also what keeps rule 3 cheap: one door per library, one worker service, one path writer. The duplicate scan and the shared pieces are task 27.
+
 The second kind of area (keep and harden) is the easy one to miss, because nothing looks wrong until the odd input arrives. It applies only where ours is the better choice; where mature code wins, we replace and there is nothing to harden.
 
 Sorting the audit results by this rule:
@@ -661,7 +664,7 @@ Sorting the audit results by this rule:
 | CSV export | PapaParse `unparse` | Replace our writer | 3.18 |
 | Regex freeze protection | a worker with a time limit (and optionally recheck) | Replace our guess-based guard | 3.19 |
 | Table scrollbar and grid | virtual-core for the arithmetic, the WAI-ARIA grid pattern | Replace the arithmetic, keep and harden the rest | 3.2 |
-| Tree | CodeMirror (option) | Replace behind a switch; Classic stays and is hardened | 3.1 |
+| Tree | CodeMirror, if the numbers allow it | **One tree** for the whole app: CodeMirror if it can meet every requirement on large files, otherwise our own renderer, hardened | 3.1 |
 | Path model (the dotted form, the Power Platform formatters) | ours: no library knows our path language | **Keep and harden**: borrow JSON Pointer and normalized path rules | 3.17 |
 | Power Automate and Power Fx expressions | ours: nothing else exists | **Keep and harden** (quoting, nulls, odd keys; checked against Microsoft's syntax rules) | 8.3 |
 | Parse JSON schema generator | ours: tuned for the Parse JSON action | **Keep and harden** against the official JSON Schema suite and genson or quicktype on optional and nullable cases | 8.3 |
@@ -699,7 +702,7 @@ For each hand-written area that we keep, find an **oracle**: a standard, an offi
 | Type generator | each language's keywords | 7 languages, keyword-named keys | ok (TypeScript allows reserved words as property names; my first check was wrong) | none; not compiled with real compilers |
 | Accessibility | axe-core | every view, light and dark | 54 findings, now 2 | DONE (PR #6); graph labels open |
 | Browsers | Playwright, 3 engines | all 35 browser runs | 35 of 35 in each | DONE |
-| Table | the WAI-ARIA grid pattern | the dedicated Table test | passes in 3 engines | built on a branch, decision needed (3.2) |
+| Table | the WAI-ARIA grid pattern | the dedicated Table test | passes in 3 engines | decided: keep, merging (3.2) |
 
 ### 8.3 Audits still to run
 
@@ -743,3 +746,14 @@ Checked against the code on 2026-10-27. "Holds" means I verified it; "to check" 
 | Browser differences | a library works in one engine only | all 35 browser runs in three engines (this found the jsonc-parser case) | holds |
 | A test at every seam | an adapter changes and nothing notices | JSONPath 27 unit tests, parse errors 9, the Table test, `codeview.js`, `editor.js` | **gap**: add contract tests for the Ajv, jsondiffpatch, share link and parse-worker adapters |
 | Upgrades | a new version changes behavior | pinned and vendored; upgrades are a deliberate pull request | add a checklist: re-run the library's oracle (for example the JSONPath suite), the three browsers, the offline test, and update `THIRD-PARTY.md` |
+
+### 8.6 Check against real Power Platform data (2026-10-27)
+
+Done with your permission, read-only, in your own developer environments only (IHSM_DEV, IHSM_Developer_Environment_2 and your personal environment). Nothing from them is stored in the repository; the analysis files are in a scratch folder.
+
+- **How it was done:** the Power Platform plugin lists environments but cannot list flows here, because the company network inspects HTTPS and the tool does not trust the certificate. I did not turn certificate checks off. I used the Azure CLI you are signed into (certificate checks on) for the same read-only calls. If you want the plugin itself to work, IT can give you the company CA file to set as `NODE_EXTRA_CA_CERTS` (optional, task 29).
+- **What was read:** 125 flows listed; the definitions of the 15 that contain a Parse JSON action.
+- **Parse JSON schemas (D1):** 23 real schemas, 83 to 1,706 characters. None has a `$schema` key. Keywords seen: `type` (248), `properties` (55), `items` (35), `required` (14), `oneOf` (1). All compile in Ajv 6 and Ajv 8 (section 3.6).
+- **Expressions (D2):** 481 real expressions. Functions used, most to least: `outputs` (323), `items` (297), `body` (231), `item` (104), `empty` (91), `triggerBody` (81), `coalesce` (54), `first` (47), `workflow` (40), `triggerOutputs` (35), `length` (30), `variables` (5). **Our generators already produce every one of them.**
+- **Keys:** 258 distinct real property names; 61 contain a slash (the dynamic-content form `outputs('Action')?['body/field']`), 2 contain a dot, 2 contain `@`, none contain spaces, quotes, brackets or start with `$`. So the hostile keys in section 2.9 (dots, `@`, quotes, `$`) are the standard cases from SharePoint, Dataverse and OData payloads and from JSON Schema documents, even though this sample of flows did not contain many.
+- **One gap found:** real flows write many keys in the dynamic-content form (`body/field`). Our generator writes the equivalent `body('Action')?['field']`. Both work, but offering the dynamic-content form as an extra copy option would match what makers see in their flows (task 29).
