@@ -1,6 +1,6 @@
 # Deep dive analysis: our hand-written code against mature code (October 2026)
 
-Status: analysis done for the Tree, Find, Table, Undo, dialogs, panel resizer and test pipeline. Not yet done: Graph, Pivot, Charts, Query panel, Tabs keyboard handling, autocomplete (see section 7).
+Status: analysis done for the Tree, Find, Table, Undo, dialogs, panel resizer, JSONPath, accessibility (axe-core), other browsers (Firefox, WebKit) and the test pipeline. Graph size limits were measured. Not yet done: Pivot, Charts, Query panel, Tabs keyboard handling, autocomplete (see section 7).
 Companion plan: [mature-libraries-plan.md](mature-libraries-plan.md).
 Branch with the fixes: `feature/tree-line-number-gutter` (commits `9268fdd`, `02968e8`; not pushed at the time of writing).
 
@@ -59,6 +59,12 @@ Test pipeline (commit `9268fdd`):
 Found while researching candidates (second round):
 14. JSONPath: a negative step slice (`$[::-1]`, `$[2::-1]`, `$[::-2]`) looped forever and froze the page, because the loop condition `index < end` can never end when the step is negative. Fix: slice rules of RFC 9535 (negative step walks backwards, step 0 selects nothing). Unit test added (`tests/unit/jsonpath.test.js`, 17 tests pass). Found by running the official compliance suite against our engine (`tests/perf/jsonpath-compliance.js`): 32 percent before, 34 percent after, see the plan section 10.2.
 15. Not a bug yet, a hazard: `StructraComponent` never removes its event subscriptions (no `disconnectedCallback`, `on()` records nothing). Fine while components are created once; it will matter when components are created and destroyed. In the plan as a small fix.
+
+Found by the second round (accessibility engine, other browsers):
+16. Cross-browser: the Editor read the place of a JSON error from the browser's own message text, so Safari (no place at all) and Firefox (a different wording) lost the line, column and error marker. Fix: jsonc-parser, same answer everywhere (plan section 10.10).
+17. Accessibility: axe-core found 7 kinds of problem our own audit never flagged (no landmarks, no h1, button names not containing their visible text, a `role="tree"` box without tree items, scrollable boxes with no keyboard access, an empty table header). 54 findings down to 2 (plan section 10.9).
+18. Test coverage: every test ran only in Chromium. Now the same 35 browser runs pass in Firefox 157 and WebKit 27.2 (`npm run test:firefox`, `npm run test:webkit`).
+19. Our Table's scrollbar only knows the rows drawn so far (100,723 px for 100,000 rows), it has no ARIA grid roles and no keyboard navigation (plan section 10.7). Not fixed yet: in the plan.
 
 Tests added: `tests/smoke/tree-state.js` (run against the old code it fails in 11 places; passes on the fix). `tests/smoke/inputs.js` was updated for the new Enter behaviour (count reads `1/N` after Enter).
 

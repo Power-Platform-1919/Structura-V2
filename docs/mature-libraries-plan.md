@@ -1,6 +1,6 @@
 # Plan: best of both worlds (mature libraries plus our own value)
 
-Status: proposal, waiting for approval. Nothing in this plan is built yet.
+Status: proposal, waiting for approval. The MVP is not built yet. Research round 2 and 3 (section 10) closed the open questions and already produced fixes (JSONPath hang, accessibility, cross-browser error places, Firefox and WebKit tests).
 Evidence: [deep-dive-analysis-2026-10.md](deep-dive-analysis-2026-10.md).
 
 ## 1. The idea in one paragraph
@@ -38,10 +38,10 @@ Verdict key: KEEP (ours on purpose), ADOPT (move now), SPIKE (time-boxed trial, 
 | Component base class | `StructraComponent`: no cleanup, `on()` records nothing, no `disconnectedCallback` | Pattern from Lit controllers (track subscriptions, remove on disconnect) | **FIX (small)** | Today harmless because components are created once. It will matter when components are created and destroyed (switchable engines, dialogs). Track subscriptions and an `AbortController` for DOM listeners; re-subscribe on reconnect. |
 | Offscreen rendering in the Classic Tree | Own recycle code (about 100 lines) | CSS `content-visibility: auto` | **SPIKE (low)** | MDN: Chrome 85, Firefox 125, Safari 18. The browser skips rendering offscreen lines, so the manual emptying and rebuilding could shrink. Does not reduce memory (nodes stay). Measure before touching. |
 | Undo | Full JSON snapshots, now with a 60 MB budget | jsondiffpatch deltas (already shipped) | **ADOPT (medium)** | Stores small diffs instead of full copies: much less memory on big files. Must keep the same `Structra.undoStack` API; tests exist. |
-| JSONPath | Own 234-line engine (a useful subset) | An RFC 9535 library: `jsonpath-rfc9535` (Apache-2.0, 8 KB gzipped, no dependencies, claims 100 percent of the suite) or `json-p3` (MIT, 15 KB gzipped) | **ADOPT (measured, see section 10)** | Measured: our engine passes 34 percent of the official suite (32 percent before the hang fix), 126 invalid selectors are accepted, 322 valid ones are rejected (for example RFC filters without parentheses, unions with a wildcard, strict whitespace). It had 3 hangs, now fixed. Our `=~` regex test is not RFC (the RFC uses `match()` and `search()`), so an adapter keeps it. The candidates' pass rates are their own claims; I was not allowed to run them here, run them yourself (section 10). |
-| Table | Own virtual list plus table, 1,102 lines, no keyboard navigation | Tabulator (vanilla, virtual DOM, MIT per the benchmark source, confirm in package) or AG Grid Community (MIT, bigger) or TanStack Table plus virtual-core (headless, we write the markup) | **SPIKE after the Tree MVP** | A 2026 benchmark source reports all three keep about 60 fps at 500,000 rows. Our gaps are keyboard, resize, copy, selection, not speed. Verify license text and size on the packages before deciding. |
-| Virtual list (shared) | `virtual-list.js`, 270 lines | `@tanstack/virtual-core` (framework-free core) or `virtua` | **LATER** | Only if the Table stays ours. If Tabulator is adopted this goes away. |
-| Graph | Own SVG graph, zoom and pan | `d3-hierarchy` for the tree layout (ISC, 5 KB gzipped); Cytoscape.js (MIT, 138 KB gzipped) only if we need a real graph engine | **MEASURE FIRST** | Our graph is an expandable tree, so a layout helper is enough and a graph engine is overkill. Avoid `elkjs`: it is EPL-2.0 or GPL-3.0 and 7.8 MB unpacked (the CALM ADR found by search puts its WebAssembly binary near 300 KB). No reliable benchmark exists: measure our own limit (nodes before it gets slow). |
+| JSONPath | Own 234-line engine (a useful subset) | **json-p3** (MIT, 15 KB gzipped) | **ADOPT (measured)** | Measured on the official RFC 9535 suite: json-p3 715 of 715 (100 percent), jsonpath-rfc9535 674 (94 percent), jsonpath-plus 121 (17 percent), our engine 243 (34 percent, after the hang fix). Filter over 200,000 records: json-p3 122 ms, jsonpath-plus about 200 ms, jsonpath-rfc9535 about 220 ms. json-p3 also returns each match's location, so our path column keeps working. Differences to handle in an adapter: our `=~` regex test is not RFC (use `match()` or `search()`), and jsonpath-plus treats a `null` value as "does not exist" in `[?(@.Email)]` where the RFC (and json-p3) say it exists. Section 10.2. |
+| Table | Own virtual list plus table, 1,102 lines | Keep it, fix three gaps. Tabulator and AG Grid are not needed | **KEEP and FIX** | Measured (section 10.7): ours is as fast and lighter than Tabulator (100,000 rows: first rows 97 ms against 128 ms, heap 57 MB against 33 MB for the grid alone, worst scroll frame 33 ms against 50 ms; 500,000 rows 112 ms). The gaps are real: (1) the scrollbar only knows the rows drawn so far (100,723 px for 100,000 rows, Tabulator 2.4 million px), so you cannot drag to row 80,000; (2) no ARIA grid roles at all (Tabulator has grid, row, columnheader, gridcell); (3) no keyboard navigation. Fix with `@tanstack/virtual-core` (9 KB gzipped) for a true scroll height, plus the WAI-ARIA grid pattern with a roving tabindex. Tabulator's arrow keys also do nothing in its default setup, so it would not close gap 3 either. |
+| Virtual list (shared) | `virtual-list.js`, 270 lines | `@tanstack/virtual-core` (framework-free, 9 KB gzipped) | **ADOPT with the Table fix** | Gives the true scroll height and dynamic row sizes. The Tree and Graph do not use it (the Tree has its own recycling). |
+| Graph | Own SVG graph, zoom and pan | `d3-hierarchy` for the layout, only if needed | **KEEP** | Measured (section 10.7): the graph draws about 250 SVG elements for a 100,000 or 500,000 row file, because it is depth limited, so cost does not grow with the file. Cytoscape (138 KB gzipped) and `elkjs` (EPL-2.0 or GPL-3.0, avoid) are not needed. One open item: node labels fail one accessibility rule (the visible text is shortened with an ellipsis). |
 | Charts | Own inline SVG, about 220 lines, no library | uPlot, Chart.js | KEEP | Tiny and enough. Adopt only if zoom or hover is wanted. A library costs 10 to 150 KB for little gain. |
 | Large numbers | Worker finds numbers that would be rounded and keeps them as text | lossless-json | KEEP | Already handled. lossless-json is slower than native parse and not needed. |
 | Parsing in workers | Own worker pool with queue, scale up and idle stop | Comlink (small RPC helper) | KEEP, fix one thing | Fix now: the pool adds `?v=Date.now()` to worker URLs so workers are never cached between page loads. |
@@ -86,7 +86,7 @@ Goal: one working version to look at and compare, not a rewrite.
 
 So the index is cheap and fast at both sizes, and it is better than CodeMirror's own way (walking the syntax tree up from the cursor, where each array level costs time proportional to the array length, per a CodeMirror forum thread). Memory for the 88 MB file would be roughly 226 MB (data) plus 134 MB (text) plus about 220 MB (CodeMirror, from the earlier 89 MB spike) plus 79 MB (index), about 660 MB: heavy but bounded. For 40 MB it is about 300 MB. Do the pretty-printing and index in a worker.
 
-**Other known risks:** very long single lines are slow in CodeMirror (mitigate: show a long string truncated with a "show all" action, as the Classic Tree could do too); pretty-printing a 40 MB document on the main thread (do it in the worker); two copies of the document in memory (the parsed data and the text).
+**Other known risks:** very long single lines were my worry, and they are measured now (section 10.11): a read-only CodeMirror box with one 30 MB text value opens in 1.3 s, keeps about 2,100 characters in the page and its worst frame is 18 ms, so this is not a risk for a read-only Tree (the 2 MB limit in the Editor is for editing and minifying). Still to watch: pretty-printing a 40 MB document on the main thread (do it in the worker) and two copies of the document in memory (the parsed data and the text).
 
 **Acceptance for the MVP (all must pass):**
 1. Every item in the checklist works, proven by tests run against both engines (the existing Tree tests parameterized with `?engine=`).
@@ -100,8 +100,8 @@ Each is small, behind existing tests, and independent:
 
 1. Worker cache: remove `?v=Date.now()` from worker URLs (use a build or version string instead). Faster load on every visit after the first.
 2. Native `<dialog>` in `StructraDialog` (one file). Keep the same API, run the shell and layout tests.
-3. Run the official JSONPath compliance test suite against our engine and record the pass rate (no code change, gives a fact for the SPIKE).
-4. Lint rule or unit test that fails when a component adds a listener it does not remove (the Tree bug that cost us most).
+3. Replace the JSONPath engine with json-p3 behind the same `Structra.jsonpathQuery.query()` API (measured 715 of 715 on the official suite). Keep our unit tests; add an adapter for `=~`.
+4. Lint rule or unit test that fails when a component adds a listener it does not remove (the Tree bug that cost us most). Components also need cleanup on disconnect (section 3).
 5. Remove the remaining fixed waits in the browser tests where a condition can be waited for.
 
 ## 6. Phases
@@ -142,10 +142,13 @@ Search quality note: several searches returned thin results. Every figure marked
 
 1. Approve the MVP scope in section 4 (Code Tree behind a switch, Classic stays default).
 2. The size cap for the first version. The path index measured fine up to 88 MB, so the cap is now decided by CodeMirror's memory, not by the index: suggested 40 MB, then measure and raise toward 90 MB.
-3. Do you want the vanilla-jsoneditor comparison spike now, or only if the CodeMirror Tree falls short?
+3. vanilla-jsoneditor is measured now (section 10.8): fast because it pages arrays, but a different experience and 362 KB gzipped on top of CodeMirror. Do you still want it tried as a possible "paged view" for huge files, or drop it?
 4. May I push the current branch and open a PR into `dev` first (Phase 0)?
-5. May I add `@axe-core/playwright` as a dev dependency for the accessibility audit (tests only, no effect on the app)?
-6. Will you run the JSONPath candidate check yourself, or allow me to run downloaded packages? (see section 10.2)
+5. Done with your permission: `@axe-core/playwright` is a dev dependency and `tests/ui/06-axe.js` runs it (section 10.9).
+6. Done with your permission: the JSONPath candidates were run (section 10.2).
+7. Cross-browser: should the CI run the browser tests in Firefox and WebKit on every pull request (a job is added in `ci.yml`, not yet run on GitHub), or only before a release? Firefox takes about 4.5 minutes, WebKit about 2 minutes.
+8. Graph node labels: the accessibility rule wants the visible text to be part of the name. Fixing it means clipping the full label instead of ending it with an ellipsis. Is that look change acceptable?
+9. Adopt json-p3 for JSONPath now (Phase 1), keeping our API?
 
 ## 10. Research round 2 (measured facts)
 
@@ -201,7 +204,16 @@ Tool: `tests/perf/jsonpath-compliance.js` (runs each test in its own process wit
 Failures by group: whitespace 139 of 168, filter 128 of 188, name selector 113 of 137, functions 57 of 80, slice 21 of 74, basic 8 of 48, index 6 of 20. Examples: `$[?@.a=='b']` (filter without parentheses) is rejected, `$[*,1]` (wildcard in a union) is rejected, `$ ` (trailing space) is accepted.
 Most of the whitespace and name failures are strictness (we accept more than the standard), which is harmless for users. The ones that matter are valid RFC syntax we reject, because people copy expressions from documentation.
 
-I also prepared a script that runs `jsonpath-rfc9535`, `json-p3` and `jsonpath-plus` against the same suite plus our own test expressions plus a 200,000 record filter benchmark. It was blocked because it executes freshly downloaded packages. The script is saved as `tests/perf/jsonpath-candidates.js` (its header says how to run it). To run it yourself: install the three packages in a scratch folder and run the script, or tell me to run it.
+Candidates (run with permission, `tests/perf/jsonpath-candidates.js`, packages installed in a scratch folder):
+
+| Library | Official suite | Our own expressions | Filter over 200,000 records |
+|---|---|---|---|
+| json-p3 3.0.1 | **715 of 715 (100 percent)** | all work, including `[::-1]` and `[?@.Cost > 100]` | 122 ms |
+| jsonpath-rfc9535 1.3.0 | 674 of 715 (94 percent; its README claims 100 percent against an older suite commit) | all work | 219 ms |
+| jsonpath-plus 11.2.1 (safe eval) | 121 of 715 (17 percent) | misses `[-1]`, `[::-1]`, the RFC filter form, and treats `null` as "missing" in `[?(@.Email)]` | 203 ms |
+| ours | 243 of 715 (34 percent) | passes our own tests | not measured |
+
+None of them accepts our `=~` regex filter (it is not part of the RFC), so an adapter is needed. json-p3 is the choice: complete, fastest, MIT, 15 KB gzipped.
 
 ### 10.3 Path index spike
 
@@ -215,7 +227,7 @@ See the table in section 4. Own code, your fixtures. Conclusion: not a blocker u
 | CSS `anchor-name` (anchor positioning) | 125 | 147 | 26 |
 | CSS `content-visibility` | 85 | 125 | 18 |
 
-The compat entries for `popover` and `inert` were not found at the paths I tried: verify them before relying on them.
+Also (MDN data from the published package): `inert` Chrome 102, Firefox 112, Safari 15.5. `popover` Chrome 114, Firefox 125, Safari 17. `Element.checkVisibility()` Chrome 105, Firefox 106, Safari 17.4 (could replace the layout-forcing `offsetParent` check in the Tree key handler). `overflow-anchor` (scroll anchoring, which the Classic Tree's recycling quietly relies on) Chrome 56, Firefox 66, Safari 27: older Safari has no scroll anchoring. `contain-intrinsic-size` Chrome 83, Firefox 107, Safari 17.
 
 ### 10.5 How other large-JSON tools are built (sources)
 
@@ -226,9 +238,72 @@ The compat entries for `popover` and `inert` were not found at the paths I tried
 
 ### 10.6 What is still open
 
-- The three candidates' compliance and speed (blocked, see 10.2).
-- Tabulator keyboard and screen reader behaviour: searches returned nothing on it. Check its docs or test it in the spike. AG Grid's accessibility claim is not verified either.
-- Real numbers for our own Graph and Table limits (nodes and rows before they slow down).
-- `popover` and `inert` support data.
-- OmniJSON page could not be fetched a second time (connection reset), its numbers come from the search summary only.
-- Perspective (FINOS, Apache-2.0, WebAssembly grid and charts): licence and design look interesting for Table, Pivot and Charts together, but I found no size or large-row benchmark. It would be a large addition (WebAssembly), so only a spike candidate if the Tabulator trial disappoints.
+- Perspective: measured only by size (section 10.12). A spike is not justified now.
+- Graph node labels (one accessibility rule, needs your decision, question 8).
+- Real-world speed of json-p3 with our adapter on big documents (measured only on the 200,000 record filter).
+- The new CI job for Firefox and WebKit has not run on GitHub yet.
+- Whether `content-visibility: auto` helps the Classic Tree: not measured, and probably little, because the recycling already keeps the number of lines in the page small.
+- OmniJSON page could not be fetched twice (connection reset): its numbers are from the search summary only.
+
+### 10.7 Table and Graph, measured (ours against Tabulator)
+
+Same data for each (100,000 and 500,000 rows of 8 columns), Edge, one machine, `--enable-precise-memory-info`. Scripts are outside the repo (scratch); the numbers are what to keep.
+
+| | Ours (100,000 rows) | Ours (500,000) | Tabulator 6.7.1 (100,000) | Tabulator (500,000) |
+|---|---|---|---|---|
+| First rows visible | 97 ms | 112 ms | 128 ms | 500 ms |
+| Heap | 57 MB (80 after ingest) | 78 MB (137 after ingest) | 33 MB | 157 MB |
+| DOM nodes | 5,622 | 5,622 | 1,091 | 1,091 |
+| Worst frame while scrolling | 33 ms | 17 ms | 50 ms | 50 ms |
+| Scroll height | 100,723 px (only the rows drawn so far) | 100,723 px | 2.4 million px (true) | 12 million px (true) |
+| ARIA roles | none | none | grid, rowgroup, row, columnheader, gridcell | same |
+| Arrow keys | no keyboard navigation | | click then ArrowDown moved nothing; Tab left the table | |
+
+Ours loads the file at 3.1 s (100,000 rows, 13 MB) and 1.7 s (500,000 rows, 67 MB). The Graph draws about 250 SVG elements (48 groups) whatever the file size, in about 60 ms: it is depth limited.
+
+### 10.8 vanilla-jsoneditor on the 37 MB file (measured)
+
+Fetch 416 ms, parse 189 ms, first render 138 to 152 ms, heap 41 MB, 1,803 DOM nodes, worst scroll frame 17 ms. It is fast because it draws only the first 100 items of an array and offers range links ("Item 100-100000: show 100-200, show 50000-50100, show 99900-100000") instead of a continuous scroll. That is a different experience from ours (and from a CodeMirror Tree). With the 362 KB gzipped standalone build, a second CodeMirror, an immutable data model and values truncated at 1,000 bytes, it is not a fit for the main Tree. It stays a possible read-only "paged" view for huge files.
+
+### 10.9 Accessibility with axe-core (dev dependency added with your permission)
+
+`@axe-core/playwright` 4.14 runs a few hundred WCAG rules. `tests/ui/06-axe.js` runs it on every view in light and dark, and with the Find bar open. First run: 54 findings of 7 kinds our own audit never reported. After fixes: 2 findings (1 kind).
+
+| Rule | Where | Fix |
+|---|---|---|
+| landmarks (`region`) | top bar, tab bar, status bar outside any landmark | `role="banner"`, `role="navigation"`, `role="contentinfo"` on those elements |
+| `page-has-heading-one` | whole page | a visually hidden `h1` |
+| `label-content-name-mismatch` | Copy JSON button, depth buttons 1 2 3 | names now contain the visible text |
+| `aria-required-children` | the Tree box had `role="tree"` but its lines are not tree items | now `role="group"` with a label |
+| `scrollable-region-focusable` | table box, schema box, code box | `tabindex="0"`, region role and label (table, schema); `tabindex="0"` on the code box content |
+| `empty-table-header` | Overview table | a visually hidden label |
+| `label-content-name-mismatch` | **18 graph nodes, not fixed** | the visible text ends in an ellipsis, the name is the whole label: fixing it changes how the labels look |
+
+### 10.10 Cross-browser: Firefox 157 and WebKit 27.2 (Playwright's builds)
+
+Installed with your permission. Until now every test ran only in Chromium (Edge). First run of all 35 browser runs: WebKit 31 of 35, Firefox 30 of 35.
+
+| Failure | Cause | Fix |
+|---|---|---|
+| Editor and Labels (both engines) | The Editor read the **place of a JSON error from the browser's own message**: Chrome says "at position 12", Firefox "at line 1 column 12 of the JSON data", Safari says only "Expected ']'". In Safari and Firefox the line, column and marker were lost. A real product bug. | `jsonc-parser` (MIT, 20 KB minified, vendored as `src/libs/jsonc-parser.min.js`) gives the same offset and error code in every browser; `explainParseError()` says it in plain words; the old reading stays as the fallback. 9 unit tests. |
+| PowerPlatform and PathHistory (both engines) | The tests granted clipboard permissions that only Chromium has, and read the clipboard back, which Firefox and WebKit refuse. Not an app bug (the app falls back to the copy command). | `allowClipboard` and `readClipboard` helpers record what the app copies |
+| Firefox fixtures (4 files) | Page load timeouts at 6 browsers at once; pass when run alone | Firefox width capped at 4 |
+
+Now: 35 of 35 in Chromium, 35 of 35 in WebKit (about 2 minutes), 35 of 35 in Firefox (about 4.5 minutes at width 4). The Tree tests (recycling, state, margin, keys) all pass in both, so the Classic Tree's recycling works without Chromium's scroll anchoring too. Run them: `npm run test:firefox`, `npm run test:webkit`. A CI job runs both (not yet run on GitHub).
+
+### 10.11 Long lines in CodeMirror (measured)
+
+Our wrapper, read-only box, pretty-printed JSON with one text value of the given size, Edge:
+
+| Value size | Create | Painted | Worst frame while scrolling along the line | Characters in the page |
+|---|---|---|---|---|
+| 0.5 MB | 75 ms | 109 ms | 33 ms | 2,116 |
+| 2 MB | 104 ms | 111 ms | 18 ms | 2,116 |
+| 8 MB | 342 ms | 349 ms | 17 ms | 2,116 |
+| 30 MB | 1,311 ms | 1,318 ms | 18 ms | 2,116 |
+
+CodeMirror windows long lines sideways, so only what is visible is in the page. Very long values are not a risk for a read-only Tree.
+
+### 10.12 Perspective (FINOS), by size
+
+Apache-2.0. Version 3.8.0. `@finos/perspective` 7 MB unpacked (its WebAssembly server is 2.2 MB), `perspective-viewer` 7.8 MB, `perspective-viewer-datagrid` 1.1 MB, `perspective-viewer-d3fc` (charts) 11.3 MB. It would add several megabytes and duplicates what DuckDB already does for us (grouping, pivots, SQL). Not adopted, and no spike planned.
