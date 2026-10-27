@@ -11,3 +11,12 @@ test('todo.json is sound and docs/TODO.md is made from it', () => {
   const run = spawnSync(process.execPath, [path.join(__dirname, '..', '..', 'tools', 'todo.mjs'), 'check'], { encoding: 'utf8' });
   truthy(run.status === 0, (run.stderr || run.stdout || 'tools/todo.mjs check failed').trim());
 });
+
+test('every question id used in the task list exists in docs/QUESTIONS.md', () => {
+  const fs = require('fs');
+  const root = path.join(__dirname, '..', '..');
+  const questions = fs.readFileSync(path.join(root, 'docs', 'QUESTIONS.md'), 'utf8');
+  const used = [...new Set(fs.readFileSync(path.join(root, 'todo.json'), 'utf8').match(/\b[QD]\d+\b/g) || [])];
+  const missing = used.filter((id) => !new RegExp('\| ' + id + ' \|').test(questions));
+  truthy(!missing.length, 'not in docs/QUESTIONS.md: ' + missing.join(', '));
+});

@@ -2064,7 +2064,7 @@
           "id": "15.32",
           "title": "Review and merge pull request #6 into dev",
           "status": "todo",
-          "note": "waiting for you"
+          "note": "waiting for you (Q8)"
         }
       ]
     },
@@ -2162,13 +2162,14 @@
         {
           "id": "16.18",
           "title": "Merge #7 after #6, then retarget it to dev",
-          "status": "todo"
+          "status": "todo",
+          "note": "waiting for you (Q8)"
         },
         {
           "id": "16.19",
           "title": "DECISION: if json-p3 fails to load, show an error (today) or add a simple fallback",
           "status": "blocked",
-          "note": "waiting for you"
+          "note": "waiting for you (Q13)"
         },
         {
           "id": "16.20",
@@ -2267,7 +2268,7 @@
           "id": "17.17",
           "title": "DECISION: keep the windowed version (library does the arithmetic) or restore virtual-list.js and upgrade it ourselves",
           "status": "blocked",
-          "note": "waiting for you"
+          "note": "waiting for you (Q1)"
         },
         {
           "id": "17.18",
@@ -2312,7 +2313,7 @@
               "id": "18.1.1",
               "title": "DECISION: option A (keep the dotted form, recommended) or option B (JSON Pointer inside)",
               "status": "blocked",
-              "note": "waiting for you"
+              "note": "waiting for you (Q3)"
             },
             {
               "id": "18.1.2",
@@ -2460,7 +2461,7 @@
               "id": "18.2.1",
               "title": "DECISION: formula protection on by default, as a setting",
               "status": "blocked",
-              "note": "waiting for you"
+              "note": "waiting for you (Q4)"
             },
             {
               "id": "18.2.2",
@@ -2555,7 +2556,7 @@
               "id": "18.4.3",
               "title": "DECISION: move structra-v2.html and samples/ to docs/archive/ and stop publishing them",
               "status": "blocked",
-              "note": "waiting for you"
+              "note": "waiting for you (Q5)"
             },
             {
               "id": "18.4.4",
@@ -2611,7 +2612,7 @@
           "id": "19.1",
           "title": "DECISION: approve moving all user code into one sandbox worker",
           "status": "blocked",
-          "note": "waiting for you"
+          "note": "waiting for you (Q6)"
         },
         {
           "id": "19.2",
@@ -2700,7 +2701,7 @@
           "id": "20.3",
           "title": "Decide the size cap for the first version (suggested 40 MB)",
           "status": "blocked",
-          "note": "waiting for you"
+          "note": "waiting for you (Q12)"
         },
         {
           "id": "20.4",
@@ -2817,7 +2818,7 @@
     {
       "id": "21",
       "title": "Wave 1: small, safe improvements",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Sections 3.4, 3.5, 3.9, 3.13, 3.14, 3.15 of the map.",
       "subtasks": [
         {
@@ -2990,13 +2991,13 @@
         {
           "id": "21.7",
           "title": "Graph node labels (3.15)",
-          "status": "todo",
+          "status": "in_progress",
           "subtasks": [
             {
               "id": "21.7.1",
               "title": "DECISION: wrap the label over 2 or 3 lines in a taller node (you suggested it)",
-              "status": "blocked",
-              "note": "waiting for you"
+              "status": "done",
+              "note": "you suggested it (Q11, assumed yes)"
             },
             {
               "id": "21.7.2",
@@ -3076,12 +3077,13 @@
               "id": "22.1.1",
               "title": "DECISION: upgrade or keep, after testing real Power Automate schemas",
               "status": "blocked",
-              "note": "waiting for you: do you have real Parse JSON schemas?"
+              "note": "waiting for you (Q14)"
             },
             {
               "id": "22.1.2",
               "title": "Collect real schemas from you",
-              "status": "blocked"
+              "status": "blocked",
+              "note": "waiting for you (D1)"
             },
             {
               "id": "22.1.3",
@@ -3418,7 +3420,8 @@
             {
               "id": "23.8.1",
               "title": "Collect real flows from you",
-              "status": "blocked"
+              "status": "blocked",
+              "note": "waiting for you (D2)"
             },
             {
               "id": "23.8.2",
@@ -3642,7 +3645,8 @@
         {
           "id": "24.9",
           "title": "Decide the json-p3 fallback (see task 16)",
-          "status": "blocked"
+          "status": "blocked",
+          "note": "waiting for you (Q13)"
         }
       ]
     },
@@ -3706,7 +3710,7 @@
           "id": "26.1",
           "title": "Merge order: #6 into dev, then #7, then the Table pull request",
           "status": "todo",
-          "note": "waiting for you"
+          "note": "waiting for you (Q8)"
         },
         {
           "id": "26.2",
@@ -3717,13 +3721,13 @@
           "id": "26.3",
           "title": "Promote dev to test and prod only when you say so",
           "status": "blocked",
-          "note": "waiting for you"
+          "note": "waiting for you (Q16)"
         },
         {
           "id": "26.4",
           "title": "CI: make the Firefox and WebKit job blocking, or keep it optional",
           "status": "blocked",
-          "note": "decide after tuning"
+          "note": "waiting for you (Q15)"
         },
         {
           "id": "26.5",

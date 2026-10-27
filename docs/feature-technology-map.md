@@ -635,25 +635,9 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ## 7. Decisions I need from you
 
-Each decision is also a blocked step in the task list, so it cannot be forgotten.
+All open questions are in one file: [QUESTIONS.md](QUESTIONS.md). Each has an id (Q1 to Q20), my recommendation, the default I use if you have not answered, and the tasks it blocks. Two items are things I need from you and not decisions: real Power Automate schemas (D1) and exported flows (D2). Answered questions are kept in a log at the bottom of that file.
 
-| # | Decision | Task | My recommendation |
-|---|---|---|---|
-| 1 | Table: keep the windowed version (library does the scroll arithmetic) or restore `virtual-list.js` and upgrade it ourselves | 17.17 | Keep the windowed version: it is built, tested in three engines, and removes our own scroll code. Restore only if you want no extra dependency. |
-| 2 | Start Wave 0 (path model, CSV protection, cleanup and global error handler) | task 18 | Yes, before anything else: these are real bugs |
-| 3 | Path model: option A (keep the dotted form, one writer, one reader) or B (JSON Pointer inside) | 18.1.1 | A: no change to saved bookmarks and sessions |
-| 4 | CSV formula protection on by default, as a setting | 18.2.1 | Yes |
-| 5 | Move `structra-v2.html` and `samples/` to `docs/archive/` and stop publishing them | 18.4.3 | Yes |
-| 6 | Move all user-written code into one sandbox worker | 19.1 | Yes: safer, the page can never freeze, one mechanism instead of four |
-| 7 | Start Wave 1 (worker cache, TOML 5, Lucide subset, native dialog, component cleanup, graph labels, keyboard reorder) | task 21 | Yes, after Wave 0 |
-| 8 | Graph labels: wrap the text over 2 or 3 lines in a taller node | 21.7.1 | Yes (your suggestion) |
-| 9 | Size cap for the CodeMirror Tree in the first version | 20.3 | 40 MB, then measure and raise |
-| 10 | If json-p3 fails to load: keep the error message, or add a fallback | 16.19 and 24.9 | Keep the error message: the file is served from our own folder, so a failure means the app itself did not load |
-| 11 | Ajv: upgrade or keep. Needs real Power Automate Parse JSON schemas from you | 22.1.1 and 22.1.2 | Decide after testing your real schemas |
-| 12 | Power Automate and Power Fx checks need real flows from you | 23.8.1 | Please share a few exported flows |
-| 13 | Merge order for the pull requests: #6, then #7, then the Table | 26.1 | As written |
-| 14 | Firefox and WebKit job in CI: blocking or optional | 26.4 | Decide after the job is tuned (you said to decide on time and optimization) |
-| 15 | Promote `dev` to `test` and `prod` | 26.3 | Only when you say |
+The ones that start the work (Q1 to Q8): the Table choice, the work order, the path model, CSV protection, the old prototypes, the sandbox worker for user code, pull requests, and the merge order.
 
 ## 8. Gap audit: where our code misses cases that mature code handles
 

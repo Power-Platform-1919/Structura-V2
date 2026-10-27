@@ -140,15 +140,7 @@ Search quality note: several searches returned thin results. Every figure marked
 
 ## 9. Decisions needed from you
 
-1. Approve the MVP scope in section 4 (Code Tree behind a switch, Classic stays default).
-2. The size cap for the first version. The path index measured fine up to 88 MB, so the cap is now decided by CodeMirror's memory, not by the index: suggested 40 MB, then measure and raise toward 90 MB.
-3. vanilla-jsoneditor is measured now (section 10.8): fast because it pages arrays, but a different experience and 362 KB gzipped on top of CodeMirror. Do you still want it tried as a possible "paged view" for huge files, or drop it?
-4. May I push the current branch and open a PR into `dev` first (Phase 0)?
-5. Done with your permission: `@axe-core/playwright` is a dev dependency and `tests/ui/06-axe.js` runs it (section 10.9).
-6. Done with your permission: the JSONPath candidates were run (section 10.2).
-7. Cross-browser: should the CI run the browser tests in Firefox and WebKit on every pull request (a job is added in `ci.yml`, not yet run on GitHub), or only before a release? Firefox takes about 4.5 minutes, WebKit about 2 minutes.
-8. Graph node labels: the accessibility rule wants the visible text to be part of the name. Fixing it means clipping the full label instead of ending it with an ellipsis. Is that look change acceptable?
-9. Adopt json-p3 for JSONPath now (Phase 1), keeping our API?
+Moved. All open questions, and the answers already given (the MVP scope, json-p3, dropping vanilla-jsoneditor, the pull request, the Firefox and WebKit job), are in [QUESTIONS.md](QUESTIONS.md).
 
 ## 10. Research round 2 (measured facts)
 
