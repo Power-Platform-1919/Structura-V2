@@ -12,8 +12,8 @@
    - Data-level filter (persists across recycle/rehydrate)
    - Path highlighting + bookmark support
 
-   Uses Structra.virtualList for chunking mechanics when rendering
-   large arrays. Object/primitive rendering is inline (no chunking).
+   Its own chunking and recycling: a long array is drawn a chunk at a time.
+   Object/primitive rendering is inline (no chunking).
 
    API:
      Structra.jsonTreeRenderer.render(container, data, opts)

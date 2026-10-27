@@ -243,7 +243,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Column menu: chart this column, summary, every different value, copy the column's values | own | Own | charts (opened by event) | Table | KEEP |
 | Show nested values as readable text (Choice, Person, Lookup fields), decimals kept, numbers right-aligned | own formatter | Own | | Table | KEEP |
 | Short lists a page at a time (25 to 500 per page) | own pager | Own | appSettings | Table | KEEP |
-| Long lists: only the rows on screen are drawn, the scrollbar is the true length | `@tanstack/virtual-core` | Own + library | libraryLoader | Table | decided: keep, merging (3.2) |
+| Long lists: only the rows on screen are drawn, the scrollbar is the true length | `@tanstack/virtual-core` through `Structra.rowWindow` (the one door) | Own + library | libraryLoader | Table | decided: keep, merging (3.2) |
 | Grid for screen readers and keyboard (roles, row index, arrows, Page keys, Home, End, Enter, Shift+F10) | WAI-ARIA grid pattern | Own | | Table | decided: keep, merging (3.2) |
 | Selected row follows the path chosen in the Tree, the path bar or Find | `state:currentPath` | Own | | Table | decided: keep, merging (3.2) |
 
@@ -423,6 +423,7 @@ The counts are taken from the code: how many files call the module.
 | `appSettings`, `safeStorage`, `browserDatabase` | settings, storage fallbacks, IndexedDB | localStorage, IndexedDB | Own + browser | data engine, input panel, logger, settings, table | KEEP |
 | `workerPool` and the parse workers | CSV, XML, YAML, TOML parsing off the main thread | own pool, PapaParse, DOMParser, js-yaml, toml | Own + library | input panel | FIX: cache (3.14) |
 | `libraryLoader` | load libraries on first use | own | Own | code view, DuckDB, diff, repair, JSONPath, share, table | KEEP |
+| `rowWindow` (`row-window.js`) | the one door to virtual-core: which rows are on screen, total height, scroll to a row | own wrapper | Own + library | table | KEEP (rule 3, one door per library) |
 | `StructraComponent`, `StructraDialog`, `Structra.events`, `Structra.state`, `Structra.log`, `panelResizer` | base classes, event bus, state, logger, resizer | own | Own | all components | FIX (3.14), dialogs 3.4 |
 
 ### 2.8 How much is hand-written?
