@@ -45,10 +45,11 @@ Structra.updatePageBehindDialog = function () {
 };
 
 /**
- * Escape closes one thing: the dialog in front, otherwise the command palette, the Find or Filter bar,
- * the Node panel, or the Query panel, in that order. Returns true when something was closed.
+ * Escape closes one thing: a menu or panel that floats over the page (Structra.popup), otherwise the dialog in front, otherwise the command
+ * palette, the Find or Filter bar, the Node panel, or the Query panel, in that order. Returns true when something was closed.
  */
 Structra.closeTop = function () {
+  if (Structra.popup && Structra.popup.closeTop()) return true;
   const dialog = Structra.openDialogs[Structra.openDialogs.length - 1];
   if (dialog) { dialog.close(); return true; }
   const palette = document.querySelector('#cmdOverlay.show');

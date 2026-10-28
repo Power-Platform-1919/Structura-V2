@@ -406,6 +406,7 @@ The counts are taken from the code: how many files call the module.
 | `dataPaths` | parse, resolve and format paths | own | Own | 16 files (header, tree, table, query, overview, context ...) | KEEP |
 | `jsonpathQuery` | JSONPath | json-p3 plus an adapter | Library + own | query, data engine | DONE (PR #7) |
 | `sharedHelpers` | small helpers (escape, debounce, clipboard, download, regex safety check, run code in a worker) | own | Own | about 30 files | KEEP |
+| `popup` | the one place that closes a floating menu or panel: outside pointer, Escape (only the popup in front), one at a time, listeners removed however it closed | own | Own | tabs menu, Tree menu, Table column menu and filter dropdown, bookmark list, toolbar menu | KEEP (shared architecture, task 27.5 and 27.6) |
 | `command-match` | command palette ranking: exact matches first, then close matches (uFuzzy) | own ranking + uFuzzy 1.0.19 | Own + library | command palette | KEEP |
 | `icons` | every icon | Lucide 1.63.0, only the icons used | Library | 26 files | KEEP (trimmed and upgraded, 3.5) |
 | `codeView` | every code box | CodeMirror 6 | Library + own wrapper | context, diff, editor, expressions, input-panel, query, schemagen, typedef | KEEP |
@@ -889,4 +890,21 @@ Candidates to load later (not done; each saves 15 to 30 KB gzipped at start): `y
 - First contentful paint 2.2 s, total blocking time 20 ms, layout shift 0.001, main thread work 1.1 s: good. Largest contentful paint 14.8 s and time to interactive 14.8 s: the LCP element is the first-run Welcome dialog (97% of it is render delay): the page only draws it after 93 scripts ran one after another under 4 times slower processing. On a normal computer the first screen is 0.8 s.
 - What it says to fix: 13 render-blocking files (12 style files and some scripts), unminified own code (287 KB) and CSS (22 KB), unused JavaScript (669 KB, mostly libraries used later) and CSS (97 KB), no compression and no long cache time (both are what the host sends: GitHub Pages sends compression and 10-minute cache), 11 px text in the help lines, 1,240 page elements at start.
 - Not changed: bundling the 93 scripts into one file would cut the render delay but breaks the rule of no build for the app; the numbers above are the baseline to compare any such change.
+
+
+### 8.12 Duplicated logic scan and the first shared piece (2026-10-28)
+
+**Scan** (jscpd 4.x on `src`, without the vendored libraries and fonts): at 8 lines or more, 8 exact repeats, 0.34% of lines; at 5 lines or more, 70 repeats, 2.0% of 25,901 lines. Most are CSS (font declarations, shared rules); in JavaScript the biggest are 19 lines inside `browser-database.js`, 12 lines of worker set-up shared by the TOML and YAML workers, dialog set-up shared by Snippets, Typedef and Workspace, and the same menu code in the tabs and toolbar. Exact copy is low; the repeated *jobs* are what the scan cannot see, so the candidates were found by reading.
+
+**Ranked by lines removed, risk and how many users each has** (the order you asked to agree on; written here because the rule is to ask only through QUESTIONS.md, and these are all low risk):
+
+| Rank | Candidate | Users | Risk | Status |
+|---|---|---|---|---|
+| 1 | One popup service: outside pointer, Escape, one at a time, listeners removed (27.5 and 27.6) | 8 places in 5 components | low: each place keeps its own content | **DONE** below |
+| 2 | One copy-to-clipboard button pattern (27.7) | many panels | low | todo |
+| 3 | One empty-state and error-state block (27.8) | several views | low | todo |
+| 4 | One number, size and date formatting set (27.9) | several | low | todo |
+| 5 | Worker set-up shared by TOML and YAML (27.10) | 2 | low | todo |
+
+**Done: `Structra.popup`** (`src/core/popup.js`, `tests/smoke/popup.js`). The tabs menu, the toolbar menu, the Tree right-click menu, the Table column menu, its summary box and its filter dropdown, and the bookmark list now call `Structra.popup.watch(element, options)`. 55 lines of hand-written closing code are gone (15 added). Found on the way: the Table summary box and the old bookmark menu left a key listener on the page after a click outside, and a menu removed by other code kept taking one Escape. Now Escape closes only the popup in front (a dialog behind it stays), a second popup closes the first, and `Structra.closeTop` asks the popup first. Tested in Edge, Firefox and WebKit.
 

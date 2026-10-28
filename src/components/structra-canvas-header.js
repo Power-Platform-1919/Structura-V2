@@ -147,15 +147,11 @@ class StructraCanvasHeader extends StructraComponent {
       this._closeMenu();
     });
     this._menu = menu;
-    setTimeout(() => {
-      this._off = (event) => { if (event.type === 'keydown' && event.key !== 'Escape') return; if (event.type === 'click' && menu.contains(event.target)) return; this._closeMenu(); };
-      document.addEventListener('click', this._off); document.addEventListener('keydown', this._off); window.addEventListener('blur', this._off);
-    }, 0);
+    this._popup = Structra.popup.watch(menu, { closeOnBlur: true, onClose: () => { this._menu = null; this._popup = null; } });
   }
 
   _closeMenu() {
-    if (this._menu) { this._menu.remove(); this._menu = null; }
-    if (this._off) { document.removeEventListener('click', this._off); document.removeEventListener('keydown', this._off); window.removeEventListener('blur', this._off); this._off = null; }
+    if (this._popup) this._popup.close();
   }
 
   _onContextMenu(event) {

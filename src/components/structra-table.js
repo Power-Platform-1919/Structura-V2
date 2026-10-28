@@ -909,21 +909,12 @@ class StructraTable extends StructraComponent {
     document.body.appendChild(menu);
     this._activeColMenu = menu;
 
-    // Close on outside click
-    const close = (event) => {
-      if (!menu.contains(event.target)) {
-        this._dismissColumnMenu();
-        document.removeEventListener('mousedown', close);
-      }
-    };
-    setTimeout(() => document.addEventListener('mousedown', close), 0);
+    this._colMenuPopup = Structra.popup.watch(menu, { onClose: () => { this._activeColMenu = null; this._colMenuPopup = null; } });
   }
 
   _dismissColumnMenu() {
-    if (this._activeColMenu) {
-      this._activeColMenu.remove();
-      this._activeColMenu = null;
-    }
+    if (this._colMenuPopup) this._colMenuPopup.close();
+    else if (this._activeColMenu) { this._activeColMenu.remove(); this._activeColMenu = null; }
   }
 
   async _execColumnAction(action, column) {
@@ -1046,9 +1037,8 @@ class StructraTable extends StructraComponent {
         <button class="btn btn-primary" data-rep="close">Close</button>
       </div>`;
     document.body.appendChild(box);
-    const done = () => { box.remove(); document.removeEventListener('keydown', onKey); };
-    const onKey = (event) => { if (event.key === 'Escape') done(); };
-    document.addEventListener('keydown', onKey);
+    const popup = Structra.popup.watch(box);
+    const done = () => popup.close();
     box.addEventListener('click', (event) => {
       const button = event.target.closest('[data-rep]');
       if (!button) return;
@@ -1102,10 +1092,6 @@ class StructraTable extends StructraComponent {
       }
       done();
     });
-    setTimeout(() => {
-      const close = (event) => { if (!box.contains(event.target)) { done(); document.removeEventListener('mousedown', close); } };
-      document.addEventListener('mousedown', close);
-    }, 0);
   }
 
   /* ======== COLUMN FILTER PANEL (values + conditions) ======== */
@@ -1342,14 +1328,7 @@ class StructraTable extends StructraComponent {
     dropdown.querySelector('.cfd-apply').addEventListener('click', apply);
     dropdown.querySelector('.cfd-clear').addEventListener('click', clear);
 
-    // Close on outside click
-    const closeHandler = (event) => {
-      if (!dropdown.contains(event.target) && event.target !== anchor) {
-        dropdown.remove();
-        document.removeEventListener('mousedown', closeHandler);
-      }
-    };
-    setTimeout(() => document.addEventListener('mousedown', closeHandler), 0);
+    Structra.popup.watch(dropdown, { anchor });
   }
 
   _applyColFilters(rows) {
