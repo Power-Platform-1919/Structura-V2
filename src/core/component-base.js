@@ -2,6 +2,8 @@
    STRUCTRA V2 - Component base class
    StructraComponent: every custom element of the app extends this. Small, no magic.
    Helpers: this.queryOne(selector) and this.queryAll(selector) search inside the element.
+   Cleaning up: this.on(...) subscriptions are removed when the element leaves the page and made again if it is added back, and
+   this.listenerSignal can be passed to addEventListener({ signal }) for document and window listeners, which are removed the same way.
    ============================================================ */
 
 class StructraComponent extends HTMLElement {
@@ -9,9 +11,19 @@ class StructraComponent extends HTMLElement {
     super();
     this._mounted = false;
     this.props = {};
+    this._subscriptions = [];
+    this._listenerController = new AbortController();
   }
 
+  /** Pass to addEventListener(type, handler, { signal }) so the listener goes away when the element is removed from the page */
+  get listenerSignal() { return this._listenerController.signal; }
+
   connectedCallback() {
+    if (this._mounted) {
+      // added to the page again: the subscriptions were removed when it left
+      if (this._released) this._resubscribe();
+      return;
+    }
     if (!this._mounted) {
       this._mounted = true;
       const tag = this.tagName.toLowerCase();
@@ -71,13 +83,30 @@ class StructraComponent extends HTMLElement {
     this.dispatchEvent(new CustomEvent(name, { bubbles: true, composed: true, detail }));
   }
 
-  /** Subscribe to Structra state events */
+  /** Removed from the page: stop listening to the event bus and to document and window, so nothing runs for an element that is gone */
+  disconnectedCallback() {
+    if (!this._mounted || this._released) return;
+    this._released = true;
+    for (const subscription of this._subscriptions) Structra.events.off(subscription.event, subscription.handler);
+    this._listenerController.abort();
+  }
+
+  _resubscribe() {
+    this._released = false;
+    this._listenerController = new AbortController();
+    for (const subscription of this._subscriptions) Structra.events.on(subscription.event, subscription.handler);
+    if (typeof this.listenersReturned === 'function') this.listenersReturned();
+  }
+
+  /** Subscribe to Structra state events (removed when the element leaves the page, made again when it is added back) */
   on(event, handler) {
-    Structra.events.on(event, handler);
+    this._subscriptions.push({ event, handler });
+    if (!this._released) Structra.events.on(event, handler);
   }
 
   /** Unsubscribe from Structra state events */
   off(event, handler) {
+    this._subscriptions = this._subscriptions.filter((subscription) => subscription.event !== event || subscription.handler !== handler);
     Structra.events.off(event, handler);
   }
 

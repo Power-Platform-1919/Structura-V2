@@ -13,8 +13,19 @@
 class StructraInputPanel extends StructraComponent {
   init() {
     this._activeTab = 'file';
-    // Ctrl+V anywhere on an empty tab loads what was copied, as long as it looks like data and the focus is not in a field
-    if (!Structra._pasteBound) document.addEventListener('paste', (event) => {
+    this._bindPaste();
+    this.on('input:show-tab', (tab) => { const button = this.queryOne(`.io-tab[data-tab="${tab}"]`); if (button) button.click(); });
+  }
+
+  listenersReturned() {
+    this._bindPaste();
+    this._clipBound = false;
+    if (this._clipWanted) this._setupClipboardDetect();
+  }
+
+  /** Ctrl+V anywhere on an empty tab loads what was copied, as long as it looks like data and the focus is not in a field */
+  _bindPaste() {
+    document.addEventListener('paste', (event) => {
       if (Structra.state.jsonData || !this.isConnected) return;
       const target = event.target;
       if (target && target.closest && target.closest('input, textarea, select, [contenteditable]')) return;
@@ -22,9 +33,7 @@ class StructraInputPanel extends StructraComponent {
       if (!text || !/^\s*[\[{<\w"-]/.test(text)) return;
       event.preventDefault();
       this._loadText(text, 'Pasted ' + this._detectFormat(text, '').toUpperCase());
-    });
-    Structra._pasteBound = true;
-    this.on('input:show-tab', (tab) => { const button = this.queryOne(`.io-tab[data-tab="${tab}"]`); if (button) button.click(); });
+    }, { signal: this.listenerSignal });
   }
 
   render() {
@@ -247,10 +256,8 @@ class StructraInputPanel extends StructraComponent {
     });
 
     // Clipboard auto-detect (once globally)
-    if (!StructraInputPanel._clipInit) {
-      StructraInputPanel._clipInit = true;
-      this._setupClipboardDetect();
-    }
+    this._clipWanted = true;
+    this._setupClipboardDetect();
   }
 
   /* ======== LOAD SUCCESS ======== */
@@ -837,6 +844,8 @@ class StructraInputPanel extends StructraComponent {
 
   /* ======== CLIPBOARD AUTO-DETECT (overlay only) ======== */
   _setupClipboardDetect() {
+    if (this._clipBound) return;
+    this._clipBound = true;
     let lastHash = '';
     window.addEventListener('focus', async () => {
       try {
@@ -851,7 +860,7 @@ class StructraInputPanel extends StructraComponent {
         lastHash = trimmed;
         this._showClipBanner(trimmed);
       } catch { /* not JSON or no permission */ }
-    });
+    }, { signal: this.listenerSignal });
   }
 
   _showClipBanner(text) {

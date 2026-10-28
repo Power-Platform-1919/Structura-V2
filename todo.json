@@ -3742,32 +3742,42 @@
         {
           "id": "21.5",
           "title": "Components clean up after themselves (3.14)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.5.1",
               "title": "Base class: record event-bus subscriptions and remove them on disconnect",
-              "status": "todo"
+              "status": "done",
+              "note": "component-base.js: this.on() records each subscription; disconnectedCallback removes them from the event bus",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.5.2",
               "title": "Base class: an AbortController for DOM listeners",
-              "status": "todo"
+              "status": "done",
+              "note": "component-base.js: listenerSignal (AbortController) for document and window listeners; aborted on disconnect",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.5.3",
               "title": "Re-subscribe when an element is added again",
-              "status": "todo"
+              "status": "done",
+              "note": "Added back to the page: subscriptions are made again and a new signal is created; components call listenersReturned() to bind their own document listeners again (zoom keys, input panel paste and clipboard)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.5.4",
               "title": "Unit test: remove and re-add a component; no double handling",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/component-cleanup.js: probe element and the real zoom element counted while on, off and back on the page; passes in Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.5.5",
               "title": "Audit components that add document-level listeners (menus, paste)",
-              "status": "todo"
+              "status": "done",
+              "note": "Audited the 17 document and window listeners: the permanent ones (zoom keys, input panel paste and clipboard focus) now use the signal; the rest are short-lived menu and drag handlers that remove themselves",
+              "doneOn": "2026-10-28"
             }
           ]
         },
