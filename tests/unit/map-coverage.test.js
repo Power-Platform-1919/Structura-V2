@@ -8,7 +8,7 @@ const { test, truthy } = require('./harness');
 const ROOT = path.join(__dirname, '..', '..');
 const doc = fs.readFileSync(path.join(ROOT, 'docs', 'feature-technology-map.md'), 'utf8').toLowerCase();
 const mentions = (needle) => doc.includes(needle.toLowerCase());
-const names = (dir, filter = () => true) => fs.readdirSync(path.join(ROOT, dir)).filter(filter);
+const names = (dir, filter = () => true) => (fs.existsSync(path.join(ROOT, dir)) ? fs.readdirSync(path.join(ROOT, dir)).filter(filter) : []);
 
 console.log('feature and technology map');
 

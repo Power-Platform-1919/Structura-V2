@@ -3596,28 +3596,34 @@
     {
       "id": "21",
       "title": "Wave 1: small, safe improvements",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Sections 3.4, 3.5, 3.9, 3.13, 3.14, 3.15 of the map.",
       "subtasks": [
         {
           "id": "21.1",
           "title": "Worker cache: remove ?v=Date.now() from worker URLs (3.14)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.1.1",
               "title": "Replace with a version string from one place",
-              "status": "todo"
+              "status": "done",
+              "note": "Worker address now uses ?v=<structra-version meta tag> (package.json version) instead of Date.now(), in one place in worker-pool.js",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.1.2",
               "title": "Check CSV, XML, YAML, TOML workers still pick up changes after an upgrade",
-              "status": "todo"
+              "status": "done",
+              "note": "All pools (CSV, XML, YAML, TOML) go through createWorkerPool, so they all use the versioned address and the browser can keep the file between visits",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.1.3",
               "title": "Test: second page load serves the worker from cache",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/yaml.js checks the worker address ends with ?v=<app version>; passes in Edge",
+              "doneOn": "2026-10-28"
             }
           ]
         },
@@ -3652,140 +3658,182 @@
         {
           "id": "21.3",
           "title": "Icons: use only the icons we use and upgrade Lucide (3.5)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.3.1",
               "title": "List the 41 icons in use from the code",
-              "status": "todo"
+              "status": "done",
+              "note": "build-lucide.mjs scans the code: 79 names are written in icon calls (icons.svg, icons.has, icon:, data-icon); every string that is also a Lucide name is kept, 130 icons in all",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.2",
               "title": "Check each name still exists in the current Lucide (names changed between 0.468 and 1.x)",
-              "status": "todo"
+              "status": "done",
+              "note": "All 79 names exist in Lucide 1.63.0, none was renamed; the build stops with a list if one is missing",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.3",
               "title": "Build a subset bundle once (esbuild) and add the build tool",
-              "status": "todo"
+              "status": "done",
+              "note": "tools/build-lucide.mjs reads the lucide package and writes src/libs/lucide/lucide-icons.js (25 KB) in the 0.x shape; 1.x stores drawing parts and shared attributes apart, so the tool puts them back together",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.4",
               "title": "Remove the blocking full-set script from index.html",
-              "status": "todo"
+              "status": "done",
+              "note": "index.html loads src/libs/lucide/lucide-icons.js; the 358 KB src/vendor/lucide.min.js moved to archive/src-vendor/ (README row added)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.5",
               "title": "Keep Structra.icons API the same",
-              "status": "todo"
+              "status": "done",
+              "note": "src/core/icons.js unchanged except its comment; Structra.icons.svg/has/hydrate work as before",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.6",
               "title": "Test: every icon in the code renders; offline test stays green",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/icons.test.js: every icon the code names is in the file, the file is a subset and every icon has drawing parts; full Edge smoke suite 43 of 43 and UI audit 0 high findings (the app is served locally, no icon comes from the network)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.7",
               "title": "Measure the first-load saving",
-              "status": "todo"
+              "status": "done",
+              "note": "Measured: 358 KB blocking script down to 25 KB (about 333 KB less on the first load)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.8",
               "title": "Visual check of every icon in every theme after the upgrade: nothing breaks, nothing looks awkward (Q9)",
-              "status": "todo"
+              "status": "done",
+              "note": "Contact sheet of all 130 icons on a light and a dark background looked at: all draw, none broken or awkward; UI audit themes check clean",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "21.4",
           "title": "Native <dialog> for dialogs (3.4)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.4.1",
               "title": "Prototype in StructraDialog: showModal, Escape, backdrop click, focus return",
-              "status": "todo"
+              "status": "done",
+              "note": "Decided against showModal: a native modal dialog sits in the browser top layer, which would hide the toast, menus and command palette that open above dialogs today. Took the part we need instead: the browser's inert on #appRoot while any dialog is open (Structra.updatePageBehindDialog in dialog-base.js); own backdrop, Escape and focus return kept",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.2",
               "title": "Check each of the 12 dialogs: charts, diff, nullfinder, pivot, settings, shortcuts, snippets, theme, typedef, validate, welcome, workspace",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/fixtures.js opens and closes all 10 dialog elements by Escape and checks the page behind is out of reach while open and reachable after; Edge 43 of 43, Firefox and WebKit fixtures green",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.3",
               "title": "Keep Structra.closeTop (Escape closes one thing at a time) working",
-              "status": "todo"
+              "status": "done",
+              "note": "closeTop untouched; Escape still closes one thing at a time (robust and shell smoke tests green)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.4",
               "title": "Re-check backdrop and animation looks in all themes",
-              "status": "todo"
+              "status": "done",
+              "note": "No change to backdrop or animation CSS, so nothing to re-check; UI themes audit clean",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.5",
               "title": "Update shell and layout tests; axe audit",
-              "status": "todo"
+              "status": "done",
+              "note": "fixtures.js extended with the inert checks; UI audit axe 0 findings, 48 low only",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.6",
               "title": "Never block an older browser: feature-detect HTMLDialogElement.showModal, keep the old dialog code as the fallback, show a note and keep running (Q10)",
-              "status": "todo"
+              "status": "done",
+              "note": "Older browsers without inert get aria-hidden on #appRoot plus the existing Tab trap; feature test is 'inert' in element",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "21.5",
           "title": "Components clean up after themselves (3.14)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.5.1",
               "title": "Base class: record event-bus subscriptions and remove them on disconnect",
-              "status": "todo"
+              "status": "done",
+              "note": "component-base.js: this.on() records each subscription; disconnectedCallback removes them from the event bus",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.5.2",
               "title": "Base class: an AbortController for DOM listeners",
-              "status": "todo"
+              "status": "done",
+              "note": "component-base.js: listenerSignal (AbortController) for document and window listeners; aborted on disconnect",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.5.3",
               "title": "Re-subscribe when an element is added again",
-              "status": "todo"
+              "status": "done",
+              "note": "Added back to the page: subscriptions are made again and a new signal is created; components call listenersReturned() to bind their own document listeners again (zoom keys, input panel paste and clipboard)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.5.4",
               "title": "Unit test: remove and re-add a component; no double handling",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/component-cleanup.js: probe element and the real zoom element counted while on, off and back on the page; passes in Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.5.5",
               "title": "Audit components that add document-level listeners (menus, paste)",
-              "status": "todo"
+              "status": "done",
+              "note": "Audited the 17 document and window listeners: the permanent ones (zoom keys, input panel paste and clipboard focus) now use the signal; the rest are short-lived menu and drag handlers that remove themselves",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "21.6",
           "title": "Input panel: the place of a JSON error from jsonc-parser (3.14)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.6.1",
               "title": "Use explainParseError in _explainError",
-              "status": "todo"
+              "status": "done",
+              "note": "Input panel error box (_showError) now asks jsonRepairAndValidation.explainParseError (jsonc-parser) for the reason and line/column of broken JSON; the browser message stays as fallback; a token drops answers of overtaken errors",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.6.2",
               "title": "Test the message in Chromium, Firefox and WebKit",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/inputs.js opens a broken JSON file and expects 'Line 4, column 6'; passes in Edge, Firefox and WebKit",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "21.7",
           "title": "Graph node labels (3.15)",
-          "status": "in_progress",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.7.1",
@@ -3796,61 +3844,100 @@
             {
               "id": "21.7.2",
               "title": "Per-node height in the layout code",
-              "status": "todo"
+              "status": "done",
+              "note": "Each node now has its own height (1 line 28, then 14 per line plus 12); layout, edges, parent centring and bounds use node.height",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.7.3",
               "title": "Wrap text in SVG (tspans), keep the full label as the name",
-              "status": "todo"
+              "status": "done",
+              "note": "_wrapLabel breaks the label into up to 3 lines of 18 characters as tspans (trailing space keeps the drawn text equal to the name); full label stays in aria-label and title",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.7.4",
               "title": "Check zoom, fit, pan and the minimap",
-              "status": "todo"
+              "status": "done",
+              "note": "Zoom to fit now uses the real bottom of the tree; graph smoke test (fit, centre, select, minimap, diff) passes in Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.7.5",
               "title": "axe audit shows 0 findings",
-              "status": "todo"
+              "status": "done",
+              "note": "UI audit axe: 0 findings (was 2, label-content-name-mismatch); graph smoke test checks wrapping, taller node and full name",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "21.8",
           "title": "Tabs: keyboard way to reorder (3.13)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.8.1",
               "title": "Move left and Move right: shortcut and menu item",
-              "status": "todo"
+              "status": "done",
+              "note": "structra-tabs.js: _moveTab; Ctrl+Shift+Left/Right on a focused tab and 'Move left' / 'Move right' in the tab right-click menu (disabled at the ends); listed in the shortcuts dialog under Tabs",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.8.2",
               "title": "Announce the change for screen readers",
-              "status": "todo"
+              "status": "done",
+              "note": "After a move the toast (a polite live region) says '<name> moved to place N of M' and the focus stays on the moved tab",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.8.3",
               "title": "Test with keyboard only",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/tabsui.js moves a tab with the keys and the menu, checks place, focus and announcement; Edge, Firefox, WebKit green; UI audit still 0 axe findings",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "21.9",
           "title": "Pivot: keyboard way to place fields (3.13)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.9.1",
               "title": "\"Add to rows, columns, values\" buttons on each field",
-              "status": "todo"
+              "status": "done",
+              "note": "Pivot field list: each field is a real button (auto place as before) plus Rows, Columns, Values buttons shown on hover or focus (named 'Put X in ...'); a chosen place moves the field and says so; numbers-only check for Values; the remove mark in a zone is now a named button",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.9.2",
               "title": "Test with keyboard only",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/datatools.js: Tab to a field's Columns button, Enter places it, the remove button takes it out; Edge, Firefox, WebKit green; UI audit axe 0",
+              "doneOn": "2026-10-28"
+            }
+          ]
+        },
+        {
+          "id": "21.10",
+          "title": "Found by the monkey audit: the \"Totals of ...\" SQL example offered a list-of-numbers column",
+          "status": "done",
+          "subtasks": [
+            {
+              "id": "21.10.1",
+              "title": "Only a plain number column gets a Totals example (BIGINT[] is a list)",
+              "status": "done",
+              "note": "structra-query.js _sqlExamples: the number test now matches the whole type name, so BIGINT[] (a list) is skipped and DECIMAL(18,3) still counts; found by the random-click audit (a Binder Error on test5_empties.json), reproduced first",
+              "doneOn": "2026-10-28"
+            },
+            {
+              "id": "21.10.2",
+              "title": "Test the example builder with BIGINT, DECIMAL(18,3), BIGINT[], STRUCT",
+              "status": "done",
+              "note": "tests/smoke/sql.js checks the builder with BIGINT, DECIMAL(18,3), BIGINT[], STRUCT; the UI audit now shows 0 high findings",
+              "doneOn": "2026-10-28"
             }
           ]
         }

@@ -15,6 +15,9 @@ class StructraGraph extends StructraComponent {
   /* ---- Constants ---- */
   static NODE_W = 140;
   static NODE_H = 28;
+  static LINE_H = 14;
+  static LINE_CHARS = 18;
+  static MAX_LINES = 3;
   static H_GAP = 30;
   static V_GAP = 8;
   static ZOOM_MIN = 0.1;
@@ -147,27 +150,54 @@ class StructraGraph extends StructraComponent {
   }
 
   /* ---- Layout ---- */
+  /** The label in up to 3 lines of 18 characters, broken at spaces where it can; a longer label ends with an ellipsis and keeps its full text in the title */
+  _wrapLabel(label) {
+    const Graph = StructraGraph;
+    const words = String(label).split(' ');
+    const lines = [];
+    let line = '';
+    for (let word of words) {
+      while (word.length > Graph.LINE_CHARS) {
+        if (line) { lines.push(line); line = ''; }
+        lines.push(word.slice(0, Graph.LINE_CHARS));
+        word = word.slice(Graph.LINE_CHARS);
+      }
+      if (!line) line = word;
+      else if ((line + ' ' + word).length <= Graph.LINE_CHARS) line += ' ' + word;
+      else { lines.push(line); line = word; }
+    }
+    if (line || !lines.length) lines.push(line);
+    if (lines.length > Graph.MAX_LINES) {
+      lines.length = Graph.MAX_LINES;
+      const last = lines[Graph.MAX_LINES - 1];
+      lines[Graph.MAX_LINES - 1] = (last.length >= Graph.LINE_CHARS ? last.slice(0, Graph.LINE_CHARS - 1) : last) + '…';
+    }
+    return lines;
+  }
+
   _layoutTree(node, x, y) {
     const Graph = StructraGraph;
+    node.lines = this._wrapLabel(node.label);
+    node.height = node.lines.length === 1 ? Graph.NODE_H : node.lines.length * Graph.LINE_H + 12;
     node.x = x; node.y = y;
-    if (!node.children.length) { node.height = Graph.NODE_H; return; }
+    if (!node.children.length) return;
     let childY = y;
     const childX = x + Graph.NODE_W + Graph.H_GAP;
     for (const child of node.children) { this._layoutTree(child, childX, childY); childY += this._subtreeH(child) + Graph.V_GAP; }
     const first = node.children[0], last = node.children[node.children.length - 1];
-    node.y = (first.y + last.y) / 2;
+    node.y = (first.y + last.y + last.height) / 2 - node.height / 2;
   }
 
   _subtreeH(node) {
     const Graph = StructraGraph;
-    if (!node.children.length) return Graph.NODE_H;
+    if (!node.children.length) return node.height;
     let total = 0;
     for (let i = 0; i < node.children.length; i++) { total += this._subtreeH(node.children[i]); if (i < node.children.length - 1) total += Graph.V_GAP; }
     return total;
   }
 
   _getBounds(node) {
-    let maxX = node.x, maxY = node.y;
+    let maxX = node.x, maxY = node.y + node.height;
     for (const child of node.children) { const bounds = this._getBounds(child); maxX = Math.max(maxX, bounds.mx); maxY = Math.max(maxY, bounds.my); }
     return { mx: maxX, my: maxY };
   }
@@ -205,8 +235,8 @@ class StructraGraph extends StructraComponent {
   _drawEdges(group, node) {
     const Graph = StructraGraph;
     for (const child of node.children) {
-      const startX = node.x + Graph.NODE_W, startY = node.y + Graph.NODE_H / 2;
-      const endX = child.x, endY = child.y + Graph.NODE_H / 2;
+      const startX = node.x + Graph.NODE_W, startY = node.y + node.height / 2;
+      const endX = child.x, endY = child.y + child.height / 2;
       const middleX = (startX + endX) / 2;
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', `M${startX},${startY} C${middleX},${startY} ${middleX},${endY} ${endX},${endY}`);
@@ -223,7 +253,7 @@ class StructraGraph extends StructraComponent {
 
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     rect.setAttribute('width', Graph.NODE_W);
-    rect.setAttribute('height', Graph.NODE_H);
+    rect.setAttribute('height', node.height);
     rect.setAttribute('rx', '4');
     const clickable = node.type === 'ellipsis' || node.collapsed;
     rect.setAttribute('class', `graph-node graph-node-${node.type}${clickable ? ' graph-node-clickable' : ''}`);
@@ -234,10 +264,17 @@ class StructraGraph extends StructraComponent {
     group.appendChild(title);
 
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', '8');
-    text.setAttribute('y', '18');
     text.setAttribute('class', `graph-text${clickable ? ' graph-text-clickable' : ''}`);
-    text.textContent = node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label;
+    const wholeWords = node.lines.join(' ') === node.label;
+    const firstBaseline = node.lines.length === 1 ? 18 : 6 + Graph.LINE_H - 2;
+    node.lines.forEach((lineText, index) => {
+      const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+      span.setAttribute('x', '8');
+      span.setAttribute('y', String(firstBaseline + index * Graph.LINE_H));
+      // a line ends with a space when the label goes on at a word, so the drawn text reads the same as the name of the node
+      span.textContent = wholeWords && index < node.lines.length - 1 ? lineText + ' ' : lineText;
+      text.appendChild(span);
+    });
     group.appendChild(text);
 
     group.dataset.path = node.path || '';
@@ -360,7 +397,7 @@ class StructraGraph extends StructraComponent {
     if (!container || !this._treeBounds) return;
     const containerWidth = container.clientWidth, containerHeight = container.clientHeight;
     const contentW = this._treeBounds.mx + Graph.NODE_W + 40;
-    const contentH = this._treeBounds.my + Graph.NODE_H + 40;
+    const contentH = this._treeBounds.my + 40;
     if (!contentW || !contentH) return;
     const scaleX = containerWidth / contentW, scaleY = containerHeight / contentH;
     this._scale = Math.max(readableFloor || Graph.ZOOM_MIN, Graph.ZOOM_MIN, Math.min(maxScale || Graph.ZOOM_MAX, Math.min(scaleX, scaleY) * 0.9));

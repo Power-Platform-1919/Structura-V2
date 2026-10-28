@@ -14,7 +14,8 @@ console.log('third-party list');
 
 test('every file and folder in src/libs and src/vendor is in THIRD-PARTY.md', () => {
   const missing = [];
-  for (const directory of ['src/libs', 'src/vendor']) {
+  // src/vendor is empty now (git does not keep an empty folder), so only folders that exist are read
+  for (const directory of ['src/libs', 'src/vendor'].filter((folder) => fs.existsSync(path.join(ROOT, folder)))) {
     for (const name of fs.readdirSync(path.join(ROOT, directory))) {
       if (OWN_CODE.has(name)) continue;
       const stored = `${directory}/${name}`;

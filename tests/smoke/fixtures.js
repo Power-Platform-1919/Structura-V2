@@ -94,10 +94,15 @@ function serve() {
           await page.evaluate((n) => Structra.events.emit(n + ':open', n === 'typedef' ? { lang: 'typescript', name: 'Root' } : {}), name);
           await page.waitForTimeout(250);
           const opened = await page.evaluate((n) => { const el = document.querySelector('structra-' + n + ' .ov'); return !!el && el.classList.contains('show'); }, name);
+          // the page behind an open dialog is out of reach (the browser's inert, or aria-hidden in a browser without it)
+          const behind = await page.evaluate(() => { const page = document.getElementById('appRoot'); return 'inert' in page ? page.inert : page.getAttribute('aria-hidden') === 'true'; });
+          if (!behind) failures.push('dialog ' + name + ' should put the page behind it out of reach');
           await page.keyboard.press('Escape');
           await page.waitForTimeout(150);
           const closed = await page.evaluate((n) => !document.querySelector('structra-' + n + ' .ov').classList.contains('show'), name);
           if (!opened || !closed) failures.push('dialog ' + name + (opened ? ' did not close' : ' did not open'));
+          const reachable = await page.evaluate(() => { const page = document.getElementById('appRoot'); return 'inert' in page ? !page.inert : page.getAttribute('aria-hidden') !== 'true'; });
+          if (!reachable) failures.push('after dialog ' + name + ' closed, the page should be reachable again');
         }
       }
     } catch (err) {

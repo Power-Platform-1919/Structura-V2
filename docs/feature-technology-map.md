@@ -54,7 +54,7 @@ Verdict words used below:
 | yaml | 2.9.1 | 2.9.1 | 98 KB | YAML | REPLACED js-yaml on 2026-10-28 (task 31.5): the official suite showed js-yaml refusing 17 multi-document files and 26 valid ones; `yaml` accepts all 274 |
 | toml | **4.1.1** | **5.0.1 (TOML 1.1)** | 33 KB | TOML | one major behind |
 | html2canvas | **1.4.1 (January 2022)** | same, no newer release | 199 KB, lazy | save as PNG | not updated in almost 5 years |
-| Lucide | **0.468.0** | **1.62.0** | **358 KB, the whole set, loaded at start** | icons | 41 icons used |
+| Lucide | **1.63.0** (was 0.468.0) | 1.63.0 | **25 KB, only the 130 icons the code names** (was 358 KB, the whole set) | icons | 79 names in icon calls |
 | json-p3 | 3.0.1 | 3.0.1 | 64 KB | JSONPath | IN PR #7 |
 | jsonc-parser | 3.3.1 | 3.3.1 | 21 KB | where JSON is broken | IN PR #6 |
 | @tanstack/virtual-core | 3.19.8 | 3.19.8 | 33 KB | Table scrollbar | Table branch, not merged |
@@ -73,7 +73,7 @@ An audit of every file in the repository against this document found these were 
 | `templates/` | an empty folder (not in git) | delete |
 | `todo.json` | the task list carried over from V1 (tasks 1 to 12) | KEEP; refresh |
 | Tooling | `eslint.config.js`, `package.json` (dev dependencies: Playwright, axe-core), the VS Code workspace file | KEEP |
-| `tools/` | build scripts that produce vendored libraries once (`fetch-json-test-suite.mjs`, `fetch-json-schema-test-suite.mjs`, `fetch-csv-spectrum.mjs`, `fetch-toml-test.mjs` and `fetch-yaml-test-suite.mjs` and `fetch-xml-conformance.mjs`, which collect the JSONTestSuite, JSON Schema Test Suite, csv-spectrum, toml-test, YAML Test Suite and W3C XML conformance cases; `build-yaml.mjs` builds the yaml library): CodeMirror (`build-editor.mjs`), jsonc-parser, virtual-core | KEEP |
+| `tools/` | build scripts that produce vendored libraries once (`fetch-json-test-suite.mjs`, `fetch-json-schema-test-suite.mjs`, `fetch-csv-spectrum.mjs`, `fetch-toml-test.mjs` and `fetch-yaml-test-suite.mjs` and `fetch-xml-conformance.mjs`, which collect the JSONTestSuite, JSON Schema Test Suite, csv-spectrum, toml-test, YAML Test Suite and W3C XML conformance cases; `build-yaml.mjs` builds the yaml library; `build-lucide.mjs` builds the icon file): CodeMirror (`build-editor.mjs`), jsonc-parser, virtual-core | KEEP |
 | CSS system (12 files, all own, no CSS framework) | `fonts.css` self-hosted fonts; `tokens.css` design tokens (colours, spacing, type); `base.css` reset, typography, `.sr-only`; `ui.css` shared patterns (dialogs, segmented buttons, menus, fields, cards, tags); `layout.css` the app grid; `shell.css` header, rail, tab bar, status bar; `overview.css`; `panels.css` query and node panels; `codeview.css` the CodeMirror look; `overlays.css`; `components.css` (2,116 lines, the older view styles: tree, table, graph, input panel); `theme-panel.css` | KEEP; split `components.css` by view when touched |
 | Small shared modules | `component-base.js` (the base class); `dialog-base.js` (`StructraDialog`, and `Structra.closeTop`, which makes Escape close one thing at a time); `safe-storage.js` (a memory store when the browser blocks localStorage); `src/libs/csv-typing.js` (own: types CSV cells, reads "1,200.00" as 1200, keeps decimals) | KEEP; the base classes get cleanup (3.14) |
 | `archive/engine-worker.js` (was `src/workers/engine-worker.js`) | claimed to move search, filter, sort and aggregate of large data into a worker | DONE 2026-10-28: nothing started it, but `index.html` loaded it as a plain script, so it took over `window.onmessage` on the page. Script tag removed, file archived (3.20) |
@@ -406,7 +406,7 @@ The counts are taken from the code: how many files call the module.
 | `dataPaths` | parse, resolve and format paths | own | Own | 16 files (header, tree, table, query, overview, context ...) | KEEP |
 | `jsonpathQuery` | JSONPath | json-p3 plus an adapter | Library + own | query, data engine | DONE (PR #7) |
 | `sharedHelpers` | small helpers (escape, debounce, clipboard, download, regex safety check, run code in a worker) | own | Own | about 30 files | KEEP |
-| `icons` | every icon | Lucide 0.468.0, whole set | Library | 26 files | UPGRADE and trim (3.5) |
+| `icons` | every icon | Lucide 1.63.0, only the icons used | Library | 26 files | KEEP (trimmed and upgraded, 3.5) |
 | `codeView` | every code box | CodeMirror 6 | Library + own wrapper | context, diff, editor, expressions, input-panel, query, schemagen, typedef | KEEP |
 | `jsonTreeRenderer` | the Tree's renderer | own | Own | tree, query | see 3.1 |
 | `powerPlatformExpressions` (862 lines) | Power Automate, Power Fx and flow action text for a path | own | Own | command, context, expressions, overview-insights, tree | KEEP (unique) |
@@ -500,12 +500,12 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Pros:** the browser makes the rest of the page inert and traps focus; one file changes and all 10 dialogs follow; supported since Chrome 37, Firefox 98, Safari 15.4 (MDN data).
 - **Cons:** the look of the backdrop and animations must be re-checked; the layout and shell tests need a pass.
 
-### 3.5 Icons: trim and upgrade Lucide (proposed) [task 21.3]
+### 3.5 Icons: only the icons we use, Lucide 1.63.0 (done) [task 21.3]
 
 - **Reason:** a blocking 358 KB script loads the full icon set (about 1,500 icons) at start, and only **41** are used. The version is 0.468.0 against 1.62.0 today.
-- **Plan:** use Lucide's own recommended way, importing only the icons used (their docs say so), and bundle once with esbuild like the other vendored files.
-- **Pros:** about 300 KB less on the first load; newer artwork.
-- **Cons:** a new icon must be added to the list; a small build step when icons change (the same one-time step as the other vendored libraries); some icon names changed between 0.468 and 1.x, so a check of the 41 names is needed.
+- **Done:** `tools/build-lucide.mjs` reads the names the code writes as strings and copies just those icons out of the Lucide 1.63.0 package into `src/libs/lucide/lucide-icons.js` (130 icons, 25 KB, from 358 KB), with the same shape as Lucide's own build, so `Structra.icons` did not change. All 79 names the code asks for exist in 1.63.0 (none was renamed). The old file is in `archive/src-vendor/`.
+- **Pros:** about 333 KB less on the first load (measured: 358 KB to 25 KB); newer artwork.
+- **Cons:** a new icon name needs the build run once; `tests/unit/icons.test.js` fails when the code names an icon the file does not hold.
 
 ### 3.6 Schema validation: Ajv 6 or 8 (tested: keep Ajv 6) [task 22.1]
 
@@ -635,7 +635,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - DuckDB-Wasm 2.0 is a draft announcement dated after today; its size and speed claims are unconfirmed.
 - Whether jq in WebAssembly, JSONata or JMESPath evaluate untrusted expressions safely (no source found).
 - The sizes of `modern-screenshot` and `html-to-image` (comparison sites disagree) and any rendering benchmark between them and html2canvas.
-- Lucide's exact subset size: the sources say about 1 KB per icon and I did not measure it yet.
+- Lucide's subset size: measured, 130 icons are 25 KB (about 190 bytes each).
 - The reasons for some old choices are not written down anywhere (marked inferred).
 
 ## 6. Sources

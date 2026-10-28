@@ -85,12 +85,30 @@ class StructraTabs extends StructraComponent {
     Structra.events.emit('tabs:changed');
   }
 
-  /* ---- keyboard: arrows move between tabs ---- */
+  /** Moves a tab one place left (-1) or right (1), keeps the focus on it and says where it is now (the toast is a polite live region) */
+  _moveTab(id, step) {
+    const list = Structra.tabs.list;
+    const from = list.findIndex((tab) => tab.id === id);
+    const to = from + step;
+    if (from < 0 || to < 0 || to >= list.length) return;
+    const [moving] = list.splice(from, 1);
+    list.splice(to, 0, moving);
+    Structra.events.emit('tabs:changed');
+    requestAnimationFrame(() => this.queryOne(`.doc-tab[data-id="${id}"]`)?.focus());
+    Structra.toast(`${moving.label} moved to place ${to + 1} of ${list.length}`);
+  }
+
+  /* ---- keyboard: arrows move between tabs, Ctrl+Shift+arrows move the tab ---- */
   _keys = (event) => {
     const tab = event.target.closest('.doc-tab');
     if (!tab || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight' && event.key !== 'Enter' && event.key !== ' ')) return;
     const list = Structra.tabs.list;
     const i = list.findIndex((candidate) => candidate.id === Number(tab.dataset.id));
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key !== 'Enter' && event.key !== ' ') {
+      event.preventDefault();
+      this._moveTab(list[i].id, event.key === 'ArrowRight' ? 1 : -1);
+      return;
+    }
     if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this._switchTab(list[i].id); return; }
     const next = list[(i + (event.key === 'ArrowRight' ? 1 : -1) + list.length) % list.length];
     event.preventDefault();
@@ -112,6 +130,8 @@ class StructraTabs extends StructraComponent {
       { label: 'Close tabs to the right', disabled: index === list.length - 1, run: () => list.slice(index + 1).forEach((tab) => this._closeTab(tab.id)) },
       '-',
       { label: 'Duplicate', run: () => { const tab = list[index]; this._addTab(tab.label + ' (copy)', tab.data); } },
+      { label: 'Move left', disabled: index === 0, run: () => this._moveTab(id, -1) },
+      { label: 'Move right', disabled: index === list.length - 1, run: () => this._moveTab(id, 1) },
       { label: 'Rename', run: () => { const element = this.queryOne(`.doc-tab[data-id="${id}"]`); if (element) this._startRename(element); } },
     ];
     this._closeMenu();

@@ -20,13 +20,19 @@ class StructraZoom extends StructraComponent {
     this.on('zoom:reset', () => this._reset());
     this.on('zoom:fit', () => this._fitToScreen());
 
-    // Listen globally for Ctrl+/- keyboard shortcuts
+    this._bindKeys();
+  }
+
+  listenersReturned() { this._bindKeys(); }
+
+  /** Ctrl and + - 0 anywhere on the page; removed with the element and made again when it is added back */
+  _bindKeys() {
     document.addEventListener('keydown', (event) => {
       if (!event.ctrlKey && !event.metaKey) return;
       if (event.key === '=' || event.key === '+') { event.preventDefault(); this._zoom(1); }
       else if (event.key === '-') { event.preventDefault(); this._zoom(-1); }
       else if (event.key === '0') { event.preventDefault(); this._reset(); }
-    });
+    }, { signal: this.listenerSignal });
   }
 
   render() {

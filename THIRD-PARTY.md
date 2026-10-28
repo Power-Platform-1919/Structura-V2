@@ -18,7 +18,7 @@ When a library is added or upgraded, change this file in the same pull request. 
 | json-p3 | 3.0.1 | MIT | https://github.com/jg-rp/json-p3 | `src/libs/json-p3/` | the npm package's minified ES module, one file | JSONPath (RFC 9535) |
 | jsonc-parser | 3.3.1 | MIT | https://github.com/microsoft/node-jsonc-parser | `src/libs/jsonc-parser.min.js` | `node tools/build-jsonc-parser.mjs` (esbuild) | where JSON is broken |
 | @tanstack/virtual-core | 3.19.8 | MIT | https://github.com/TanStack/virtual | `src/libs/virtual-core/` | `node tools/build-virtual-core.mjs` (esbuild) | the Table's true scrollbar |
-| Lucide | 0.468.0 | ISC | https://lucide.dev | `src/vendor/lucide.min.js` | the library's UMD build | every icon |
+| Lucide | 1.63.0 | ISC | https://lucide.dev | `src/libs/lucide/` | `node tools/build-lucide.mjs` (only the icons the code names) | the icons |
 | IBM Plex Sans, JetBrains Mono | self-hosted woff2 | SIL Open Font Licence 1.1 | https://github.com/IBM/plex, https://github.com/JetBrains/JetBrainsMono | `src/fonts/` (named in `src/css/fonts.css`) | copied | text and code fonts |
 
 `src/libs/csv-typing.js` is not third-party: it is our own code and sits beside the libraries only because it is loaded the same way.

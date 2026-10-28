@@ -96,6 +96,20 @@ function serve() {
     await page.locator('#pivotFields .pivot-chip', { hasText: /^Status\.Value$/ }).click();
     const zone = await page.evaluate(() => document.querySelector('#pivotRows').textContent.trim());
     if (!/Status\.Value/.test(zone)) failures.push('clicking a field should put it in Group by: "' + zone + '"');
+    // keyboard only: Tab to a field, then to its Columns button, press Enter; the field moves there and the remove button has a name
+    await page.locator('#pivotFields .pivot-chip', { hasText: /^Requester\.DisplayName$/ }).focus();
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    const focusedName = await page.evaluate(() => document.activeElement.getAttribute('aria-label'));
+    if (!/Requester\.DisplayName in Then by \(columns\)/.test(focusedName || '')) failures.push('after two Tabs the Columns button of the field should have the focus: ' + focusedName);
+    await page.keyboard.press('Enter');
+    const placed = await page.evaluate(() => { const remove = document.querySelector('#pivotCols .pivot-zone-rm'); return { cols: document.querySelector('#pivotCols').textContent.trim(), remove: remove ? remove.tagName : '', removeName: remove ? remove.getAttribute('aria-label') : '' }; });
+    if (!/Requester\.DisplayName/.test(placed.cols)) failures.push('Enter on the Columns button should put the field in Then by: ' + JSON.stringify(placed));
+    if (placed.remove !== 'BUTTON' || !/^Remove /.test(placed.removeName || '')) failures.push('the remove mark should be a named button: ' + JSON.stringify(placed));
+    await page.locator('#pivotCols .pivot-zone-rm').focus();
+    await page.keyboard.press('Enter');
+    const emptied = await page.evaluate(() => document.querySelector('#pivotCols').textContent.trim());
+    if (/Requester\.DisplayName/.test(emptied)) failures.push('Enter on the remove button should take the field out');
     const piv = await page.evaluate(() => {
       const pv = document.querySelector('structra-pivot');
       pv._values = ['Cost']; pv._aggFn = 'sum'; pv._renderZones(); pv._runPivot();

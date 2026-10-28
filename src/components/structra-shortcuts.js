@@ -90,6 +90,10 @@ class StructraShortcuts extends StructraDialog {
     categories.Views.push({ key: 'ctrl+=', desc: 'Zoom in' });
     categories.Views.push({ key: 'ctrl+-', desc: 'Zoom out' });
     categories.Views.push({ key: 'ctrl+0', desc: 'Reset zoom' });
+    if (categories.Tabs) {
+      categories.Tabs.push({ key: 'ctrl+shift+arrowleft', desc: 'Move the focused tab left' });
+      categories.Tabs.push({ key: 'ctrl+shift+arrowright', desc: 'Move the focused tab right' });
+    }
 
     // Remove empty categories
     for (const key of Object.keys(categories)) {

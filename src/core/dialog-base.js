@@ -7,6 +7,9 @@
      - open / close, Escape, click on the backdrop
      - focus: moves into the dialog on open, returns to where it was on close
      - keeping Tab inside the dialog
+     - the page behind an open dialog cannot be reached by keyboard, pointer or screen reader: the browser's own `inert` on #appRoot
+       (older browsers get aria-hidden and the Tab trap below). The native <dialog>.showModal() was tried on paper and not used: it puts the
+       dialog in the browser's top layer, which would hide the toast, menus and the command palette that open above a dialog today.
    Styling is in ui.css (.ov, .ov-box, .ov-head ...).
 
    A dialog class:
@@ -30,6 +33,16 @@
 
 /** The dialogs that are open, in the order they were opened */
 Structra.openDialogs = [];
+
+/** The page behind the dialogs: out of reach while any dialog is open */
+Structra.updatePageBehindDialog = function () {
+  const page = document.getElementById('appRoot');
+  if (!page) return;
+  const open = Structra.openDialogs.length > 0;
+  if ('inert' in page) page.inert = open;
+  else if (open) page.setAttribute('aria-hidden', 'true');
+  else page.removeAttribute('aria-hidden');
+};
 
 /**
  * Escape closes one thing: the dialog in front, otherwise the command palette, the Find or Filter bar,
@@ -93,6 +106,7 @@ class StructraDialog extends StructraComponent {
     // One dialog at a time: opening a new one closes the one in front of it (without taking focus back)
     for (const other of [...Structra.openDialogs]) if (other !== this) other.close(false);
     Structra.openDialogs.push(this);
+    Structra.updatePageBehindDialog();
     this._returnFocus = document.activeElement;
     this.root.classList.add('show');
     const target = this.querySelector('[autofocus]') || this.querySelector('.ov-body input, .ov-body textarea, .ov-body select, .ov-body button') || this.querySelector('.ov-close');
@@ -105,6 +119,7 @@ class StructraDialog extends StructraComponent {
     this.root.classList.remove('show');
     const i = Structra.openDialogs.indexOf(this);
     if (i >= 0) Structra.openDialogs.splice(i, 1);
+    Structra.updatePageBehindDialog();      // before the focus goes back: an inert page would refuse it
     if (restoreFocus !== false && this._returnFocus && this._returnFocus.focus) this._returnFocus.focus();
     this._returnFocus = null;
     if (this.onClose) this.onClose();
