@@ -109,6 +109,9 @@ function serve() {
     if (!s.hl || s.hl.path !== 'value[0].Title') failures.push('Back did not move the Tree to the line: ' + JSON.stringify(s.hl));
 
     // ---- Right-click: selects the line, real icons, Power Platform entries ----
+    // The Tree draws only the lines in view: go to the value first (what a person does by scrolling)
+    await typePath('$.value[1].Title');
+    await page.waitForSelector('structra-tree .j-line.highlighted', { timeout: 5000 });
     await page.locator('structra-tree .j-str', { hasText: 'Badge request' }).click({ button: 'right' });
     await page.waitForTimeout(300);
     const menu = await page.evaluate(() => {
@@ -134,10 +137,11 @@ function serve() {
     await page.waitForTimeout(300);
     const collapsed = await page.evaluate(() => document.querySelectorAll('structra-tree .j-ellipsis').length && [...document.querySelectorAll('structra-tree .j-ellipsis')].filter((e) => e.offsetParent !== null).length);
     if (!collapsed) failures.push('Level 1 did not collapse anything');
-    const block = await page.evaluate(() => [...document.querySelectorAll('structra-tree .j-ellipsis')].find((e) => e.offsetParent !== null).dataset.block);
-    await page.locator(`structra-tree .j-ellipsis[data-block="${block}"]`).click();
+    // the block is named by the path of its line (the lines are drawn by CodeMirror and have no block ids)
+    const block = await page.evaluate(() => [...document.querySelectorAll('structra-tree .j-ellipsis')].find((e) => e.offsetParent !== null).closest('.j-line').dataset.path);
+    await page.locator('structra-tree .j-line[data-path="' + block.replace(/"/g, '\\"') + '"] .j-ellipsis').click();
     await page.waitForTimeout(300);
-    const stillShut = await page.evaluate((b) => document.querySelector(`structra-tree .j-ellipsis[data-block="${b}"]`).offsetParent !== null, block);
+    const stillShut = await page.evaluate((path) => !!document.querySelector('structra-tree .j-line[data-path="' + path.replace(/"/g, '\\"') + '"] .j-ellipsis'), block);
     if (stillShut) failures.push('clicking the text of a collapsed node did not open it');
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));

@@ -183,3 +183,103 @@ test('a very long list stays quick: 300,000 closed records open, one record open
   console.log(`        300,000 records: build ${buildMs} ms, open one ${openMs} ms, reveal the last ${revealMs} ms, ${model.rows} rows`);
   truthy(buildMs < 4000 && openMs < 300 && revealMs < 1500, `build ${buildMs}, open ${openMs}, reveal ${revealMs}`);
 });
+
+/* ---------- a filter: the matches and the blocks above them ---------- */
+
+/** The data with only the matches and the ways to them: the oracle for a filtered model */
+function pruned(value, matched, path = '') {
+  if (matched.has(path)) return value;
+  if (value === null || typeof value !== 'object') return undefined;
+  if (Array.isArray(value)) {
+    const kept = [];
+    value.forEach((item, i) => { const inside = pruned(item, matched, Structra.dataPaths.child(path, i)); if (inside !== undefined) kept.push(inside); });
+    return kept.length ? kept : undefined;
+  }
+  const kept = {};
+  for (const key of Object.keys(value)) { const inside = pruned(value[key], matched, Structra.dataPaths.child(path, key)); if (inside !== undefined) kept[key] = inside; }
+  return Object.keys(kept).length ? kept : undefined;
+}
+
+/** Every path to a value or block in the data, in document order (to pick matches from) */
+function allPaths(value, path = '', out = []) {
+  if (path !== '') out.push(path);
+  if (value !== null && typeof value === 'object') for (const key of Object.keys(value)) allPaths(value[key], Structra.dataPaths.child(path, Array.isArray(value) ? Number(key) : key), out);
+  return out;
+}
+
+test('a filter: opened fully, the rows are the pruned data (matches and the blocks above them), with the original line numbers', () => {
+  let seed = 11;
+  const random = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  for (const { name, value } of [...shapes.slice(0, 2), ...documents.filter((d) => d.value && typeof d.value === 'object').slice(0, 50)]) {
+    const paths = allPaths(value);
+    if (!paths.length) continue;
+    for (let round = 0; round < 4; round++) {
+      const matches = new Set();
+      for (let k = 0; k < 1 + random(4); k++) matches.add(paths[random(paths.length)]);
+      const model = M.create(value, { filter: M.makeFilter(matches) });
+      const { text } = model.expandAll();
+      const expected = pruned(value, matches);
+      eq(text, JSON.stringify(expected, null, 2), `${name} matches ${[...matches].join(' ')}`);
+      const originalLines = JSON.stringify(value, null, 2).split('\n');
+      const rows = text.split('\n');
+      for (let row = 0; row < model.rows; row++) {
+        if (model.kind(row) === K.MORE) continue;
+        eq(rows[row].replace(/,$/, ''), originalLines[model.fileLineOf(row)].replace(/,$/, ''), `${name}: row ${row} keeps its line number ${model.fileLineOf(row)}`);
+      }
+    }
+  }
+});
+
+test('a filter: opening and closing blocks keeps the document and the model in step', () => {
+  const value = { value: records(30), other: { deep: [1, 2, { x: 1 }] } };
+  const matches = new Set(['value[3].owner.mail', 'value[20].name', 'other.deep[2]']);
+  const model = M.create(value, { filter: M.makeFilter(matches) });
+  const doc = new Lines(model.initialText());
+  let seed = 5;
+  const random = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
+  for (let step = 0; step < 60; step++) {
+    const change = model.toggle(random(model.rows));
+    if (change) doc.apply(change);
+    eq(doc.lines.length, model.rows, 'step ' + step);
+  }
+  // the model opened fully again must still be the pruned data
+  eq(model.expandAll().text, JSON.stringify(pruned(value, matches), null, 2));
+});
+
+test('windows: a block longer than the window shows the window and a "more" row; more rows show the next windows; paths beyond are revealed', () => {
+  const list = Array.from({ length: 130 }, (v, i) => ({ id: i }));
+  const model = M.create(list, { window: 50 });
+  model.setDepth(1);                                  // the root open, the records closed
+  const doc = new Lines(model.setDepth(1).text);
+  const rowsInRoot = () => doc.lines.length;
+  // 1 open row + 50 records + 1 more row + 1 close row
+  eq(rowsInRoot(), 53);
+  const moreRow = 51;
+  eq(model.kind(moreRow), K.MORE);
+  eq(doc.lines[moreRow].includes('80 more items'), true, doc.lines[moreRow]);
+  // a "more" row never counts as a place to select
+  eq(model.pathOf(moreRow), '');
+  doc.apply(model.more(moreRow));
+  eq(rowsInRoot(), 103);
+  eq(model.kind(101), K.MORE);
+  eq(doc.lines[101].includes('30 more items'), true);
+  doc.apply(model.more(101));
+  eq(rowsInRoot(), 132);                              // 1 + 130 + 1, no more row
+  eq(doc.lines.some((line) => line.includes('more items')), false);
+  // the same through a path: closed windows are opened to reach the row
+  const second = M.create(list, { window: 50 });
+  const doc2 = new Lines(second.setDepth(1).text);
+  const found = second.revealPath('[120].id');
+  for (const change of found.changes) doc2.apply(change);
+  eq(second.pathOf(found.row), '[120].id');
+  eq(doc2.lines.length, second.rows);
+});
+
+test('windows keep the file line numbers right', () => {
+  const list = Array.from({ length: 130 }, (v, i) => ({ id: i, tags: [1, 2] }));
+  const model = M.create(list, { window: 40 });
+  const doc = new Lines(model.setDepth(1).text);
+  while (doc.lines.some((line) => /more items/.test(line))) doc.apply(model.more(doc.lines.findIndex((line) => /more items/.test(line))));
+  const expectedLines = JSON.stringify(list, null, 2).split('\n');
+  for (let row = 0; row < model.rows; row++) if (model.kind(row) === K.CLOSED) eq(expectedLines[model.fileLineOf(row)].trim().startsWith('{'), true, 'row ' + row);
+});

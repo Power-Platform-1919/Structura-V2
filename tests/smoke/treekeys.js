@@ -63,7 +63,7 @@ function serve() {
     await page.waitForTimeout(500);
 
     // Arrow keys move the selection, Left folds, Right unfolds, Enter selects
-    await page.locator('#jsonView').focus();
+    await page.locator('#jsonView .cm-content').focus();
     const sel = () => page.evaluate(() => Structra.state.currentPath);
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowDown');
