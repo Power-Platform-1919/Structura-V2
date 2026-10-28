@@ -77,6 +77,11 @@ const COMPOSE = 'x-base: &base\n  image: node\n  restart: always\nservices:\n  w
     const compose = await page.evaluate(() => Structra.state.jsonData);
     if (!compose || JSON.stringify(compose.services.web) !== JSON.stringify({ image: 'node', restart: 'always', ports: ['80:80'] })) fail('the << merge should copy the base in: ' + JSON.stringify(compose).slice(0, 200));
 
+    // the worker file is fetched by version, not by time, so the browser can keep it between visits
+    const workerUrl = await page.evaluate(() => Structra._yamlWorkerPool.workerUrl + ' ' + document.querySelector('meta[name="structra-version"]').content);
+    const [workerAddress, appVersion] = workerUrl.split(' ');
+    if (!workerAddress.endsWith('?v=' + appVersion) || !appVersion) fail('the worker address should end with ?v=<app version>: ' + workerUrl);
+
     // Convert to YAML and read it back
     const roundTrip = await page.evaluate(async () => {
       const data = Structra.state.jsonData;

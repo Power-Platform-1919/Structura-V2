@@ -13,6 +13,8 @@
  * @param {number} [config.transferThreshold=0] - Byte threshold for Transferable ArrayBuffer (0 = disabled)
  * @returns {Object} pool with enqueue(text, options?) method
  */
+const WORKER_VERSION = (typeof document !== 'undefined' && document.querySelector('meta[name="structra-version"]') || {}).content || 'dev';
+
 Structra.createWorkerPool = function(config) {
   const pool = {
     name: config.name || 'Generic',
@@ -27,7 +29,9 @@ Structra.createWorkerPool = function(config) {
     transferThreshold: config.transferThreshold || 0,
     idleTimeout: config.idleTimeout || 60000,     // ms before idle workers are terminated
     minWorkers: config.minWorkers || 0,           // keep at least this many alive
-    workerUrl: config.workerUrl + '?v=' + Date.now(),
+    // The address carries the app version (package.json, shown in the page as the structra-version meta tag), not the time: the browser keeps
+    // the worker file between visits and fetches it again only after a new version. (A time in the address made every visit download it again.)
+    workerUrl: config.workerUrl + '?v=' + WORKER_VERSION,
     workerCode: config.workerCode || null,       // inline source for Blob URL fallback
     _blobUrl: null,                              // cached Blob URL (created once)
 

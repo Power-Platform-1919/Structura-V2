@@ -107,6 +107,14 @@ function serve() {
       if (after !== before - 1) failures.push('removing a Recent entry should leave ' + (before - 1) + ', there are ' + after);
     }
 
+    // ---- A broken JSON file says what is wrong and where, the same in every browser ----
+    await page.evaluate(() => Structra.events.emit('tabs:add'));
+    await uploadAndWait(page, { name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{\n  "a": 1,\n  "b": [1, 2,\n  "c": 3\n}') });
+    await page.waitForTimeout(800);
+    const brokenMessage = await page.evaluate(() => [...document.querySelectorAll('.io-error-detail')].map((element) => element.textContent.trim()).join(' | '));
+    if (!/Line 4, column 6/.test(brokenMessage)) failures.push('a broken JSON file should say where (line 4, column 6): ' + brokenMessage.slice(0, 200));
+    await page.evaluate(() => Structra.events.emit('tabs:add'));
+
     // ---- Find counts every matching value, and shows it inside the record that holds it ----
     await page.evaluate(() => Structra.events.emit('tabs:add'));
     await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));

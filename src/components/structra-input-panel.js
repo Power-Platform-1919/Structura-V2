@@ -924,9 +924,19 @@ class StructraInputPanel extends StructraComponent {
       });
     }
     element.classList.add('show');
+    // JSON: the place and the reason come from jsonc-parser, the same in every browser (Safari's own message has no place)
+    if (canRepair) {
+      const token = this._errorToken = (this._errorToken || 0) + 1;
+      Structra.jsonRepairAndValidation.explainParseError(rawText).then((found) => {
+        if (!found || token !== this._errorToken) return;
+        const detailElement = element.querySelector('.io-error-detail');
+        if (detailElement) detailElement.textContent = found.reason + '. Line ' + found.line + ', column ' + found.column + '.';
+      }).catch(() => { /* the browser's own message stays */ });
+    }
   }
 
   _clearError() {
+    this._errorToken = (this._errorToken || 0) + 1;
     const element = this.queryOne('[data-role="error"]');
     element.classList.remove('show');
     element.textContent = '';
