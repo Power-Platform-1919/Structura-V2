@@ -66,6 +66,11 @@ function serve() {
     if (cols.join(',') !== 'id,name,region,amount,active') failures.push('the table columns should be id,name,region,amount,active: ' + cols.join(','));
     const examples = await page.evaluate(() => [...document.querySelectorAll('#sqlExamples .qp-preset-btn')].map((e) => e.textContent));
     if (!examples.includes('Count by name') || !examples.includes('Totals of id')) failures.push('example queries should use the real columns: ' + examples.join(' | '));
+    // a column that holds a list of numbers (BIGINT[]) is not a number to total: the example would fail with a Binder Error
+    const listExamples = await page.evaluate(() => document.querySelector('structra-query')._sqlExamples([{ name: 'id', type: 'BIGINT' }, { name: 'price', type: 'DECIMAL(18,3)' }, { name: 'scores', type: 'BIGINT[]' }, { name: 'box', type: 'STRUCT(a INTEGER)' }]).map((example) => example.label));
+    if (!listExamples.includes('Totals of id')) failures.push('a BIGINT column should get a Totals example: ' + listExamples.join(' | '));
+    const listTotals = await page.evaluate(() => document.querySelector('structra-query')._sqlExamples([{ name: 'scores', type: 'BIGINT[]' }, { name: 'price', type: 'DECIMAL(18,3)' }]).map((example) => example.label));
+    if (listTotals.includes('Totals of scores') || !listTotals.includes('Totals of price')) failures.push('Totals should skip a list of numbers and accept DECIMAL(18,3): ' + listTotals.join(' | '));
     const hidden = await page.evaluate(() => document.querySelector('#sqlSchema').hidden);
     if (hidden) failures.push('the table and its columns should be visible in SQL mode');
 

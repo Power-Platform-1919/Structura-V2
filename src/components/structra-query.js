@@ -419,7 +419,8 @@ class StructraQuery extends StructraComponent {
 
   /** Ready-made queries that use the file's real column names, so they run as they are */
   _sqlExamples(columns) {
-    const isNumber = (type) => /^(U?(TINY|SMALL|BIG|HUGE)?INT|INTEGER|DOUBLE|FLOAT|REAL|DECIMAL)/i.test(type);
+    // a whole type name: BIGINT[] (a list of numbers) is not a number to total
+    const isNumber = (type) => /^(U?(TINY|SMALL|BIG|HUGE)?INT(EGER)?|DOUBLE|FLOAT|REAL|DECIMAL(?:[(][0-9, ]*[)])?)$/i.test(type);
     const text = columns.find((column) => /^VARCHAR/i.test(column.type));
     const number = columns.find((column) => isNumber(column.type));
     const list = [

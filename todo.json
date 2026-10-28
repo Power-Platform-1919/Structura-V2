@@ -3874,17 +3874,42 @@
         {
           "id": "21.9",
           "title": "Pivot: keyboard way to place fields (3.13)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.9.1",
               "title": "\"Add to rows, columns, values\" buttons on each field",
-              "status": "todo"
+              "status": "done",
+              "note": "Pivot field list: each field is a real button (auto place as before) plus Rows, Columns, Values buttons shown on hover or focus (named 'Put X in ...'); a chosen place moves the field and says so; numbers-only check for Values; the remove mark in a zone is now a named button",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.9.2",
               "title": "Test with keyboard only",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/datatools.js: Tab to a field's Columns button, Enter places it, the remove button takes it out; Edge, Firefox, WebKit green; UI audit axe 0",
+              "doneOn": "2026-10-28"
+            }
+          ]
+        },
+        {
+          "id": "21.10",
+          "title": "Found by the monkey audit: the \"Totals of ...\" SQL example offered a list-of-numbers column",
+          "status": "done",
+          "subtasks": [
+            {
+              "id": "21.10.1",
+              "title": "Only a plain number column gets a Totals example (BIGINT[] is a list)",
+              "status": "done",
+              "note": "structra-query.js _sqlExamples: the number test now matches the whole type name, so BIGINT[] (a list) is skipped and DECIMAL(18,3) still counts; found by the random-click audit (a Binder Error on test5_empties.json), reproduced first",
+              "doneOn": "2026-10-28"
+            },
+            {
+              "id": "21.10.2",
+              "title": "Test the example builder with BIGINT, DECIMAL(18,3), BIGINT[], STRUCT",
+              "status": "done",
+              "note": "tests/smoke/sql.js checks the builder with BIGINT, DECIMAL(18,3), BIGINT[], STRUCT; the UI audit now shows 0 high findings",
+              "doneOn": "2026-10-28"
             }
           ]
         }

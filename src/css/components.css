@@ -1643,7 +1643,16 @@ structra-overview {
 .pivot-field-list { min-width: 180px; }
 .pivot-field-title { font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
 .pivot-fields { display: flex; flex-wrap: wrap; gap: 4px; max-height: 100px; overflow: auto; }
+.pivot-field { display: inline-flex; align-items: center; gap: 2px; }
+.pivot-places { display: none; gap: 2px; }
+.pivot-field:hover .pivot-places, .pivot-field:focus-within .pivot-places { display: inline-flex; }
+.pivot-place {
+  padding: 1px 6px; border-radius: 10px; font-size: var(--fs-xxs, 10px); cursor: pointer;
+  background: var(--surface-alt); color: var(--text); border: 1px solid var(--border);
+}
+.pivot-place:hover { border-color: var(--accent); color: var(--accent); }
 .pivot-chip {
+  font-family: inherit;
   padding: 2px 8px; border-radius: 12px; font-size: var(--fs-xs);
   background: var(--accent-soft); color: var(--accent);
   cursor: pointer; border: 1px solid transparent;
@@ -1659,7 +1668,7 @@ structra-overview {
   display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start;
 }
 .pivot-zone-chip { padding: 2px 8px; border-radius: 12px; font-size: var(--fs-xs); background: var(--surface-alt); border: 1px solid var(--border); display: flex; align-items: center; gap: 4px; }
-.pivot-zone-rm { cursor: pointer; color: var(--text-muted); font-size: 10px; }
+.pivot-zone-rm { cursor: pointer; color: var(--text-muted); font-size: 10px; background: none; border: 0; padding: 0; display: inline-flex; }
 .pivot-zone-rm:hover { color: var(--danger); }
 .pivot-zone-hint { font-size: var(--fs-xxs); color: var(--text-muted); padding: 4px; }
 .pivot-agg { font-size: var(--fs-xs); background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px 6px; color: var(--text); margin-top: 4px; }

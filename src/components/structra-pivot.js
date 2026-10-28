@@ -65,6 +65,8 @@ class StructraPivot extends StructraDialog {
       if (field && !field.closest('.pivot-zone-drop')) {
         this._addFieldToZone(field.dataset.field);
       }
+      const place = event.target.closest('[data-place]');
+      if (place) { this._placeField(place.dataset.placeField, place.dataset.place); return; }
       const actionButton = event.target.closest('[data-pivot-act]');
       if (actionButton) { if (actionButton.dataset.pivotAct === 'copy') this._copyAll(); else this._openAll(); return; }
       // Remove from zone
@@ -108,8 +110,12 @@ class StructraPivot extends StructraDialog {
   _renderFields() {
     const container = this.queryOne('#pivotFields');
     if (!container) return;
-    container.innerHTML = this._fields.map(field =>
-      `<span class="pivot-chip" data-field="${Structra.sharedHelpers.escapeHtml(field)}">${Structra.sharedHelpers.escapeHtml(field)}</span>`
+    const escape = Structra.sharedHelpers.escapeHtml;
+    const places = [['rows', 'Rows', 'Group by (rows)'], ['cols', 'Columns', 'Then by (columns)'], ['values', 'Values', 'Count or total of']];
+    container.innerHTML = this._fields.map((field) =>
+      `<span class="pivot-field"><button type="button" class="pivot-chip" data-field="${escape(field)}">${escape(field)}</button><span class="pivot-places" role="group" aria-label="Put ${escape(field)} in">${
+        places.map(([zone, label, long]) => `<button type="button" class="pivot-place" data-place="${zone}" data-place-field="${escape(field)}" aria-label="Put ${escape(field)} in ${long}" title="${long}">${label}</button>`).join('')
+      }</span></span>`
     ).join('');
   }
 
@@ -143,6 +149,18 @@ class StructraPivot extends StructraDialog {
     this._renderZones();
   }
 
+  /** Puts a field in the zone the person chose (moving it if it is in another one), for people who do not use the mouse or want to choose */
+  _placeField(field, zone) {
+    if (zone === 'values' && !this._isNumeric(field)) { Structra.toast(`${field} has no numbers to total, so it can only be used to group by`, 'warning'); return; }
+    this._rows = this._rows.filter((name) => name !== field);
+    this._cols = this._cols.filter((name) => name !== field);
+    this._values = this._values.filter((name) => name !== field);
+    ({ rows: this._rows, cols: this._cols, values: this._values })[zone].push(field);
+    if (zone === 'values' && this._values.length === 1 && this._aggFn === 'count') { this._aggFn = 'sum'; const selection = this.queryOne('#pivotAgg'); if (selection) selection.value = 'sum'; }
+    this._renderZones();
+    Structra.toast(`${field} added to ${{ rows: 'Group by (rows)', cols: 'Then by (columns)', values: 'Count or total of' }[zone]}`);
+  }
+
   _removeFromZone(zone, field) {
     if (zone === 'rows') this._rows = this._rows.filter(fieldName => fieldName !== field);
     else if (zone === 'cols') this._cols = this._cols.filter(fieldName => fieldName !== field);
@@ -152,7 +170,7 @@ class StructraPivot extends StructraDialog {
 
   _renderZones() {
     const chip = (field, zone) =>
-      `<span class="pivot-zone-chip">${Structra.sharedHelpers.escapeHtml(field)} <span class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.sharedHelpers.escapeHtml(field)}">${Structra.icons.svg('x', { size: 14 })}</span></span>`;
+      `<span class="pivot-zone-chip">${Structra.sharedHelpers.escapeHtml(field)} <button type="button" class="pivot-zone-rm" data-rm-zone="${zone}" data-rm-field="${Structra.sharedHelpers.escapeHtml(field)}" aria-label="Remove ${Structra.sharedHelpers.escapeHtml(field)}">${Structra.icons.svg('x', { size: 14 })}</button></span>`;
     this.queryOne('#pivotRows').innerHTML = this._rows.map(field => chip(field, 'rows')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
     this.queryOne('#pivotCols').innerHTML = this._cols.map(field => chip(field, 'cols')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
     this.queryOne('#pivotValues').innerHTML = this._values.map(field => chip(field, 'values')).join('') || '<span class="pivot-zone-hint">Click a field on the left</span>';
