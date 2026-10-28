@@ -121,8 +121,12 @@ async function openJson(page, name, value) {
       const restoreTop = scroller.scrollTop;
       // Far away: the first rows leave the page. Then back: they are drawn again, as they were.
       await until(() => { scroller.scrollTop = scroller.scrollHeight; return !view.querySelector('.j-line[data-path="[2].meta"]'); }, 'the first rows to leave the page');
-      scroller.scrollTop = restoreTop;      // the same place as before, whatever the window height
+      // back to the marked lines: from the top, down until they are in the page (browsers keep a pixel position a little differently)
+      scroller.scrollTop = 0;
+      for (let step = 0; step < 60 && !view.querySelector('.j-line[data-path="[5].name"]'); step++) { scroller.scrollTop += 120; await new Promise((resolve) => setTimeout(resolve, 40)); }
       await until(() => view.querySelector('.j-line[data-path="[2].meta"]'), 'the first rows to be drawn again');
+      // the marks are drawn with the lines: wait (with a limit) until they are back, then compare
+      await until(() => JSON.stringify(marks()) === JSON.stringify(before), 'the marks to be drawn again').catch(() => {});
       return { before, after: marks() };
     });
     if (kept.before.toggle !== '▼') failures.push('setup: the block should be open after a click, got ' + kept.before.toggle);
