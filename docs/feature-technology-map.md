@@ -654,6 +654,8 @@ For every hand-written area we ask one question: **which is better, ours or the 
 
 4. **Shared architecture: generic logic is written once.** If a job is needed in more than one place (writing a path, running user code, closing a menu, copying to the clipboard), it lives in one shared module and every place calls it. A new copy is a defect. This is also what keeps rule 3 cheap: one door per library, one worker service, one path writer. The duplicate scan and the shared pieces are task 27.
 
+5. **Mature test suites are run against our code.** Wherever a library or a standard has an official test suite (RFC 9535 for JSONPath, JSONTestSuite for JSON, the JSON Schema test suite, csv-spectrum, yaml-test-suite, toml-test), it runs through our own integration, not only inside the library. Those suites hold cases we never thought of. The pass counts are recorded and a drop fails the build. This is task 31.
+
 The second kind of area (keep and harden) is the easy one to miss, because nothing looks wrong until the odd input arrives. It applies only where ours is the better choice; where mature code wins, we replace and there is nothing to harden.
 
 Sorting the audit results by this rule:

@@ -221,10 +221,7 @@ Structra.jsonTreeRenderer = (() => {
       const innerPad = '  '.repeat(indent + 1);
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
-        const needsBracket = /[.\[\]]/.test(key);
-        const childPath = path
-          ? (needsBracket ? `${path}["${key}"]` : `${path}.${key}`)
-          : (needsBracket ? `["${key}"]` : key);
+        const childPath = Structra.dataPaths.child(path, key);
         const comma = i < keys.length - 1 ? ',' : '';
         const value = object[key];
         if (value && typeof value === 'object') {
@@ -441,10 +438,7 @@ Structra.jsonTreeRenderer = (() => {
   function pathOfTokens(tokens, count) {
     let path = '';
     for (let i = 0; i < count; i++) {
-      const token = tokens[i];
-      if (token.type === 'index') path += `[${token.value}]`;
-      else if (/[.\[\]]/.test(token.value)) path += `["${token.value}"]`;
-      else path += path ? `.${token.value}` : token.value;
+      path = Structra.dataPaths.child(path, tokens[i].value);
     }
     return path;
   }

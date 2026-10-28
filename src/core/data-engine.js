@@ -295,7 +295,7 @@ Structra.dataEngine = (() => {
           ? value.map((item, i) => [i, item])
           : Object.entries(value);
         for (const [key, item] of entries) {
-          const childPath = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
+          const childPath = Structra.dataPaths.child(path, Array.isArray(value) ? Number(key) : key);
           // Check match based on mode
           if (mode === 'keys' && regex.test(String(key))) {
             matched.push(childPath);
@@ -379,7 +379,7 @@ Structra.dataEngine = (() => {
     if (typeof value === 'object') {
       const properties = {};
       for (const [key, item] of Object.entries(value)) {
-        properties[key] = inferSchema(item, path + '.' + key, depth + 1);
+        properties[key] = inferSchema(item, Structra.dataPaths.child(path, key), depth + 1);
       }
       return { type: 'object', path, properties };
     }
@@ -905,7 +905,7 @@ Structra.dataEngine = (() => {
       if (!row || typeof row !== 'object') continue;
       for (const [key, value] of Object.entries(row)) {
         if (value !== null && typeof value !== 'object' && regex.test(String(value))) {
-          paths.push(`$[${i}].${key}`);
+          paths.push(Structra.dataPaths.child(Structra.dataPaths.child('$', i), key));
         }
       }
     }
@@ -1109,7 +1109,7 @@ Structra.dataEngine = (() => {
           const entries = Object.entries(value);
           for (let i = entries.length - 1; i >= 0; i--) {
             const [key, value] = entries[i];
-            stack.push({ val: value, path: `${path}.${key}`, depth: depth + 1 });
+            stack.push({ val: value, path: Structra.dataPaths.child(path, key), depth: depth + 1 });
           }
         }
       }
@@ -1242,7 +1242,7 @@ Structra.dataEngine = (() => {
         : null;
     }
     for (const key of Object.keys(data)) {
-      const result = _firstObjectArray(data[key], `${path}.${key}`);
+      const result = _firstObjectArray(data[key], Structra.dataPaths.child(path, key));
       if (result) return result;
     }
     return null;
@@ -1278,7 +1278,7 @@ Structra.dataEngine = (() => {
         if (item && typeof item === 'object' && !Array.isArray(item)) {
           for (const [key, value] of Object.entries(item)) {
             if (value && typeof value === 'object') {
-              const childPath = `${path}[*].${key}`;
+              const childPath = Structra.dataPaths.child(`${path}[*]`, key);
               if (!result.some(known => known.path === childPath)) {
                 const subPaths = _allArrays(value, childPath, seen);
                 for (const subPath of subPaths) {
@@ -1291,7 +1291,7 @@ Structra.dataEngine = (() => {
       }
     } else if (object && typeof object === 'object') {
       for (const [key, value] of Object.entries(object)) {
-        const subPaths = _allArrays(value, path === '$' ? key : `${path}.${key}`, seen);
+        const subPaths = _allArrays(value, path === '$' ? Structra.dataPaths.child('', key) : Structra.dataPaths.child(path, key), seen);
         for (const subPath of subPaths) result.push(subPath);
       }
     }
@@ -1826,7 +1826,7 @@ Structra.dataEngine = (() => {
       if (!value || typeof value !== 'object') continue;
       const entries = Array.isArray(value) ? value.map((item, i) => [i, item]) : Object.entries(value);
       for (const [key, item] of entries) {
-        const child = Array.isArray(value) ? `${path}[${key}]` : `${path}.${key}`;
+        const child = Structra.dataPaths.child(path, Array.isArray(value) ? Number(key) : key);
         if (item !== null && typeof item === 'object') stack.push({ val: item, path: child });
         else if (item !== null && item !== undefined && typeof item !== 'boolean' && matches(item)) matched.push(child);
       }

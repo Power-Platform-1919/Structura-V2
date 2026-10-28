@@ -284,7 +284,7 @@ class StructraDiff extends StructraDialog {
         addLine(prefix + open, className);
         for (let i = 0; i < size; i++) {
           const key = isList ? i : keys[i];
-          const childPath = isList ? `${path}[${key}]` : `${path}.${key}`;
+          const childPath = Structra.dataPaths.child(path, key);
           walk(value[key], childPath, indent + '  ', isList ? undefined : key, i === size - 1, className);
         }
         addLine(indent + close + comma, className);

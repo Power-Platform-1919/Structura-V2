@@ -2,7 +2,7 @@ const { load, test, eq, truthy } = require('./harness');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-load(['shared-helpers', 'json-repair-and-validation', 'json-diff']);
+load(['shared-helpers', 'data-paths', 'json-repair-and-validation', 'json-diff']);
 const D = Structra.jsonDiff;
 console.log('json-diff');
 

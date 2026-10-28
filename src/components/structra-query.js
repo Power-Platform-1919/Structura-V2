@@ -674,7 +674,7 @@ class StructraQuery extends StructraComponent {
       if (value && typeof value === 'object') {
         const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
         entries.forEach(([field, child]) => {
-          const childPath = Array.isArray(value) ? `${path}[${field}]` : (/^[A-Za-z_$][\w$]*$/.test(field) ? `${path}.${field}` : `${path}['${field}']`);
+          const childPath = Structra.dataPaths.child(path, Array.isArray(value) ? Number(field) : field);
           walk(child, childPath);
         });
       }
@@ -699,7 +699,7 @@ class StructraQuery extends StructraComponent {
           if (budget.left-- <= 0 || !value || typeof value !== 'object') return;
           if (!where.has(value)) where.set(value, path);
           const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
-          for (const [field, child] of entries) walk(child, Array.isArray(value) ? `${path}[${field}]` : (/^[A-Za-z_$][\w$]*$/.test(field) ? `${path}.${field}` : `${path}['${field}']`), budget);
+          for (const [field, child] of entries) walk(child, Structra.dataPaths.child(path, Array.isArray(value) ? Number(field) : field), budget);
         };
         walk(data, '$', { left: 200000 });
       }

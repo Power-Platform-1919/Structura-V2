@@ -8,7 +8,7 @@ const { load, test, eq, truthy } = require('./harness');
 // The library is a script that sets a global named JSONC, as it does in the page
 vm.runInThisContext(fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'libs', 'jsonc-parser.min.js'), 'utf8') + ';globalThis.JSONC = JSONC;');
 Structra.libraryLoader = { loadLibrary: async () => {} };
-load(['json-repair-and-validation']);
+load(['data-paths', 'json-repair-and-validation']);
 const explain = (text) => Structra.jsonRepairAndValidation.explainParseError(text);
 
 console.log('parse errors');

@@ -45,8 +45,7 @@ class StructraAutocomplete extends StructraComponent {
   _typeOf(value) { return Structra.sharedHelpers.jsonTypeOf(value); }
 
   _joinPath(parent, key) {
-    if (/^[A-Za-z_$][\w$]*$/.test(key)) return parent ? parent + '.' + key : key;
-    return `${parent}["${key}"]`;
+    return Structra.dataPaths.child(parent, key);
   }
 
   _suggest(raw) {

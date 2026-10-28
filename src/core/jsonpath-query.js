@@ -19,13 +19,12 @@
  *   await Structra.jsonpathQuery.queryStrict(data, expression)   the standard only, no conveniences (the compliance tool uses it)
  */
 Structra.jsonpathQuery = (() => {
-  const SIMPLE_KEY = /^[A-Za-z_$][\w$]*$/;
   const LOGICAL_TYPE = 1;
   const VALUE_TYPE = 3;
 
   /* ---------- results the way the app reads them ---------- */
 
-  const childPath = (path, key) => (typeof key === 'number' ? `${path}[${key}]` : (SIMPLE_KEY.test(key) ? `${path}.${key}` : `${path}['${String(key).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}']`));
+  const childPath = (path, key) => Structra.dataPaths.child(path, key);
   const pathOf = (location) => location.reduce((path, key) => childPath(path, key), '$');
 
   /* ---------- the engine ---------- */
@@ -92,7 +91,7 @@ Structra.jsonpathQuery = (() => {
     source = rewritePatternTests(source);
     if (!source.startsWith('$')) source = source.startsWith('[') ? '$' + source : (source.startsWith('.') ? '$' + source : '$.' + source);
     const asIndex = dotNumbers(source, (number) => `[${number}]`);
-    const asKey = dotNumbers(source, (number) => `['${number}']`);
+    const asKey = dotNumbers(source, (number) => `['${number}']`); // path-ok: rewrites a query the user typed, not a path we write
     return { changed: source !== String(expression), index: asIndex.text, key: asKey.found ? asKey.text : null };
   }
 

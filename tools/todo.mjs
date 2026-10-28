@@ -2,6 +2,9 @@
 
    node tools/todo.mjs list [id]             progress of every task (or one task with all its subtasks)
    node tools/todo.mjs set <id> <status> [note]   status: done | in_progress | todo | blocked
+                                             A step marked done MUST come with a note: a short description of what was done and
+                                             changed (files, pull request, numbers), so the list reads as a history. The date is
+                                             added automatically. `check` fails when a done step has no note.
    node tools/todo.mjs render                rewrite docs/TODO.md from todo.json
    node tools/todo.mjs check                 fail when todo.json is inconsistent or docs/TODO.md is out of date
 
@@ -49,7 +52,7 @@ export function save(todo) { writeFileSync(JSON_FILE, JSON.stringify(todo, null,
 const MARK = { done: '[x]', in_progress: '[~]', todo: '[ ]', blocked: '[!]' };
 
 function renderItem(item, depth) {
-  const note = item.note ? ` *(${item.note})*` : '';
+  const note = item.note ? ` *(${item.note}${item.doneOn ? `; done ${item.doneOn}` : ''})*` : '';
   let out = `${'  '.repeat(depth)}- ${MARK[item.status]} **${item.id}** ${item.title}${note}\n`;
   for (const child of item.subtasks || []) out += renderItem(child, depth + 1);
   return out;
@@ -87,6 +90,7 @@ export function problems(todo) {
     seen.add(item.id);
     if (!STATUSES.includes(item.status)) found.push(`${item.id} has the status "${item.status}"`);
     if (!item.title) found.push(`${item.id} has no title`);
+    if (item.status === 'done' && !(item.subtasks || []).length && !item.note) found.push(`${item.id} is done but has no note saying what was done (node tools/todo.mjs set ${item.id} done "what changed")`);
     const children = item.subtasks || [];
     if (children.length) {
       const stored = item.status;
@@ -117,8 +121,11 @@ function main() {
     if (!item) { console.error('no task ' + id); process.exit(1); }
     if (!STATUSES.includes(status)) { console.error('status must be one of ' + STATUSES.join(', ')); process.exit(1); }
     if ((item.subtasks || []).length) { console.error(`${id} has subtasks: set one of them, the task follows`); process.exit(1); }
+    const wasDone = item.status === 'done';
     item.status = status;
-    if (note.length) item.note = note.join(' '); else if (status === 'done') delete item.note;
+    if (status === 'done' && !note.length && !item.note) { console.error(`${id}: say what was done, as a short note: node tools/todo.mjs set ${id} done "what changed"`); process.exit(1); }
+    if (note.length) item.note = note.join(' ');
+    if (status === 'done') { if (!wasDone || note.length || !item.doneOn) item.doneOn = new Date().toISOString().slice(0, 10); } else delete item.doneOn;
     for (const task of todo.tasks) derive(task);
     save(todo);
     writeFileSync(MARKDOWN_FILE, renderMarkdown(todo));

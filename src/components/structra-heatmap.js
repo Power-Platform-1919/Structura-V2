@@ -68,7 +68,7 @@ class StructraHeatmap extends StructraComponent {
       if (Array.isArray(value)) {
         for (let i = 0; i < value.length; i++) this._walkSizes(value[i], `${path}[${i}]`);
       } else {
-        for (const key of Object.keys(value)) this._walkSizes(value[key], `${path}.${key}`);
+        for (const key of Object.keys(value)) this._walkSizes(value[key], Structra.dataPaths.child(path, key));
       }
     }
   }

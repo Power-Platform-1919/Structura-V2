@@ -79,7 +79,7 @@ class StructraNullfinder extends StructraDialog {
    */
   _scanInMemory(data, options) {
     const results = [];
-    const key = (path, key) => (/^[A-Za-z_$][\w$]*$/.test(key) ? `${path}.${key}` : `${path}['${key}']`);
+    const key = (path, name) => Structra.dataPaths.child(path, name);
     const walk = (value, path) => {
       if (value === null) { if (options.nulls) results.push({ path, type: 'null' }); return; }
       if (value === '') { if (options.empty) results.push({ path, type: 'empty' }); return; }
