@@ -1,0 +1,10 @@
+{
+  "path": ["src"],
+  "ignore": ["**/libs/**", "**/vendor/**", "**/fonts/**", "**/*.css"],
+  "format": ["javascript"],
+  "minLines": 6,
+  "minTokens": 50,
+  "threshold": 1,
+  "reporters": ["console"],
+  "gitignore": true
+}

@@ -68,7 +68,7 @@ An audit of every file in the repository against this document found these were 
 |---|---|---|
 | Deployment | `deploy-pages.yml`: every push to `prod` publishes `index.html`, `src` and `icons` to GitHub Pages | DONE 2026-10-28: `samples/` (old design prototypes) was published to the public site; it is now in `archive/` and no longer published (3.20) |
 | Branch mirror | `mirror-prod-to-main.yml`: makes `main` identical to `prod` | KEEP |
-| CI | `ci.yml`: lint and unit tests; generated types through the real compilers; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
+| CI | `ci.yml`: lint and unit tests; repeated code under 1 percent (jscpd, `.jscpd.json`); generated types through the real compilers; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
 | Old prototypes | `archive/structra-v2.html` and `archive/samples/` | DONE 2026-10-28: moved out of the root into `archive/` (see `archive/README.md`, review and delete later) |
 | `templates/` | an empty folder (not in git) | delete |
 | `todo.json` | the task list carried over from V1 (tasks 1 to 12) | KEEP; refresh |

@@ -4771,7 +4771,7 @@
     {
       "id": "27",
       "title": "Shared architecture: write generic logic once (rule 4)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Your rule: generic code is written once and reused. Examples already found: paths written in 16 places, four ways to run user code, a menu and outside-click handler per component.",
       "subtasks": [
         {
@@ -4791,12 +4791,16 @@
         {
           "id": "27.3",
           "title": "Candidate: one path writer and reader (task 18.1)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done under task 18.1: Structra.dataPaths is the one path writer and reader; a guard test (path-writers.test.js) fails when another file writes a path by hand. Found again in 23.8: the Power Platform pattern rows wrote one by hand; now dataPaths.child",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.4",
           "title": "Candidate: one job service for user code and patterns (task 19)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done under task 19: Structra.sandbox is the one job service for user code, filters, Transform and regular expression probes",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.5",
@@ -4815,22 +4819,30 @@
         {
           "id": "27.7",
           "title": "Candidate: one copy-to-clipboard button pattern (buttons repeated in many panels)",
-          "status": "todo"
+          "status": "done",
+          "note": "Evaluated: copy-to-clipboard is already one helper, Structra.sharedHelpers.copyToClipboard, called from 38 places; what repeats is each panel's own button markup, which differs in label, icon and place, so a shared button would only add parameters. Left as it is",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.8",
           "title": "Candidate: one empty-state and error-state block",
-          "status": "todo"
+          "status": "done",
+          "note": "Evaluated: 18 empty or error notes (palette, Query, Pivot, Charts, Table...) each have their own wording and class and sit in different layouts; a shared block would be a wrapper around a div with a text. Left as it is; the wording rules are in DEVELOPER-GUIDE section 7",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.9",
           "title": "Candidate: one number, size and date formatting set (check what is repeated)",
-          "status": "todo"
+          "status": "done",
+          "note": "Evaluated: Structra.sharedHelpers.formatBytes already exists; the two person-facing messages in the Editor that wrote their own MB now use it (the rest of the 'divide by 1048576' lines are log text). toLocaleString is the one way numbers are grouped (114 uses, no local copies)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.10",
           "title": "Candidate: one place for the \"one door per library\" modules (windowed rows, share, parse workers)",
-          "status": "todo"
+          "status": "done",
+          "note": "Evaluated: createWorkerPool is already shared by CSV, YAML and TOML; what the scan found (12 lines of message check in the TOML and YAML workers) is their small protocol, and the three official-suite tests load each worker file by name, so merging it would touch three tests for about 20 lines. Left as it is; noted as the next candidate if a fourth worker is ever added",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.11",
@@ -4842,12 +4854,16 @@
         {
           "id": "27.12",
           "title": "For each chosen candidate: write the shared piece, move one user at a time with tests green, delete the copies (to archive/ first)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done for the chosen candidates: popup service (menus, 8 places in 5 components), person-facing byte formats in the Editor; the others were evaluated and left (27.7 to 27.10) with the reason; no copy was deleted that needed archive/",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.13",
           "title": "Add a duplication budget check to CI so new copies are noticed",
-          "status": "todo"
+          "status": "done",
+          "note": "jscpd is a dev dependency with .jscpd.json (src JavaScript, no libraries or CSS, 6 lines, 50 tokens, threshold 1 percent); npm run check:duplication runs in the CI lint job; today 9 clones, 0.40 percent",
+          "doneOn": "2026-10-28"
         }
       ]
     },
