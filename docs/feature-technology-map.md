@@ -758,7 +758,7 @@ For each hand-written area that we keep, find an **oracle**: a standard, an offi
 | Personal data masking | own regexes | a list of known PII formats, Luhn check for card numbers | DONE 2026-10-28: found that the loose phone rule matched first and labelled every IP, card and social security number a phone, masked dates (2025-03-14) and plain ids; fixed with the checks above |
 | Startup cost | whole app | Lighthouse (and a bundle report) | the 358 KB icon set loads at start; DuckDB loads on demand |
 | Security of generated HTML | own escaping | `hostile.js` exists; extend it to every view with markup in keys and values | the app builds HTML as text in many places |
-| Large files | own | the 37 MB and 88 MB fixtures in all three engines | memory and time, per browser |
+| Large files | own | the 37 MB and 88 MB fixtures in all three engines | DONE 2026-10-28, numbers in section 8.8: all open in all three engines, no errors; the longest page stall is 0.4 to 2.1 s while the file is read |
 
 ### 8.4 Keeping it from regressing
 
@@ -811,3 +811,22 @@ A suite runs through OUR integration (the parse path, the adapter, the worker), 
 | Repair ("Fix it for me") | the 318 JSONTestSuite texts as input, with the promise "the result is valid JSON or an error" | `Structra.jsonRepairAndValidation.repair` (jsonrepair 3.x plus our second pass) | 127 valid, 191 invalid | valid: 127 of 127 unchanged. invalid: 148 repaired, 43 refused, **0 still broken (was 6)** | 6 texts came back from jsonrepair still invalid: numbers with a leading zero or a leading dot (`-01`, `.2e-3`, `-.5`) and a backslash followed by a raw tab or NUL. Fixed with a second pass; `repair()` now always returns valid JSON or throws (the Editor used to say "Repaired" over broken text) |
 | Compare and its JSON Patch (RFC 6902) | every valid JSONTestSuite document taken in pairs, patch applied by an independent implementation (fast-json-patch 3.1.1, a dev dependency) | `Structra.jsonRepairAndValidation.patch` (our position-mode patch) and `Structra.jsonDiff.compare` + `patchOps` (smart mode on jsondiffpatch) | 16,129 pairs (position mode), 2,305 pairs (smart mode) | all round-trip: 0 wrong, 0 refused | no bug found. Also checked: equal documents give an empty patch, the left document is not changed, keys with ~ and / are written ~0 and ~1 |
 | XML | W3C XML Conformance Test Suite (xmltest standalone files: 120 valid, 186 not well-formed) | the real XML opener (`Structra.parseXmlAsync`: browser DOMParser, our error detection and XML-to-JSON step) in all three engines | 306 | valid opened: Edge 116, Firefox 116, WebKit 114 of 120. Not well-formed refused: **Edge 125, Firefox 183, WebKit 181 of 186** | no bug in our code. Chromium (Chrome and Edge) implements XML 1.0 5th edition, in which many names and characters that the suite (written for earlier editions) marks as not well-formed are legal, so it opens 61 of them. Our refusal messages are always one line in all engines. Per-engine minimums are written in the test |
+
+### 8.8 Large files in the three engines (measured 2026-10-28)
+
+Tool: `tests/perf/large-engines.js` (Playwright, a fresh browser per file, this Windows machine, Edge 140-class Chromium, Firefox and WebKit as Playwright ships them). Files: `perf_100k.json` (37 MB, 2.2 million lines) and `perf_150k_complex.json` (88 MB, 6.9 million lines). Times are from choosing the file; "stall" is the longest time a 50 ms timer ran late (the page did not answer); browser memory is the peak working set of all processes the test started (page, workers, DuckDB when loaded), so it includes the browser itself.
+
+| Engine | File | Data open | Tree first line | Table | Overview | Longest stall | Page JS heap | Browser memory (peak) |
+|---|---|---|---|---|---|---|---|---|
+| Edge | 37 MB | 0.6 s | 42 ms | 50 ms | 32 ms | 0.46 s | 119 MB | 887 MB |
+| Edge | 88 MB | 1.9 s | 41 ms | 17 ms | 25 ms | 1.7 s | 355 MB | 1,072 MB |
+| Firefox | 37 MB | 0.8 s | 39 ms | 22 ms | 30 ms | 0.6 s | not exposed | 955 MB |
+| Firefox | 88 MB | 3.5 s | 37 ms | 27 ms | 67 ms | 2.1 s | not exposed | 1,198 MB |
+| WebKit | 37 MB | 0.6 s | 92 ms | 91 ms | 79 ms | 0.36 s | not exposed | 367 MB (see note) |
+| WebKit | 88 MB | 1.3 s | 60 ms | 35 ms | 123 ms | 1.0 s | not exposed | 1,059 MB |
+
+- No page errors in any run; the Tree, Table and Overview show at once in every engine, because they draw only the rows in view.
+- Firefox is the slowest to read the big file (3.5 s for 88 MB); WebKit is the fastest. The stall is the reading and counting of the document, while the Loading message shows.
+- Note: the WebKit 37 MB memory is a sampling gap (the processes were sampled every 4 s and the run is 3 s long); the 88 MB figure is the comparable one. The measure is rough on purpose; it is there to catch a doubling, not to compare engines to the megabyte.
+- Earlier plan figure (about 660 MB for the 88 MB file in Edge with the CodeMirror Tree) is within this: the measured peak is 1,072 MB for the whole browser, of which the page heap is 355 MB.
+
