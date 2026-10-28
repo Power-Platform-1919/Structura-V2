@@ -76,6 +76,82 @@ function serve() {
     const ran = await page.evaluate(() => window.__xss.slice());
     if (ran.length) failures.push('markup in a name, key or value ran as script: ' + ran.join(', '));
 
+    // ---- markup that breaks out of an attribute, a title or a script block, in every place values and keys are shown ----
+    // (the check is the page itself: nothing runs, and no element gets a handler, a script, a frame or a javascript: link from the data)
+    await closeAll();
+    const attr = (n) => `x" onmouseover="window.__xss.push('${n}')" data-y="`;
+    const svg = (n) => `'><svg onload=window.__xss.push('${n}')>`;
+    const script = (n) => `</script><script>window.__xss.push('${n}')</script>`;
+    const jsLink = (n) => `javascript:window.__xss.push('${n}')`;
+    const breakers = [
+      { id: 1, [attr('key-attr')]: 'v', [svg('key-svg')]: 'v', name: attr('name-attr'), note: svg('note-svg'), code: script('code-script'), url: jsLink('url-js'), status: 'Open', amount: 5 },
+      { id: 2, name: svg('name2'), note: script('note2'), url: jsLink('url-js2'), status: attr('status-attr'), amount: 7 },
+    ];
+    await load(attr('tab-attr') + '.json', JSON.stringify(breakers));
+    await page.evaluate(() => { window.__xss = []; });
+    for (const v of ['overview', 'tree', 'table', 'graph', 'schema', 'editor']) { await page.evaluate((x) => Structra.setState('activeView', x), v); await page.waitForTimeout(450); }
+    // the Node panel and the path bar on a hostile key and value
+    await page.evaluate(() => { Structra.setState('activeView', 'tree'); Structra.setState('contextPanelOpen', true); });
+    await page.waitForTimeout(300);
+    for (const target of ['$[0].name', '$[0].url', '$[1].status']) {
+      await page.evaluate((p) => { Structra.setState('currentPath', p); Structra.events.emit('tree:node-selected', p); }, target);
+      await page.waitForTimeout(250);
+    }
+    // the Query panel (JSONPath and SQL results), Find and Pivot
+    await page.evaluate(() => Structra.setState('queryPanelOpen', true));
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { const box = document.querySelector('#queryInput'); if (box) { box.value = '$[*].name'; box.dispatchEvent(new Event('input', { bubbles: true })); } });
+    await page.waitForTimeout(400);
+    const sqlButton = page.locator('.seg-btn[data-mode="sql"]');
+    if (await sqlButton.count()) {
+      await sqlButton.click();
+      await page.waitForSelector('#sqlColumns .qp-sql-col', { state: 'attached', timeout: 60000 }).catch(() => {});
+      await page.evaluate(() => { const host = document.querySelector('.qp-sql-host'); if (host && host.codeView) { host.codeView.setValue('SELECT * FROM data'); host.codeView.focus(); } });
+      await page.keyboard.press('Control+Enter');
+      await page.waitForTimeout(1500);
+    }
+    await page.evaluate(() => { Structra.setState('findBarOpen', true); });
+    await page.waitForTimeout(200);
+    await page.evaluate(() => { const input = document.querySelector('#findInput'); if (input) { input.value = 'onmouseover'; input.dispatchEvent(new Event('input', { bubbles: true })); } });
+    await page.waitForTimeout(500);
+    for (const ev of ['pivot:open', 'nullfinder:open', 'charts:open', 'typedef:open', 'diff:open', 'validate:open', 'snippets:open']) {
+      await page.evaluate((e) => Structra.events.emit(e, e === 'typedef:open' ? { lang: 'typescript', name: 'Root' } : {}), ev);
+      await page.waitForTimeout(350);
+      if (ev === 'pivot:open') await page.evaluate(() => { const pivot = document.querySelector('structra-pivot'); pivot._rows = ['name']; pivot._runPivot(); });
+      await page.waitForTimeout(250);
+      await page.evaluate(() => Structra.events.emit('overlay:close'));
+    }
+    // the Power Platform expressions for a hostile path, and Compare of two hostile documents
+    await page.evaluate(() => { Structra.setState('contextPanelOpen', true); Structra.setState('drawerState', 'half'); });
+    await page.evaluate((p) => { Structra.setState('currentPath', p); Structra.events.emit('tree:node-selected', p); }, '$[0].name');
+    await page.waitForTimeout(500);
+    const injected = await page.evaluate(() => {
+      const own = new Set([...document.querySelectorAll('script[src]')].map((element) => element));
+      const found = [];
+      for (const element of document.querySelectorAll('*')) {
+        for (const attribute of element.attributes) {
+          if (/^on/i.test(attribute.name)) found.push(`${element.tagName.toLowerCase()} has ${attribute.name}`);
+          if (/^(href|src|action|formaction|xlink:href)$/i.test(attribute.name) && /^\s*(javascript|data:text\/html|vbscript):/i.test(attribute.value)) found.push(`${element.tagName.toLowerCase()} ${attribute.name}=${attribute.value.slice(0, 40)}`);
+        }
+        // (the page has one inline script of its own, in index.html, which is not about the data: only one that carries the payload counts)
+        if (/^(iframe|object|embed)$/i.test(element.tagName)) found.push('a <' + element.tagName.toLowerCase() + '> exists');
+        if (element.tagName.toLowerCase() === 'script' && !own.has(element) && !element.hasAttribute('src') && /__xss/.test(element.textContent)) found.push('an inline <script> carries the payload');
+        if (element.tagName.toLowerCase() === 'svg' && element.hasAttribute('onload')) found.push('svg onload');
+      }
+      return [...new Set(found)].slice(0, 8);
+    });
+    if (injected.length) failures.push('data created a handler, script or link in the page: ' + injected.join(' | '));
+    const ranAttr = await page.evaluate(() => window.__xss.slice());
+    if (ranAttr.length) failures.push('markup that breaks out of an attribute or a script block ran: ' + ranAttr.join(', '));
+    // moving the pointer over everything is what an onmouseover payload waits for
+    for (const selector of ['structra-tree .j-line', 'structra-table td', '.cmd-item', 'structra-context *']) {
+      const first = page.locator(selector).first();
+      if (await first.count()) await first.hover({ timeout: 2000 }).catch(() => {});
+    }
+    const ranAfterHover = await page.evaluate(() => window.__xss.slice());
+    if (ranAfterHover.length) failures.push('a payload ran when the pointer moved over it: ' + ranAfterHover.join(', '));
+    await closeAll();
+
     // a share link carrying a hostile name
     const link = await page.evaluate(async () => (await Structra.shareLink.createUrl({ a: 1 }, '<img src=x onerror="window.__xss.push(\'share\')">')).url);
     await page.goto('about:blank');

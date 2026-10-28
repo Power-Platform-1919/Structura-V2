@@ -4508,17 +4508,21 @@
         {
           "id": "23.14",
           "title": "Security of generated HTML: extend hostile.js to every view",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.14.1",
               "title": "Markup in keys and values in Overview, Tree, Table, Graph, Schema, Node panel, Compare, Query results",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/hostile.js second section: keys and values that break out of an attribute, an svg onload and a script block, plus javascript: links, shown in Overview, Tree, Table, Graph, Schema, Editor, Node panel, JSONPath and SQL results in the Query panel, Find, Pivot, Null finder, Charts, Typedef, Compare, Validate, Snippets; nothing ran in Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.14.2",
               "title": "Check titles and attributes, not only text",
-              "status": "todo"
+              "status": "done",
+              "note": "The same test scans the whole page after rendering for any element with an on... attribute, a javascript: or data:text/html link, a frame, object or embed, or a script carrying the payload, and moves the pointer over lines, cells, palette items and the Node panel (what onmouseover waits for): all clean, no code change needed",
+              "doneOn": "2026-10-28"
             }
           ]
         },
