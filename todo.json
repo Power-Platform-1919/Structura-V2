@@ -4718,7 +4718,9 @@
         {
           "id": "31.2",
           "title": "JSON parsing: JSONTestSuite (nst/JSONTestSuite) y_, n_ and i_ files through our parse pipeline and error places; list every difference from JSON.parse and from jsonc-parser",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/json-test-suite.test.js runs the 318 JSONTestSuite cases (collected by tools/fetch-json-test-suite.mjs into tests/suites/json-test-suite, MIT licence kept) through parseJsonAsync and explainParseError. Result: y 95/95, n 188/188, i 32 accepted and 3 rejected. Found and fixed two bugs: protectBigNumbers quoted numbers used as keys or written wrongly (so {9999E9999:1} and 01234567890123456 were accepted), and explainParseError overflowed the stack on 100,000 nested arrays (now falls back to a bracket walk with a plain reason).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.3",

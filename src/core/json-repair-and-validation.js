@@ -67,11 +67,39 @@ Structra.jsonRepairAndValidation = (() => {
   async function explainParseError(text) {
     await Structra.libraryLoader.loadLibrary('jsonc');
     const errors = [];
-    window.JSONC.parse(String(text), errors, { allowTrailingComma: false, disallowComments: true });
+    try {
+      window.JSONC.parse(String(text), errors, { allowTrailingComma: false, disallowComments: true });
+    } catch (error) {
+      // The library reads nested values by calling itself, so tens of thousands of levels overflow its stack. Check the brackets another way.
+      if (error instanceof RangeError) return explainBracketsOnly(String(text));
+      throw error;
+    }
     if (!errors.length) return null;
     const { error: code, offset } = errors[0];
-    const before = String(text).slice(0, offset);
-    return { offset, line: before.split('\n').length, column: before.length - before.lastIndexOf('\n'), reason: plainReason(code, String(text), offset) };
+    return placeOf(String(text), offset, plainReason(code, String(text), offset));
+  }
+
+  function placeOf(text, offset, reason) {
+    const before = text.slice(0, offset);
+    return { offset, line: before.split('\n').length, column: before.length - before.lastIndexOf('\n'), reason };
+  }
+
+  /** For text nested too deeply for the library: walks the brackets without recursion and says what is wrong with them */
+  function explainBracketsOnly(text) {
+    const open = [];
+    let inString = false;
+    for (let i = 0; i < text.length; i++) {
+      const character = text[i];
+      if (inString) { if (character === '\\') i++; else if (character === '"') inString = false; continue; }
+      if (character === '"') inString = true;
+      else if (character === '[' || character === '{') open.push(character);
+      else if (character === ']' || character === '}') {
+        const last = open.pop();
+        if (!last || (last === '[' ? ']' : '}') !== character) return placeOf(text, i, 'this closing bracket does not match the one that was opened');
+      }
+    }
+    if (open.length) return placeOf(text, text.length, `the text ends before ${open.length.toLocaleString()} open ${open.length === 1 ? 'bracket is' : 'brackets are'} closed`);
+    return placeOf(text, 0, 'this text is nested so deeply that it cannot be checked further');
   }
 
   /* ---------- duplicate keys ---------- */

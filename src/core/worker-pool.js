@@ -270,7 +270,13 @@ Structra.protectBigNumbers = function (source) {
       var j = i + 1;
       while (j < length) { var digitCode = source.charCodeAt(j); if ((digitCode >= 48 && digitCode <= 57) || digitCode === 46 || digitCode === 101 || digitCode === 69 || digitCode === 43 || digitCode === 45) j++; else break; }
       var token = source.slice(i, j);
-      if (token.length >= 16 || /[eE]/.test(token)) {
+      // Only a real JSON number in the place of a value is protected. A malformed number (01234567890123456, 1e), or a number used as a
+      // key ({9999E9999: 1}), is left as it is so that the parse rejects it: quoting it would turn invalid JSON into valid JSON.
+      var before = i - 1; while (before >= 0 && source.charCodeAt(before) <= 32) before--;
+      var after = j; while (after < length && source.charCodeAt(after) <= 32) after++;
+      var previousCode = before >= 0 ? source.charCodeAt(before) : -1;
+      var inValuePlace = (previousCode === -1 || previousCode === 91 || previousCode === 44 || previousCode === 58) && source.charCodeAt(after) !== 58;
+      if (inValuePlace && /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/.test(token) && (token.length >= 16 || /[eE]/.test(token))) {
         var number = Number(token), lossy = false;
         if (!isFinite(number)) lossy = true;
         else if (/^-?\d+$/.test(token)) { try { lossy = BigInt(token).toString() !== BigInt(number).toString(); } catch (error) { lossy = false; } }

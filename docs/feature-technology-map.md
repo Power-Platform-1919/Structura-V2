@@ -73,7 +73,7 @@ An audit of every file in the repository against this document found these were 
 | `templates/` | an empty folder (not in git) | delete |
 | `todo.json` | the task list carried over from V1 (tasks 1 to 12) | KEEP; refresh |
 | Tooling | `eslint.config.js`, `package.json` (dev dependencies: Playwright, axe-core), the VS Code workspace file | KEEP |
-| `tools/` | three build scripts that produce vendored libraries once: CodeMirror (`build-editor.mjs`), jsonc-parser, virtual-core | KEEP |
+| `tools/` | build scripts that produce vendored libraries once (and `fetch-json-test-suite.mjs`, which collects the JSONTestSuite cases): CodeMirror (`build-editor.mjs`), jsonc-parser, virtual-core | KEEP |
 | CSS system (12 files, all own, no CSS framework) | `fonts.css` self-hosted fonts; `tokens.css` design tokens (colours, spacing, type); `base.css` reset, typography, `.sr-only`; `ui.css` shared patterns (dialogs, segmented buttons, menus, fields, cards, tags); `layout.css` the app grid; `shell.css` header, rail, tab bar, status bar; `overview.css`; `panels.css` query and node panels; `codeview.css` the CodeMirror look; `overlays.css`; `components.css` (2,116 lines, the older view styles: tree, table, graph, input panel); `theme-panel.css` | KEEP; split `components.css` by view when touched |
 | Small shared modules | `component-base.js` (the base class); `dialog-base.js` (`StructraDialog`, and `Structra.closeTop`, which makes Escape close one thing at a time); `safe-storage.js` (a memory store when the browser blocks localStorage); `src/libs/csv-typing.js` (own: types CSV cells, reads "1,200.00" as 1200, keeps decimals) | KEEP; the base classes get cleanup (3.14) |
 | `archive/engine-worker.js` (was `src/workers/engine-worker.js`) | claimed to move search, filter, sort and aggregate of large data into a worker | DONE 2026-10-28: nothing started it, but `index.html` loaded it as a plain script, so it took over `window.onmessage` on the page. Script tag removed, file archived (3.20) |
@@ -772,3 +772,12 @@ Done with your permission, read-only, in your own developer environments only (I
 - **Expressions (D2):** 481 real expressions. Functions used, most to least: `outputs` (323), `items` (297), `body` (231), `item` (104), `empty` (91), `triggerBody` (81), `coalesce` (54), `first` (47), `workflow` (40), `triggerOutputs` (35), `length` (30), `variables` (5). **Our generators already produce every one of them.**
 - **Keys:** 258 distinct real property names; 61 contain a slash (the dynamic-content form `outputs('Action')?['body/field']`), 2 contain a dot, 2 contain `@`, none contain spaces, quotes, brackets or start with `$`. So the hostile keys in section 2.9 (dots, `@`, quotes, `$`) are the standard cases from SharePoint, Dataverse and OData payloads and from JSON Schema documents, even though this sample of flows did not contain many.
 - **One gap found:** real flows write many keys in the dynamic-content form (`body/field`). Our generator writes the equivalent `body('Action')?['field']`. Both work, but offering the dynamic-content form as an extra copy option would match what makers see in their flows (task 29).
+
+### 8.7 Official test suites run against our own code (rule 5, task 31)
+
+A suite runs through OUR integration (the parse path, the adapter, the worker), not only inside the library. Cases are collected once into `tests/suites` with their licence (never downloaded when tests run). The pass counts are written in the test; a change fails it.
+
+| Library or standard | Suite | Through which of our code | Cases | Result | What it found |
+|---|---|---|---|---|---|
+| JSONPath (RFC 9535) | the official compliance test suite | `Structra.jsonpathQuery.queryStrict` and the compliance tool | 715 | 715 pass (712 with the conveniences, 3 deliberate differences) | done in PR #7 |
+| JSON parsing | JSONTestSuite (nst), commit 1ef36fa | `Structra.parseJsonAsync` (accept or reject) and `explainParseError` (a place for every rejection, none for an accepted text) | 318 (95 must accept, 188 must reject, 35 either) | y 95 of 95, n 188 of 188, i 32 accepted 3 rejected | two real bugs, fixed: (1) `{9999E9999:1}` and a malformed number such as `01234567890123456` were turned into valid JSON by the big-number protection; (2) the error place crashed with a stack overflow on 100,000 nested arrays |
