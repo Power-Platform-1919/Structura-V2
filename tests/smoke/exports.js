@@ -2,7 +2,7 @@
    - XML is well-formed for every fixture (nulls, odd key names, lists inside lists)
    - the image export works in every view and in dark mode (the themes use CSS colour functions)
 
-   Run:  node tests/smoke/exports.js          (PW_CHANNEL=msedge uses the installed Edge; the image part needs internet for html2canvas)
+   Run:  node tests/smoke/exports.js          (PW_CHANNEL=msedge uses the installed Edge; images are drawn by modern-screenshot from this folder)
 */
 const http = require('http');
 const fs = require('fs');
@@ -71,7 +71,7 @@ function serve() {
 
     // ---- Image export in every view, light and dark ----
     await uploadAndWait(page, path.join(FIXTURES, 'sp_getitems.json'));
-    await page.evaluate(() => { window.__saved = []; const d = Structra.sharedHelpers.downloadFile; Structra.sharedHelpers.downloadFile = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); }; });
+    await page.evaluate(() => { window.__saved = []; const d = Structra.sharedHelpers.downloadFile; Structra.sharedHelpers.downloadFile = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); (window.__blobs = window.__blobs || []).push({ name, blob }); }; });
     // SHARD=0/2 or 1/2 (set by the parallel runner) takes only some of the modes, so the slow part is split across processes
     const [shard, shards] = (process.env.SHARD || '0/1').split('/').map(Number);
     for (const mode of ['light', 'dark'].filter((_, i) => i % shards === shard)) {
@@ -89,6 +89,26 @@ function serve() {
       }
     }
     const saved = await page.evaluate(() => window.__saved);
+    // an image that is only one colour is a blank page: every picture should hold several colours (text, borders, background)
+    const colours = await page.evaluate(async () => {
+      const out = [];
+      for (const { name, blob } of window.__blobs || []) {
+        const bitmap = await createImageBitmap(blob);
+        const canvas = document.createElement('canvas');
+        canvas.width = 120; canvas.height = 80;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        context.drawImage(bitmap, 0, 0, 120, 80);
+        const data = context.getImageData(0, 0, 120, 80).data;
+        const seen = new Set();
+        for (let i = 0; i < data.length; i += 4) seen.add(data[i] + ',' + data[i + 1] + ',' + data[i + 2]);
+        out.push({ name, type: blob.type, colours: seen.size });
+      }
+      return out;
+    });
+    for (const picture of colours) {
+      if (picture.type !== 'image/png') failures.push('an exported image should be a PNG: ' + picture.name + ' is ' + picture.type);
+      if (picture.colours < 4) failures.push('an exported image looks blank (' + picture.colours + ' colours): ' + picture.name);
+    }
     if (saved.length && saved.some((s) => !(s.size > 2000))) failures.push('an exported image is empty or tiny: ' + saved.filter((s) => !(s.size > 2000)).map((s) => s.name).join(', '));
     // CSV export: a text cell a spreadsheet would run as a formula is protected, a real number is not, and a comma or quote survives
     await uploadAndWait(page, { name: 'csv.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify([{ name: '=HYPERLINK("http://x","y")', note: 'a, "b"', n: -5, tag: '@SUM(1)' }])) });

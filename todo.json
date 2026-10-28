@@ -4069,22 +4069,28 @@
         {
           "id": "22.5",
           "title": "Save as PNG: html2canvas replacement (3.10)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.5.1",
               "title": "Compare modern-screenshot and html-to-image on our themes and fonts",
-              "status": "todo"
+              "status": "done",
+              "note": "Measured on the real view panels in Edge, light and dark: html2canvas 4.5 to 5.7 s, modern-screenshot 0.5 to 1 s with the same picture, html-to-image failed on the Tree. Details in map 3.10",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.5.2",
               "title": "Decide; replace behind Structra.imageCapture",
-              "status": "todo"
+              "status": "done",
+              "note": "Replaced html2canvas with modern-screenshot 4.7.0 behind Structra.imageCapture.png (the colour-flattening workaround removed); html2canvas moved to archive/libs; exports and offline tests pass in Edge, Firefox, WebKit, and exports.js now checks every image is a PNG with several colours",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.5.3",
               "title": "Update THIRD-PARTY.md",
-              "status": "todo"
+              "status": "done",
+              "note": "THIRD-PARTY.md row replaced (modern-screenshot 4.7.0, MIT); map rows and section 3.10 updated; archive README row added",
+              "doneOn": "2026-10-28"
             }
           ]
         }

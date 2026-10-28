@@ -15,7 +15,7 @@ When a library is added or upgraded, change this file in the same pull request. 
 | PapaParse | 5.5.3 | MIT | https://github.com/mholt/PapaParse | `src/libs/papaparse.min.js` | the npm package's minified file | CSV reading and writing |
 | yaml | 2.9.1 | ISC | https://github.com/eemeli/yaml | `src/libs/yaml/` | `node tools/build-yaml.mjs` (esbuild; only parseAllDocuments and stringify) | YAML reading and writing, through `Structra.yamlIo` |
 | toml | 4.1.1 | MIT | https://github.com/BinaryMuse/toml-node | `src/libs/toml.min.js` | jsDelivr's bundle of the npm package | TOML |
-| html2canvas | 1.4.1 | MIT | https://html2canvas.hertzen.com | `src/libs/html2canvas.min.js` | the npm package's minified file | Save as PNG |
+| modern-screenshot | 4.7.0 | MIT | https://github.com/qq15725/modern-screenshot | `src/libs/modern-screenshot/` | the npm package's `dist/index.js`, unchanged | Save as PNG |
 | json-p3 | 3.0.1 | MIT | https://github.com/jg-rp/json-p3 | `src/libs/json-p3/` | the npm package's minified ES module, one file | JSONPath (RFC 9535) |
 | jsonc-parser | 3.3.1 | MIT | https://github.com/microsoft/node-jsonc-parser | `src/libs/jsonc-parser.min.js` | `node tools/build-jsonc-parser.mjs` (esbuild) | where JSON is broken |
 | @tanstack/virtual-core | 3.19.8 | MIT | https://github.com/TanStack/virtual | `src/libs/virtual-core/` | `node tools/build-virtual-core.mjs` (esbuild) | the Table's true scrollbar |

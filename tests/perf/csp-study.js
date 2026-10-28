@@ -66,7 +66,7 @@ function serve() {
   await step('Query panel code (new Function on the page)', () => page.evaluate(() => { try { return new Function('data', 'return data.length')([1]); } catch (error) { throw new Error(error.message); } }));
   await step('Transform step code (new Function on the page)', () => page.evaluate(() => { try { return new Function('row', 'return (row.id)')({ id: 1 }); } catch (error) { throw new Error(error.message); } }));
   await step('compare (jsondiffpatch)', () => page.evaluate(() => Structra.state.jsonData && Structra.jsonDiff && 1));
-  await step('save as image (html2canvas)', () => page.evaluate(async () => { await Structra.libraryLoader.loadLibrary('html2canvas'); }));
+  await step('save as image (modern-screenshot)', () => page.evaluate(async () => { await Structra.libraryLoader.loadLibrary('modernscreenshot'); }));
   await step('YAML and TOML', () => page.evaluate(async () => { await Structra.formatConversion.jsonToYaml({ a: 1 }); }));
   await step('command palette and dialogs', () => page.evaluate(() => Structra.events.emit('command-palette:toggle')));
 

@@ -53,7 +53,7 @@ Verdict words used below:
 | PapaParse | 5.5.3 | 5.5.x | 19 KB | CSV | current |
 | yaml | 2.9.1 | 2.9.1 | 98 KB | YAML | REPLACED js-yaml on 2026-10-28 (task 31.5): the official suite showed js-yaml refusing 17 multi-document files and 26 valid ones; `yaml` accepts all 274 |
 | toml | **4.1.1** | **5.0.1 (TOML 1.1)** | 33 KB | TOML | one major behind |
-| html2canvas | **1.4.1 (January 2022)** | same, no newer release | 199 KB, lazy | save as PNG | not updated in almost 5 years |
+| modern-screenshot | **4.7.0** (was html2canvas 1.4.1, January 2022, not updated for almost 5 years) | 4.7.0 | 29 KB (was 199 KB), lazy | save as PNG | replaced 2026-10-28 (3.10) |
 | Lucide | **1.63.0** (was 0.468.0) | 1.63.0 | **25 KB, only the 130 icons the code names** (was 358 KB, the whole set) | icons | 79 names in icon calls |
 | json-p3 | 3.0.1 | 3.0.1 | 64 KB | JSONPath | IN PR #7 |
 | jsonc-parser | 3.3.1 | 3.3.1 | 21 KB | where JSON is broken | IN PR #6 |
@@ -353,7 +353,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Types: TypeScript, Python, Go, C#, Rust, SQL | `typeCodeGenerator` (own, 467 lines) | Own | | | KEEP |
 | Export CSV, YAML, XML | `formatConversion` | Own + library (PapaParse, yaml) | | | KEEP |
 | Share as a link | URL hash with gzip through `CompressionStream` | Own + browser | shareLink | | KEEP |
-| Save as an image | html2canvas, loaded on first use | Library | imageCapture | | WATCH (3.10) |
+| Save as an image | modern-screenshot, loaded on first use | Library | imageCapture | | KEEP (replaced html2canvas, 3.10) |
 | Repair, format, minify JSON | jsonrepair, `JSON.stringify` | Own + library | jsonRepairAndValidation | | KEEP |
 | Undo and redo (Ctrl+Z, Ctrl+Y) | `Structra.undoStack` (snapshots, 60 MB per tab) | Own | undoStack | | later: differences (3.11) |
 | Open Find, Filter, Fuzzy, SQL, Validate, Charts, Duplicate keys, Compare, Theme, Welcome, zoom, wrap, expand and collapse | events | Own | | | KEEP |
@@ -418,7 +418,7 @@ The counts are taken from the code: how many files call the module.
 | `jsonDiff` | compare two documents | jsondiffpatch | Library + own | diff | KEEP |
 | `undoStack` | undo per tab | own snapshots | Own | command, diff, editor, find, workspace | later (3.11) |
 | `bookmarks`, `pathHistory` | saved paths, back and forward | localStorage | Own | bookmarks: command, context, header, tree; history: command, header | KEEP |
-| `formatConversion`, `shareLink`, `imageCapture` | export, share, PNG | PapaParse, yaml, CompressionStream, html2canvas | Own + library + browser | command | see 3.10 |
+| `formatConversion`, `shareLink`, `imageCapture` | export, share, PNG | PapaParse, yaml, CompressionStream, modern-screenshot | Own + library + browser | command | see 3.10 |
 | `transformStepOperations` | Transform steps | own; loaded by the sandbox worker and by the unit tests, not by the page | Own | sandbox worker | KEEP |
 | `themeEngine` | themes | own, CSS `color-mix()` | Own + browser | header, theme, welcome, workspace | KEEP |
 | `appSettings`, `safeStorage`, `browserDatabase` | settings, storage fallbacks, IndexedDB | localStorage, IndexedDB | Own + browser | data engine, input panel, logger, settings, table | KEEP |
@@ -549,10 +549,13 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Reason:** 5.0.1 is TOML 1.1 compliant. `smol-toml` is another maintained option (also 1.1).
 - **Pros:** newer spec, bug fixes. **Cons:** a new major version needs one re-test of the TOML fixtures.
 
-### 3.10 Save as PNG: html2canvas (watch, low) [task 22.5]
+### 3.10 Save as PNG: modern-screenshot replaced html2canvas (done 2026-10-28) [task 22.5]
 
-- **Reason:** html2canvas 1.4.1 was published in January 2022 and has had no release since. `modern-screenshot` (4.7.0, April 2026) and `html-to-image` (1.11.13, February 2025) are maintained.
-- **Pros of switching:** maintained code, fewer rendering gaps (comparisons say html-to-image is closer to the real page). **Cons:** the output differs a little for complex CSS; the sources are comparison articles, not benchmarks. It is only used for one lazy button, so this can wait.
+- **Reason:** html2canvas 1.4.1 (January 2022) has had no release since, and it did its own drawing, so we needed a step that rewrote every colour the themes use (color-mix, oklab) before it ran.
+- **Measured (Edge, the active view panel, light and dark, real fixtures):** html2canvas took 4.5 s (Table), 4.5 s (Tree), 5.7 s (Graph). modern-screenshot took 0.5 s, 0.65 s and 0.96 s, with the same picture (looked at side by side). html-to-image 1.11.13 took 0.1 to 0.4 s but failed on the Tree ("[object Event]", an image or font it could not load), so it was not used. On the whole canvas html2canvas also failed with the colour function oklab; modern-screenshot did not.
+- **Done:** `Structra.imageCapture.png` now loads modern-screenshot (`src/libs/modern-screenshot/`, 29 KB, MIT, unchanged from the npm package) and asks the browser to draw a copy of the view inside an SVG. The colour-flattening code is gone. html2canvas moved to `archive/libs/`.
+- **Tested:** `tests/smoke/exports.js` saves every view in light and dark and now checks each picture is a PNG with several colours (not blank); also `tests/smoke/offline.js`. Edge, Firefox and WebKit pass.
+- **Cons:** the SVG way depends on the browser drawing foreignObject; Safari had known bugs, and WebKit passes here.
 
 ### 3.11 Undo: store differences instead of whole copies (proposed) [task 22.3]
 
@@ -768,7 +771,7 @@ Checked against the code on 2026-10-27. "Holds" means I verified it; "to check" 
 | A library fails to load or throws | a blank feature or a crash | fallbacks exist for DuckDB (the JavaScript path, by design), jsonc-parser (the browser's message), virtual-core (paging). json-p3 has none: if it fails to load, JSONPath shows an error | decide: acceptable for json-p3, or add a simple fallback |
 | Keys and focus | a library's shortcuts fight ours (CodeMirror's own undo against our document undo) | the global shortcut handler ignores editable targets (`app.js` line 134), so CodeMirror keeps its own keys inside a code box; `editor.js` and `codeview.js` cover it | holds |
 | Who owns the document | a library changes the document, or keeps a reference to it | json-p3 and jsonc-parser only read; DuckDB gets its own copy; jsondiffpatch's use is behind `jsonDiff` | to check: a test that freezes the document and runs every library path, so anything that changes it fails |
-| Global names | libraries add globals (`Papa`, `YAML`, `lucide`, `Ajv`, `JSONRepair`, `html2canvas`, `JSONC`) that could clash with each other or with the page | no clash today; not isolated | low risk; gather them under `Structra.libs` if a clash ever appears |
+| Global names | libraries add globals (`Papa`, `YAML`, `lucide`, `Ajv`, `JSONRepair`, `modernScreenshot`, `JSONC`) that could clash with each other or with the page | no clash today; not isolated | low risk; gather them under `Structra.libs` if a clash ever appears |
 | Styles | library CSS leaks into ours (CodeMirror injects its own) | `codeview.css` scopes our changes to `.cv`; the theme and axe audits run in all themes | holds |
 | Speed | a library blocks the page (DuckDB, a big diff, a big JSONPath) | DuckDB and the parsers are in workers or lazy; analysis is time-sliced; json-p3 measured 122 ms for 200,000 records on the main thread | holds; re-measure on the large fixtures when the data engine changes |
 | Memory | two copies of a big document (ours and the library's) | measured: about 660 MB for the 88 MB file with the CodeMirror Tree plan; budgets are in the plan | holds as a plan; add a memory check to the large-file test |
