@@ -7,7 +7,7 @@
      await Structra.jsonRepairAndValidation.findDuplicateKeys(text) → [{ key, path, line }]
      await Structra.jsonRepairAndValidation.explainParseError(text) → { offset, line, column, reason } or null when the text is valid
      Structra.jsonRepairAndValidation.patch(from, to)               → RFC 6902 operations
-     await Structra.jsonRepairAndValidation.validate(data, schema)  → { valid, errors: [{ path, message, keyword }] }
+     await Structra.jsonRepairAndValidation.validate(data, schema)  → { valid, errors: [{ path, message, keyword }], note }  (note: something to tell the person, or '')
    ============================================================ */
 
 window.Structra = window.Structra || {};
@@ -201,18 +201,61 @@ Structra.jsonRepairAndValidation = (() => {
     return out;
   }
 
+  // Names every object inherits. Ajv 6 reads a property with data[name], so a schema that mentions one of them would see the inherited
+  // function (toString) or object (__proto__) as if the document held it. The official JSON Schema Test Suite has these cases.
+  const INHERITED_NAMES = /"(__proto__|constructor|prototype|toString|toLocaleString|valueOf|hasOwnProperty|isPrototypeOf|propertyIsEnumerable)"/;
+
+  /** A copy of the data whose objects have nothing inherited, so only the keys the document really has can be found. Without recursion. */
+  function withoutInheritedNames(root) {
+    const copyOf = (value) => (Array.isArray(value) ? new Array(value.length) : (value && typeof value === 'object' ? Object.create(null) : value));
+    const top = copyOf(root);
+    if (top === root) return root;
+    const stack = [[root, top]];
+    while (stack.length) {
+      const [from, to] = stack.pop();
+      for (const key of Object.keys(from)) {
+        const item = from[key];
+        const copy = copyOf(item);
+        Object.defineProperty(to, key, { value: copy, enumerable: true, writable: true, configurable: true });
+        if (copy !== item) stack.push([item, copy]);
+      }
+    }
+    return top;
+  }
+
+  // Ajv's own notes ("unknown format ignored", "$ref: keywords ignored") go to the quiet debug log, not the page console
+  const AJV_OPTIONS = {
+    allErrors: true,
+    jsonPointers: true,
+    unknownFormats: 'ignore',
+    logger: { log: (message) => Structra.log.debug('Validate', String(message)), warn: (message) => Structra.log.debug('Validate', String(message)), error: (message) => Structra.log.warn('Validate', String(message)) },
+  };
+
   async function validate(data, schema) {
     await Structra.libraryLoader.loadLibrary('ajv');
-    const ajv = new window.Ajv({ allErrors: true, jsonPointers: true });
-    const check = ajv.compile(schema);          // throws on an invalid schema
-    const valid = check(data);
+    // AJV_OPTIONS has unknownFormats 'ignore': a format Ajv does not know ("int32", "uuid-v7") is a hint, not an error, as the standard says. Without this
+    // the whole schema is refused, and schemas made from OpenAPI documents are full of such formats.
+    const ajv = new window.Ajv(AJV_OPTIONS);
+    let note = '';
+    let check;
+    try { check = ajv.compile(schema); }          // throws on an invalid schema
+    catch (error) {
+      // A schema that names an older draft ($schema draft-04 or draft-06): Ajv 6 only has the draft-07 rules. They are nearly the same, so check it that way and say so.
+      if (schema && typeof schema.$schema === 'string' && /no schema with key or ref/i.test(error.message)) {
+        const { $schema: named, ...rest } = schema;
+        check = new window.Ajv(AJV_OPTIONS).compile(rest);
+        note = `The schema names ${named.replace(/^https?:\/\//, '').replace(/#$/, '')}. It was checked with the rules of draft-07, which are almost the same.`;
+      } else throw error;
+    }
+    const subject = typeof schema === 'object' && INHERITED_NAMES.test(JSON.stringify(schema)) ? withoutInheritedNames(data) : data;
+    const valid = check(subject);
     const errors = (check.errors || []).map((error) => ({
       path: pointerToPath(error.dataPath),
       // An enum says which values are allowed, not only that the value is not one of them
       message: error.keyword === 'enum' && error.params && error.params.allowedValues ? 'should be one of: ' + error.params.allowedValues.map((value) => JSON.stringify(value)).join(', ') : error.message,
       keyword: error.keyword,
     }));
-    return { valid: !!valid, errors };
+    return { valid: !!valid, errors, note };
   }
 
   return { repair, explainParseError, findDuplicateKeys, patch, validate };
