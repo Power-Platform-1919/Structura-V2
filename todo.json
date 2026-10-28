@@ -4512,22 +4512,28 @@
         {
           "id": "23.13",
           "title": "Startup cost: Lighthouse and a bundle report",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.13.1",
               "title": "Run Lighthouse on the built site",
-              "status": "todo"
+              "status": "done",
+              "note": "Lighthouse 12.8.2 on the served app (Edge headless): performance 71, accessibility 100, best practices 96, SEO 90 (now fixed with a meta description); LCP 14.8 s under its simulated slow phone (the Welcome dialog, 97 percent render delay from 93 scripts running in turn), FCP 2.2 s, blocking time 20 ms; details in map 8.11",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.13.2",
               "title": "List what loads at start and its size",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/perf/startup-cost.js lists what loads: 111 files, 1,971 KB, 701 KB gzipped before the first screen (scripts 1,634 KB, styles 162 KB, fonts 165 KB); biggest files and four libraries that could load later (yaml, json-p3, papaparse, toml) written in map 8.11",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.13.3",
               "title": "Set a size budget and add it to CI",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/startup-budget.js (in the browser tests, so in CI): at most 130 files, 2,300 KB, 830 KB gzipped, no file over 340 KB at start, no heavy library at start, no other address; passes in Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             }
           ]
         },

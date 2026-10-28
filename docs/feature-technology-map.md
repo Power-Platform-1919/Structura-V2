@@ -867,3 +867,26 @@ Tool: `tests/perf/fuzzy-compare.js`. 50,000 text values built from the words of 
 - Without the library (it did not load) Find > Fuzzy still finds values that contain the text.
 - Tested: `tests/unit/fuzzy-find.test.js` (7 tests, including odd keys and the no-library case) and the Fuzzy checks in `tests/smoke/inputs.js` (Edge, Firefox, WebKit).
 
+
+### 8.11 Startup cost (measured 2026-10-28)
+
+**What loads before the first screen** (`tests/perf/startup-cost.js`, Edge, this machine, 0.8 s to the first screen): 111 files, 1,971 KB, 701 KB gzipped.
+
+| Kind | Files | Size | Gzipped |
+|---|---|---|---|
+| Scripts (own code and vendored libraries) | 93 | 1,634 KB | 500 KB |
+| Styles | 12 | 162 KB | 34 KB |
+| Fonts | 4 | 165 KB | 164 KB |
+| Page | 1 | 10 KB | 2 KB |
+
+The biggest: the CodeMirror chunk 296 KB (loaded when the page is idle, so the Tree and Editor open at once), `yaml.min.js` 96 KB, `data-engine.js` 86 KB, `components.css` 77 KB, `structra-table.js` 67 KB, `json-p3.min.js` 63 KB. Opening a file loads one more font (31 KB); the 35 MB DuckDB engine, Ajv, jsonrepair, jsondiffpatch and modern-screenshot are not loaded until used.
+
+Candidates to load later (not done; each saves 15 to 30 KB gzipped at start): `yaml.min.js` (only when a YAML file is opened or Convert to YAML is used), `json-p3.min.js` (only when JSONPath is used), `papaparse.min.js` and `toml.min.js`. They are plain script tags today because the CSV and format code calls them directly.
+
+**Budget** (`tests/smoke/startup-budget.js`, runs in the browser tests in CI): at most 130 files, 2,300 KB, 830 KB gzipped, no single file over 340 KB at start, nothing from the lazy list (DuckDB, Ajv, jsonrepair, jsondiffpatch, modern-screenshot, editor languages) fetched at start, and no request to another address. About 15% above today. A breach means: load the new code later (`Structra.libraryLoader`), or raise the budget on purpose here.
+
+**Lighthouse 12.8.2** (Edge headless, its default simulated slow phone, this app served from a plain local server with no compression and no cache headers): Performance **71**, Accessibility **100**, Best practices **96**, SEO **90** (before the meta description was added; the description is in now).
+- First contentful paint 2.2 s, total blocking time 20 ms, layout shift 0.001, main thread work 1.1 s: good. Largest contentful paint 14.8 s and time to interactive 14.8 s: the LCP element is the first-run Welcome dialog (97% of it is render delay): the page only draws it after 93 scripts ran one after another under 4 times slower processing. On a normal computer the first screen is 0.8 s.
+- What it says to fix: 13 render-blocking files (12 style files and some scripts), unminified own code (287 KB) and CSS (22 KB), unused JavaScript (669 KB, mostly libraries used later) and CSS (97 KB), no compression and no long cache time (both are what the host sends: GitHub Pages sends compression and 10-minute cache), 11 px text in the help lines, 1,240 page elements at start.
+- Not changed: bundling the 93 scripts into one file would cut the render delay but breaks the rule of no build for the app; the numbers above are the baseline to compare any such change.
+
