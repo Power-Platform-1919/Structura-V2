@@ -355,7 +355,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Share as a link | URL hash with gzip through `CompressionStream` | Own + browser | shareLink | | KEEP |
 | Save as an image | modern-screenshot, loaded on first use | Library | imageCapture | | KEEP (replaced html2canvas, 3.10) |
 | Repair, format, minify JSON | jsonrepair, `JSON.stringify` | Own + library | jsonRepairAndValidation | | KEEP |
-| Undo and redo (Ctrl+Z, Ctrl+Y) | `Structra.undoStack` (snapshots, 60 MB per tab) | Own | undoStack | | later: differences (3.11) |
+| Undo and redo (Ctrl+Z, Ctrl+Y) | `Structra.undoStack` (one whole copy plus small edits, up to 50 steps, edits limited to 60 MB per tab) | Own | undoStack | | KEEP (differences done, 3.11) |
 | Open Find, Filter, Fuzzy, SQL, Validate, Charts, Duplicate keys, Compare, Theme, Welcome, zoom, wrap, expand and collapse | events | Own | | | KEEP |
 
 #### Compare: `<structra-diff>` (366 lines)
@@ -416,7 +416,7 @@ The counts are taken from the code: how many files call the module.
 | `overviewInsights` | plain-language summary | own | Own | overview | KEEP |
 | `jsonRepairAndValidation` | repair, duplicate keys, error place, schema validation | jsonrepair, jsonc-parser, Ajv | Library + own | command, editor, input-panel, json-diff, validate | see 3.6 |
 | `jsonDiff` | compare two documents | jsondiffpatch | Library + own | diff | KEEP |
-| `undoStack` | undo per tab | own snapshots | Own | command, diff, editor, find, workspace | later (3.11) |
+| `undoStack` | undo per tab | own: one whole copy plus small edits | Own | command, diff, editor, find, workspace | KEEP (3.11) |
 | `bookmarks`, `pathHistory` | saved paths, back and forward | localStorage | Own | bookmarks: command, context, header, tree; history: command, header | KEEP |
 | `formatConversion`, `shareLink`, `imageCapture` | export, share, PNG | PapaParse, yaml, CompressionStream, modern-screenshot | Own + library + browser | command | see 3.10 |
 | `transformStepOperations` | Transform steps | own; loaded by the sandbox worker and by the unit tests, not by the page | Own | sandbox worker | KEEP |
@@ -557,10 +557,13 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Tested:** `tests/smoke/exports.js` saves every view in light and dark and now checks each picture is a PNG with several colours (not blank); also `tests/smoke/offline.js`. Edge, Firefox and WebKit pass.
 - **Cons:** the SVG way depends on the browser drawing foreignObject; Safari had known bugs, and WebKit passes here.
 
-### 3.11 Undo: store differences instead of whole copies (proposed) [task 22.3]
+### 3.11 Undo: store differences instead of whole copies (done 2026-10-28) [task 22.3]
 
-- **Reason:** each step is a full copy of the document, capped at 60 MB per tab (PR #6). jsondiffpatch is already in the app.
-- **Pros:** much less memory on big files; more steps possible. **Cons:** a change to a core module; undo of an edit that touched many places must be tested well.
+- **Reason:** each step was a full copy of the document, capped at 60 MB per tab (PR #6): a 20 MB file kept three steps.
+- **Done:** the tab keeps the document at the current step as one JSON text, and every other step as a small edit (the part taken out and the part put in, found by cutting away what the two texts share at the start and at the end). Undo and redo apply the edit backwards or forwards. The `Structra.undoStack` functions are the same. Up to 50 steps (was 20); the 60 MB limit now counts the edits only and is the safety net for a change that rewrites most of the file (sort, replace all); the last two steps always stay.
+- **Why not jsondiffpatch (the plan said it):** it loads on first use, so it cannot sit behind the synchronous Undo calls; it would have to diff a 20 MB object tree; and text cut-away is exact by construction (it reproduces the saved text character for character) and has no library to keep up.
+- **Measured:** a 12 MB document with 10 one-key changes holds 173 characters of edits (before: ten more 12 MB copies, trimmed to the limit). A push costs about 50 ms more on 12 MB (comparing the texts), an undo about the same as before (parsing the text, 140 ms).
+- **Tested:** `tests/unit/undo-stack.test.js` (9 tests): five random runs of 25 changes (insert, delete, reverse, add and remove keys) read back exactly in both directions, branching after an undo, awkward text (surrogate pairs, repeats, empty), 50-step trimming, the 60 MB limit with 9 MB rewrites, the 25 MB skip, separate tabs; the browser tests for Undo, Replace and the Editor pass.
 
 ### 3.12 Command palette: ranked fuzzy matching (done 2026-10-28) [task 22.4]
 
@@ -710,7 +713,7 @@ Sorting the audit results by this rule:
 | Fuzzy search over data values | ours: a different job than list matching | **Keep and harden** (compare recall with uFuzzy and Fuse on typos) | 8.3 |
 | Personal data masking | ours: small and tuned | **Keep and harden** (Luhn check for cards, tighter phone pattern) | 8.3 |
 | Charts, Graph, Minimap, Heatmap | ours: small and tuned | **Keep and harden** (empty, single value, huge or negative values) | 8.3 |
-| Undo, bookmarks, history, tabs, theme engine | ours | **Keep and harden** (limits and odd states; undo moves to differences later) | 3.11 |
+| Undo, bookmarks, history, tabs, theme engine | ours | **Keep and harden** (limits and odd states; undo now stores differences, 3.11) | 3.11 |
 
 The audits below follow this sorting: a "replace" area is fixed by replacing; a "keep and harden" area gets its mature oracle turned into permanent tests, and every failure becomes a fix to our code.
 

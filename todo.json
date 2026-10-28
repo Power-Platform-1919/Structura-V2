@@ -3946,7 +3946,7 @@
     {
       "id": "22",
       "title": "Wave 3: when a measurement or an outside event allows",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Sections 3.6, 3.7, 3.10, 3.11, 3.12 of the map.",
       "subtasks": [
         {
@@ -4014,27 +4014,35 @@
         {
           "id": "22.3",
           "title": "Undo stores differences (3.11)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.3.1",
               "title": "Design with jsondiffpatch deltas behind the same Structra.undoStack API",
-              "status": "todo"
+              "status": "done",
+              "note": "Design changed from jsondiffpatch to a text edit: the tab keeps the current document as one JSON text and every other step as the part taken out and put in (common start and end cut away). jsondiffpatch loads lazily so it cannot sit behind the synchronous Undo calls and would diff a 20 MB tree; reasons in map 3.11. Structra.undoStack API unchanged (plus sizeOf)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.3.2",
               "title": "Edge cases: many changes at once, replace all, redo after undo",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/undo-stack.test.js: 5 random runs of 25 changes (insert, delete, reverse, add and remove keys) read back exactly both ways; branching after undo; awkward text (surrogate pairs, repeats, empty); same document again adds no step",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.3.3",
               "title": "Memory check on the large fixtures",
-              "status": "todo"
+              "status": "done",
+              "note": "Measured: a 12 MB document with 10 one-key changes holds 173 characters of edits (was ten more 12 MB copies); push about 50 ms slower on 12 MB, undo about the same (JSON.parse); test asserts 40 edits of a 2 MB document cost under 100,000 characters",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.3.4",
               "title": "Keep the 60 MB budget as a safety net",
-              "status": "todo"
+              "status": "done",
+              "note": "The 60 MB limit stays as the safety net but now counts the edits only (a sort or replace all makes an edit as big as the file); oldest steps go first, last two always stay; tested with 9 MB rewrites. Steps limit 20 to 50. 25 MB skip kept",
+              "doneOn": "2026-10-28"
             }
           ]
         },
