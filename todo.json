@@ -4365,28 +4365,34 @@
         {
           "id": "23.8",
           "title": "Power Automate and Power Fx expressions: Microsoft syntax rules and real flows",
-          "status": "todo",
+          "status": "in_progress",
           "subtasks": [
             {
               "id": "23.8.1",
               "title": "Collect real flows from you",
-              "status": "blocked",
-              "note": "waiting for you (D2)"
+              "status": "todo",
+              "note": "Collect real flows with the Power Automate plugin: the certificate problem is fixed (29.12), so after a restart of Claude Code list_flows and get_flow can read your developer environments (read-only) and the shapes go into synthetic fixtures"
             },
             {
               "id": "23.8.2",
               "title": "Check quoting, null-safe steps, body detection against documented examples",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/expressions-syntax.test.js parses every expression the app writes (3 documents x 5 source kinds x every path, 15,000+ checks) with a small parser for the workflow expression language and checks every function against Microsoft's list of 135 (tests/suites/wdl-functions/functions.json). Found and fixed: key names with a quote were not doubled in 10 expressions (sort, Remove property, Set property, Select, Filter array, Compose); action names with spaces or quotes were written raw; a hand-written path writer in the pattern rows",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.8.3",
               "title": "Odd keys (after the path model fix)",
-              "status": "todo"
+              "status": "done",
+              "note": "Odd keys: the hostile-key document goes through every expression; quotes doubled with one helper (lit) and the path to a key written only by dataPaths.child",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.8.4",
               "title": "Permanent tests",
-              "status": "todo"
+              "status": "done",
+              "note": "Permanent: expressions-syntax.test.js and expressions-dynamic.test.js (13 tests) run in CI; the real-flow part (23.8.1) still waits for you",
+              "doneOn": "2026-10-28"
             }
           ]
         },
@@ -4709,63 +4715,77 @@
     {
       "id": "26",
       "title": "Process: branches, pull requests, releases, CI",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Nothing is merged or promoted to test or prod unless you say so.",
       "subtasks": [
         {
           "id": "26.1",
           "title": "Merge order: #6 into dev, then #7, then the Table pull request",
-          "status": "todo"
+          "status": "done",
+          "note": "Done: #6, #7 and the Table pull request were merged into dev in that order, each after CI was green",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.2",
           "title": "After #6 merges, retarget #7 and the Table pull request to dev",
-          "status": "todo",
-          "note": "after the first merge"
+          "status": "done",
+          "note": "Done: #7 and the Table pull request were retargeted to dev after #6 merged, then merged",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.3",
           "title": "Promote dev to test and prod only when you say so",
-          "status": "blocked",
-          "note": "waiting for you each time (Q16)"
+          "status": "todo",
+          "note": "Your plan (2026-10-28): finish the development tasks first, then promote dev to test, then test to prod, each only when you say so"
         },
         {
           "id": "26.4",
           "title": "CI: make the Firefox and WebKit job blocking, or keep it optional",
-          "status": "blocked",
-          "note": "optional until tuned (Q15)"
+          "status": "done",
+          "note": "Done at your word (2026-10-28): branch protection on dev now requires all six CI jobs, including Firefox and WebKit, before a pull request merges (no review requirement; admins can still override)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.5",
           "title": "CI: measure the time of every job on GitHub; cache apt packages for WebKit; try fewer shards",
-          "status": "todo"
+          "status": "done",
+          "note": "Measured on the last green run (2026-10-28): lint and unit 27 s, generated types compile 33 s, Chromium browser tests 206 s, Firefox 267 s, WebKit 290 s, UI audit 130 s; the jobs run side by side, so a pull request is checked in about 5 minutes. The Playwright image already has the WebKit packages, so there is nothing to cache; the shard count is already 8 browsers at a time",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.6",
           "title": "CI: UI audit takes about 10 minutes on GitHub; look for savings",
-          "status": "todo"
+          "status": "done",
+          "note": "Measured: the UI audit takes 130 s on GitHub (it was about 10 minutes before the audit scripts ran 5 at a time in one browser), so no further saving is needed",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.7",
           "title": "Each change: lint, unit, browser tests, UI audit, three engines before the pull request",
-          "status": "todo"
+          "status": "done",
+          "note": "Written in DEVELOPER-GUIDE sections 9 and 9a and followed for each pull request: lint, unit tests, Edge browser tests, UI audit, then Firefox and WebKit, before the pull request",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.8",
           "title": "Merge PR #6 into dev after CI is green (Q7)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done: #6 merged into dev with CI green (Q7)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.9",
           "title": "Retarget PR #7 to dev, wait for CI, merge (Q7)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done: #7 retargeted to dev and merged with CI green (Q7)",
+          "doneOn": "2026-10-28"
         }
       ]
     },
     {
       "id": "27",
       "title": "Shared architecture: write generic logic once (rule 4)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Your rule: generic code is written once and reused. Examples already found: paths written in 16 places, four ways to run user code, a menu and outside-click handler per component.",
       "subtasks": [
         {
@@ -4785,12 +4805,16 @@
         {
           "id": "27.3",
           "title": "Candidate: one path writer and reader (task 18.1)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done under task 18.1: Structra.dataPaths is the one path writer and reader; a guard test (path-writers.test.js) fails when another file writes a path by hand. Found again in 23.8: the Power Platform pattern rows wrote one by hand; now dataPaths.child",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.4",
           "title": "Candidate: one job service for user code and patterns (task 19)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done under task 19: Structra.sandbox is the one job service for user code, filters, Transform and regular expression probes",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.5",
@@ -4809,22 +4833,30 @@
         {
           "id": "27.7",
           "title": "Candidate: one copy-to-clipboard button pattern (buttons repeated in many panels)",
-          "status": "todo"
+          "status": "done",
+          "note": "Evaluated: copy-to-clipboard is already one helper, Structra.sharedHelpers.copyToClipboard, called from 38 places; what repeats is each panel's own button markup, which differs in label, icon and place, so a shared button would only add parameters. Left as it is",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.8",
           "title": "Candidate: one empty-state and error-state block",
-          "status": "todo"
+          "status": "done",
+          "note": "Evaluated: 18 empty or error notes (palette, Query, Pivot, Charts, Table...) each have their own wording and class and sit in different layouts; a shared block would be a wrapper around a div with a text. Left as it is; the wording rules are in DEVELOPER-GUIDE section 7",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.9",
           "title": "Candidate: one number, size and date formatting set (check what is repeated)",
-          "status": "todo"
+          "status": "done",
+          "note": "Evaluated: Structra.sharedHelpers.formatBytes already exists; the two person-facing messages in the Editor that wrote their own MB now use it (the rest of the 'divide by 1048576' lines are log text). toLocaleString is the one way numbers are grouped (114 uses, no local copies)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.10",
           "title": "Candidate: one place for the \"one door per library\" modules (windowed rows, share, parse workers)",
-          "status": "todo"
+          "status": "done",
+          "note": "Evaluated: createWorkerPool is already shared by CSV, YAML and TOML; what the scan found (12 lines of message check in the TOML and YAML workers) is their small protocol, and the three official-suite tests load each worker file by name, so merging it would touch three tests for about 20 lines. Left as it is; noted as the next candidate if a fourth worker is ever added",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.11",
@@ -4836,52 +4868,66 @@
         {
           "id": "27.12",
           "title": "For each chosen candidate: write the shared piece, move one user at a time with tests green, delete the copies (to archive/ first)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done for the chosen candidates: popup service (menus, 8 places in 5 components), person-facing byte formats in the Editor; the others were evaluated and left (27.7 to 27.10) with the reason; no copy was deleted that needed archive/",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.13",
           "title": "Add a duplication budget check to CI so new copies are noticed",
-          "status": "todo"
+          "status": "done",
+          "note": "jscpd is a dev dependency with .jscpd.json (src JavaScript, no libraries or CSS, 6 lines, 50 tokens, threshold 1 percent); npm run check:duplication runs in the CI lint job; today 9 clones, 0.40 percent",
+          "doneOn": "2026-10-28"
         }
       ]
     },
     {
       "id": "28",
       "title": "Bug reports: a button that opens a prefilled GitHub issue (future, Q20)",
-      "status": "todo",
+      "status": "done",
       "brief": "Later. A \"Report a problem\" button that never includes document data.",
       "subtasks": [
         {
           "id": "28.1",
           "title": "Design the report: version, browser, last errors, settings; never document data",
-          "status": "todo"
+          "status": "done",
+          "note": "The report is the existing buildReport (version, time, browser, window, view, whether a document is open, the last 20 errors with quoted text removed and addresses cut); never the document, a value, a key or the file name",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "28.2",
           "title": "Prefilled GitHub issue link (no token needed) and an issue template",
-          "status": "todo"
+          "status": "done",
+          "note": "Structra.errorReporter.issueUrl and openIssue: Ctrl+K 'Report a problem on GitHub' opens github.com/.../issues/new in a new tab (noopener) with the title, the labels bug and from-app, and the report filled in (cut to 7,000 characters); no token, the app sends nothing; issue template .github/ISSUE_TEMPLATE/bug_report.md",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "28.3",
           "title": "Depends on the global error handler (task 18.4)",
-          "status": "todo"
+          "status": "done",
+          "note": "Built on the global error handler from task 18.4 (error-reporter.js keeps the last 20 errors and shows one short message)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "28.4",
           "title": "Decide how issues are triaged and linked to tasks",
-          "status": "todo"
+          "status": "done",
+          "note": "DEVELOPER-GUIDE section 9c: reproduce first, failing test, fix with a pull request that says Fixes #N, record it in todo.json with the issue number, tell the person which release has the fix",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "28.5",
           "title": "Tests: the report never contains document text",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/issue-report.test.js (6 tests): no value, key, e-mail or file name of the open document is in the address even when error messages quote them; version in the title; under 7,000 characters with 40 long errors; opens in a new tab with noopener and says when the browser blocked it",
+          "doneOn": "2026-10-28"
         }
       ]
     },
     {
       "id": "29",
       "title": "Real Power Platform data through the installed tools (D1 and D2)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Done with your permission: read-only, your own developer environments only, nothing stored in the repository. Results: map section 8.6.",
       "subtasks": [
         {
@@ -4950,25 +4996,30 @@
         {
           "id": "29.10",
           "title": "Add the dynamic-content style (outputs('Action')?['body/field']) as an extra output of the expression generator",
-          "status": "todo"
+          "status": "done",
+          "note": "powerAutomateDynamic in data-paths and a row 'As the designer writes it (dynamic content)' for action and trigger sources: outputs('Get_item')?['body/Author/DisplayName'], triggerOutputs()?['body/Title']; form confirmed in Microsoft's own error reference (outputs('Get_item')?['body/title']); a list position ends the slash text; tests/unit/expressions-dynamic.test.js",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "29.11",
           "title": "Build synthetic test fixtures that copy the shapes (nested items, oneOf, slash keys, odata keys) without any real names or data",
-          "status": "todo"
+          "status": "done",
+          "note": "Three synthetic fixtures with no real names or data: pp_flow_run_output.json (a whole action output with statusCode, headers, body, SharePoint expanded user and choice, odata keys, braces keys, a key with a slash and one with brackets), pp_dataverse_rows.json (odata count and next link, FormattedValue and lookup keys, nested lookups, nulls, quotes in a name), pp_parse_json_schema.json (oneOf with an object, a deep list and null; additionalProperties; slash and odata keys). They run through the fixtures browser test (34 files, every view), the type compilers and the schema checks",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "29.12",
           "title": "Optional: ask IT for the company CA bundle (NODE_EXTRA_CA_CERTS) so the plugin itself can list flows",
-          "status": "todo",
-          "note": "optional"
+          "status": "done",
+          "note": "Done without IT: the plugin's TLS failure (UNABLE_TO_GET_ISSUER_CERT_LOCALLY on the Power Platform API host) comes from the Zscaler web security proxy, whose chain ends at American Airlines Production Root CA (thumbprint 16DF2D68...), already trusted by Windows. That one public root was exported to C:\\Users\\228295\\.claude\\certs\\american-airlines-production-root-ca.pem (outside the repository) and NODE_EXTRA_CA_CERTS was set for the user account. Proved with a Node TLS handshake: fails without it, validates with it; no certificate check was turned off. Needs a restart of Claude Code to reach the plugin",
+          "doneOn": "2026-10-28"
         }
       ]
     },
     {
       "id": "30",
       "title": "Watch list: revisit when a reason appears",
-      "status": "blocked",
+      "status": "todo",
       "brief": "Things we decided not to do now, and what would make us do them.",
       "subtasks": [
         {
@@ -4998,8 +5049,8 @@
         {
           "id": "30.5",
           "title": "Offline install: if you want it (Q18)",
-          "status": "blocked",
-          "note": "Q18: no for now; optional later"
+          "status": "todo",
+          "note": "Offline install: effort estimated at 3 to 4 working days for a careful result (about 1.5 for a minimal one), details in QUESTIONS.md under Q18; waiting for your go"
         },
         {
           "id": "30.6",

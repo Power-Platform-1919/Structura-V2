@@ -25,6 +25,33 @@ Every value in a document has an address, like "the Title of the first item in t
 
 ### Q18 in plain words (answered: no for now): offline install
 
+### Offline install: what it would take (estimated 2026-10-28, at your request)
+
+**Where we are:** the app makes no outside requests, so once it has loaded it works with no network. What is missing is *opening* it with no network (after a restart, or after the browser drops its cached copy) and an "Install" button. There is no web manifest, no service worker and only one icon (`icons/icon.svg`). The whole folder is 39.7 MB: 35.6 MB is the DuckDB engine (loaded only when SQL or Pivot is used), 4.1 MB is everything else (111 files at start, 700 KB gzipped).
+
+**The pieces, with the time each takes** (one person who knows the code):
+
+| Piece | What | Time |
+|---|---|---|
+| Manifest and icons | `manifest.webmanifest` (name, start_url, display, colours), PNG icons 192 and 512 and a maskable one made from the SVG, links and theme colour in `index.html` (Chrome and Edge need name, 192 and 512 icons, start_url, display, and HTTPS) | 2 to 3 hours |
+| Service worker, app files | caches the 4 MB at install and serves it first; the file list is made by a small script at deploy time (the app itself stays unbuilt; Workbox's precache does the same job, or about 60 hand-written lines) | 0.5 to 1 day |
+| The DuckDB engine (35.6 MB) | not cached at install (it would make the first visit 35 MB heavier); cached the first time SQL, Pivot or the Query panel uses it, or by a "Make SQL work offline" button; so SQL offline works after one online use | 0.5 day |
+| Updates | one cache per app version (the version is already in the page and in the worker file addresses, 21.1); a "A new version is ready, reload" message; never serve old code after a release | 0.5 to 1 day |
+| Hosting paths | the site is served from different base paths (dev, test, prod, a project page), so the worker scope and start_url must be relative | 2 to 3 hours |
+| Tests | Playwright can go offline after the first load (Chromium, Firefox, WebKit all support service workers): reload offline, open a file, every view, a PNG, and with the engine cached also SQL; plus a test that a release replaces the cache; extends `tests/smoke/offline.js` | 0.5 to 1 day |
+| Documents | install and remove steps, what is stored, how to clear it; THIRD-PARTY and the map | 2 hours |
+
+**Total: about 3 to 4 working days for a careful result (tests in three engines, an update story). A minimal version (manifest, one cache-first worker, no update message) is about 1.5 days, but it can serve old code after a release, so I would not ship it.**
+
+**Risks:** a stale cache showing old code (the update piece and its test are the cure); Safari on a Mac cannot install a web app (on iPhone and iPad it can, from Share) but the offline cache still works there; iOS may clear a site's storage after weeks of no use; the browser's storage quota is large enough (hundreds of MB), so 40 MB is fine; the Zscaler proxy at work does not matter once the files are cached.
+
+**What you would gain:** open on a plane or on a locked-down network after one visit, instant start from the cache (the first screen is 0.8 s now and would be a few hundred ms), a desktop and phone icon. **What it does not change:** your data still never leaves the page; the app still makes no outside requests.
+
+**My recommendation:** worth doing after the development tasks are done, as one small pull request in the order above, because it touches how every release reaches people. Say "go" when you want it; the decision stays on the watch list (30.5) until then.
+
+**The original question, for reference:**
+
+
 The app already makes **no outside requests** while it runs: fonts, icons and libraries are all served from the app's own folder, and your data never leaves the page. But to **open** the page you still need to reach the site (or a local server) at least once, and a browser may drop its cached copy. A **service worker** (a small background script) plus a **web manifest** would let the browser keep the whole app so it opens with **no internet at all**, even after a restart, and would offer "Install" so it looks like a normal desktop app. It is optional, small to add, and has one cost: after each release, installed copies must update themselves, which needs a little care.
 
 ## Things I needed from you (now done)

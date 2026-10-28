@@ -1,0 +1,42 @@
+{
+  "@odata.context": "https://example.crm.dynamics.com/api/data/v9.2/$metadata#accounts(name,revenue)",
+  "@odata.count": 3,
+  "@Microsoft.Dynamics.CRM.totalrecordcount": 3,
+  "@odata.nextLink": "https://example.crm.dynamics.com/api/data/v9.2/accounts?$skiptoken=%3Ccookie%3E",
+  "value": [
+    {
+      "@odata.etag": "W/\"1000001\"",
+      "accountid": "11111111-1111-1111-1111-111111111111",
+      "name": "Sample Company A",
+      "revenue": 1500000.5,
+      "revenue@OData.Community.Display.V1.FormattedValue": "$1,500,000.50",
+      "_ownerid_value": "22222222-2222-2222-2222-222222222222",
+      "_ownerid_value@OData.Community.Display.V1.FormattedValue": "Sample Owner",
+      "_ownerid_value@Microsoft.Dynamics.CRM.lookuplogicalname": "systemuser",
+      "statecode": 0,
+      "statecode@OData.Community.Display.V1.FormattedValue": "Active",
+      "primarycontactid": { "contactid": "33333333-3333-3333-3333-333333333333", "fullname": "Sample Contact" },
+      "contact_customer_accounts": [ { "contactid": "33333333-3333-3333-3333-333333333333", "emailaddress1": "contact@example.com" } ]
+    },
+    {
+      "@odata.etag": "W/\"1000002\"",
+      "accountid": "44444444-4444-4444-4444-444444444444",
+      "name": "Sample Company B",
+      "revenue": null,
+      "_ownerid_value": "22222222-2222-2222-2222-222222222222",
+      "statecode": 1,
+      "primarycontactid": null,
+      "contact_customer_accounts": []
+    },
+    {
+      "@odata.etag": "W/\"1000003\"",
+      "accountid": "55555555-5555-5555-5555-555555555555",
+      "name": "Company with 'quotes' and \"double quotes\"",
+      "revenue": 0,
+      "_ownerid_value": null,
+      "statecode": 0,
+      "primarycontactid": { "contactid": "66666666-6666-6666-6666-666666666666", "fullname": null },
+      "contact_customer_accounts": [ { "contactid": "66666666-6666-6666-6666-666666666666", "emailaddress1": null }, { "contactid": "77777777-7777-7777-7777-777777777777", "emailaddress1": "second@example.com" } ]
+    }
+  ]
+}

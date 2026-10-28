@@ -167,7 +167,7 @@ class StructraEditor extends StructraComponent {
       if (size > StructraEditor.MAX_EDIT_BYTES) {
         Structra.log.warn('Editor', 'File too large for editor (' + (size / 1048576).toFixed(1) + ' MB)');
         this._tooLarge = true;
-        this._setText('// This file is too large to edit here (' + (size / 1048576).toFixed(0) + ' MB).\n// The Tree, Table, Query and Overview views work on it.');
+        this._setText('// This file is too large to edit here (' + Structra.sharedHelpers.formatBytes(size) + ').\n// The Tree, Table, Query and Overview views work on it.');
         box.setReadOnly(true);
         this._boxTabId = tabId;
         this._status('warn', 'triangle-alert', 'Too large to edit');
@@ -308,7 +308,7 @@ class StructraEditor extends StructraComponent {
       const data = await Structra.parseJsonAsync(this._box.getValue());
       const text = JSON.stringify(data);
       if (text.length > StructraEditor.MAX_LINE_CHARS) {
-        Structra.toast('The minified text is one line of ' + (text.length / 1048576).toFixed(1) + ' MB, which the editor cannot show smoothly. The text was left as it is.');
+        Structra.toast('The minified text is one line of ' + Structra.sharedHelpers.formatBytes(text.length) + ', which the editor cannot show smoothly. The text was left as it is.');
         return;
       }
       this._replaceText(text);

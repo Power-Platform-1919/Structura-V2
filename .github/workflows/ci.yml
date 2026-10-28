@@ -44,6 +44,8 @@ jobs:
         run: npm run lint
       - name: Unit tests
         run: npm test
+      - name: Repeated code stays under 1 percent (jscpd, JavaScript in src)
+        run: npm run check:duplication
 
   types-compile:
     name: Generated types compile

@@ -1,0 +1,43 @@
+{
+  "statusCode": 200,
+  "headers": { "Content-Type": "application/json; odata=minimalmetadata; streaming=true; charset=utf-8", "x-ms-request-id": "00000000-0000-0000-0000-000000000001" },
+  "body": {
+    "@odata.context": "https://example.sharepoint.com/sites/demo/_api/$metadata#items",
+    "value": [
+      {
+        "@odata.etag": "\"1\"",
+        "ItemInternalId": "1",
+        "ID": 1,
+        "Title": "First sample item",
+        "Status": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference", "Id": 0, "Value": "Open" },
+        "Requester": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedUser", "Claims": "i:0#.f|membership|sample.person@example.com", "DisplayName": "Sample Person", "Email": "sample.person@example.com", "Picture": "https://example.com/photo/1", "Department": null, "JobTitle": null },
+        "Tags": [ { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference", "Id": 1, "Value": "Hardware" }, { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference", "Id": 2, "Value": "Urgent" } ],
+        "Cost": 1299.5,
+        "Approved": false,
+        "Due": "2025-03-14T00:00:00Z",
+        "{Identifier}": "sample/path/1",
+        "{IsFolder}": false,
+        "{Link}": "https://example.sharepoint.com/sites/demo/Lists/Items/1_.000",
+        "body/field": "a field whose name has a slash",
+        "Notes (old)": "a field whose name has brackets"
+      },
+      {
+        "@odata.etag": "\"3\"",
+        "ItemInternalId": "2",
+        "ID": 2,
+        "Title": "Second sample item",
+        "Status": { "@odata.type": "#Microsoft.Azure.Connectors.SharePoint.SPListExpandedReference", "Id": 1, "Value": "Closed" },
+        "Requester": null,
+        "Tags": [],
+        "Cost": 20,
+        "Approved": true,
+        "Due": null,
+        "{Identifier}": "sample/path/2",
+        "{IsFolder}": false,
+        "{Link}": "https://example.sharepoint.com/sites/demo/Lists/Items/2_.000",
+        "body/field": "x",
+        "Notes (old)": null
+      }
+    ]
+  }
+}

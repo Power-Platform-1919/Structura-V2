@@ -68,7 +68,7 @@ An audit of every file in the repository against this document found these were 
 |---|---|---|
 | Deployment | `deploy-pages.yml`: every push to `prod` publishes `index.html`, `src` and `icons` to GitHub Pages | DONE 2026-10-28: `samples/` (old design prototypes) was published to the public site; it is now in `archive/` and no longer published (3.20) |
 | Branch mirror | `mirror-prod-to-main.yml`: makes `main` identical to `prod` | KEEP |
-| CI | `ci.yml`: lint and unit tests; generated types through the real compilers; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
+| CI | `ci.yml`: lint and unit tests; repeated code under 1 percent (jscpd, `.jscpd.json`); generated types through the real compilers; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
 | Old prototypes | `archive/structra-v2.html` and `archive/samples/` | DONE 2026-10-28: moved out of the root into `archive/` (see `archive/README.md`, review and delete later) |
 | `templates/` | an empty folder (not in git) | delete |
 | `todo.json` | the task list carried over from V1 (tasks 1 to 12) | KEEP; refresh |
@@ -834,7 +834,7 @@ Tool: `tests/perf/large-engines.js` (Playwright, a fresh browser per file, this 
 
 ### 8.9 Generated types through the real compilers (2026-10-28)
 
-`tests/compile/type-compile.js` gives the output of the type generator to tsc (strict), Python (the module is imported, not only parsed), the .NET SDK (C#), and in CI Go (`go vet`), Rust (`cargo check` with serde) and `javac`; the CI job "Generated types compile" runs it with every compiler required. Documents: a realistic list, a list with colliding names, the first list of each of the 31 test fixtures, one record with every awkward key of `tests/hostile-keys.js`, and one record with about 190 reserved words and type names of the languages.
+`tests/compile/type-compile.js` gives the output of the type generator to tsc (strict), Python (the module is imported, not only parsed), the .NET SDK (C#), and in CI Go (`go vet`), Rust (`cargo check` with serde) and `javac`; the CI job "Generated types compile" runs it with every compiler required. Documents: a realistic list, a list with colliding names, the first list of each of the 34 test fixtures, one record with every awkward key of `tests/hostile-keys.js`, and one record with about 190 reserved words and type names of the languages.
 
 What the compilers showed, before the fix (all in the old code):
 - **A key with a line break, tab or other control character** broke the string in TypeScript, C#, Java, Rust, Go tags and the Python comment.
