@@ -94,6 +94,25 @@ function serve() {
     await page.waitForFunction(() => /changed/.test((document.querySelector('#diffStats') || {}).textContent || ''), null, { timeout: 30000 }).catch(() => {});
     const stats = await page.evaluate(() => document.querySelector('#diffStats').textContent);
     if (!/added/.test(stats) || !/removed/.test(stats) || !/changed/.test(stats)) failures.push('the Diff counts should be labelled: "' + stats + '"');
+
+    // ---- A long label wraps over lines in a taller node and keeps its full text as the name ----
+    const wrapped = await page.evaluate(async () => {
+      const long = 'a long title that does not fit on one line of a node';
+      Structra.setState('activeView', 'graph');
+      Structra.setState('jsonData', { short: 1, text: long, other: 2 });
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      const node = [...document.querySelectorAll('structra-graph g[role=button]')].find((group) => (group.getAttribute('aria-label') || '').includes('a long title'));
+      if (!node) return null;
+      const rect = node.querySelector('rect');
+      const small = [...document.querySelectorAll('structra-graph g[role=button]')].find((group) => group.getAttribute('aria-label') === 'short: 1');
+      return { name: node.getAttribute('aria-label'), lines: node.querySelectorAll('tspan').length, height: Number(rect.getAttribute('height')), smallHeight: small ? Number(small.querySelector('rect').getAttribute('height')) : 0 };
+    });
+    if (!wrapped) failures.push('the node with the long label was not found');
+    else {
+      if (wrapped.lines < 2 || wrapped.lines > 3) failures.push('a long label should wrap over 2 or 3 lines: ' + JSON.stringify(wrapped));
+      if (wrapped.height <= wrapped.smallHeight) failures.push('a wrapped node should be taller than a one-line node: ' + JSON.stringify(wrapped));
+      if (!/^text: a long title/.test(wrapped.name)) failures.push('the node should keep its full label as its name: ' + wrapped.name);
+    }
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 220));
   }

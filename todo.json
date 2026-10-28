@@ -3795,7 +3795,7 @@
         {
           "id": "21.7",
           "title": "Graph node labels (3.15)",
-          "status": "in_progress",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.7.1",
@@ -3806,22 +3806,30 @@
             {
               "id": "21.7.2",
               "title": "Per-node height in the layout code",
-              "status": "todo"
+              "status": "done",
+              "note": "Each node now has its own height (1 line 28, then 14 per line plus 12); layout, edges, parent centring and bounds use node.height",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.7.3",
               "title": "Wrap text in SVG (tspans), keep the full label as the name",
-              "status": "todo"
+              "status": "done",
+              "note": "_wrapLabel breaks the label into up to 3 lines of 18 characters as tspans (trailing space keeps the drawn text equal to the name); full label stays in aria-label and title",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.7.4",
               "title": "Check zoom, fit, pan and the minimap",
-              "status": "todo"
+              "status": "done",
+              "note": "Zoom to fit now uses the real bottom of the tree; graph smoke test (fit, centre, select, minimap, diff) passes in Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.7.5",
               "title": "axe audit shows 0 findings",
-              "status": "todo"
+              "status": "done",
+              "note": "UI audit axe: 0 findings (was 2, label-content-name-mismatch); graph smoke test checks wrapping, taller node and full name",
+              "doneOn": "2026-10-28"
             }
           ]
         },
