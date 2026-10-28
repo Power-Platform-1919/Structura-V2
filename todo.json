@@ -4676,7 +4676,8 @@
             {
               "id": "25.1.1",
               "title": "Map its parts: datasets, analysis, search, sort, filter, schema, stats, SQL, persistence",
-              "status": "todo"
+              "status": "todo",
+              "note": "TOMORROW (after 32): map the parts of data-engine.js"
             },
             {
               "id": "25.1.2",
@@ -5161,6 +5162,71 @@
           "status": "done",
           "note": "Docs: feature-technology-map section 8.7 has a row per library or standard: suite, our code it ran through, number of cases, result, and what it found. Rows: JSONPath, JSON parsing, JSON Schema, CSV, TOML, YAML, XML, repair, Compare and JSON Patch.",
           "doneOn": "2026-10-28"
+        }
+      ]
+    },
+    {
+      "id": "32",
+      "title": "Shared code: write each repeated job once, so it is never written again (tests, tools, app)",
+      "status": "in_progress",
+      "subtasks": [
+        {
+          "id": "32.1",
+          "title": "Browser test kit tests/app-test.js: server, browser, returning-visitor context, page errors, result and exit code; convert every smoke test that fits",
+          "status": "done",
+          "note": "tests/app-test.js (runAppTest: server, shared browser, returning-visitor context or firstVisit, page errors with ignoreErrors, base and origin, openApp, fixture, newContext, result line and exit code); 34 of 44 smoke tests converted by a one-off converter and re-indented; 1,700 lines removed; full Edge suite passes",
+          "doneOn": "2026-10-28"
+        },
+        {
+          "id": "32.2",
+          "title": "Page helpers for repeated actions inside tests: open a text as a document, close extra tabs",
+          "status": "done",
+          "note": "tests/page-helpers.js: loadText(page, name, text) and closeExtraTabs(page) replace identical copies in 6 tests",
+          "doneOn": "2026-10-28"
+        },
+        {
+          "id": "32.3",
+          "title": "Unit test utils tests/unit/test-utils.js: seeded random, clone, deep freeze, first list, fixture lists, worker runner; use them in every test that wrote its own",
+          "status": "done",
+          "note": "tests/unit/test-utils.js (seededRandom, clone, deepFreeze, firstList, fixtureLists, runWorker, sameJson) now used by the three worker suites, seams, schema-gen-validate, undo-stack, json-diff, json-patch-roundtrip, type-compile and fuzzy-compare; 70 lines of copies removed; unit tests 41 of 41",
+          "doneOn": "2026-10-28"
+        },
+        {
+          "id": "32.4",
+          "title": "The smoke tests that did not fit the kit (exports, find, fixtures, hostile, path-history, powerplatform, startup-budget, transform, xml-conformance): convert or write down why not",
+          "status": "done",
+          "note": "Converted to the kit: exports, find, hostile, path-history, powerplatform, startup-budget (open: false), transform, xml-conformance, xml-mapping, plus the 34 from 32.1; kit options added on the way: origin, firstVisit, clipboard, ignoreErrors. fixtures.js stays as it is on purpose: it starts one fresh browser context per fixture file in a loop (a different shape from one page for a whole test). Smoke tests on the kit: 43 of 44",
+          "doneOn": "2026-10-28"
+        },
+        {
+          "id": "32.5",
+          "title": "tests/perf, tests/ui and tools use the one static server (startAppServer) instead of their own",
+          "status": "todo",
+          "note": "TOMORROW: tests/perf (large-engines, startup-cost, duckdb-bench, tree-ours, ...), tests/ui (helpers) and tools use startAppServer from tests/app-test.js"
+        },
+        {
+          "id": "32.6",
+          "title": "App: Structra.localStore (read JSON with a fallback, write with the quota error handled, remove, list keys) replaces the hand-written try/catch blocks",
+          "status": "todo",
+          "note": "TOMORROW: Structra.localStore in src/core, used by canvas-header, drawer, query history, settings, snippets, welcome, workspace, input-panel (recent list); unit test"
+        },
+        {
+          "id": "32.7",
+          "title": "tools/patch.mjs: exact-text edits to a file from the command line, with no shell escaping, so one-off patch scripts are never written again",
+          "status": "todo",
+          "note": "TOMORROW: tools/patch.mjs"
+        },
+        {
+          "id": "32.8",
+          "title": "A catalogue of shared helpers in DEVELOPER-GUIDE (\"use these first\") and a duplication budget for tests in CI",
+          "status": "todo",
+          "note": "TOMORROW: catalogue of shared helpers in DEVELOPER-GUIDE and a jscpd budget for tests (tests now 17 percent repeated, was 27.6, goal under 8)"
+        },
+        {
+          "id": "32.9",
+          "title": "Full checks: unit, Edge, Firefox, WebKit, UI audit; pull request into dev",
+          "status": "todo",
+          "note": "After the steps above: unit, Edge, Firefox, WebKit, UI audit; pull request"
         }
       ]
     }

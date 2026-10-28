@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 const { load, test, eq, truthy } = require('./harness');
+const { clone, deepFreeze } = require('./test-utils');
 
 const LIBS = path.join(__dirname, '..', '..', 'src', 'libs');
 global.Ajv = require('../../src/libs/ajv.min.js');
@@ -41,11 +42,6 @@ const ready = (async () => {
   D.use(lib, patcher);
 })();
 
-const clone = (value) => JSON.parse(JSON.stringify(value));
-function deepFreeze(value) {
-  if (value && typeof value === 'object' && !Object.isFrozen(value)) { Object.freeze(value); Object.values(value).forEach(deepFreeze); }
-  return value;
-}
 
 /* ================= 1. the validate adapter (Ajv) ================= */
 

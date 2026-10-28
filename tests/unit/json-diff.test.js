@@ -1,4 +1,5 @@
 const { load, test, eq, truthy } = require('./harness');
+const { clone } = require('./test-utils');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
@@ -16,7 +17,6 @@ const ready = (async () => {
 })();
 
 const kinds = (r) => r.changes.map((c) => c.type + ' ' + (c.type === 'removed' ? c.leftPath : c.rightPath)).sort();
-const clone = (x) => JSON.parse(JSON.stringify(x));
 
 // Apply JSON Patch operations to a copy of a document. The library's own apply works in place and refuses an operation on the
 // whole document (path ""), so the document is placed inside a wrapper and every path starts with /root.

@@ -10,6 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const { load } = require('../unit/harness');
+const { seededRandom } = require('../unit/test-utils');
 
 const ROOT = path.join(__dirname, '..', '..');
 load(['shared-helpers', 'data-paths', 'data-engine']);
@@ -20,8 +21,7 @@ global.uFuzzy = uFuzzy;                          // the engine's Find > Fuzzy us
 let Fuse = null;
 if (process.argv[2]) Fuse = require(path.join(path.resolve(process.argv[2]), 'node_modules', 'fuse.js')).default || require(path.join(path.resolve(process.argv[2]), 'node_modules', 'fuse.js'));
 
-function random(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
-const rnd = random(11);
+const rnd = seededRandom(11);
 
 // vocabulary from the fixtures
 const vocabulary = new Set();

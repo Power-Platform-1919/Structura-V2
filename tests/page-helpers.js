@@ -74,4 +74,20 @@ function readClipboard(page) {
   return page.evaluate(() => (window.__clipboardSpy ? window.__clipboardSpy.text : navigator.clipboard.readText()));
 }
 
-module.exports = { uploadAndWait, waitForIdle, allowClipboard, readClipboard, FILE_INPUT };
+/**
+ * Open a text as a new document (a new tab, then the text as if it was pasted), and wait for it to be taken in.
+ *   await loadText(page, 'orders.json', '[{"a":1}]');
+ */
+async function loadText(page, name, text) {
+  await page.evaluate(() => Structra.events.emit('tabs:add'));
+  await page.waitForTimeout(250);
+  await page.evaluate(([n, t]) => document.querySelector('structra-input-panel')._loadText(t, n), [name, text]);
+  await page.waitForTimeout(700);
+}
+
+/** Close every tab but the first (a test that opens many documents starts the next part clean) */
+function closeExtraTabs(page) {
+  return page.evaluate(() => { while (Structra.tabs.list.length > 1) document.querySelector('structra-tabs')._closeTab(Structra.tabs.list[Structra.tabs.list.length - 1].id); });
+}
+
+module.exports = { uploadAndWait, waitForIdle, allowClipboard, readClipboard, loadText, closeExtraTabs, FILE_INPUT };

@@ -4,127 +4,78 @@
 
    Run:  node tests/smoke/exports.js          (PW_CHANNEL=msedge uses the installed Edge; images are drawn by modern-screenshot from this folder)
 */
-const http = require('http');
 const fs = require('fs');
 const path = require('path');
-
-let chromium;
-try { ({ chromium } = require('playwright')); } catch {
-  console.error('Playwright is not installed. Run: npm install --save-dev playwright && npx playwright install chromium');
-  process.exit(2);
-}
-
-const { launchBrowser } = require('../launch-browser');
+const { runAppTest, ROOT } = require('../app-test');
 const { uploadAndWait } = require('../page-helpers');
-const ROOT = path.join(__dirname, '..', '..');
+
 const FIXTURES = path.join(ROOT, 'tests', 'fixtures');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 
-// The first-run welcome dialog opens a moment after load and would cover the page: tests start as a returning visitor
-async function newCtx(browser, options) {
-  const ctx = await browser.newContext(options);
-  await ctx.addInitScript(() => { try { localStorage.setItem('structra.welcomeSeen', '1'); } catch { /* storage blocked */ } });
-  return ctx;
-}
-
-function serve() {
-  const server = http.createServer((req, res) => {
-    const url = decodeURIComponent(req.url.split('?')[0]);
-    const file = path.join(ROOT, url === '/' ? 'index.html' : url);
-    if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end(); return; }
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
-    fs.createReadStream(file).pipe(res);
-  });
-  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
-}
-
-(async () => {
-  const server = await serve();
-  const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await launchBrowser(chromium);
-  const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
-  const failures = [];
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
-
-  try {
-    await page.goto(base);
-    await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
-    await page.keyboard.press('Escape');
-
-    // ---- XML: every fixture, plus a document made to be difficult ----
-    const docs = fs.readdirSync(FIXTURES).filter((f) => f.endsWith('.json')).map((f) => ({ name: f, text: fs.readFileSync(path.join(FIXTURES, f), 'utf8') }));
-    docs.push({ name: 'awkward keys', text: JSON.stringify({ '1st': 1, 'a b': [null, 1, { 'x/y': null, '': 'empty key' }], 'ü': 'ok', t: 'a & b < c "q"', c: 'tab\u0001ctrl' }) });
-    const bad = await page.evaluate((list) => {
-      const out = [];
-      for (const d of list) {
-        let json;
-        try { json = JSON.parse(d.text); } catch { continue; }
-        const xml = Structra.formatConversion.jsonToXml(json);
-        const doc = new DOMParser().parseFromString(xml, 'application/xml');
-        const err = doc.querySelector('parsererror');
-        if (err) out.push(d.name + ': ' + err.textContent.split('\n')[0].slice(0, 120));
-      }
-      return out;
-    }, docs);
-    bad.forEach((b) => failures.push('XML is not well-formed for ' + b));
-
-    // ---- Image export in every view, light and dark ----
-    await uploadAndWait(page, path.join(FIXTURES, 'sp_getitems.json'));
-    await page.evaluate(() => { window.__saved = []; const d = Structra.sharedHelpers.downloadFile; Structra.sharedHelpers.downloadFile = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); (window.__blobs = window.__blobs || []).push({ name, blob }); }; });
-    // SHARD=0/2 or 1/2 (set by the parallel runner) takes only some of the modes, so the slow part is split across processes
-    const [shard, shards] = (process.env.SHARD || '0/1').split('/').map(Number);
-    for (const mode of ['light', 'dark'].filter((_, i) => i % shards === shard)) {
-      await page.evaluate((m) => Structra.themeEngine && Structra.themeEngine.setMode ? Structra.themeEngine.setMode(m) : document.documentElement.setAttribute('data-theme', m), mode);
-      for (const view of ['tree', 'table', 'graph', 'schema', 'overview']) {
-        await page.evaluate((v) => Structra.setState('activeView', v), view);
-        await page.waitForTimeout(500);
-        const result = await page.evaluate(async (v) => {
-          try {
-            await Structra.imageCapture.png(document.querySelector('.view-panel.active'), 'test-' + v + '.png');
-            return { ok: true };
-          } catch (e) { return { error: e.message }; }
-        }, view);
-        if (result.error) failures.push(`image export failed in ${view} (${mode}): ${result.error}`);
-      }
+runAppTest('exports', async ({ page, fail, context, fixture }) => {
+  // ---- XML: every fixture, plus a document made to be difficult ----
+  const docs = fs.readdirSync(FIXTURES).filter((f) => f.endsWith('.json')).map((f) => ({ name: f, text: fs.readFileSync(path.join(FIXTURES, f), 'utf8') }));
+  docs.push({ name: 'awkward keys', text: JSON.stringify({ '1st': 1, 'a b': [null, 1, { 'x/y': null, '': 'empty key' }], 'ü': 'ok', t: 'a & b < c "q"', c: 'tab\u0001ctrl' }) });
+  const bad = await page.evaluate((list) => {
+    const out = [];
+    for (const d of list) {
+      let json;
+      try { json = JSON.parse(d.text); } catch { continue; }
+      const xml = Structra.formatConversion.jsonToXml(json);
+      const doc = new DOMParser().parseFromString(xml, 'application/xml');
+      const err = doc.querySelector('parsererror');
+      if (err) out.push(d.name + ': ' + err.textContent.split('\n')[0].slice(0, 120));
     }
-    const saved = await page.evaluate(() => window.__saved);
-    // an image that is only one colour is a blank page: every picture should hold several colours (text, borders, background)
-    const colours = await page.evaluate(async () => {
-      const out = [];
-      for (const { name, blob } of window.__blobs || []) {
-        const bitmap = await createImageBitmap(blob);
-        const canvas = document.createElement('canvas');
-        canvas.width = 120; canvas.height = 80;
-        const context = canvas.getContext('2d', { willReadFrequently: true });
-        context.drawImage(bitmap, 0, 0, 120, 80);
-        const data = context.getImageData(0, 0, 120, 80).data;
-        const seen = new Set();
-        for (let i = 0; i < data.length; i += 4) seen.add(data[i] + ',' + data[i + 1] + ',' + data[i + 2]);
-        out.push({ name, type: blob.type, colours: seen.size });
-      }
-      return out;
-    });
-    for (const picture of colours) {
-      if (picture.type !== 'image/png') failures.push('an exported image should be a PNG: ' + picture.name + ' is ' + picture.type);
-      if (picture.colours < 4) failures.push('an exported image looks blank (' + picture.colours + ' colours): ' + picture.name);
+    return out;
+  }, docs);
+  bad.forEach((b) => fail('XML is not well-formed for ' + b));
+
+  // ---- Image export in every view, light and dark ----
+  await uploadAndWait(page, path.join(FIXTURES, 'sp_getitems.json'));
+  await page.evaluate(() => { window.__saved = []; const d = Structra.sharedHelpers.downloadFile; Structra.sharedHelpers.downloadFile = (blob, name) => { window.__saved.push({ name, size: blob.size, type: blob.type }); (window.__blobs = window.__blobs || []).push({ name, blob }); }; });
+  // SHARD=0/2 or 1/2 (set by the parallel runner) takes only some of the modes, so the slow part is split across processes
+  const [shard, shards] = (process.env.SHARD || '0/1').split('/').map(Number);
+  for (const mode of ['light', 'dark'].filter((_, i) => i % shards === shard)) {
+    await page.evaluate((m) => Structra.themeEngine && Structra.themeEngine.setMode ? Structra.themeEngine.setMode(m) : document.documentElement.setAttribute('data-theme', m), mode);
+    for (const view of ['tree', 'table', 'graph', 'schema', 'overview']) {
+      await page.evaluate((v) => Structra.setState('activeView', v), view);
+      await page.waitForTimeout(500);
+      const result = await page.evaluate(async (v) => {
+        try {
+          await Structra.imageCapture.png(document.querySelector('.view-panel.active'), 'test-' + v + '.png');
+          return { ok: true };
+        } catch (e) { return { error: e.message }; }
+      }, view);
+      if (result.error) fail(`image export failed in ${view} (${mode}): ${result.error}`);
     }
-    if (saved.length && saved.some((s) => !(s.size > 2000))) failures.push('an exported image is empty or tiny: ' + saved.filter((s) => !(s.size > 2000)).map((s) => s.name).join(', '));
-    // CSV export: a text cell a spreadsheet would run as a formula is protected, a real number is not, and a comma or quote survives
-    await uploadAndWait(page, { name: 'csv.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify([{ name: '=HYPERLINK("http://x","y")', note: 'a, "b"', n: -5, tag: '@SUM(1)' }])) });
-    const csv = await page.evaluate(() => Structra.dataEngine.exportData('csv'));
-    const lines = String(csv).trim().split('\n');
-    if (lines[0] !== 'name,note,n,tag') failures.push('CSV header should be name,note,n,tag: ' + lines[0]);
-    if (!lines[1] || !lines[1].startsWith("\"'=HYPERLINK(\"\"http://x\"\",\"\"y\"\")\"")) failures.push('a formula in a cell should start with an apostrophe: ' + lines[1]);
-    if (!lines[1] || !lines[1].endsWith(",-5,\"'@SUM(1)\"")) failures.push('-5 should stay a number and @SUM(1) should be protected: ' + lines[1]);
-    if (!lines[1] || !lines[1].includes('"a, ""b"""')) failures.push('a comma and quotes should survive: ' + lines[1]);
-  } catch (err) {
-    failures.push('crashed: ' + err.message.slice(0, 200));
   }
-  if (errors.length) failures.push('page errors: ' + [...new Set(errors)].join(' | '));
-
-  await browser.close();
-  server.close();
-  if (failures.length) { console.log('FAIL\n  ' + failures.join('\n  ')); process.exit(1); }
-  console.log('exports smoke test: ok');
-})();
+  const saved = await page.evaluate(() => window.__saved);
+  // an image that is only one colour is a blank page: every picture should hold several colours (text, borders, background)
+  const colours = await page.evaluate(async () => {
+    const out = [];
+    for (const { name, blob } of window.__blobs || []) {
+      const bitmap = await createImageBitmap(blob);
+      const canvas = document.createElement('canvas');
+      canvas.width = 120; canvas.height = 80;
+      const context = canvas.getContext('2d', { willReadFrequently: true });
+      context.drawImage(bitmap, 0, 0, 120, 80);
+      const data = context.getImageData(0, 0, 120, 80).data;
+      const seen = new Set();
+      for (let i = 0; i < data.length; i += 4) seen.add(data[i] + ',' + data[i + 1] + ',' + data[i + 2]);
+      out.push({ name, type: blob.type, colours: seen.size });
+    }
+    return out;
+  });
+  for (const picture of colours) {
+    if (picture.type !== 'image/png') fail('an exported image should be a PNG: ' + picture.name + ' is ' + picture.type);
+    if (picture.colours < 4) fail('an exported image looks blank (' + picture.colours + ' colours): ' + picture.name);
+  }
+  if (saved.length && saved.some((s) => !(s.size > 2000))) fail('an exported image is empty or tiny: ' + saved.filter((s) => !(s.size > 2000)).map((s) => s.name).join(', '));
+  // CSV export: a text cell a spreadsheet would run as a formula is protected, a real number is not, and a comma or quote survives
+  await uploadAndWait(page, { name: 'csv.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify([{ name: '=HYPERLINK("http://x","y")', note: 'a, "b"', n: -5, tag: '@SUM(1)' }])) });
+  const csv = await page.evaluate(() => Structra.dataEngine.exportData('csv'));
+  const lines = String(csv).trim().split('\n');
+  if (lines[0] !== 'name,note,n,tag') fail('CSV header should be name,note,n,tag: ' + lines[0]);
+  if (!lines[1] || !lines[1].startsWith("\"'=HYPERLINK(\"\"http://x\"\",\"\"y\"\")\"")) fail('a formula in a cell should start with an apostrophe: ' + lines[1]);
+  if (!lines[1] || !lines[1].endsWith(",-5,\"'@SUM(1)\"")) fail('-5 should stay a number and @SUM(1) should be protected: ' + lines[1]);
+  if (!lines[1] || !lines[1].includes('"a, ""b"""')) fail('a comma and quotes should survive: ' + lines[1]);
+}, { viewport: { width: 1360, height: 800 } });

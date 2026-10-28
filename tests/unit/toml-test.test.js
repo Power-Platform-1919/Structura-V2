@@ -10,27 +10,13 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const { test, eq } = require('./harness');
+const { runWorker } = require('./test-utils');
 
 const suite = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'suites', 'toml-test', 'cases.json'), 'utf8'));
 const LIBRARY = process.env.TOML_LIBRARY_FILE || path.join(__dirname, '..', '..', 'src', 'libs', 'toml.min.js');
 
-/** Run the real worker file on one text and return what it posts back */
-function parseWithWorker(text) {
-  let handler = null;
-  let posted = null;
-  const context = {
-    console: { log() {}, warn() {}, error() {} },
-    performance: { now: () => Date.now() },
-    postMessage: (message) => { posted = message; },
-    importScripts: () => { vm.runInContext(fs.readFileSync(LIBRARY, 'utf8'), context); },
-  };
-  context.self = context;
-  context.addEventListener = (type, fn) => { if (type === 'message') handler = fn; };
-  vm.createContext(context);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'workers', 'toml-parse-worker.js'), 'utf8'), context);
-  handler({ data: { id: 1, text } });
-  return posted;
-}
+/** Run the real worker file on one text and return what it posts back (the library file can be named by TOML_LIBRARY_FILE, to try another build) */
+const parseWithWorker = (text) => runWorker('toml-parse-worker.js', { id: 1, text }, { libs: [LIBRARY] });
 
 /** The suite writes every value as { type, value }; turn that into the plain value a JavaScript parser can give */
 function untag(node) {

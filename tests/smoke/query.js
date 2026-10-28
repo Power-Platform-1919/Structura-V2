@@ -3,135 +3,85 @@
 
    Run:  node tests/smoke/query.js          (PW_CHANNEL=msedge uses the installed Edge)
 */
-const http = require('http');
-const fs = require('fs');
+const { runAppTest } = require('../app-test');
+const { uploadAndWait } = require('../page-helpers');
 const path = require('path');
 
-let chromium;
-try { ({ chromium } = require('playwright')); } catch {
-  console.error('Playwright is not installed. Run: npm install --save-dev playwright && npx playwright install chromium');
-  process.exit(2);
-}
+runAppTest('query', async ({ page, fail, ROOT }) => {
+  await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
+  await page.evaluate(() => Structra.setState('queryPanelOpen', true));
+  await page.waitForTimeout(300);
 
-const { launchBrowser } = require('../launch-browser');
-const { uploadAndWait } = require('../page-helpers');
-const ROOT = path.join(__dirname, '..', '..');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
+  const ask = async (mode, text) => {
+    await page.locator(`.seg-btn[data-mode="${mode}"]`).click();
+    await page.locator('#queryInput').fill(text);
+    await page.locator('#queryInput').press('Enter');                 // Enter runs the query
+    await page.waitForTimeout(250);
+    return page.evaluate(() => ({
+      summary: (document.querySelector('#queryResults .qp-summary') || {}).textContent || '',
+      error: !!document.querySelector('#queryResults .is-error'),
+      rows: [...document.querySelectorAll('#queryResults .qp-result')].map((r) => ({ path: r.dataset.path, text: r.textContent.replace(/\s+/g, ' ').trim() })),
+    }));
+  };
+  const countOf = (r) => Number((/^([\d,]+) match/.exec(r.summary) || [])[1]);
 
-// The first-run welcome dialog opens a moment after load and would cover the page: tests start as a returning visitor
-async function newCtx(browser, options) {
-  const ctx = await browser.newContext(options);
-  await ctx.addInitScript(() => { try { localStorage.setItem('structra.welcomeSeen', '1'); } catch { /* storage blocked */ } });
-  return ctx;
-}
+  let r = await ask('path', 'value[*].Requester.Email');
+  if (countOf(r) !== 3) fail('Path value[*].Requester.Email should find 3, said: ' + r.summary);
+  if (!r.rows[1] || r.rows[1].path !== '$.value[1].Requester.Email') fail('the match path is not $.value[1].Requester.Email: ' + (r.rows[1] && r.rows[1].path));
 
-function serve() {
-  const server = http.createServer((req, res) => {
-    const url = decodeURIComponent(req.url.split('?')[0]);
-    const file = path.join(ROOT, url === '/' ? 'index.html' : url);
-    if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end(); return; }
-    res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
-    fs.createReadStream(file).pipe(res);
-  });
-  return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)));
-}
+  r = await ask('jsonpath', '$.value[?(@.Cost > 100)].Title');
+  if (countOf(r) !== 1 || !/Laptop/.test(r.rows[0].text)) fail('JSONPath with a filter should find Laptop only, said: ' + r.summary);
 
-(async () => {
-  const server = await serve();
-  const base = `http://127.0.0.1:${server.address().port}/index.html`;
-  const browser = await launchBrowser(chromium);
-  const page = await (await newCtx(browser, { viewport: { width: 1360, height: 800 } })).newPage();
-  const failures = [];
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
+  r = await ask('jsonpath', '$..Value');
+  if (countOf(r) < 4) fail('JSONPath $..Value should find at least 4 values, said: ' + r.summary);
 
-  try {
-    await page.goto(base);
-    await page.waitForSelector('#canvasEmpty input[type=file]', { state: 'attached', timeout: 10000 });
-    await page.keyboard.press('Escape');
-    await uploadAndWait(page, path.join(ROOT, 'tests', 'fixtures', 'sp_getitems.json'));
-    await page.evaluate(() => Structra.setState('queryPanelOpen', true));
-    await page.waitForTimeout(300);
+  // The standard's own forms and the pattern test (JSONPath is json-p3, plus the app's conveniences)
+  r = await ask('jsonpath', '$.value[?@.Cost > 100].Title');
+  if (countOf(r) !== 1 || !/Laptop/.test(r.rows[0].text)) fail('JSONPath filter without parentheses should find Laptop, said: ' + r.summary);
+  r = await ask('jsonpath', '$.value[?(@.Title =~ /^LAP/i)].Cost');
+  if (countOf(r) !== 1) fail('JSONPath =~ with the i flag should find 1, said: ' + r.summary);
+  r = await ask('jsonpath', '$.value[::-1].Title');
+  if (countOf(r) !== 3 || !/Parking/.test(r.rows[0].text)) fail('JSONPath [::-1] should list the items backwards, said: ' + r.summary + ' / ' + (r.rows[0] && r.rows[0].text));
+  r = await ask('jsonpath', '$.value[');
+  if (!r.error || !/character/.test(r.summary)) fail('a broken JSONPath should show an error that says where, said: ' + r.summary);
 
-    const ask = async (mode, text) => {
-      await page.locator(`.seg-btn[data-mode="${mode}"]`).click();
-      await page.locator('#queryInput').fill(text);
-      await page.locator('#queryInput').press('Enter');                 // Enter runs the query
-      await page.waitForTimeout(250);
-      return page.evaluate(() => ({
-        summary: (document.querySelector('#queryResults .qp-summary') || {}).textContent || '',
-        error: !!document.querySelector('#queryResults .is-error'),
-        rows: [...document.querySelectorAll('#queryResults .qp-result')].map((r) => ({ path: r.dataset.path, text: r.textContent.replace(/\s+/g, ' ').trim() })),
-      }));
-    };
-    const countOf = (r) => Number((/^([\d,]+) match/.exec(r.summary) || [])[1]);
+  r = await ask('regex', '^ann@');
+  if (countOf(r) < 1) fail('Regex ^ann@ should find the email, said: ' + r.summary);
 
-    let r = await ask('path', 'value[*].Requester.Email');
-    if (countOf(r) !== 3) failures.push('Path value[*].Requester.Email should find 3, said: ' + r.summary);
-    if (!r.rows[1] || r.rows[1].path !== '$.value[1].Requester.Email') failures.push('the match path is not $.value[1].Requester.Email: ' + (r.rows[1] && r.rows[1].path));
+  r = await ask('regex', '(');
+  if (!r.error) fail('a broken pattern should show an error, said: ' + r.summary);
 
-    r = await ask('jsonpath', '$.value[?(@.Cost > 100)].Title');
-    if (countOf(r) !== 1 || !/Laptop/.test(r.rows[0].text)) failures.push('JSONPath with a filter should find Laptop only, said: ' + r.summary);
+  r = await ask('js', '=data.value.filter(x => x.Approved)');
+  if (countOf(r) !== 2) fail('JS filter should find 2 records, said: ' + r.summary);
+  if (!r.rows[0] || !/^\$\.value\[\d\]$/.test(r.rows[0].path)) fail('a JS result that is part of the document should show its real path, got: ' + (r.rows[0] && r.rows[0].path));
 
-    r = await ask('jsonpath', '$..Value');
-    if (countOf(r) < 4) failures.push('JSONPath $..Value should find at least 4 values, said: ' + r.summary);
+  r = await ask('path', 'value[*].DoesNotExist');
+  if (!/No matches/.test(r.summary)) fail('no match should say "No matches", said: ' + r.summary);
 
-    // The standard's own forms and the pattern test (JSONPath is json-p3, plus the app's conveniences)
-    r = await ask('jsonpath', '$.value[?@.Cost > 100].Title');
-    if (countOf(r) !== 1 || !/Laptop/.test(r.rows[0].text)) failures.push('JSONPath filter without parentheses should find Laptop, said: ' + r.summary);
-    r = await ask('jsonpath', '$.value[?(@.Title =~ /^LAP/i)].Cost');
-    if (countOf(r) !== 1) failures.push('JSONPath =~ with the i flag should find 1, said: ' + r.summary);
-    r = await ask('jsonpath', '$.value[::-1].Title');
-    if (countOf(r) !== 3 || !/Parking/.test(r.rows[0].text)) failures.push('JSONPath [::-1] should list the items backwards, said: ' + r.summary + ' / ' + (r.rows[0] && r.rows[0].text));
-    r = await ask('jsonpath', '$.value[');
-    if (!r.error || !/character/.test(r.summary)) failures.push('a broken JSONPath should show an error that says where, said: ' + r.summary);
+  await page.locator('#queryInput').fill('');
+  await page.locator('structra-query [data-action="run"]').click();
+  const empty = await page.evaluate(() => (document.querySelector('#queryResults .qp-summary') || {}).textContent || '');
+  if (!/Example/i.test(empty)) fail('running an empty box should show an example, said: ' + empty);
 
-    r = await ask('regex', '^ann@');
-    if (countOf(r) < 1) failures.push('Regex ^ann@ should find the email, said: ' + r.summary);
+  // A result opens in the Tree on that value
+  r = await ask('path', 'value[*].Title');
+  await page.locator('#queryResults .qp-result').nth(1).click();
+  await page.waitForTimeout(400);
+  const where = await page.evaluate(() => ({ view: Structra.state.activeView, path: Structra.state.currentPath }));
+  if (where.view !== 'tree' || where.path !== '$.value[1].Title') fail('clicking a result should select it in the Tree, got ' + JSON.stringify(where));
 
-    r = await ask('regex', '(');
-    if (!r.error) failures.push('a broken pattern should show an error, said: ' + r.summary);
+  const lit = await page.evaluate(() => document.querySelectorAll('.j-line.find-match').length);
+  if (lit !== 3) fail('all 3 matches should be marked in the Tree, ' + lit + ' are');
+  await page.evaluate(() => Structra.setState('activeView', 'tree'));
+  await page.locator('structra-query [data-copy-expr="pa"]').first().click();
+  await page.waitForTimeout(300);
+  const toastText = await page.evaluate(() => document.querySelector('structra-toast').textContent);
+  if (!/Power Automate expression copied/.test(toastText)) fail('a result should copy its Power Automate expression: ' + toastText.slice(0, 80));
 
-    r = await ask('js', '=data.value.filter(x => x.Approved)');
-    if (countOf(r) !== 2) failures.push('JS filter should find 2 records, said: ' + r.summary);
-    if (!r.rows[0] || !/^\$\.value\[\d\]$/.test(r.rows[0].path)) failures.push('a JS result that is part of the document should show its real path, got: ' + (r.rows[0] && r.rows[0].path));
-
-    r = await ask('path', 'value[*].DoesNotExist');
-    if (!/No matches/.test(r.summary)) failures.push('no match should say "No matches", said: ' + r.summary);
-
-    await page.locator('#queryInput').fill('');
-    await page.locator('structra-query [data-action="run"]').click();
-    const empty = await page.evaluate(() => (document.querySelector('#queryResults .qp-summary') || {}).textContent || '');
-    if (!/Example/i.test(empty)) failures.push('running an empty box should show an example, said: ' + empty);
-
-    // A result opens in the Tree on that value
-    r = await ask('path', 'value[*].Title');
-    await page.locator('#queryResults .qp-result').nth(1).click();
-    await page.waitForTimeout(400);
-    const where = await page.evaluate(() => ({ view: Structra.state.activeView, path: Structra.state.currentPath }));
-    if (where.view !== 'tree' || where.path !== '$.value[1].Title') failures.push('clicking a result should select it in the Tree, got ' + JSON.stringify(where));
-
-    const lit = await page.evaluate(() => document.querySelectorAll('.j-line.find-match').length);
-    if (lit !== 3) failures.push('all 3 matches should be marked in the Tree, ' + lit + ' are');
-    await page.evaluate(() => Structra.setState('activeView', 'tree'));
-    await page.locator('structra-query [data-copy-expr="pa"]').first().click();
-    await page.waitForTimeout(300);
-    const toastText = await page.evaluate(() => document.querySelector('structra-toast').textContent);
-    if (!/Power Automate expression copied/.test(toastText)) failures.push('a result should copy its Power Automate expression: ' + toastText.slice(0, 80));
-
-    // Keep the matches in a new tab
-    const before = await page.evaluate(() => Structra.tabs.list.length);
-    await page.locator('structra-query [data-action="openMatches"]').click();
-    await page.waitForTimeout(800);
-    const after = await page.evaluate(() => ({ tabs: Structra.tabs.list.length, data: JSON.stringify(Structra.state.jsonData) }));
-    if (after.tabs !== before + 1 || after.data !== JSON.stringify(['Laptop refresh', 'Badge request', 'Parking pass'])) failures.push('Open in a new tab did not hold the 3 titles: ' + JSON.stringify(after).slice(0, 160));
-  } catch (err) {
-    failures.push('crashed: ' + err.message.slice(0, 200));
-  }
-  if (errors.length) failures.push('page errors: ' + [...new Set(errors)].join(' | '));
-
-  await browser.close();
-  server.close();
-  if (failures.length) { console.log('FAIL\n  ' + failures.join('\n  ')); process.exit(1); }
-  console.log('query smoke test: ok');
-})();
+  // Keep the matches in a new tab
+  const before = await page.evaluate(() => Structra.tabs.list.length);
+  await page.locator('structra-query [data-action="openMatches"]').click();
+  await page.waitForTimeout(800);
+  const after = await page.evaluate(() => ({ tabs: Structra.tabs.list.length, data: JSON.stringify(Structra.state.jsonData) }));
+  if (after.tabs !== before + 1 || after.data !== JSON.stringify(['Laptop refresh', 'Badge request', 'Parking pass'])) fail('Open in a new tab did not hold the 3 titles: ' + JSON.stringify(after).slice(0, 160));
+}, { viewport: { width: 1360, height: 800 } });

@@ -8,30 +8,15 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const { load, test, eq, truthy } = require('./harness');
+const { runWorker } = require('./test-utils');
 
 global.Papa = require('../../src/libs/papaparse.min.js');
 load(['format-conversion']);
 
 const suite = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'suites', 'csv-spectrum', 'cases.json'), 'utf8'));
-const LIBS = path.join(__dirname, '..', '..', 'src', 'libs');
 
 /** Run the real worker file on one text and return what it posts back */
-function parseWithWorker(text) {
-  let handler = null;
-  let posted = null;
-  const context = {
-    console: { log() {}, warn() {}, error() {} },
-    performance: { now: () => Date.now() },
-    postMessage: (message) => { posted = message; },
-    importScripts: (...files) => { for (const file of files) vm.runInContext(fs.readFileSync(path.join(LIBS, path.basename(file)), 'utf8'), context); },
-  };
-  context.self = context;
-  context.addEventListener = (type, fn) => { if (type === 'message') handler = fn; };
-  vm.createContext(context);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'workers', 'csv-parse-worker.js'), 'utf8'), context);
-  handler({ data: { id: 1, text } });
-  return posted;
-}
+const parseWithWorker = (text) => runWorker('csv-parse-worker.js', { id: 1, text });
 
 // A cell as a person reads it: empty for null, the decimals kept for a number that had them
 function cellText(value, field, decimals) {

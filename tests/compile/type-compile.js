@@ -15,6 +15,7 @@ const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..', '..');
 const { load } = require('../unit/harness');
+const { fixtureLists } = require('../unit/test-utils');
 const { HOSTILE_KEYS } = require('../hostile-keys');
 load(['shared-helpers', 'type-code-generator']);
 const generator = global.Structra.typeCodeGenerator;
@@ -35,11 +36,6 @@ const RESERVED = [
   'Equals', 'GetHashCode', 'ToString', 'GetType', 'Root', 'RootItem',
 ];
 
-function firstList(value) {
-  if (Array.isArray(value) && value.length && value.every((item) => item && typeof item === 'object' && !Array.isArray(item))) return value;
-  if (value && typeof value === 'object') for (const child of Object.values(value)) { const found = firstList(child); if (found) return found; }
-  return null;
-}
 
 function documents() {
   const out = [];
@@ -52,13 +48,7 @@ function documents() {
     { 'a b': 1, a_b: 2, 'a-b': 3, 'A B': 4, Root: 5, RootItem: 6, matrix: [[1, 2], [3]], big: 3000000000, mixed: 1, owner: { owner: { owner: 1 } }, 'owner ': { x: 1 }, Owner: { y: 'z' } },
     { mixed: 1.5, big: 5, 'a b': null },
   ] });
-  const fixtures = path.join(ROOT, 'tests', 'fixtures');
-  for (const file of fs.readdirSync(fixtures).filter((name) => name.endsWith('.json')).sort()) {
-    try {
-      const rows = firstList(JSON.parse(fs.readFileSync(path.join(fixtures, file), 'utf8')));
-      if (rows) out.push({ name: 'fixture ' + file, rows: rows.slice(0, 200) });
-    } catch { /* not JSON the generator can use */ }
-  }
+  for (const { name, rows } of fixtureLists({ max: 200 })) out.push({ name: 'fixture ' + name, rows });
   const hostile = {};
   HOSTILE_KEYS.filter((key) => key.length < 200 && !key.includes('\u0000')).forEach((key, i) => { hostile[key] = i % 3 ? 'text' : i; });
   out.push({ name: 'hostile keys', rows: [hostile] });
