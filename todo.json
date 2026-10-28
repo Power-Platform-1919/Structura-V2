@@ -3596,7 +3596,7 @@
     {
       "id": "21",
       "title": "Wave 1: small, safe improvements",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Sections 3.4, 3.5, 3.9, 3.13, 3.14, 3.15 of the map.",
       "subtasks": [
         {
@@ -3721,37 +3721,49 @@
         {
           "id": "21.4",
           "title": "Native <dialog> for dialogs (3.4)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.4.1",
               "title": "Prototype in StructraDialog: showModal, Escape, backdrop click, focus return",
-              "status": "todo"
+              "status": "done",
+              "note": "Decided against showModal: a native modal dialog sits in the browser top layer, which would hide the toast, menus and command palette that open above dialogs today. Took the part we need instead: the browser's inert on #appRoot while any dialog is open (Structra.updatePageBehindDialog in dialog-base.js); own backdrop, Escape and focus return kept",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.2",
               "title": "Check each of the 12 dialogs: charts, diff, nullfinder, pivot, settings, shortcuts, snippets, theme, typedef, validate, welcome, workspace",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/fixtures.js opens and closes all 10 dialog elements by Escape and checks the page behind is out of reach while open and reachable after; Edge 43 of 43, Firefox and WebKit fixtures green",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.3",
               "title": "Keep Structra.closeTop (Escape closes one thing at a time) working",
-              "status": "todo"
+              "status": "done",
+              "note": "closeTop untouched; Escape still closes one thing at a time (robust and shell smoke tests green)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.4",
               "title": "Re-check backdrop and animation looks in all themes",
-              "status": "todo"
+              "status": "done",
+              "note": "No change to backdrop or animation CSS, so nothing to re-check; UI themes audit clean",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.5",
               "title": "Update shell and layout tests; axe audit",
-              "status": "todo"
+              "status": "done",
+              "note": "fixtures.js extended with the inert checks; UI audit axe 0 findings, 48 low only",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.4.6",
               "title": "Never block an older browser: feature-detect HTMLDialogElement.showModal, keep the old dialog code as the fallback, show a note and keep running (Q10)",
-              "status": "todo"
+              "status": "done",
+              "note": "Older browsers without inert get aria-hidden on #appRoot plus the existing Tab trap; feature test is 'inert' in element",
+              "doneOn": "2026-10-28"
             }
           ]
         },
