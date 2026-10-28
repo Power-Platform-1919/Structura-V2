@@ -103,3 +103,8 @@ test('a C# member is not named like its class or like a method every object has'
   const cs = G.generate('csharp', [{ Root: 1, RootItem: 2, ToString: 3, Equals: 4 }]);
   truthy(!/ RootItem \{ get/.test(cs) && !/ ToString \{ get/.test(cs) && !/ Equals \{ get/.test(cs), cs);
 });
+
+test('a key with no letters at all still gives a Go field that is exported (Field, Field_2)', () => {
+  const go = G.generate('go', [{ _: 1, '!': 2 }]);
+  truthy(go.includes('	Field int') && go.includes('	Field_2 int'), go);
+});

@@ -138,7 +138,7 @@ Structra.typeCodeGenerator = (() => {
       if (adapter.memberNotOwnerName) taken.add(ownerName);
       return (key) => {
         let identifier = adapter.ident(key);
-        if (!identifier) identifier = 'field';
+        if (!identifier) identifier = adapter.emptyName || 'field';
         if (/^[0-9]/.test(identifier)) identifier = adapter.digitLead + identifier;
         if (keywords.has(identifier)) identifier += '_';
         if (taken.has(identifier)) { let count = 2; while (taken.has(identifier + '_' + count)) count++; identifier += '_' + count; }
@@ -227,6 +227,7 @@ Structra.typeCodeGenerator = (() => {
       typeLead: (base) => (/^[0-9_]/.test(base) ? 'X' + base.replace(/^_+/, '') : base),
       ident: (key) => pascalIdent(key),
       digitLead: 'X',
+      emptyName: 'Field',      // a Go field must start with a capital letter to be exported
       emptyList: () => '[]interface{}',
       list: (inner) => `[]${inner}`,
       primitive: (sample) => (sample === null ? 'interface{}' : typeof sample === 'string' ? 'string' : typeof sample === 'number' ? ({ int: 'int', long: 'int64', decimal: 'float64' })[numberKind(sample)] : typeof sample === 'boolean' ? 'bool' : 'interface{}'),
