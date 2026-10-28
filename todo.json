@@ -2259,7 +2259,7 @@
     {
       "id": "15",
       "title": "Deep dive: fixes found by comparing our code with CodeMirror and other mature code (PR #6)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "docs/deep-dive-analysis-2026-10.md. Branch feature/tree-line-number-gutter, pull request #6 into dev.",
       "subtasks": [
         {
@@ -2482,15 +2482,16 @@
         {
           "id": "15.32",
           "title": "Review and merge pull request #6 into dev",
-          "status": "todo",
-          "note": "waiting for you (Q8)"
+          "status": "done",
+          "note": "PR #6 merged into dev on 2026-10-27 after Lint, unit, Edge, WebKit and UI audit were green (the Firefox job, non-blocking, failed on a system-library install timeout, since fixed by the Playwright image in PR #9).",
+          "doneOn": "2026-10-28"
         }
       ]
     },
     {
       "id": "16",
       "title": "JSONPath: json-p3 replaces our own engine (PR #7)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Section 3.3 of the map. Branch feature/json-p3, stacked on #6.",
       "subtasks": [
         {
@@ -2615,8 +2616,9 @@
         {
           "id": "16.18",
           "title": "Merge #7 after #6, then retarget it to dev",
-          "status": "todo",
-          "note": "waiting for you (Q8)"
+          "status": "done",
+          "note": "PR #6 merged first, PR #7 retargeted to dev (closed and reopened so CI ran), all five checks green, merged on 2026-10-27.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "16.19",
@@ -2627,14 +2629,16 @@
         {
           "id": "16.20",
           "title": "Mark JSONPath as done in the map and the plan",
-          "status": "todo"
+          "status": "done",
+          "note": "Map section 3.3 and the plan show JSONPath as done; Q13 recorded: json-p3 failing to load gives a plain error message.",
+          "doneOn": "2026-10-28"
         }
       ]
     },
     {
       "id": "17",
       "title": "Table: true scrollbar, grid roles, keyboard (branch feature/table-grid, not pushed)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Section 3.2 of the map.",
       "subtasks": [
         {
@@ -2765,17 +2769,23 @@
         {
           "id": "17.19",
           "title": "Commit the branch",
-          "status": "todo"
+          "status": "done",
+          "note": "Table work committed on feature/table-grid (src/core/row-window.js, structra-table.js windowing and grid, tests/smoke/table-grid.js).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "17.20",
           "title": "Open the pull request (stacked on #7)",
-          "status": "todo"
+          "status": "done",
+          "note": "PR #8 opened against dev after #6 and #7 were merged.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "17.21",
           "title": "Update the map and the plan",
-          "status": "todo"
+          "status": "done",
+          "note": "Map section 3.2 and the component rows updated: decided keep the library, wrapped in Structra.rowWindow.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "17.22",
@@ -2786,7 +2796,9 @@
         {
           "id": "17.23",
           "title": "Merge the Table pull request into dev after CI is green",
-          "status": "todo"
+          "status": "done",
+          "note": "PR #8 merged into dev on 2026-10-27 with all five checks green, including Firefox and WebKit in the new Playwright container.",
+          "doneOn": "2026-10-28"
         }
       ]
     },
@@ -3099,17 +3111,21 @@
         {
           "id": "18.4",
           "title": "Cleanup and hardening (3.20)",
-          "status": "in_progress",
+          "status": "done",
           "subtasks": [
             {
               "id": "18.4.1",
               "title": "Move src/workers/engine-worker.js to archive/ (nothing loads it)",
-              "status": "todo"
+              "status": "done",
+              "note": "src/workers/engine-worker.js moved to archive/engine-worker.js. It was NOT unused on the page: index.html loaded it as a plain script, which set window.onmessage; that script tag is removed.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.2",
               "title": "Delete the empty templates/ folder",
-              "status": "todo"
+              "status": "done",
+              "note": "The empty templates/ folder was removed (git did not track it; local folder deleted).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.3",
@@ -3120,62 +3136,86 @@
             {
               "id": "18.4.4",
               "title": "Change deploy-pages.yml so samples/ is not published",
-              "status": "todo"
+              "status": "done",
+              "note": "deploy-pages.yml now copies only index.html, src and icons; samples/ is no longer published to the public site.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.5",
               "title": "Global error handler: window error and unhandledrejection; short message; keep the last errors",
-              "status": "todo"
+              "status": "done",
+              "note": "New src/core/error-reporter.js (Structra.errorReporter): listens for window error and unhandledrejection, keeps the last 20, one short toast with a Copy a bug report button (same message once a minute, 3 a minute at most), ignores ResizeObserver notifications. Worker pool reports a crash when no task was waiting.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.6",
               "title": "Global error handler: \"copy a bug report\" (version, browser, last errors, no document data)",
-              "status": "todo"
+              "status": "done",
+              "note": "Bug report text: version (meta tag in index.html equal to package.json, now 2.0.0), browser, window size, open view, last errors with cleaned stacks. No document data: text in double quotes is replaced, messages cut to 160 characters, addresses lose query and fragment. Palette command Copy a bug report.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.7",
               "title": "Global error handler: tests that throw on purpose in a component, a worker and a promise",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/error-reporter.test.js (6 tests incl. redaction and version match) and tests/smoke/errors.js: throws on purpose from a timer, a promise and a worker with a secret value open; checks 3 records, one toast with the button, report free of the value, key and file name, and the palette entry. Green in Edge, Firefox and WebKit.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.8",
               "title": "Study a Content-Security-Policy meta tag (what breaks: new Function, blob workers, WebAssembly); decide",
-              "status": "todo"
+              "status": "done",
+              "note": "docs/csp-study.md + tests/perf/csp-study.js: under a strict policy Ajv (eval), DuckDB (WebAssembly compile, hangs silently) and inline styles break; a relaxed policy (unsafe-eval, wasm-unsafe-eval, style unsafe-inline) lets every feature work. Not shipped yet, per Q17: decide after the sandbox worker (task 19); watch item 30.4. Also removed the one inline script in index.html and its wrong CDN comment.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.9",
               "title": "Decide on offline install (web manifest and service worker); optional",
-              "status": "todo"
+              "status": "done",
+              "note": "Decided with Q18: no offline install for now (stays on the watch list, 30.5). Nothing built.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.10",
               "title": "Add THIRD-PARTY.md: name, version, license, source and build command for every vendored library",
-              "status": "todo"
+              "status": "done",
+              "note": "THIRD-PARTY.md: every vendored library with version, licence, source, folder, how the file was made, and what it is used for.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.11",
               "title": "Extend the map test so a new vendored library must be listed in THIRD-PARTY.md",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/third-party.test.js fails when a file or folder in src/libs or src/vendor is missing from THIRD-PARTY.md, or a row lacks version, licence or source.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.12",
               "title": "Create archive/ at the top of the repository with a README (what is in it, why, the date, \"review and delete later\")",
-              "status": "todo"
+              "status": "done",
+              "note": "archive/ created at the repository root with a README table: what each item is, why it was moved, the date, and review-and-delete-later.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.13",
               "title": "Move structra-v2.html and samples/ into archive/",
-              "status": "todo"
+              "status": "done",
+              "note": "structra-v2.html and samples/ moved into archive/ with git mv (history kept).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.14",
               "title": "Move the old virtual-list.js into archive/ (it was removed on the Table branch)",
-              "status": "todo"
+              "status": "done",
+              "note": "The last version of virtual-list.js (from before its deletion in commit 9d5c907) restored to archive/src-core/virtual-list.js.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.4.15",
               "title": "Keep archive/ out of the lint, the tests, the deploy and the map test",
-              "status": "todo"
+              "status": "done",
+              "note": "ESLint ignores archive/**; the deploy workflow does not copy it; unit tests and the map test only read src; verified lint and all 18 unit test files pass.",
+              "doneOn": "2026-10-28"
             }
           ]
         }
