@@ -1,5 +1,5 @@
 const { load, test, eq, truthy } = require('./harness');
-load(['shared-helpers', 'overview-insights']);
+load(['shared-helpers', 'data-paths', 'overview-insights']);
 const I = Structra.overviewInsights;
 
 console.log('insights');

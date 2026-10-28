@@ -73,13 +73,20 @@ function serve() {
     const lineErr = await page.evaluate(() => (document.querySelector('[data-role="error"] .io-error-detail') || {}).textContent || '');
     if (!/line 2/.test(lineErr)) failures.push('a bad line in JSON Lines should be named: ' + lineErr);
 
-    // ---- undo returns the tab to unchanged; flatten refuses to lose data ----
+    // ---- undo returns the tab to unchanged; flatten never loses data ----
     await closeAll();
     await load('flat.json', JSON.stringify({ 'a.b': 1, a: { b: 2 }, z: 1, y: 2 }));
     await page.evaluate(() => Structra.events.emit('command:run', 'flatten'));
     await page.waitForTimeout(500);
-    if (!/lose data/.test(await toastText())) failures.push('Flatten should refuse when two paths give the same name: ' + await toastText());
-    if (await page.evaluate(() => Object.keys(Structra.state.jsonData).join()) !== 'a.b,a,z,y') failures.push('a refused Flatten must leave the data alone');
+    // The key "a.b" and the path a then b used to give the same name and Flatten refused. Each is now written as its own path (["a.b"] and a.b),
+    // so nothing is lost, and Unflatten rebuilds the original exactly.
+    const flattened = await page.evaluate(() => JSON.stringify(Structra.state.jsonData));
+    if (flattened !== JSON.stringify({ '["a.b"]': 1, 'a.b': 2, z: 1, y: 2 })) failures.push('Flatten should keep both "a.b" and a.b under different names: ' + flattened);
+    const roundTrip = await page.evaluate(() => { const command = document.querySelector('structra-command'); const rebuilt = command._unflattenObj(Structra.state.jsonData); return JSON.stringify(rebuilt.data || rebuilt); });
+    if (roundTrip !== JSON.stringify({ 'a.b': 1, a: { b: 2 }, z: 1, y: 2 })) failures.push('Unflatten should rebuild the original: ' + roundTrip);
+    await page.evaluate(() => Structra.events.emit('command:run', 'undo'));
+    await page.waitForTimeout(500);
+    if (await page.evaluate(() => Object.keys(Structra.state.jsonData).join()) !== 'a.b,a,z,y') failures.push('Undo after Flatten should bring the original back');
     await page.evaluate(() => Structra.events.emit('command:run', 'sort'));
     await page.waitForTimeout(500);
     if (!(await page.evaluate(() => Structra.tabs.list.find((t) => t.id === Structra.tabs.activeId).modified))) failures.push('a change should mark the tab as changed');

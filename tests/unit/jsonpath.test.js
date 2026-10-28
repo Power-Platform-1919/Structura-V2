@@ -4,7 +4,7 @@ const { load, test, eq, truthy } = require('./harness');
 
 // The engine (json-p3) is an ES module the page loads on first use; here the same file is imported
 Structra.libraryLoader = { loadLibrary: () => import(pathToFileURL(path.join(__dirname, '..', '..', 'src', 'libs', 'json-p3', 'json-p3.min.js')).href) };
-load(['shared-helpers', 'jsonpath-query']);
+load(['shared-helpers', 'data-paths', 'jsonpath-query']);
 const J = Structra.jsonpathQuery;
 
 console.log('jsonpath');
@@ -69,8 +69,8 @@ test('a path that does not exist finds nothing, without an error', async () => {
   eq(await values('nothing.here'), []);
 });
 test('keys with odd characters get a bracket path', async () => {
-  eq(await paths("['a b']", { 'a b': 1 }), ["$['a b']"]);
-  eq(await paths("['it\\'s']", { "it's": 1 }), ["$['it\\'s']"]);
+  eq(await paths("['a b']", { 'a b': 1 }), ['$["a b"]']);
+  eq(await paths("['it\\'s']", { "it's": 1 }), ['$["it\'s"]']);
 });
 test('the whole document', async () => {
   eq(await values('$', [1, 2]), [[1, 2]]);

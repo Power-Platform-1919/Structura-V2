@@ -76,9 +76,7 @@ Structra.jsonRepairAndValidation = (() => {
 
   /* ---------- duplicate keys ---------- */
 
-  const SIMPLE_KEY = /^[A-Za-z_$][\w$]*$/;
-  const keyPath = (base, key) =>
-    SIMPLE_KEY.test(key) ? (base ? base + '.' + key : key) : `${base}["${key}"]`;
+  const keyPath = (base, key) => Structra.dataPaths.child(base, key);
 
   /**
    * Scan raw JSON text for objects that repeat a key. JSON.parse keeps only the

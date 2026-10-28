@@ -255,7 +255,7 @@ class StructraTree extends StructraComponent {
         try {
           const inner = JSON.parse(value);
           const command = document.querySelector('structra-command');
-          const leaf = String(path).split('.').pop().replace(/\[\d+\]$/, '') || 'text';
+          const leaf = (Structra.dataPaths.lastKey(path) === 'data' ? 'text' : Structra.dataPaths.lastKey(path));
           const ok = await command._openInNewTab(inner, leaf);
           if (!ok) Structra.toast('Close a tab first: the limit of open tabs is reached.', 'warning');
         } catch { Structra.toast('This text is not valid JSON, so it cannot be opened', 'error'); }

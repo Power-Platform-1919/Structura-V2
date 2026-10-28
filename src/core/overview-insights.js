@@ -108,7 +108,7 @@ Structra.overviewInsights = (() => {
     const groups = new Map();
     for (const list of stats.arraysDetail) {
       if (list.count === 0) continue;
-      const pattern = list.path.replace(/\[\d+\]/g, '[]');
+      const pattern = Structra.dataPaths.toPattern(list.path, '[]');
       const group = groups.get(pattern) || { pattern, path: list.path, count: list.count, lists: 0, items: 0 };
       group.lists++;
       group.items += list.count;

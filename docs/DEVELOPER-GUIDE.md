@@ -120,6 +120,10 @@ Matching list items is slow on long lists, so a list over 1,500 items makes the 
 - No em dashes. Use a full stop, a colon or a comma.
 - Buttons and titles use sentence case ("Open a file").
 
+### Paths: never write one by hand
+
+A path says where a value is (`value[0].Title`). It is written in one place only: `Structra.dataPaths.child(path, key)` (a number as the key means a list position). It is read in one place only: `Structra.dataPaths.tokenize` and the helpers around it (`resolve`, `toPattern`, `keysOf`, `lastKey`). Do not build paths with `${path}.${key}` or split them on dots: a key such as `@odata.etag` or `a.b` breaks that, and Find, the Tree highlight, the Table and Compare then disagree. `tests/unit/path-writers.test.js` fails when a hand-written path appears in `src`; `tests/hostile-keys.js` is the list of awkward keys that the unit and browser tests use. This is the general rule of the project (map, section 8.0, rule 4): logic that more than one place needs is written once and shared.
+
 ## 8. Naming
 
 A name should say what the thing is or does, so a reader never has to look it up.
@@ -164,7 +168,7 @@ The browser tests are written so that a full run takes a few minutes. Keep them 
 
 - `todo.json` is the list of work, with every step. `docs/TODO.md` is made from it: do not edit it by hand.
 - See where things stand: `node tools/todo.mjs list`, or `node tools/todo.mjs list 18.1` for one task with all its steps.
-- Mark a step: `node tools/todo.mjs set <id> <done|in_progress|todo|blocked> [note]`. A task with steps follows its steps. The unit test `todo.test.js` fails if the list and `docs/TODO.md` differ, or if a task says one thing and its steps another.
+- Mark a step: `node tools/todo.mjs set <id> <done|in_progress|todo|blocked> [note]`. A step marked done needs a note that says what was done and changed (files, pull request, numbers); the tool refuses without one and the date is added for you. A task with steps follows its steps. The unit test `todo.test.js` fails if the list and `docs/TODO.md` differ, or if a task says one thing and its steps another.
 - `docs/feature-technology-map.md` says what every UI component is built with, who uses it and what we plan. The unit test `map-coverage.test.js` fails when a component, module, worker, CSS file, library, workflow or build tool exists in the code but not in the map, or when the map names a task that does not exist.
 - Rule for hand-written code: where a mature library is better, replace ours; where ours is better, keep it and add the cases the mature code handles; and neither may cause trouble for the other (map, section 8).
 

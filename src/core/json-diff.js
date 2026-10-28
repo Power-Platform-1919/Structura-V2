@@ -83,8 +83,8 @@ Structra.jsonDiff = (() => {
 
   /* ---------- the library's description of the changes -> a flat list ---------- */
 
-  const keyPath = (base, key) => base + '.' + key;
-  const indexPath = (base, i) => base + '[' + i + ']';
+  const keyPath = (base, key) => Structra.dataPaths.child(base, key);
+  const indexPath = (base, i) => Structra.dataPaths.child(base, i);
 
   function add(out, type, leftPath, rightPath, left, right) {
     out.push({ type, path: type === 'removed' ? leftPath : rightPath, leftPath, rightPath, left, right });

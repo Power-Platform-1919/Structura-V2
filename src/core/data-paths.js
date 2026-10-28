@@ -1,13 +1,20 @@
 /* ============================================================
    STRUCTRA V2 - Paths
-   Structra.dataPaths - parse, resolve and format data paths.
+   Structra.dataPaths - write, parse, resolve and format data paths.
 
    Accepted path syntax (a leading "$" is optional):
      users[0].name          dot keys and [index]
-     ["key.with.dots"]      quoted keys
+     ["key.with.dots"]      quoted keys; inside the quotes \\ is a backslash, \" (or \') a quote, \uXXXX a character
+     [""]                   the empty key
      items[*].id            wildcard over an array
 
+   NEVER WRITE A PATH BY HAND (`${path}.${key}`, `${path}["${key}"]`). child() is the only writer, and tokenize() reads back exactly
+   what it writes, for any key (dots, brackets, quotes, backslashes, an empty key, a "$" at the start). tests/unit/data-paths.test.js
+   proves it against a list of hostile keys, and tests/unit/path-writers.test.js fails when a hand-written path appears in src.
+
    API:
+     Structra.dataPaths.child(path, key)     → the path of a child: a text key, or a number (array position)
+     Structra.dataPaths.toPattern(path)      → the path with list positions replaced: value[3].a → value[*].a
      Structra.dataPaths.tokenize(path)       → [{type:'key'|'index'|'wildcard', value}]
      Structra.dataPaths.resolve(data, path)  → value, or undefined when missing
      Structra.dataPaths.setNested(data, path, value) → assign in place, true when set
@@ -22,9 +29,40 @@ window.Structra = window.Structra || {};
 Structra.dataPaths = (() => {
   const SIMPLE_FX_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
+  // A key that can follow a dot as it is. Any other key is written as ["key"]. A key that starts with "$" is always quoted, so it can
+  // never be taken for the root "$" (by this reader or by a JSONPath tool).
+  const PLAIN_KEY = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+  // Inside the quotes a backslash and a quote get a backslash; a control character (a line break, a tab) is written \uXXXX, as RFC 9535 requires
+  const escapeCharacter = (character) => (character === '\\' || character === '"' ? '\\' + character : '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+
+  /** The path of a child. A number is an array position: [3]. A text is a key: .name, or ["odd key"] when it needs quotes. */
+  function child(path, key) {
+    const base = path === undefined || path === null ? '' : String(path);
+    if (typeof key === 'number') return `${base}[${key}]`;
+    const text = String(key);
+    if (PLAIN_KEY.test(text)) return base ? `${base}.${text}` : text;
+    return `${base}["${text.replace(/[\\"\u0000-\u001f]/g, escapeCharacter)}"]`;
+  }
+
+  /** The path without the root "$". Only a "$" that is the root goes: "$", "$.a" and "$[0]", but not the key "$a". */
   function strip(path) {
     if (!path || path === '$') return '';
-    return path.replace(/^\$\.?/, '');
+    return path.replace(/^\$(?=\.|\[)\.?/, '');
+  }
+
+  /** Read a quoted key whose opening quote is at source[start]. Returns { value, next } (next is after the closing "]"), or null. */
+  function readQuoted(source, start) {
+    const quote = source[start];
+    let value = '';
+    for (let i = start + 1; i < source.length; i++) {
+      const character = source[i];
+      if (character === '\\' && (source[i + 1] === '\\' || source[i + 1] === '"' || source[i + 1] === "'")) { value += source[i + 1]; i++; continue; }
+      if (character === '\\' && source[i + 1] === 'u' && /^[0-9a-fA-F]{4}$/.test(source.slice(i + 2, i + 6))) { value += String.fromCharCode(parseInt(source.slice(i + 2, i + 6), 16)); i += 5; continue; }
+      if (character === quote && source[i + 1] === ']') return { value, next: i + 2 };
+      value += character;
+    }
+    return null;
   }
 
   function tokenize(path) {
@@ -38,10 +76,10 @@ Structra.dataPaths = (() => {
       if (character === '[') {
         const quote = source[i + 1];
         if (quote === '"' || quote === "'") {
-          const end = source.indexOf(quote + ']', i + 2);
-          if (end === -1) break;
-          tokens.push({ type: 'key', value: source.slice(i + 2, end) });
-          i = end + 2;
+          const read = readQuoted(source, i + 1);
+          if (!read) break;
+          tokens.push({ type: 'key', value: read.value });
+          i = read.next;
         } else {
           const end = source.indexOf(']', i);
           if (end === -1) break;
@@ -62,6 +100,18 @@ Structra.dataPaths = (() => {
     return tokens;
   }
 
+  /** The same path with every list position replaced: value[3].Tags[0] → value[*].Tags[*]. A key that looks like a position, ["a[0]"], is left alone. */
+  function toPattern(path, marker = '[*]') {
+    let out = /^\$(?=\.|\[|$)/.test(String(path)) ? '$' : '';
+    for (const token of tokenize(path)) out = token.type === 'key' ? child(out, token.value) : `${out}${marker}`;
+    return out;
+  }
+
+  /** The key names of a path, as a list: value[0].Title → ['value', 'Title'] (list positions left out) */
+  function keysOf(path) {
+    return tokenize(path).filter((token) => token.type === 'key').map((token) => token.value);
+  }
+
   function _walk(node, tokens, at) {
     if (at >= tokens.length) return node;
     if (node === null || node === undefined) return undefined;
@@ -76,6 +126,8 @@ Structra.dataPaths = (() => {
       }
       return out;
     }
+    // Only the node's own keys count: "constructor" or "toString" must not find what every object inherits
+    if (typeof node !== 'object' || !Object.prototype.hasOwnProperty.call(node, token.value)) return undefined;
     return _walk(node[token.value], tokens, at + 1);
   }
 
@@ -152,8 +204,8 @@ Structra.dataPaths = (() => {
     const tokens = tokenize(path);
     for (let i = tokens.length - 1; i >= 0; i--) {
       if (tokens[i].type === 'index' || tokens[i].type === 'wildcard') {
-        const listTokens = tokens.slice(0, i);
-        const listPath = listTokens.map((token, index) => (token.type === 'key' ? (index ? '.' : '') + token.value : `[${token.type === 'wildcard' ? '*' : token.value}]`)).join('');
+        let listPath = '';
+        for (const token of tokens.slice(0, i)) listPath = token.type === 'wildcard' ? `${listPath}[*]` : child(listPath, token.value);
         return { listPath: listPath || '$', restTokens: tokens.slice(i + 1) };
       }
     }
@@ -190,9 +242,9 @@ Structra.dataPaths = (() => {
   function canonical(path) {
     const cleanPath = String(path || '').trim();
     if (!cleanPath || cleanPath === '$') return '$';
-    if (cleanPath.startsWith('$')) return cleanPath;
+    if (cleanPath.startsWith('$') && /^\$(\.|\[|$)/.test(cleanPath)) return cleanPath;
     return cleanPath.startsWith('[') ? '$' + cleanPath : '$.' + cleanPath;
   }
 
-  return { tokenize, resolve, setNested, strip, lastKey, canonical, powerAutomate, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
+  return { child, toPattern, keysOf, tokenize, resolve, setNested, strip, lastKey, canonical, powerAutomate, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
 })();

@@ -443,7 +443,7 @@ By code volume it is the other way round. Our own JavaScript is about 1.0 MB (ab
 
 Read it as: most of the app is our own code around the browser's features. The libraries sit behind a handful of modules (`codeView`, `dataEngine` and DuckDB, `jsonDiff`, `jsonRepairAndValidation`, `icons`, the parse workers). The things nothing else could provide are the Power Platform expressions, the Parse JSON schema generator, the Overview insights, the path model and the way all views follow one selected path.
 
-### 2.9 Where the path of a value is written (one idea, six rules)
+### 2.9 Where the path of a value is written (one idea, six rules; FIXED 2026-10-28: one writer, Structra.dataPaths.child)
 
 The path ("which value is this") is the center of the app, and it is written by hand in at least 16 places. They do not agree. A path written by one place cannot always be read back by another.
 
@@ -653,6 +653,8 @@ For every hand-written area we ask one question: **which is better, ours or the 
 3. **The goal is the best of both worlds, and neither world may cause trouble for the other.** A library must not break our code, and our code must not misuse or break a library. This is about the seams between them: who owns the data, who gets the keys and the focus, what happens when a library fails to load, what changes when a library is upgraded. Every library sits behind one of our modules, with a written list of the ways it behaves differently, and a test at that seam (section 8.5).
 
 4. **Shared architecture: generic logic is written once.** If a job is needed in more than one place (writing a path, running user code, closing a menu, copying to the clipboard), it lives in one shared module and every place calls it. A new copy is a defect. This is also what keeps rule 3 cheap: one door per library, one worker service, one path writer. The duplicate scan and the shared pieces are task 27.
+
+5. **Mature test suites are run against our code.** Wherever a library or a standard has an official test suite (RFC 9535 for JSONPath, JSONTestSuite for JSON, the JSON Schema test suite, csv-spectrum, yaml-test-suite, toml-test), it runs through our own integration, not only inside the library. Those suites hold cases we never thought of. The pass counts are recorded and a drop fails the build. This is task 31.
 
 The second kind of area (keep and harden) is the easy one to miss, because nothing looks wrong until the odd input arrives. It applies only where ours is the better choice; where mature code wins, we replace and there is nothing to harden.
 

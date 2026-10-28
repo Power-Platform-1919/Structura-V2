@@ -104,7 +104,7 @@ class StructraGraph extends StructraComponent {
 
   /* ---- Tree Building ---- */
   _childPath(path, key) {
-    return /^[A-Za-z_][A-Za-z0-9_]*$/.test(key) ? `${path}.${key}` : `${path}["${String(key).replace(/"/g, '\\"')}"]`;
+    return Structra.dataPaths.child(path, key);
   }
 
   _buildTree(value, key, depth, maxDepth, path = '$') {

@@ -572,29 +572,32 @@ class StructraCommand extends StructraComponent {
     };
     if (Array.isArray(object)) {
       if (!object.length) addEntry(prefix, []);
-      object.forEach((item, i) => this._flattenObj(item, prefix ? `${prefix}[${i}]` : `[${i}]`, result, clash));
+      object.forEach((item, i) => this._flattenObj(item, Structra.dataPaths.child(prefix, i), result, clash));
     } else if (object && typeof object === 'object') {
       const entries = Object.entries(object);
       if (!entries.length) addEntry(prefix, {});
-      for (const [key, item] of entries) this._flattenObj(item, prefix ? `${prefix}.${key}` : key, result, clash);
+      for (const [key, item] of entries) this._flattenObj(item, Structra.dataPaths.child(prefix, key), result, clash);
     } else {
       addEntry(prefix, object);
     }
     return result;
   }
 
-  /** Rebuild nesting from dot notation. Returns { data } or { problem } when it cannot be rebuilt without losing something. */
+  /** Rebuild nesting from the paths that flatten writes (and from plain dot notation such as a.0.b). Returns { data } or { problem } when it cannot be rebuilt without losing something. */
   _unflattenObj(flat) {
     const result = {};
     const unsafe = new Set(['__proto__', 'constructor', 'prototype']);
     for (const [path, value] of Object.entries(flat)) {
-      const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
+      // Plain dot notation from other tools (a.0.b) counts a bare number as a list position; a path with quoted keys is read as written
+      const readable = path.includes('["') ? path : path.replace(/\.(\d+)(?=\.|\[|$)/g, '[$1]');
+      const parts = Structra.dataPaths.tokenize(readable).map((token) => (token.type === 'index' ? String(token.value) : token.value));
+      const kinds = Structra.dataPaths.tokenize(readable).map((token) => token.type);
+      if (!parts.length) return { problem: `"${path}" is not a path.` };
       if (parts.some((part) => unsafe.has(part))) return { problem: `"${path}" uses a name that cannot be rebuilt safely.` };
       let current = result;
       for (let i = 0; i < parts.length - 1; i++) {
         const key = parts[i];
-        const next = parts[i + 1];
-        if (!Object.prototype.hasOwnProperty.call(current, key)) current[key] = /^\d+$/.test(next) ? [] : {};
+        if (!Object.prototype.hasOwnProperty.call(current, key)) current[key] = kinds[i + 1] === 'index' ? [] : {};
         else if (current[key] === null || typeof current[key] !== 'object') return { problem: `"${parts.slice(0, i + 1).join('.')}" is both a value and a group of values.` };
         current = current[key];
       }

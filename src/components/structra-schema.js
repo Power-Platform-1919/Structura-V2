@@ -103,7 +103,7 @@ class StructraSchema extends StructraComponent {
         for (const [key, child] of Object.entries(variant.properties)) {
           if (seenKeys.has(key)) continue;
           seenKeys.add(key);
-          this._collect(child, key, depth + 1, request.has(key), lines, path === '$' ? `$.${key}` : `${path}.${key}`);
+          this._collect(child, key, depth + 1, request.has(key), lines, Structra.dataPaths.child(path, key));
         }
       }
     }

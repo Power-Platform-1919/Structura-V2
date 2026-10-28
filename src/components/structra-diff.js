@@ -284,7 +284,7 @@ class StructraDiff extends StructraDialog {
         addLine(prefix + open, className);
         for (let i = 0; i < size; i++) {
           const key = isList ? i : keys[i];
-          const childPath = isList ? `${path}[${key}]` : `${path}.${key}`;
+          const childPath = Structra.dataPaths.child(path, key);
           walk(value[key], childPath, indent + '  ', isList ? undefined : key, i === size - 1, className);
         }
         addLine(indent + close + comma, className);
@@ -315,7 +315,7 @@ class StructraDiff extends StructraDialog {
   _renderStructural() {
     const groups = {};
     for (const diff of this._diffs.slice(0, StructraDiff.MAX_ROWS)) {
-      const root = diff.path.split('.').slice(0, 2).join('.');
+      const root = Structra.dataPaths.keysOf(diff.path).slice(0, 2).reduce((built, key) => Structra.dataPaths.child(built, key), '');
       if (!groups[root]) groups[root] = [];
       groups[root].push(diff);
     }
@@ -324,7 +324,7 @@ class StructraDiff extends StructraDialog {
       html += `<div class="diff-struct-group"><div class="diff-struct-path">${Structra.sharedHelpers.escapeHtml(path)}</div>`;
       for (const change of changes) {
         const className = change.type === 'added' ? 'diff-add' : change.type === 'removed' ? 'diff-rm' : 'diff-chg';
-        html += `<div class="diff-struct-item ${className}">${change.type}: ${Structra.sharedHelpers.escapeHtml(change.path.replace(path + '.', ''))}</div>`;
+        html += `<div class="diff-struct-item ${className}">${change.type}: ${Structra.sharedHelpers.escapeHtml(change.path.startsWith(path) ? change.path.slice(path.length).replace(/^\./, '') : change.path)}</div>`;
       }
       html += '</div>';
     }
