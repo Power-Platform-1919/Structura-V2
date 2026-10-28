@@ -73,18 +73,24 @@ Structra.formatConversion = (() => {
   }
 
   // --- CSV ---
-  function escCsv(value) {
-    if (value == null) return '';
-    const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
-    return text.includes(',') || text.includes('"') || text.includes('\n') ? `"${text.replace(/"/g, '""')}"` : text;
+  /**
+   * The CSV text for a list of rows. PapaParse (already in the app for reading CSV) writes it, so quoting follows the same rules
+   * as the reader. Two things are ours: a nested value goes into its cell as JSON text, and escapeFormulae is always on: a text cell
+   * that starts with = + - @ (or a tab or carriage return) gets a leading apostrophe, so a spreadsheet never runs it as a formula
+   * (CSV injection). A real number such as -5 is not text and is left alone, and neither is a number written as text ("-5.50").
+   */
+  // Text that starts with = + - @ tab or carriage return, except plain numbers written as text ("-5.50", "+7"), which no spreadsheet runs
+  const FORMULA_START = /^(?![+-]?\d+(\.\d+)?([eE][+-]?\d+)?$)[=+\-@\t\r]/;
+
+  /** The one place CSV text is written: a header row and rows of cells (an array per row). Every CSV the app saves goes through here. */
+  function writeCsv(columns, matrix, options = {}) {
+    const cell = (value) => (value === null || value === undefined ? '' : typeof value === 'object' ? JSON.stringify(value) : value);
+    const newline = options.newline || '\n';
+    return Papa.unparse({ fields: columns, data: matrix.map((row) => row.map(cell)) }, { newline, escapeFormulae: FORMULA_START }) + newline;
   }
 
   function generateCsv(rows, columns) {
-    const lines = [columns.map(column => escCsv(column)).join(',')];
-    for (const row of rows) {
-      lines.push(columns.map(column => escCsv(row[column])).join(','));
-    }
-    return lines.join('\n') + '\n';
+    return writeCsv(columns, rows.map((row) => columns.map((column) => row[column])));
   }
 
   function downloadCsv(rows, columns, filename) {
@@ -93,7 +99,7 @@ Structra.formatConversion = (() => {
     toast('CSV exported');
   }
 
-  return { jsonToYaml, yamlToJson, isYaml, jsonToXml, generateCsv, downloadCsv };
+  return { jsonToYaml, yamlToJson, isYaml, jsonToXml, writeCsv, generateCsv, downloadCsv };
 })();
 
 

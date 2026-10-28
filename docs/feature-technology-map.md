@@ -582,7 +582,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Option B:** make JSON Pointer the internal form and convert to the dotted form only for display. Cleanest in theory. Cons: every saved bookmark, session and workspace file must be converted, and every consumer changes.
 - **Pros of A:** fixes a real bug class, deletes duplicated code, one place to maintain, protected by a test. **Cons of A:** touches the data engine (2,094 lines) and six components, so it needs the full test run in three browsers.
 
-### 3.18 CSV export through PapaParse (proposed, small) [task 18.2]
+### 3.18 CSV export through PapaParse (proposed, small) [task 18.2] (DONE 2026-10-28: one writer, Structra.formatConversion.writeCsv, used by every CSV the app saves)
 
 - **Reason:** our own `escCsv` does not protect against **spreadsheet formula injection**: a cell that starts with `=`, `+`, `-` or `@` runs as a formula when the file is opened in Excel (measured: 4 of 8 dangerous cells came through unchanged). JSON from an API is untrusted text.
 - **Plan (Q4):** `Papa.unparse(rows, { columns, escapeFormulae: true })`, always on, with no setting: a CSV file should never contain a formula. Tested with the PapaParse in the app: a text cell that starts with `=`, `+`, `-`, `@` or a tab gets a leading apostrophe; real numbers such as -5 are left alone.

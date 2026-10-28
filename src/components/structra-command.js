@@ -299,7 +299,7 @@ class StructraCommand extends StructraComponent {
           // JS fallback for non-array data
           const rows = Array.isArray(data) ? data : [data];
           const keys = [...new Set(rows.flatMap(row => Object.keys(row)))];
-          const csv = [keys.join(','), ...rows.map(row => keys.map(key => JSON.stringify(row[key] ?? '')).join(','))].join('\n');
+          const csv = Structra.formatConversion.generateCsv(rows, keys);
           Structra.sharedHelpers.downloadFile(csv, this._baseName() + '.csv', 'text/csv');
           Structra.toast('CSV downloaded');
         });
