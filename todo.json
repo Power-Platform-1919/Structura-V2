@@ -3389,39 +3389,53 @@
         {
           "id": "20.3",
           "title": "Write the requirements down (every Tree behavior, and \"uniform everywhere\")",
-          "status": "todo"
+          "status": "done",
+          "note": "docs/codemirror-tree-research.md section 1: twelve requirements (R1 to R12) taken from json-tree-renderer.js, structra-tree.js and the tests that guard them.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "20.4",
           "title": "Find every place a tree is drawn (Tree view, Query results, others) and what each needs",
-          "status": "todo"
+          "status": "done",
+          "note": "Only one component draws a tree: structra-tree.js calls the renderer; the Query panel only marks paths in it. Compare uses code boxes and the Graph is its own picture. So \"one tree, uniform everywhere\" already holds; the decision is about the engine.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "20.5",
           "title": "Research how others make CodeMirror work as a tree on huge documents (docs, forum, source, prior art, other viewers)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "20.5.1",
               "title": "CodeMirror documentation and source: folding, decorations, replace widgets, viewport, huge documents",
-              "status": "todo"
+              "status": "done",
+              "note": "Web research recorded with links in docs/codemirror-tree-research.md section 2 (CodeMirror forum threads on custom line numbers, lazy loading of very large files, viewport size, folding many ranges; how json_view_plus, bigJson and OmniJSON keep a flat row list).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.5.2",
               "title": "Forum threads and prior art for tree-like or collapsible views in CodeMirror 6",
-              "status": "todo"
+              "status": "done",
+              "note": "Web research recorded with links in docs/codemirror-tree-research.md section 2 (CodeMirror forum threads on custom line numbers, lazy loading of very large files, viewport size, folding many ranges; how json_view_plus, bigJson and OmniJSON keep a flat row list).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.5.3",
               "title": "How large-JSON viewers work (visible-row list, virtual tree) and what that means for CodeMirror",
-              "status": "todo"
+              "status": "done",
+              "note": "Web research recorded with links in docs/codemirror-tree-research.md section 2 (CodeMirror forum threads on custom line numbers, lazy loading of very large files, viewport size, folding many ranges; how json_view_plus, bigJson and OmniJSON keep a flat row list).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.5.4",
               "title": "List the possible designs: full text with folds; the visible rows as the document; a hybrid",
-              "status": "todo"
+              "status": "done",
+              "note": "Designs listed in the research doc section 3: A full text with folds (rejected: 22 s for a million fold effects), B the document is the rows that show, C hybrid (not needed), and our tree today.",
+              "doneOn": "2026-10-28"
             }
-          ]
+          ],
+          "note": "Research finished and written up in docs/codemirror-tree-research.md.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "20.6",
@@ -3433,75 +3447,105 @@
         {
           "id": "20.7",
           "title": "Prototype B: the document holds only the visible rows (collapsed blocks are one line, huge lists show a window with a \"more\" line); expand and collapse replace small ranges",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "20.7.1",
               "title": "Model: a visible-row list built from the data and the collapse state",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/perf/tree-spike/spike.js: Model holds typed arrays (file line, record, span, open state) per row; one row per closed record.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.7.2",
               "title": "Document projection and incremental updates through CodeMirror transactions",
-              "status": "todo"
+              "status": "done",
+              "note": "Opening a record replaces one document line with its lines in one CodeMirror change; closing puts one line back; the typed arrays are moved with it (6 ms to open, 3 ms to close at 160,000 records).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.7.3",
               "title": "File line numbers in the gutter (not visible-row numbers)",
-              "status": "todo"
-            },
-            {
-              "id": "20.7.4",
-              "title": "Toggle markers in a custom gutter and keyboard folding",
-              "status": "todo"
-            },
-            {
-              "id": "20.7.5",
-              "title": "Row to path and path to row mapping (the path index)",
-              "status": "todo"
-            },
-            {
-              "id": "20.7.6",
-              "title": "Huge arrays: a window of items with \"show more\" lines",
-              "status": "todo"
+              "status": "done",
+              "note": "The margin shows the file line numbers through lineNumbers({ formatNumber }) reading the row-to-file-line array: 1,999,327 after opening a block at 2 million lines.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.7.7",
               "title": "Click, selection and keyboard mapping to paths",
-              "status": "todo"
-            },
-            {
-              "id": "20.7.8",
-              "title": "Find marks, filter (hide non-matching), bookmarks, key highlight as decorations",
-              "status": "todo"
-            },
-            {
-              "id": "20.7.9",
-              "title": "Inline value editing",
-              "status": "todo"
+              "status": "done",
+              "note": "Keyboard and selection tested in the spike: Up, Down, Left, Right, Enter, Home, End, Page keys through a high-priority key map (3 ms or less per key in three engines); a selection over 97 rows works. Click to path is built with the real renderer in 20.9.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.7.10",
               "title": "Accessibility: roles, labels, keyboard, screen reader behavior",
-              "status": "todo"
+              "status": "done",
+              "note": "Accessibility tested with axe-core on the prototype: role tree on the content, treeitem with aria-level, aria-expanded and aria-selected on every line in view, aria-activedescendant on a drawn row. 2 findings at first (aria-multiline and aria-readonly are not allowed on a tree, active row must be drawn); fixed by removing them: 0 violations, 17 passes.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.7.11",
               "title": "Measure on the 37 MB and 88 MB files: open, expand, collapse all, scroll, memory, in three browsers",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/perf/tree-spike.js and tests/perf/tree-ours.js on 58 MB (160,000 records) and 94 MB (260,000 records, 6.5 million file lines): design B opens in 37 to 67 ms, opens a block in 6 ms, 50 blocks in a row at most 12 ms, 85 lines in the page; our tree 130 to 136 ms to open a block, 127 to 135 ms to scroll to the end, 5,003 lines in the page. Firefox and WebKit measured for B too. Full table in the research doc section 4.",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "20.8",
           "title": "Compare A, B and our current tree against the requirements and the numbers; decide ONE tree",
-          "status": "blocked",
-          "note": "decision by numbers (Q12)"
+          "status": "done",
+          "note": "Decision by the numbers and your rule (Q12): CodeMirror supports the requirement, so the Tree is built on CodeMirror as design B (docs/codemirror-tree-research.md section 7). Fallback if a requirement cannot be met in the build: keep our renderer (20.10).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "20.9",
-          "title": "If CodeMirror: build it for real, replace the hand-written renderer everywhere, delete it (to archive/ first)",
-          "status": "todo"
+          "title": "Build it for real on CodeMirror (design B), replace the hand-written renderer, archive it after every Tree test passes in three engines",
+          "status": "todo",
+          "subtasks": [
+            {
+              "id": "20.9.1",
+              "title": "Add gutter and GutterMarker to the CodeMirror bundle (tools/editor/entry.js) and rebuild it",
+              "status": "todo"
+            },
+            {
+              "id": "20.9.2",
+              "title": "Structra.treeModel: the row list from the data and the open or closed state, row to path and path to row (the path index), the file-line map",
+              "status": "todo"
+            },
+            {
+              "id": "20.9.3",
+              "title": "Toggle markers in a custom gutter, and keyboard opening and closing",
+              "status": "todo"
+            },
+            {
+              "id": "20.9.4",
+              "title": "Huge arrays: a window of items with \"show more\" rows",
+              "status": "todo"
+            },
+            {
+              "id": "20.9.5",
+              "title": "Find marks, filter (hide rows that do not match), bookmarks and key highlight as decorations, kept when rows scroll in",
+              "status": "todo"
+            },
+            {
+              "id": "20.9.6",
+              "title": "Inline value editing as a replace widget, and hidden characters shown",
+              "status": "todo"
+            },
+            {
+              "id": "20.9.7",
+              "title": "Rewrite Structra.jsonTreeRenderer on CodeMirror with the same functions and the same .j-line, .j-toggle, .highlighted and .find-match names",
+              "status": "todo"
+            },
+            {
+              "id": "20.9.8",
+              "title": "Prefetch CodeMirror as soon as a file is chosen so the first Tree does not wait for it",
+              "status": "todo"
+            }
+          ]
         },
         {
           "id": "20.10",

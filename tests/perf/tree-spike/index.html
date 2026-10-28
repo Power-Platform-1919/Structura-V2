@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tree spike</title>
+<!-- A measurement page, not part of the app. Design B of docs/codemirror-tree-research.md: the CodeMirror document holds only the rows that are
+     showing (a collapsed block is one line), and the line numbers are the file's, not the document's. Used by tests/perf/tree-spike.js. -->
+<style>
+  html, body { margin: 0; height: 100%; }
+  #host { height: 600px; width: 900px; border: 1px solid #888; }
+  #host .cm-editor { height: 100%; }
+  #host .cm-scroller { overflow: auto; font: 13px/1.5 monospace; }
+</style>
+<div id="host"></div>
+<script type="module" src="./spike.js"></script>

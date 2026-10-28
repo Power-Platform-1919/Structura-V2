@@ -467,14 +467,15 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ## 3. Planned changes: reason, pros, cons
 
-### 3.1 Tree: one tree for the whole app, decided by research and numbers [task 20]
+### 3.1 Tree: one tree for the whole app, on CodeMirror (DECIDED 2026-10-28, build in progress) [task 20]
 
-- **Your decision (Q12):** keep only one tree, uniform in every place a tree is shown. Use CodeMirror if it can meet every requirement for large files; if it cannot, use our hand-written tree, for the Tree only and everywhere. There is no engine switch.
-- **Reason:** the Tree is our own 1,078-line renderer, and the deep dive found 5 real bugs in it. CodeMirror already gives line numbers, folding, keyboard, accessibility and search, and is already in the app.
-- **What is known (measured):** CodeMirror opens an 89 MB, 5 million line text in 0.87 s (about 220 MB); one 30 MB text value is fine; folding line by line does not scale (165,000 records collapsed in 2.2 s, one million fold effects 22 s). The line-to-path index is cheap (79 MB for the 88 MB file, 1 microsecond per lookup).
-- **The open question:** how to make CodeMirror behave as a tree on huge files. The research (`docs/codemirror-tree-research.md`) compares designs: the full text with folds, and a document that holds only the **visible rows** (collapsed blocks are one line, huge lists show a window), which is how large-JSON viewers work. The decision is made from a prototype's numbers and the full requirements list, not before.
-- **Pros of CodeMirror:** much less code of ours to maintain; mature selection, keyboard and accessibility. **Cons:** the tree-specific behavior (toggle markers, file line numbers, windowed lists, path mapping) still has to be written on top of it, and memory is higher for the largest files.
-- **Status:** research and prototype in progress.
+- **Your rule (Q12):** one Tree, the same everywhere; CodeMirror if it meets every need on large files, otherwise our own renderer.
+- **Result:** CodeMirror can, when the document it holds is **the rows that are showing** (a closed block is one line; opening a block replaces that line with the block's lines; the margin shows the file's own line numbers from a typed array). Full write-up with sources and tables: [codemirror-tree-research.md](codemirror-tree-research.md).
+- **Numbers (Edge, a 94 MB list of 260,000 records, 6.5 million file lines):** open a block 6 ms (ours: 136 ms painted), 50 blocks in a row at most 12 ms, scroll to the end one frame (ours: 135 ms), **85 lines in the page (ours: 5,003)**. Same shape in Firefox and WebKit. Full file open is the same for both designs (the app's 1.2 to 1.5 s is reading and parsing).
+- **Behaviors proven in the prototype:** file line numbers, keyboard (3 ms per key), text selection across rows, find and selection marks that appear when rows scroll in, and a screen reader tree (`role="tree"`, `treeitem` with level, open state and selected state): **axe-core 0 violations** after removing two attributes CodeMirror adds that a tree may not have.
+- **Costs:** about 120 KB gzipped of CodeMirror on the critical path of the first Tree (mitigation: start loading when a file is chosen); roughly 600 to 800 new lines replacing 1,071; tests that look at recycling internals are rewritten, the rest keep working because the lines and markers keep the names `.j-line`, `.j-toggle`, `.highlighted` and `.find-match`.
+- **Where a tree is drawn:** one place (`structra-tree.js`), so uniformity already holds; the change is the engine behind the same interface.
+- **Status:** research and prototype done (tasks 20.1 to 20.8). Building it for real is task 20.9, in steps; the old renderer moves to `archive/` only after every Tree test passes in three engines. Fallback if a requirement cannot be met: keep our renderer (20.10).
 
 ### 3.2 Table: true scrollbar, grid roles, keyboard (decided: keep the library; finishing and merging) [task 17]
 
