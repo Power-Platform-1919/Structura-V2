@@ -3,8 +3,9 @@
    Structra.icons - every icon in the app comes through here.
    Artwork and names come straight from the Lucide library
    (https://lucide.dev, ISC licence), shipped locally in
-   src/vendor/lucide.min.js so the app works offline. Any Lucide icon
-   name works; nothing is listed or copied by hand.
+   src/libs/lucide/lucide-icons.js so the app works offline. That file holds
+   only the icons the code names (tools/build-lucide.mjs builds it from the
+   Lucide package), so a new icon name needs the build run once.
 
    API:
      Structra.icons.svg('search')                        → '<svg ...>' string

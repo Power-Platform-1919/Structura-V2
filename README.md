@@ -126,5 +126,5 @@ Everything is served from this repository, so the app works offline. Nothing is 
 | [CodeMirror 6](https://codemirror.net/) (`src/libs/codemirror6`) | SQL and JSON editors, coloured code, folding, suggestions | MIT (see `src/libs/codemirror6/NOTICE.txt`) |
 | [jsondiffpatch](https://github.com/benjamine/jsondiffpatch) (`src/libs/jsondiffpatch`) | Compare: what is different between two documents | MIT (see `src/libs/jsondiffpatch/NOTICE.txt`) |
 | [DuckDB-Wasm](https://duckdb.org/docs/api/wasm/overview) (`src/libs/duckdb`) | SQL engine | MIT |
-| [Lucide](https://lucide.dev) (`src/vendor/lucide.min.js`) | Icons | ISC |
+| [Lucide](https://lucide.dev) (`src/libs/lucide/`) | Icons | ISC |
 | PapaParse, yaml, toml, Ajv, jsonrepair, html2canvas (`src/libs`) | File formats, validation, repair, image export | MIT |

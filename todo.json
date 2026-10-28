@@ -3658,47 +3658,63 @@
         {
           "id": "21.3",
           "title": "Icons: use only the icons we use and upgrade Lucide (3.5)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.3.1",
               "title": "List the 41 icons in use from the code",
-              "status": "todo"
+              "status": "done",
+              "note": "build-lucide.mjs scans the code: 79 names are written in icon calls (icons.svg, icons.has, icon:, data-icon); every string that is also a Lucide name is kept, 130 icons in all",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.2",
               "title": "Check each name still exists in the current Lucide (names changed between 0.468 and 1.x)",
-              "status": "todo"
+              "status": "done",
+              "note": "All 79 names exist in Lucide 1.63.0, none was renamed; the build stops with a list if one is missing",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.3",
               "title": "Build a subset bundle once (esbuild) and add the build tool",
-              "status": "todo"
+              "status": "done",
+              "note": "tools/build-lucide.mjs reads the lucide package and writes src/libs/lucide/lucide-icons.js (25 KB) in the 0.x shape; 1.x stores drawing parts and shared attributes apart, so the tool puts them back together",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.4",
               "title": "Remove the blocking full-set script from index.html",
-              "status": "todo"
+              "status": "done",
+              "note": "index.html loads src/libs/lucide/lucide-icons.js; the 358 KB src/vendor/lucide.min.js moved to archive/src-vendor/ (README row added)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.5",
               "title": "Keep Structra.icons API the same",
-              "status": "todo"
+              "status": "done",
+              "note": "src/core/icons.js unchanged except its comment; Structra.icons.svg/has/hydrate work as before",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.6",
               "title": "Test: every icon in the code renders; offline test stays green",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/icons.test.js: every icon the code names is in the file, the file is a subset and every icon has drawing parts; full Edge smoke suite 43 of 43 and UI audit 0 high findings (the app is served locally, no icon comes from the network)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.7",
               "title": "Measure the first-load saving",
-              "status": "todo"
+              "status": "done",
+              "note": "Measured: 358 KB blocking script down to 25 KB (about 333 KB less on the first load)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.3.8",
               "title": "Visual check of every icon in every theme after the upgrade: nothing breaks, nothing looks awkward (Q9)",
-              "status": "todo"
+              "status": "done",
+              "note": "Contact sheet of all 130 icons on a light and a dark background looked at: all draw, none broken or awkward; UI audit themes check clean",
+              "doneOn": "2026-10-28"
             }
           ]
         },
