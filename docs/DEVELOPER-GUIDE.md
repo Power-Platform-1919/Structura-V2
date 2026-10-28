@@ -124,6 +124,17 @@ Matching list items is slow on long lists, so a list over 1,500 items makes the 
 
 A path says where a value is (`value[0].Title`). It is written in one place only: `Structra.dataPaths.child(path, key)` (a number as the key means a list position). It is read in one place only: `Structra.dataPaths.tokenize` and the helpers around it (`resolve`, `toPattern`, `keysOf`, `lastKey`). Do not build paths with `${path}.${key}` or split them on dots: a key such as `@odata.etag` or `a.b` breaks that, and Find, the Tree highlight, the Table and Compare then disagree. `tests/unit/path-writers.test.js` fails when a hand-written path appears in `src`; `tests/hostile-keys.js` is the list of awkward keys that the unit and browser tests use. This is the general rule of the project (map, section 8.0, rule 4): logic that more than one place needs is written once and shared.
 
+### Running the person's own code or patterns: use Structra.sandbox
+
+JavaScript the person types, a filter expression, a Transform step and a pattern (regular expression) over the document all run in **one** worker, through `Structra.sandbox` (`src/core/sandbox.js`, worker in `src/workers/sandbox-worker.js`). Never call `new Function`, `eval` or `new RegExp(userText)` on the page for text the person typed: a loop that never ends or a pattern that backtracks for hours would freeze the page.
+
+- `Structra.sandbox.evaluate(data, code, { locate })`, `filterRows(data, rowsPath, expression)`, `findPattern(data, pattern, { primitives })`, `transform(data, steps)`. Each returns a promise and fails after 5 seconds with `error.timedOut` (use `{ milliseconds }` to change it). `stop()` ends a running job.
+- The worker keeps one copy of the document and drops it when the data changes (`state:jsonData`, `engine:data-modified`, tab changes). If you change the document in place without one of those events, call `Structra.sandbox.forget()`.
+- Places in the document come back as lists of keys and are written as paths by `Structra.dataPaths.child` (see Paths above).
+- **A new kind of job** is a new operation in `sandbox-worker.js` (a function in `operations`) and a small method in `sandbox.js`. Do not start another worker for it.
+- The worker has no page, no storage and no network (they are removed before the code runs). That is a safeguard against accidents, not a wall against a determined attacker.
+- Test it in `tests/smoke/sandbox.js`: stop, page stays responsive, nothing reaches a server that counts requests.
+
 ## 8. Naming
 
 A name should say what the thing is or does, so a reader never has to look it up.

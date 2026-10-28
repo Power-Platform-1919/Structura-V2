@@ -271,7 +271,10 @@ class StructraQuery extends StructraComponent {
     if (!data) { results.innerHTML = '<div class="qp-summary">No JSON loaded</div>'; return; }
 
     try {
-      const output = Structra.transformStepOperations.evaluate(input, data);
+      // The steps run in the sandbox worker: a step that never ends cannot freeze the page
+      let output;
+      try { output = (await Structra.sandbox.transform(data, input)).value; }
+      catch (error) { throw error.timedOut ? new Error('The steps ran for more than 5 seconds and were stopped.') : error; }
       this._lastTransform = output;
       if (output === undefined) {
         results.innerHTML = '<div class="qp-summary">The steps found nothing. A field named in the steps is not in this data.</div>';
@@ -597,13 +600,8 @@ class StructraQuery extends StructraComponent {
     try {
       let matches = [];
       if (this._mode === 'path' || this._mode === 'jsonpath') matches = await Structra.jsonpathQuery.query(data, input);
-      else if (this._mode === 'regex') matches = this._queryRegex(data, input);
-      else if (this._mode === 'js') {
-        // The code is tried first in a separate thread, so one that never ends cannot freeze the page
-        const probe = await Structra.sharedHelpers.tryCodeInWorker(input.replace(/^=/, ''), data);
-        if (!probe.ok) throw new Error('The JavaScript did not run: ' + probe.error);
-        matches = this._queryJs(data, input);
-      }
+      else if (this._mode === 'regex') matches = await this._queryRegex(data, input);
+      else if (this._mode === 'js') matches = await this._queryJs(data, input);
       this._lastMatches = matches;
 
       if (matches.length === 0) {
@@ -658,51 +656,25 @@ class StructraQuery extends StructraComponent {
     command._openInNewTab(values, name).then((opened) => { if (opened) Structra.toast('Matches opened in a new tab'); });
   }
 
-  _queryRegex(data, pattern) {
-    const matches = [];
-    let expression;
+  /** A pattern over every text value of the document. It runs in the sandbox worker, so a pattern that never finishes is stopped. */
+  async _queryRegex(data, pattern) {
     const source = pattern.replace(/^\/|\/[a-z]*$/g, '');
     if (Structra.sharedHelpers.isRiskyRegex(source)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
-    try { expression = new RegExp(source, 'i'); }
-    catch (error) { throw new Error('That is not a valid pattern: ' + error.message.replace(/^Invalid regular expression: /, '')); }
-    const walk = (value, path) => {
-      if (typeof value === 'string' && expression.test(value)) matches.push({ path, value });
-      if (value && typeof value === 'object') {
-        const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
-        entries.forEach(([field, child]) => {
-          const childPath = Structra.dataPaths.child(path, Array.isArray(value) ? Number(field) : field);
-          walk(child, childPath);
-        });
-      }
-    };
-    walk(data, '$');
-    return matches;
+    try {
+      return (await Structra.sandbox.findPattern(data, source, { flags: 'i', primitives: false })).matches;
+    } catch (error) {
+      if (error.timedOut) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
+      throw new Error('That is not a valid pattern: ' + error.message.replace(/^Invalid regular expression: /, ''));
+    }
   }
 
-  _queryJs(data, expression) {
-    // Strip leading = if present
-    const code = expression.replace(/^=/, '');
-    let result;
-    try { result = new Function('data', `return ${code};`)(data); }
+  /** The person's JavaScript, run in the sandbox worker: the page cannot freeze and the code cannot reach it. */
+  async _queryJs(data, expression) {
+    let answer;
+    try { answer = await Structra.sandbox.evaluate(data, expression, { locate: true }); }
     catch (error) { throw new Error('The JavaScript did not run: ' + error.message); }
-
     // Items that are objects inside the document are given their real path ($.value[1]), the rest are numbered
-    let where = null;
-    const locate = (object) => {
-      if (!where) {
-        where = new Map();
-        const walk = (value, path, budget) => {
-          if (budget.left-- <= 0 || !value || typeof value !== 'object') return;
-          if (!where.has(value)) where.set(value, path);
-          const entries = Array.isArray(value) ? value.map((value, i) => [i, value]) : Object.entries(value);
-          for (const [field, child] of entries) walk(child, Structra.dataPaths.child(path, Array.isArray(value) ? Number(field) : field), budget);
-        };
-        walk(data, '$', { left: 200000 });
-      }
-      return where.get(object);
-    };
-    if (Array.isArray(result)) return result.map((value, i) => ({ path: (value && typeof value === 'object' && locate(value)) || `result[${i}]`, value: value }));
-    return [{ path: (result && typeof result === 'object' && locate(result)) || 'result', value: result }];
+    return answer.items.map((item) => ({ path: item.path || (item.index === null ? 'result' : `result[${item.index}]`), value: item.value }));
   }
 
   _preview(value) {

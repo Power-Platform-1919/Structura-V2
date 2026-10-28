@@ -18,7 +18,7 @@
      uniqueId(prefix)            → unique id string
      compareValues(first, second) → sort order for mixed values (numbers, text, booleans, the rest)
      isRiskyRegex(pattern)       → true when a pattern could freeze the page (RISKY_REGEX_MESSAGE says why)
-     tryCodeInWorker(code, data) → run user code in a worker with a time limit
+
      limitDepth(value, cap)      → how deep a value goes, stopping at cap
      capitalize / camelCase / pascalCase / snakeCase(text)   → naming styles
    ============================================================ */
@@ -146,27 +146,6 @@ Structra.sharedHelpers = (() => {
   const RISKY_REGEX_MESSAGE = 'This pattern can take extremely long on some text (a repeat inside a repeat, like (a+)+). Simplify it, for example a+ instead of (a+)+.';
 
   /**
-   * Try some JavaScript on a copy of the data in a separate thread, and stop it after a few seconds.
-   * Resolves { ok: true } when it finished, { ok: false, error } when it failed or ran too long.
-   */
-  function tryCodeInWorker(code, data, milliseconds = 5000) {
-    return new Promise((resolve) => {
-      let worker, url, timer;
-      const done = (result) => { clearTimeout(timer); if (worker) worker.terminate(); if (url) URL.revokeObjectURL(url); resolve(result); };
-      try {
-        url = URL.createObjectURL(new Blob([`self.onmessage = (e) => { try { new Function('data', 'return ' + e.data.code)(e.data.data); self.postMessage({ ok: true }); } catch (err) { self.postMessage({ ok: false, error: String((err && err.message) || err) }); } };`], { type: 'text/javascript' }));
-        worker = new Worker(url);
-        worker.onmessage = (event) => done(event.data);
-        worker.onerror = (event) => done({ ok: false, error: event.message || 'it could not run' });
-        timer = setTimeout(() => done({ ok: false, timedOut: true, error: `It ran for more than ${milliseconds / 1000} seconds and was stopped.` }), milliseconds);
-        worker.postMessage({ code, data });
-      } catch (error) {
-        done({ ok: true });         // no worker available: run it where it is
-      }
-    });
-  }
-
-  /**
    * Data nested more than `cap` levels deep freezes every view, so what lies deeper is replaced by a short text.
    * Works without recursion, so a very deep document cannot overflow the stack. Returns how deep it was.
    */
@@ -187,5 +166,5 @@ Structra.sharedHelpers = (() => {
   let _uid = 0;
   const uniqueId = (prefix = 'id') => prefix + '-' + (++_uid).toString(36) + Math.random().toString(36).slice(2, 6);
 
-  return { escapeHtml, jsonTypeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, waitForNextTick, yieldToBrowser, runWhenIdle, copyToClipboard, downloadFile, compareValues, isRiskyRegex, RISKY_REGEX_MESSAGE, tryCodeInWorker, limitDepth, uniqueId };
+  return { escapeHtml, jsonTypeOf, capitalize, camelCase, pascalCase, snakeCase, formatBytes, timeAgo, clamp, debounce, waitForNextTick, yieldToBrowser, runWhenIdle, copyToClipboard, downloadFile, compareValues, isRiskyRegex, RISKY_REGEX_MESSAGE, limitDepth, uniqueId };
 })();

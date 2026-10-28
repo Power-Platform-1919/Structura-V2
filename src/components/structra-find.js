@@ -242,7 +242,13 @@ class StructraFind extends StructraComponent {
       return true;
     } catch (error) {
       Structra.log.warn('Find', 'Regex search failed', error.message);
-      this.queryOne('#findCount').textContent = 'Not a valid pattern';
+      // A pattern that was stopped for taking too long is not an invalid pattern: say what happened and what to do
+      if (error.message === Structra.sharedHelpers.RISKY_REGEX_MESSAGE) {
+        this.queryOne('#findCount').textContent = 'Pattern too slow';
+        Structra.toast(error.message);
+      } else {
+        this.queryOne('#findCount').textContent = 'Not a valid pattern';
+      }
       return false;
     }
   }

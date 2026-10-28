@@ -1221,7 +1221,26 @@ class StructraTable extends StructraComponent {
     container.appendChild(row);
   }
 
-  _applyFilterPanel(column) {
+  /** The pattern a "like" (wildcard) condition stands for: * is any text, ? is one character */
+  _wildcardSource(text) {
+    return '^' + text.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$';
+  }
+
+  /** A pattern is tried on the longest texts of its column in the sandbox first: the filter then runs on the page once per cell */
+  async _patternIsTooSlow(column, conditions) {
+    const patterns = conditions.filter((condition) => condition.op === 'regex' || condition.op === 'wildcard')
+      .map((condition) => (condition.op === 'regex' ? condition.val : this._wildcardSource(condition.val)));
+    if (!patterns.length) return false;
+    const rows = (this._resolveData().allRows || []).slice(0, 200000);
+    const samples = Structra.sandbox.pickSamples(rows.map((row) => (row && row[column] !== null && row[column] !== undefined ? String(row[column]) : '')));
+    for (const pattern of patterns) {
+      try { await Structra.sandbox.probePattern(pattern, 'i', samples); }
+      catch (error) { if (error.timedOut) return true; /* an invalid pattern matches nothing, as before */ }
+    }
+    return false;
+  }
+
+  async _applyFilterPanel(column) {
     const panel = this._activeFilterPanel;
     if (!panel) return;
 
@@ -1247,6 +1266,10 @@ class StructraTable extends StructraComponent {
         const value = row.querySelector('.cfp-cond-val')?.value || '';
         if (operation) conditions.push({ op: operation, val: value });
       });
+      if (conditions.length && await this._patternIsTooSlow(column, conditions)) {
+        Structra.toast(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
+        return;
+      }
       if (conditions.length === 0) {
         delete this._colFilters[column];
       } else {
@@ -1367,8 +1390,7 @@ class StructraTable extends StructraComponent {
       case 'starts-with': return lowered.startsWith(value);
       case 'ends-with': return lowered.endsWith(value);
       case 'wildcard': {
-        const pattern = new RegExp('^' + condition.val.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
-        return pattern.test(text);
+        return new RegExp(this._wildcardSource(condition.val), 'i').test(text);
       }
       case 'gt': return parseFloat(text) > parseFloat(condition.val);
       case 'lt': return parseFloat(text) < parseFloat(condition.val);

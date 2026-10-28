@@ -873,15 +873,14 @@ Structra.dataEngine = (() => {
     if (!dataset) return null;
     const main = mainList(dataset);
     if (!main) return null;
-    let test;
-    try { test = new Function('row', 'return (' + expression + ');'); }
-    catch (error) { throw new Error('This expression could not be read: ' + error.message + '. Example: row.Cost > 100 && row.Approved === true'); }
-    const started = Date.now();
-    const rows = [];
-    for (let i = 0; i < main.rows.length; i++) {
-      if (i % 500 === 0 && Date.now() - started > 5000) throw new Error('The expression is taking too long (over 5 seconds) and was stopped.');
-      try { if (test(main.rows[i])) rows.push(main.rows[i]); } catch { /* a row the test cannot read does not match */ }
+    // The test runs in the sandbox worker: an expression that never ends cannot freeze the page
+    let indexes;
+    try { indexes = await Structra.sandbox.filterRows(dataset.raw, main.path, expression); }
+    catch (error) {
+      if (error.timedOut) throw new Error('The expression is taking too long (over 5 seconds) and was stopped.');
+      throw new Error('This expression could not be read: ' + error.message + '. Example: row.Cost > 100 && row.Approved === true');
     }
+    const rows = indexes.map((index) => main.rows[index]);
     const result = {
       source: 'filter',
       query: expression,
@@ -1863,8 +1862,16 @@ Structra.dataEngine = (() => {
     const dataset = getActive();
     if (!dataset) return { total: 0, matchedPaths: [] };
     if (Structra.sharedHelpers.isRiskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
-    const expression = new RegExp(pattern, 'i');       // an invalid pattern throws; the Find bar says so
-    return _findInMemory(dataset, pattern, expression);
+    // The pattern runs in the sandbox worker, so one that never finishes is stopped instead of freezing the page.
+    // An invalid pattern throws; the Find bar says so.
+    try { new RegExp(pattern, 'i'); } catch (error) { throw new Error(error.message); }
+    let found;
+    try { found = await Structra.sandbox.findPattern(dataset.raw, pattern, { flags: 'i', primitives: true }); }
+    catch (error) {
+      if (error.timedOut) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
+      throw error;
+    }
+    return _setFindResult(dataset, pattern, found.matches.map((match) => match.path));
   }
 
   /**

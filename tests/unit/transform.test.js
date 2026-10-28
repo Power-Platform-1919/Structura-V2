@@ -43,10 +43,12 @@ test('an unknown step says what is available', () => {
   try { T.evaluate('.value | explode()', sp); } catch (e) { message = e.message; }
   truthy(message.includes('Unknown step: explode()') && message.includes('pick('), message);
 });
-test('blocked words are refused inside steps', () => {
+// There is no list of forbidden words any more: the steps run in the sandbox worker (tests/smoke/sandbox.js proves it has no network,
+// storage or page). What stays is the helpful check for a single = , which is nearly always a typo for ==.
+test('a single = inside a step is refused with a hint', () => {
   let message = '';
-  try { T.evaluate('.value | map(x => fetch(x))', sp); } catch (e) { message = e.message; }
-  truthy(/not allowed/i.test(message), message);
+  try { T.evaluate('.value | filter(x => x.Cost = 5)', sp); } catch (e) { message = e.message; }
+  truthy(/single =/.test(message), message);
 });
 test('a missing field gives undefined, not an error', () => {
   eq(T.evaluate('.nothing.here', sp), undefined);
