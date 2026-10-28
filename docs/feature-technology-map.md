@@ -348,7 +348,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Switch view (tree, table, graph, schema, editor, overview) | `setState('activeView')` | Own | | | KEEP |
 | Power Platform: expressions, copy Power Automate or Power Fx, Parse JSON schema, flow actions, columns | `powerPlatformExpressions`, `parseJsonSchemaGenerator` | Own | | | KEEP |
 | Transform: sort keys, flatten, unflatten | own | Own | | | KEEP |
-| Mask and unmask personal data | `personalDataMasker` (own regexes) | Own | | | KEEP |
+| Mask personal data: email, UUID, IP, card number (Luhn), IBAN (mod 97), US social security number, phone number, names by key | `personalDataMasker` (own rules, each with its own check) | Own | | | KEEP (hardened 2026-10-28) |
 | Mock data and sample data | `mockDataGenerator` (own, 145 lines) | Own | | | KEEP |
 | Types: TypeScript, Python, Go, C#, Rust, SQL | `typeCodeGenerator` (own, 467 lines) | Own | | | KEEP |
 | Export CSV, YAML, XML | `formatConversion` | Own + library (PapaParse, yaml) | | | KEEP |
@@ -712,7 +712,7 @@ Sorting the audit results by this rule:
 | CSV cell typing (`csv-typing.js`) | ours: thousands separators, decimals kept | **Keep and harden** (csv-spectrum cases) | 8.3 |
 | XML mapping (JSON to and from XML) | our own mapping rules | **Keep and harden** (well-formedness, name collisions, attributes, CDATA) | 8.3 |
 | Fuzzy search over data values | ours: a different job than list matching | **Keep and harden** (compare recall with uFuzzy and Fuse on typos) | 8.3 |
-| Personal data masking | ours: small and tuned | **Keep and harden** (Luhn check for cards, tighter phone pattern) | 8.3 |
+| Personal data masking | ours: small and tuned | **Keep and harden** (DONE 2026-10-28: Luhn for cards, IBAN and social security checks, 255 limit for IP, phone by how it is written or by its key; before, the loose phone rule swallowed IPs, cards, social security numbers and dates, and masked ids and timestamps; `tests/unit/masking.test.js`, 11 tests) | 8.3 |
 | Charts, Graph, Minimap, Heatmap | ours: small and tuned | **Keep and harden** (empty, single value, huge or negative values) | 8.3 |
 | Undo, bookmarks, history, tabs, theme engine | ours | **Keep and harden** (limits and odd states; undo now stores differences, 3.11) | 3.11 |
 
@@ -755,7 +755,7 @@ For each hand-written area that we keep, find an **oracle**: a standard, an offi
 | Type generator | own | real compilers (tsc, go, rustc, dotnet) on the output | generated code must compile |
 | Power Automate and Power Fx expressions | own | Microsoft's documented syntax, examples from real flows | no executor is available here; needs real flows from you |
 | Fuzzy search | own Jaro-Winkler | uFuzzy and Fuse behavior on typos | to see if recall and speed match |
-| Personal data masking | own regexes | a list of known PII formats, Luhn check for card numbers | the phone pattern is loose, the card pattern has no check digit |
+| Personal data masking | own regexes | a list of known PII formats, Luhn check for card numbers | DONE 2026-10-28: found that the loose phone rule matched first and labelled every IP, card and social security number a phone, masked dates (2025-03-14) and plain ids; fixed with the checks above |
 | Startup cost | whole app | Lighthouse (and a bundle report) | the 358 KB icon set loads at start; DuckDB loads on demand |
 | Security of generated HTML | own escaping | `hostile.js` exists; extend it to every view with markup in keys and values | the app builds HTML as text in many places |
 | Large files | own | the 37 MB and 88 MB fixtures in all three engines | memory and time, per browser |

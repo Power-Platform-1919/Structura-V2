@@ -4395,22 +4395,28 @@
         {
           "id": "23.10",
           "title": "Personal data masking: Luhn check for cards, tighter phone pattern, a list of known PII formats",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.10.1",
               "title": "Add the check digit test",
-              "status": "todo"
+              "status": "done",
+              "note": "Reproduced first: the loose phone rule matched before everything, so IPs, cards and social security numbers were all labelled phone; now Luhn for cards (13 to 19 digits), mod 97 for IBAN, 255 limit for IP, US SSN ranges",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.10.2",
               "title": "Tighten the phone pattern",
-              "status": "todo"
+              "status": "done",
+              "note": "Phone: written as a phone number (+ and country code, brackets, or digits in groups) or under a key like phone/mobile/tel/fax; dates, plain digit runs and timestamps are no longer masked",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.10.3",
               "title": "Unit tests with real-looking examples",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/masking.test.js (11 tests) with the card companies' test numbers, real IBAN examples (GB, DE, FR, NO), valid and invalid SSN ranges, dates and ids; smoke tools test still passes",
+              "doneOn": "2026-10-28"
             }
           ]
         },
