@@ -11,13 +11,18 @@
       if (node.nodeType === 3) return node.textContent.trim() || null; // text node
       if (node.nodeType !== 1) return null; // skip comments, etc.
 
+      // An element our own export wrote for null (xsi:nil="true") is null again
+      if (node.getAttribute && node.getAttribute('xsi:nil') === 'true') return null;
       var object = {};
       // Attributes
       if (node.attributes && node.attributes.length > 0) {
         object['@attributes'] = {};
         for (var i = 0; i < node.attributes.length; i++) {
+          // the declaration our own export adds for xsi:nil carries no data
+          if (node.attributes[i].name === 'xmlns:xsi' && node.attributes[i].value === 'http://www.w3.org/2001/XMLSchema-instance') continue;
           object['@attributes'][node.attributes[i].name] = node.attributes[i].value;
         }
+        if (!Object.keys(object['@attributes']).length) delete object['@attributes'];
       }
       // Children
       var children = node.childNodes;
@@ -36,6 +41,14 @@
             object[tag] = value;
           }
         }
+      }
+      // Text between elements ("Hello <b>x</b> world") is kept as #text, joined with a space
+      if (hasElements) {
+        var pieces = [];
+        for (var at = 0; at < children.length; at++) {
+          if ((children[at].nodeType === 3 || children[at].nodeType === 4) && children[at].textContent.trim()) pieces.push(children[at].textContent.trim());
+        }
+        if (pieces.length) object['#text'] = pieces.join(' ');
       }
       // If no element children, use text content
       if (!hasElements) {

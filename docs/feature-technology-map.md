@@ -192,7 +192,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Work out the format: JSON, CSV or TSV, XML, YAML, TOML, JSON lines; say plainly when a file is a zip or an Excel workbook | own detection (`_detectFormat`, `_binaryKind`) | Own | | input panel | KEEP |
 | Read JSON | `JSON.parse` on the main thread, after a scan that keeps numbers the browser would round (`protectBigNumbers`) | Own + browser | parseJsonAsync | input panel, editor | KEEP (recorded: a worker is slower here) |
 | Read CSV or TSV | PapaParse in a worker | Library | parseCsvAsync, worker pool | input panel | KEEP |
-| Read XML | the browser's `DOMParser` in a worker | Browser | parseXmlAsync | input panel | KEEP |
+| Read XML | the browser's `DOMParser` on the page (it does not exist in a worker) through `Structra.xmlIo` (`src/core/xml-io.js`); mapping rules in 8.3 | Browser + own | parseXmlAsync | input panel | KEEP (hardened 2026-10-28) |
 | Read YAML | yaml 2.9.1 through `Structra.yamlIo`, in a worker | Library | parseYamlAsync | input panel | DONE 2026-10-28: several documents become a list, unknown tags keep their values, << merges work |
 | Read TOML | toml 4.1.1 in a worker | Library | parseTomlAsync | input panel | UPGRADE to 5.0.1 (3.9) |
 | Load from a URL: method, headers, auth fields, send | `fetch` | Own + browser | | input panel | KEEP (only works where the server allows it) |
@@ -422,7 +422,8 @@ The counts are taken from the code: how many files call the module.
 | `transformStepOperations` | Transform steps | own; loaded by the sandbox worker and by the unit tests, not by the page | Own | sandbox worker | KEEP |
 | `themeEngine` | themes | own, CSS `color-mix()` | Own + browser | header, theme, welcome, workspace | KEEP |
 | `appSettings`, `safeStorage`, `browserDatabase` | settings, storage fallbacks, IndexedDB | localStorage, IndexedDB | Own + browser | data engine, input panel, logger, settings, table | KEEP |
-| `workerPool` and the parse workers | CSV, XML, YAML, TOML parsing off the main thread | own pool, PapaParse, DOMParser, yaml, toml | Own + library | input panel | FIX: cache (3.14) |
+| `xml-io` | reads XML into JSON (one copy; the XML worker and the second copy in `worker-pool.js` could never run and are gone) | browser DOMParser + own mapping rules | Own | input panel | KEEP |
+| `workerPool` and the parse workers | CSV, YAML, TOML parsing off the main thread | own pool, PapaParse, DOMParser, yaml, toml | Own + library | input panel | FIX: cache (3.14) |
 | `libraryLoader` | load libraries on first use | own | Own | code view, DuckDB, diff, repair, JSONPath, share, table | KEEP |
 | `rowWindow` (`row-window.js`) | the one door to virtual-core: which rows are on screen, total height, scroll to a row | own wrapper | Own + library | table | KEEP (rule 3, one door per library) |
 | `errorReporter` (`error-reporter.js`) | catches uncaught errors and unhandled promise rejections, keeps the last 20, shows one short message with a "Copy a bug report" button, builds a bug report with no document data | own | Own | whole app, worker pool, command palette | KEEP (task 18.4; the planned GitHub issue button is task 28) |
@@ -747,7 +748,7 @@ For each hand-written area that we keep, find an **oracle**: a standard, an offi
 |---|---|---|---|
 | JSON reading | `JSON.parse` plus the number scan | JSONTestSuite (318 files of valid, invalid and ambiguous JSON) | confirms what we accept and reject, and the big-number scan on odd input |
 | CSV and TSV import | `csv-typing.js` (own) plus PapaParse | the csv-spectrum cases; PapaParse's own tests | our own cell typing (thousands separators, leading zeros, decimals) is the risk |
-| XML import and export | own mapping in the XML worker and `jsonToXml` | well-formedness through `DOMParser`; fast-xml-parser's behavior for attributes, namespaces, CDATA, repeated elements | the mapping is our own choice; two keys can collide (`a b` and `a_b`) |
+| XML import and export | own mapping in `Structra.xmlIo` and `jsonToXml` | well-formedness through `DOMParser`; fast-xml-parser's behavior for attributes, namespaces, CDATA, repeated elements | DONE 2026-10-28: rules written in `src/core/xml-io.js`; colliding keys get `_2`, `_3`; `xsi:nil` reads back as null; text between elements is kept as `#text`; tests `tests/unit/xml-export.test.js` and `tests/smoke/xml-mapping.js` |
 | TOML and YAML import | toml, yaml | toml-test and yaml-test-suite | libraries are mature; confirms we pass options correctly (and covers the TOML upgrade) |
 | JSON Patch | jsondiffpatch's JSON Patch output | the RFC 6902 test collection | Compare's "copy as JSON Patch" must apply cleanly |
 | Schema generator | own | the official JSON Schema test suite, and a comparison with genson or quicktype on optional and nullable fields | the Parse JSON schema is the product's core output |

@@ -4107,138 +4107,174 @@
     {
       "id": "23",
       "title": "Keep and harden: run the oracles against our own code (section 8.3)",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "For each area we keep, turn the mature oracle into permanent tests and fix what fails.",
       "subtasks": [
         {
           "id": "23.1",
           "title": "JSON reading: JSONTestSuite against our parse path and the big-number scan",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.1.1",
               "title": "Get the suite",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.2: the JSONTestSuite files are fetched once into tests/suites (tools/fetch-json-test-suite.mjs, licence kept)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.1.2",
               "title": "Run and list differences",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.2: tests/unit/json-test-suite.test.js runs all 318 files through our parse path and error place; differences listed in map 8.7",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.1.3",
               "title": "Fix or document each difference",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.2: the big-number scan accepted invalid JSON and the error place overflowed the stack on deep nesting; both fixed",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.1.4",
               "title": "Keep as a permanent test",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.2 and 31.12: it is a permanent unit test in CI with a pass count",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.2",
           "title": "CSV and TSV import: csv-spectrum cases against csv-typing.js and PapaParse",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.2.1",
               "title": "Get the cases",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.4: csv-spectrum 2.0.0 files, tools/fetch-csv-spectrum.mjs",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.2.2",
               "title": "Run",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.4: tests/unit/csv-spectrum.test.js runs the real CSV worker on all 12 files, with a write and read round trip",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.2.3",
               "title": "Fix cell typing differences",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.4: cell typing checked; numbers written as text stay text, formula-looking cells are protected on export",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.2.4",
               "title": "Permanent test",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.4: permanent unit test",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.3",
           "title": "XML import and export: well-formedness, name collisions, attributes, namespaces, CDATA",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.3.1",
               "title": "Decide the mapping rules and write them down",
-              "status": "todo"
+              "status": "done",
+              "note": "Mapping rules written at the top of src/core/xml-io.js and in map 8.3: attributes in @attributes, repeated elements a list, empty element null, text between elements #text, CDATA text, xsi:nil null, prefixes kept, everything text",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.3.2",
               "title": "Fix a and b collisions (a b and a_b)",
-              "status": "todo"
+              "status": "done",
+              "note": "jsonToXml gives the second and later keys that become the same name _2, _3 (a b, a_b, a-b); no value is merged any more; tests/unit/xml-export.test.js",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.3.3",
               "title": "Round-trip tests with DOMParser",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/xml-mapping.js: JSON to XML and back through the real reader in Edge, Firefox, WebKit (null, collisions, escaped text, attributes, CDATA, mixed text, empty, repeated, namespaces, comments). Found and fixed: the XML worker never ran (DOMParser is not in workers) and a second copy of the reader lived in worker-pool.js; now one reader, src/core/xml-io.js",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.3.4",
               "title": "Compare with fast-xml-parser behavior",
-              "status": "todo"
+              "status": "done",
+              "note": "Compared with fast-xml-parser's documented behaviour (attributes as @_name, text as #text, repeated tags as lists): same list and text handling, different attribute naming on purpose; written in xml-io.js",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.4",
           "title": "TOML and YAML import: toml-test and yaml-test-suite through our workers",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.4.1",
               "title": "Run both suites",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.5 and 31.6: yaml-test-suite (402 cases) and toml-test (717 cases) through the real workers",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.4.2",
               "title": "Check the options we pass",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.5: js-yaml was replaced by yaml 2.9.1 because the suite showed it refusing multi-document files and unknown tags; toml 4.1.1 kept after comparing toml 5 and smol-toml",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.4.3",
               "title": "Permanent test",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.5 and 31.6: permanent unit tests",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.5",
           "title": "JSON Patch: RFC 6902 tests against Compare's \"copy as JSON Patch\"",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.5.1",
               "title": "Get the test collection",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.9: fast-json-patch 3.1.1 (dev dependency) is the independent applier",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.5.2",
               "title": "Apply our patches with an independent applier",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.9: tests/unit/json-patch-roundtrip.test.js applies the patch Compare copies and gets the new document back",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.5.3",
               "title": "Fix failures",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.9: no failures left; moves and array changes covered",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.6",
           "title": "Parse JSON schema generator: the official JSON Schema suite; compare with genson and quicktype on optional and nullable fields",
-          "status": "todo",
+          "status": "in_progress",
           "subtasks": [
             {
               "id": "23.6.1",
@@ -4248,7 +4284,9 @@
             {
               "id": "23.6.2",
               "title": "Official suite",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.3: the official JSON Schema Test Suite (drafts 4, 6, 7) through the validate adapter; Ajv 6 passes 901 of 906, Ajv 8 passes 898, so Ajv 6 stays",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.6.3",

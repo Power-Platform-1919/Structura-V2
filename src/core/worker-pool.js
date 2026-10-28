@@ -345,61 +345,20 @@ Structra.parseCsvAsync = function(text, options) {
   });
 };
 
-/* ---------- XML Worker Pool ---------- */
-Structra._xmlWorkerPool = Structra.createWorkerPool({
-  name: 'XML',
-  workerUrl: 'src/workers/xml-parse-worker.js',
-  workerCode: Structra._xmlWorkerSource,
-  maxWorkers: 2,
-  poolThreshold: 2,
-  taskTimeout: 60000,
-  transferThreshold: 0
-});
-
+/* ---------- XML ---------- */
 /**
- * XML is read on the page itself: DOMParser does not exist inside a Web Worker, so the worker above can
- * never read XML. The tree walk below is the same one the worker file contains.
+ * XML is read on the page itself: DOMParser does not exist inside a Web Worker, so there is no XML worker. The reading is in
+ * src/core/xml-io.js (Structra.xmlIo); this keeps the name the rest of the app calls.
  */
 Structra.parseXmlAsync = function(text) {
-  Structra.log.info('WorkerPool', 'parseXmlAsync (' + (text.length / 1024).toFixed(1) + ' KB)');
+  Structra.log.info('WorkerPool', 'parseXmlAsync (' + ((text || '').length / 1024).toFixed(1) + ' KB)');
   var startTime = performance.now();
   return new Promise(function(resolve, reject) {
-    if (!text || typeof text !== 'string') { reject(new Error('No XML input')); return; }
-    var xmlDocument = new DOMParser().parseFromString(text, 'application/xml');
-    var parserError = xmlDocument.querySelector('parsererror');
-    if (parserError) { reject(new Error('XML parse error: ' + parserError.textContent.replace(/\s+/g, ' ').trim().substring(0, 200))); return; }
-    var domToObject = function(node) {
-      if (node.nodeType === 3) return node.textContent.trim() || null;
-      if (node.nodeType !== 1) return null;
-      var object = {};
-      if (node.attributes && node.attributes.length > 0) {
-        object['@attributes'] = {};
-        for (var i = 0; i < node.attributes.length; i++) object['@attributes'][node.attributes[i].name] = node.attributes[i].value;
-      }
-      var hasElements = false;
-      for (var index = 0; index < node.childNodes.length; index++) {
-        var child = node.childNodes[index];
-        if (child.nodeType !== 1) continue;
-        hasElements = true;
-        var tag = child.nodeName;
-        var value = domToObject(child);
-        if (Object.prototype.hasOwnProperty.call(object, tag)) {
-          if (!Array.isArray(object[tag])) object[tag] = [object[tag]];
-          object[tag].push(value);
-        } else {
-          object[tag] = value;
-        }
-      }
-      if (!hasElements) {
-        var text2 = node.textContent.trim();
-        if (object['@attributes']) { if (text2) object['#text'] = text2; } else { return text2 || null; }
-      }
-      return object;
-    };
-    var result = {};
-    result[xmlDocument.documentElement.nodeName] = domToObject(xmlDocument.documentElement);
-    Structra.log.perf('WorkerPool', 'XML parse', performance.now() - startTime);
-    resolve(result);
+    try {
+      var result = Structra.xmlIo.parse(text);
+      Structra.log.perf('WorkerPool', 'XML parse', performance.now() - startTime);
+      resolve(result);
+    } catch (error) { reject(error); }
   });
 };
 
