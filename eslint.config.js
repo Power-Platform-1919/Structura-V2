@@ -89,4 +89,10 @@ module.exports = [
       'no-control-regex': 'off',
     },
   },
+  {
+    // The tree measurement page runs in the browser as a module (it imports the CodeMirror bundle)
+    files: ['tests/perf/tree-spike/spike.js'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.browser } },
+    rules: { 'no-undef': 'error', 'no-unused-vars': 'off' },
+  },
 ];
