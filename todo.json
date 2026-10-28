@@ -4303,12 +4303,14 @@
         {
           "id": "23.7",
           "title": "Type generator: compile the output with real compilers",
-          "status": "todo",
+          "status": "in_progress",
           "subtasks": [
             {
               "id": "23.7.1",
               "title": "TypeScript with tsc",
-              "status": "todo"
+              "status": "done",
+              "note": "TypeScript: tsc --strict on 12 documents (realistic, colliding names, 9 fixture lists, hostile keys, reserved words); found and fixed keys with control characters, colliding class names, lists of lists",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.2",
@@ -4323,12 +4325,16 @@
             {
               "id": "23.7.4",
               "title": "C#",
-              "status": "todo"
+              "status": "done",
+              "note": "C#: dotnet build on the same 12 documents; fixed missing usings, exact JSON names (JsonPropertyName on every property), member named like its class, duplicate names",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.5",
               "title": "Python (mypy or compileall)",
-              "status": "todo"
+              "status": "done",
+              "note": "Python: each file is imported (not only parsed) under python -I; fixed forward references (from __future__ import annotations), empty class (pass), the full keyword list, duplicate names, comments with line breaks",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.6",

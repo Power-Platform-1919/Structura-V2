@@ -68,7 +68,7 @@ An audit of every file in the repository against this document found these were 
 |---|---|---|
 | Deployment | `deploy-pages.yml`: every push to `prod` publishes `index.html`, `src` and `icons` to GitHub Pages | DONE 2026-10-28: `samples/` (old design prototypes) was published to the public site; it is now in `archive/` and no longer published (3.20) |
 | Branch mirror | `mirror-prod-to-main.yml`: makes `main` identical to `prod` | KEEP |
-| CI | `ci.yml`: lint and unit tests; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
+| CI | `ci.yml`: lint and unit tests; generated types through the real compilers; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
 | Old prototypes | `archive/structra-v2.html` and `archive/samples/` | DONE 2026-10-28: moved out of the root into `archive/` (see `archive/README.md`, review and delete later) |
 | `templates/` | an empty folder (not in git) | delete |
 | `todo.json` | the task list carried over from V1 (tasks 1 to 12) | KEEP; refresh |
@@ -350,7 +350,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Transform: sort keys, flatten, unflatten | own | Own | | | KEEP |
 | Mask personal data: email, UUID, IP, card number (Luhn), IBAN (mod 97), US social security number, phone number, names by key | `personalDataMasker` (own rules, each with its own check) | Own | | | KEEP (hardened 2026-10-28) |
 | Mock data and sample data | `mockDataGenerator` (own, 145 lines) | Own | | | KEEP |
-| Types: TypeScript, Python, Go, C#, Rust, SQL | `typeCodeGenerator` (own, 467 lines) | Own | | | KEEP |
+| Types: TypeScript, Python, Go, C#, Rust, Java, SQL, Power Fx | `typeCodeGenerator` (own; one walk and one naming step for all languages, `buildTypes`) | Own | | | KEEP (hardened 2026-10-28; compiled with the real compilers, 8.9) |
 | Export CSV, YAML, XML | `formatConversion` | Own + library (PapaParse, yaml) | | | KEEP |
 | Share as a link | URL hash with gzip through `CompressionStream` | Own + browser | shareLink | | KEEP |
 | Save as an image | modern-screenshot, loaded on first use | Library | imageCapture | | KEEP (replaced html2canvas, 3.10) |
@@ -752,7 +752,7 @@ For each hand-written area that we keep, find an **oracle**: a standard, an offi
 | TOML and YAML import | toml, yaml | toml-test and yaml-test-suite | libraries are mature; confirms we pass options correctly (and covers the TOML upgrade) |
 | JSON Patch | jsondiffpatch's JSON Patch output | the RFC 6902 test collection | Compare's "copy as JSON Patch" must apply cleanly |
 | Schema generator | own | the official JSON Schema test suite, and a comparison with genson or quicktype on optional and nullable fields | the Parse JSON schema is the product's core output |
-| Type generator | own | real compilers (tsc, go, rustc, dotnet) on the output | generated code must compile |
+| Type generator | own | real compilers (tsc, go, rustc, dotnet) on the output | DONE 2026-10-28, see 8.9: many things did not compile and are fixed |
 | Power Automate and Power Fx expressions | own | Microsoft's documented syntax, examples from real flows | no executor is available here; needs real flows from you |
 | Fuzzy search | own Jaro-Winkler | uFuzzy and Fuse behavior on typos | to see if recall and speed match |
 | Personal data masking | own regexes | a list of known PII formats, Luhn check for card numbers | DONE 2026-10-28: found that the loose phone rule matched first and labelled every IP, card and social security number a phone, masked dates (2025-03-14) and plain ids; fixed with the checks above |
@@ -829,4 +829,22 @@ Tool: `tests/perf/large-engines.js` (Playwright, a fresh browser per file, this 
 - Firefox is the slowest to read the big file (3.5 s for 88 MB); WebKit is the fastest. The stall is the reading and counting of the document, while the Loading message shows.
 - Note: the WebKit 37 MB memory is a sampling gap (the processes were sampled every 4 s and the run is 3 s long); the 88 MB figure is the comparable one. The measure is rough on purpose; it is there to catch a doubling, not to compare engines to the megabyte.
 - Earlier plan figure (about 660 MB for the 88 MB file in Edge with the CodeMirror Tree) is within this: the measured peak is 1,072 MB for the whole browser, of which the page heap is 355 MB.
+
+
+### 8.9 Generated types through the real compilers (2026-10-28)
+
+`tests/compile/type-compile.js` gives the output of the type generator to tsc (strict), Python (the module is imported, not only parsed), the .NET SDK (C#), and in CI Go (`go vet`), Rust (`cargo check` with serde) and `javac`; the CI job "Generated types compile" runs it with every compiler required. Documents: a realistic list, a list with colliding names, the first list of each of the 31 test fixtures, one record with every awkward key of `tests/hostile-keys.js`, and one record with about 190 reserved words and type names of the languages.
+
+What the compilers showed, before the fix (all in the old code):
+- **A key with a line break, tab or other control character** broke the string in TypeScript, C#, Java, Rust, Go tags and the Python comment.
+- **Two keys that become the same name** (`a b`, `a_b`, `a-b`) made two fields with one name (error in C#, Go, Rust, Java, Python silently kept the last).
+- **A class name used twice** (the same key at two depths, or a key called like the class, or `Option`, `List`, `String`, `Vec`) made two classes with one name, or replaced the language's own type.
+- **Python**: a class that names one defined later failed when the file ran (NameError, `py_compile` does not see it); an empty class had no body; `async`, `await`, `nonlocal` and other words were not in the reserved list.
+- **Go**: `_1st` is not exported, so the JSON reader skipped the field; now `X1st`.
+- **Java**: several public classes cannot be in one file (none is public now); a field that can be empty was a plain `int`; a private field without a key was not read (every field has `@JsonProperty`).
+- **C#**: `List<>` needs its using; System.Text.Json matches names exactly (`name` is not `Name`), so every property now says its key; a member named like its class is an error.
+- **Lists of lists** named a class that did not exist.
+- **Numbers**: the type came from the first record only (3 then 1.5 was an integer; 3000000000 an `int`); it now comes from all of them (decimal, then wide integer).
+
+Fixed by one shared step: `buildTypes` in `src/core/type-code-generator.js` claims each class name once and each field name once per class, avoids each language's reserved words and its own type names, and writes keys into strings with the right escape. Checks that need no compiler: `tests/unit/codegen-names.test.js` (14 tests).
 

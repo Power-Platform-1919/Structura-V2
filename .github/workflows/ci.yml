@@ -45,6 +45,23 @@ jobs:
       - name: Unit tests
         run: npm test
 
+  types-compile:
+    name: Generated types compile
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The runner image already has Python, .NET, Go, Rust (cargo) and Java; the test fails if one of them is missing
+      - name: Type definitions through the real compilers (TypeScript, Python, C#, Go, Rust, Java)
+        run: node tests/compile/type-compile.js
+        env:
+          REQUIRE_COMPILERS: '1'
+
   browser:
     name: Browser tests
     runs-on: ubuntu-latest
