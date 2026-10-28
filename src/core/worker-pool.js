@@ -87,6 +87,8 @@ Structra.createWorkerPool = function(config) {
             entry.busy = false;
             if (callback._timer) { clearTimeout(callback._timer); callback._timer = null; }
             callback.reject(new Error(message));
+          } else if (Structra.errorReporter) {
+            Structra.errorReporter.report('worker', new Error(message));   // nobody was waiting for this worker: say so, do not stay silent
           }
           const index = this.workers.indexOf(entry);
           if (index !== -1) this.workers.splice(index, 1);

@@ -66,17 +66,17 @@ An audit of every file in the repository against this document found these were 
 
 | Part | What it is | Notes and plan |
 |---|---|---|
-| Deployment | `deploy-pages.yml`: every push to `prod` publishes `index.html`, `src`, `icons` and **`samples`** to GitHub Pages | `samples/` holds five old design prototypes and is published to the public site: stop publishing it (3.20) |
+| Deployment | `deploy-pages.yml`: every push to `prod` publishes `index.html`, `src` and `icons` to GitHub Pages | DONE 2026-10-28: `samples/` (old design prototypes) was published to the public site; it is now in `archive/` and no longer published (3.20) |
 | Branch mirror | `mirror-prod-to-main.yml`: makes `main` identical to `prod` | KEEP |
 | CI | `ci.yml`: lint and unit tests; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
-| Old prototypes | `structra-v2.html` (root, "Final Design", not loaded by the app) and `samples/option-*.html` | design experiments (recorded in `memory-bank.md`); archive them out of the root (3.20) |
+| Old prototypes | `archive/structra-v2.html` and `archive/samples/` | DONE 2026-10-28: moved out of the root into `archive/` (see `archive/README.md`, review and delete later) |
 | `templates/` | an empty folder (not in git) | delete |
 | `todo.json` | the task list carried over from V1 (tasks 1 to 12) | KEEP; refresh |
 | Tooling | `eslint.config.js`, `package.json` (dev dependencies: Playwright, axe-core), the VS Code workspace file | KEEP |
 | `tools/` | three build scripts that produce vendored libraries once: CodeMirror (`build-editor.mjs`), jsonc-parser, virtual-core | KEEP |
 | CSS system (12 files, all own, no CSS framework) | `fonts.css` self-hosted fonts; `tokens.css` design tokens (colours, spacing, type); `base.css` reset, typography, `.sr-only`; `ui.css` shared patterns (dialogs, segmented buttons, menus, fields, cards, tags); `layout.css` the app grid; `shell.css` header, rail, tab bar, status bar; `overview.css`; `panels.css` query and node panels; `codeview.css` the CodeMirror look; `overlays.css`; `components.css` (2,116 lines, the older view styles: tree, table, graph, input panel); `theme-panel.css` | KEEP; split `components.css` by view when touched |
 | Small shared modules | `component-base.js` (the base class); `dialog-base.js` (`StructraDialog`, and `Structra.closeTop`, which makes Escape close one thing at a time); `safe-storage.js` (a memory store when the browser blocks localStorage); `src/libs/csv-typing.js` (own: types CSV cells, reads "1,200.00" as 1200, keeps decimals) | KEEP; the base classes get cleanup (3.14) |
-| `src/workers/engine-worker.js` | claims to move search, filter, sort and aggregate of large data into a worker | **not used by anything**, and holds two more copies of the path rule: delete or wire it (3.20) |
+| `archive/engine-worker.js` (was `src/workers/engine-worker.js`) | claimed to move search, filter, sort and aggregate of large data into a worker | DONE 2026-10-28: nothing started it, but `index.html` loaded it as a plain script, so it took over `window.onmessage` on the page. Script tag removed, file archived (3.20) |
 | Saved in the browser | localStorage keys: `structra.theme`, `structra.welcomeSeen`, `structra.toolbarHidden`, `structra.drawerH`, `structra.panelWidth.<name>`, `structra.logMode`, `structra.ppSource`, `structra.sqlHistory`, one-time tip flags, `structra_setting_<name>` (font size, page size ...), `structra_bookmarks`, `structra_query_history`, `structra_recent`, `structra_snippets`. IndexedDB: recents, the original text of each file (by content hash), the session, URL history. DuckDB's database file in OPFS (claimed in the adapter, to be re-checked, 3.7) | KEEP; `Settings` can clear it |
 | Not present | a service worker or web manifest (no install, no offline cache); a **global error handler** (an uncaught error reaches only the console); a Content-Security-Policy | see 3.20 |
 
@@ -424,6 +424,7 @@ The counts are taken from the code: how many files call the module.
 | `workerPool` and the parse workers | CSV, XML, YAML, TOML parsing off the main thread | own pool, PapaParse, DOMParser, js-yaml, toml | Own + library | input panel | FIX: cache (3.14) |
 | `libraryLoader` | load libraries on first use | own | Own | code view, DuckDB, diff, repair, JSONPath, share, table | KEEP |
 | `rowWindow` (`row-window.js`) | the one door to virtual-core: which rows are on screen, total height, scroll to a row | own wrapper | Own + library | table | KEEP (rule 3, one door per library) |
+| `errorReporter` (`error-reporter.js`) | catches uncaught errors and unhandled promise rejections, keeps the last 20, shows one short message with a "Copy a bug report" button, builds a bug report with no document data | own | Own | whole app, worker pool, command palette | KEEP (task 18.4; the planned GitHub issue button is task 28) |
 | `StructraComponent`, `StructraDialog`, `Structra.events`, `Structra.state`, `Structra.log`, `panelResizer` | base classes, event bus, state, logger, resizer | own | Own | all components | FIX (3.14), dialogs 3.4 |
 
 ### 2.8 How much is hand-written?
@@ -455,7 +456,7 @@ The path ("which value is this") is the center of the app, and it is written by 
 | Compare | `structra-diff.js` | always `.key` | any key with a dot or bracket |
 | Find, Fuzzy, schema inference, path index, first array, all arrays | `data-engine.js` (about 8 places) | always `.key` | any key with a dot or bracket, an empty key |
 | Duplicate-key finder | `json-repair-and-validation.js` | `.key` for simple keys, else `["key"]` with no escape | a key with a quote |
-| Engine worker (unused) | `engine-worker.js` | always `.key` | the same |
+| Engine worker (archived) | `archive/engine-worker.js` | always `.key` | not used any more |
 | JSONPath results | `jsonpath-query.js` | `.key` for simple keys, else `['key']` with backslash escapes (the standard's form) | the reader cannot read the escapes |
 | **The reader** | `data-paths.js` (`tokenize`, `resolve`, `strip`) | reads `.key` up to the next `.` or `[`; `["..."]` up to the next quote and bracket; no escapes; `strip` treats a leading `$` as the root marker | a key with a dot written unquoted, a key that starts with `$`, an escaped quote |
 
@@ -594,7 +595,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Plan:** run user patterns in the sandbox worker from 3.8 (a time limit, then the worker is stopped). A ReDoS analyzer library (such as `recheck`) could add an early warning; it is optional.
 - **Pros:** the page can never freeze, whatever the pattern. **Cons:** matching a very large document means copying it into the worker (the same cost as 3.8).
 
-### 3.20 Cleanup and hardening (proposed) [task 18.4]
+### 3.20 Cleanup and hardening (proposed) [task 18.4] (DONE 2026-10-28 except the sandbox-dependent parts; see task 18.4. CSP study: [csp-study.md](csp-study.md); third-party list: [THIRD-PARTY.md](../THIRD-PARTY.md); archive: [archive/README.md](../archive/README.md))
 
 - **Archive, do not delete (Q5):** create `archive/` at the top of the repository (never shipped, linted or published) with a README (what, why, date, review later), and move into it `src/workers/engine-worker.js` (unused), `structra-v2.html`, `samples/` and the old `virtual-list.js`. Delete only the empty `templates/` folder.
 - Add `THIRD-PARTY.md`: name, version, license, source and build command for every vendored library (section 8.5).

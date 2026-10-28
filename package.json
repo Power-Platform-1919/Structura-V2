@@ -1,5 +1,6 @@
 {
   "name": "structra-v2",
+  "version": "2.0.0",
   "private": true,
   "description": "Structra: a local JSON analyzer with built-in Power Platform tools",
   "scripts": {

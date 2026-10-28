@@ -28,7 +28,7 @@ const appGlobals = {
 module.exports = [
   {
     // Third-party code and generated files are not ours to check
-    ignores: ['node_modules/**', 'src/libs/**', 'src/vendor/**', 'samples/**', 'docs/**', '.playwright-mcp/**', 'test-results/**', 'structra-v2.html'],
+    ignores: ['node_modules/**', 'src/libs/**', 'src/vendor/**', 'archive/**', 'docs/**', '.playwright-mcp/**', 'test-results/**'],
   },
   js.configs.recommended,
   {

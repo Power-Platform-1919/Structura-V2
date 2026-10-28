@@ -73,6 +73,7 @@ class StructraCommand extends StructraComponent {
       // UI
       { id: 'theme',      label: 'Switch Light / Dark',             kbd: 'Alt+T',        cat: 'UI',       icon: 'sun-moon' },
       { id: 'welcome',    label: 'Welcome',                         kbd: '',             cat: 'Help',     icon: 'circle-help' },
+      { id: 'bug-report', label: 'Copy a bug report',               kbd: '',             cat: 'Help',     icon: 'bug', keys: 'error problem report issue' },
       { id: 'expand-all', label: 'Expand All Nodes',                  kbd: '',             cat: 'View',     icon: 'maximize-2' },
       { id: 'collapse-all', label: 'Collapse All Nodes',               kbd: '',             cat: 'View',     icon: 'minimize-2' },
       { id: 'depth-3',    label: 'Collapse to Depth 3',              kbd: '',             cat: 'View',     icon: 'chevrons-down-up' },
@@ -439,6 +440,9 @@ class StructraCommand extends StructraComponent {
         break;
       case 'welcome':
         Structra.events.emit('welcome:open');
+        break;
+      case 'bug-report':
+        Structra.errorReporter.copyReport();
         break;
 
       /* ---- Phase 5 ---- */

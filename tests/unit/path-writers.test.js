@@ -6,7 +6,7 @@ const path = require('path');
 const { test, truthy } = require('./harness');
 
 const SRC = path.join(__dirname, '..', '..', 'src');
-const SKIP = [path.join('src', 'libs'), path.join('src', 'workers', 'engine-worker.js'), path.join('src', 'core', 'data-paths.js'), path.join('src', 'core', 'power-platform-expressions.js'), path.join('src', 'core', 'overview-insights.js')];
+const SKIP = [path.join('src', 'libs'), path.join('src', 'core', 'data-paths.js'), path.join('src', 'core', 'power-platform-expressions.js'), path.join('src', 'core', 'overview-insights.js')];
 
 const PATTERNS = [
   { name: 'path then dot then key', regex: /[pP]ath\}?\.\$\{/ },
