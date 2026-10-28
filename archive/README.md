@@ -13,5 +13,6 @@ Nothing here is shipped, linted, tested or published: the deploy workflow copies
 | `libs/js-yaml.min.js` | the YAML library (4.1.0) used until 2026-10-28 | replaced by `yaml` (see `docs/feature-technology-map.md`, section 8.7): the YAML Test Suite showed it refusing multi-document files, unknown tags and valid flow forms | 2026-10-28 |
 | `src-vendor/lucide.min.js` | the whole Lucide library (0.468.0, 358 KB, about 1,600 icons) loaded as a blocking script | replaced by `src/libs/lucide/lucide-icons.js` (Lucide 1.63.0, only the icons the code names, 25 KB) built by `tools/build-lucide.mjs` | 2026-10-28 |
 | `libs/html2canvas.min.js` | html2canvas 1.4.1 (199 KB), the Save as PNG library until 2026-10-28 | replaced by modern-screenshot (`src/libs/modern-screenshot/`): about 8 times faster on a view and no colour workaround needed (map, section 3.10) | 2026-10-28 |
+| `src-workers/xml-parse-worker.js` | a Web Worker meant to read XML | it could never run (DOMParser does not exist inside a worker); the page read XML with a second copy of the same code in `worker-pool.js`. Both are replaced by one reader, `src/core/xml-io.js` | 2026-10-28 |
 
 Decided in `docs/QUESTIONS.md` (Q5 and Q21): unneeded code goes here first, and is deleted later after a review.

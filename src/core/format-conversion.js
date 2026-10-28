@@ -50,8 +50,13 @@ Structra.formatConversion = (() => {
             : emptyItem ? `${indent}<item/>\n` : `${indent}<item>\n${convert(item, indent + '  ')}\n${indent}</item>\n`;
         }
       } else {
+        // Two keys can become the same name ("a b" and "a_b" are both a_b): the second one gets _2, the third _3, so no value is
+        // merged into the other one when the file is read back
+        const taken = new Set();
         for (const [key, value] of Object.entries(object)) {
-          const tag = tagOf(key);
+          let tag = tagOf(key);
+          if (taken.has(tag)) { let count = 2; while (taken.has(tag + '_' + count)) count++; tag = tag + '_' + count; }
+          taken.add(tag);
           if (value === null) {
             xml += `${indent}${nil(tag)}\n`;
           } else if (typeof value === 'object') {

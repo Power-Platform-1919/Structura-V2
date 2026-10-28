@@ -4107,200 +4107,258 @@
     {
       "id": "23",
       "title": "Keep and harden: run the oracles against our own code (section 8.3)",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "For each area we keep, turn the mature oracle into permanent tests and fix what fails.",
       "subtasks": [
         {
           "id": "23.1",
           "title": "JSON reading: JSONTestSuite against our parse path and the big-number scan",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.1.1",
               "title": "Get the suite",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.2: the JSONTestSuite files are fetched once into tests/suites (tools/fetch-json-test-suite.mjs, licence kept)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.1.2",
               "title": "Run and list differences",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.2: tests/unit/json-test-suite.test.js runs all 318 files through our parse path and error place; differences listed in map 8.7",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.1.3",
               "title": "Fix or document each difference",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.2: the big-number scan accepted invalid JSON and the error place overflowed the stack on deep nesting; both fixed",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.1.4",
               "title": "Keep as a permanent test",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.2 and 31.12: it is a permanent unit test in CI with a pass count",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.2",
           "title": "CSV and TSV import: csv-spectrum cases against csv-typing.js and PapaParse",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.2.1",
               "title": "Get the cases",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.4: csv-spectrum 2.0.0 files, tools/fetch-csv-spectrum.mjs",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.2.2",
               "title": "Run",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.4: tests/unit/csv-spectrum.test.js runs the real CSV worker on all 12 files, with a write and read round trip",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.2.3",
               "title": "Fix cell typing differences",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.4: cell typing checked; numbers written as text stay text, formula-looking cells are protected on export",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.2.4",
               "title": "Permanent test",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.4: permanent unit test",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.3",
           "title": "XML import and export: well-formedness, name collisions, attributes, namespaces, CDATA",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.3.1",
               "title": "Decide the mapping rules and write them down",
-              "status": "todo"
+              "status": "done",
+              "note": "Mapping rules written at the top of src/core/xml-io.js and in map 8.3: attributes in @attributes, repeated elements a list, empty element null, text between elements #text, CDATA text, xsi:nil null, prefixes kept, everything text",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.3.2",
               "title": "Fix a and b collisions (a b and a_b)",
-              "status": "todo"
+              "status": "done",
+              "note": "jsonToXml gives the second and later keys that become the same name _2, _3 (a b, a_b, a-b); no value is merged any more; tests/unit/xml-export.test.js",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.3.3",
               "title": "Round-trip tests with DOMParser",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/xml-mapping.js: JSON to XML and back through the real reader in Edge, Firefox, WebKit (null, collisions, escaped text, attributes, CDATA, mixed text, empty, repeated, namespaces, comments). Found and fixed: the XML worker never ran (DOMParser is not in workers) and a second copy of the reader lived in worker-pool.js; now one reader, src/core/xml-io.js",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.3.4",
               "title": "Compare with fast-xml-parser behavior",
-              "status": "todo"
+              "status": "done",
+              "note": "Compared with fast-xml-parser's documented behaviour (attributes as @_name, text as #text, repeated tags as lists): same list and text handling, different attribute naming on purpose; written in xml-io.js",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.4",
           "title": "TOML and YAML import: toml-test and yaml-test-suite through our workers",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.4.1",
               "title": "Run both suites",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.5 and 31.6: yaml-test-suite (402 cases) and toml-test (717 cases) through the real workers",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.4.2",
               "title": "Check the options we pass",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.5: js-yaml was replaced by yaml 2.9.1 because the suite showed it refusing multi-document files and unknown tags; toml 4.1.1 kept after comparing toml 5 and smol-toml",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.4.3",
               "title": "Permanent test",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.5 and 31.6: permanent unit tests",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.5",
           "title": "JSON Patch: RFC 6902 tests against Compare's \"copy as JSON Patch\"",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.5.1",
               "title": "Get the test collection",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.9: fast-json-patch 3.1.1 (dev dependency) is the independent applier",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.5.2",
               "title": "Apply our patches with an independent applier",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.9: tests/unit/json-patch-roundtrip.test.js applies the patch Compare copies and gets the new document back",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.5.3",
               "title": "Fix failures",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.9: no failures left; moves and array changes covered",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.6",
           "title": "Parse JSON schema generator: the official JSON Schema suite; compare with genson and quicktype on optional and nullable fields",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.6.1",
               "title": "Ajv self-validation as a permanent test (57 of 57 pass today)",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/schema-gen-validate.test.js: for the first list of each of the 9 fixtures plus hostile keys, nulls, mixed types, lists of lists, empty things, numbers, deep, optional keys: the schema (smart and basic, 4 option sets) is valid and the records pass it under Ajv 6",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.6.2",
               "title": "Official suite",
-              "status": "todo"
+              "status": "done",
+              "note": "Done under 31.3: the official JSON Schema Test Suite (drafts 4, 6, 7) through the validate adapter; Ajv 6 passes 901 of 906, Ajv 8 passes 898, so Ajv 6 stays",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.6.3",
               "title": "Compare optional and nullable handling with genson",
-              "status": "todo"
+              "status": "done",
+              "note": "Compared with genson's documented behaviour: type lists for mixed values and required limited to keys in every object are the same; a key that is sometimes null is [type, null] here; genson's null handling was not in the docs we could read (noted in the test)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.6.4",
               "title": "Fix differences that matter for the Parse JSON action",
-              "status": "todo"
+              "status": "done",
+              "note": "No difference found that matters for Parse JSON: all 19 generated schemas validate their own data, nullable keys accept null, required lists the keys every record has",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.7",
           "title": "Type generator: compile the output with real compilers",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.7.1",
               "title": "TypeScript with tsc",
-              "status": "todo"
+              "status": "done",
+              "note": "TypeScript: tsc --strict on 12 documents (realistic, colliding names, 9 fixture lists, hostile keys, reserved words); found and fixed keys with control characters, colliding class names, lists of lists",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.2",
               "title": "Go",
-              "status": "todo"
+              "status": "done",
+              "note": "Go: go vet on all 12 documents in the CI job 'Generated types compile'; found and fixed unexported fields (_1st, a key with no letters), duplicate names, tags with backticks and control characters",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.3",
               "title": "Rust",
-              "status": "todo"
+              "status": "done",
+              "note": "Rust: cargo check with serde and serde_json in CI on all 12 documents; passes (braced unicode escapes, keyword and type names avoided, f64 and i64 chosen from all records)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.4",
               "title": "C#",
-              "status": "todo"
+              "status": "done",
+              "note": "C#: dotnet build on the same 12 documents; fixed missing usings, exact JSON names (JsonPropertyName on every property), member named like its class, duplicate names",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.5",
               "title": "Python (mypy or compileall)",
-              "status": "todo"
+              "status": "done",
+              "note": "Python: each file is imported (not only parsed) under python -I; fixed forward references (from __future__ import annotations), empty class (pass), the full keyword list, duplicate names, comments with line breaks",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.6",
               "title": "Java",
-              "status": "todo"
+              "status": "done",
+              "note": "Java: javac in CI on all 12 documents; fixed one-file output (no public classes), boxed types for fields that can be empty, @JsonProperty on every field, keyword list",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.7",
               "title": "Fix what does not compile",
-              "status": "todo"
+              "status": "done",
+              "note": "Everything that did not compile is fixed (list in map 8.9); the CI job runs the compilers on every push with REQUIRE_COMPILERS=1",
+              "doneOn": "2026-10-28"
             }
           ]
         },
@@ -4357,71 +4415,91 @@
         {
           "id": "23.10",
           "title": "Personal data masking: Luhn check for cards, tighter phone pattern, a list of known PII formats",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.10.1",
               "title": "Add the check digit test",
-              "status": "todo"
+              "status": "done",
+              "note": "Reproduced first: the loose phone rule matched before everything, so IPs, cards and social security numbers were all labelled phone; now Luhn for cards (13 to 19 digits), mod 97 for IBAN, 255 limit for IP, US SSN ranges",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.10.2",
               "title": "Tighten the phone pattern",
-              "status": "todo"
+              "status": "done",
+              "note": "Phone: written as a phone number (+ and country code, brackets, or digits in groups) or under a key like phone/mobile/tel/fax; dates, plain digit runs and timestamps are no longer masked",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.10.3",
               "title": "Unit tests with real-looking examples",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/masking.test.js (11 tests) with the card companies' test numbers, real IBAN examples (GB, DE, FR, NO), valid and invalid SSN ranges, dates and ids; smoke tools test still passes",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.11",
           "title": "Overview insights and quality score: edge cases (empty lists, mixed types, huge arrays, all-null columns)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.11.1",
               "title": "List the edge cases",
-              "status": "todo"
+              "status": "done",
+              "note": "Listed 24 awkward documents: empty list/object, list of empty objects, nulls, numbers, lists of lists, single record or value, all-null column, mixed-type column, rare column, odd keys, ids that repeat or differ, numbers as text, 1e308, dates, 300 levels deep, 3000 keys wide, 200 KB strings, nested empty lists",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.11.2",
               "title": "Test each",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/analysis-edge.test.js (28 tests): every number is finite and in range (quality parts 0 to 100, null/unique/coverage percent), no NaN or undefined in the insight text, plus checks for all-null, mixed types, repeating ids, a clean list scoring 100, and 200,000 records in under 15 s",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.11.3",
               "title": "Fix",
-              "status": "todo"
+              "status": "done",
+              "note": "Nothing needed fixing: all 24 documents give real numbers and plain text; the one document that gives no numbers, a bare null, cannot be opened by design (fixtures test edge_null)",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.12",
           "title": "Charts, Graph, Minimap, Heatmap: empty, single value, huge and negative values",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.12.1",
               "title": "Charts",
-              "status": "todo"
+              "status": "done",
+              "note": "Charts: tests/smoke/visual-edge.js (13 awkward documents) found two real bugs, both fixed in structra-charts.js: numbers near 1e308 and -1e308 made the line chart path NaN (max - min overflowed; now a safe fraction, overflow-free mean and median, lerp for bin labels), and objects or lists in a text column showed as [object Object] (now JSON text)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.12.2",
               "title": "Graph",
-              "status": "todo"
+              "status": "done",
+              "note": "Graph: the same test opens the Graph for all 13 documents (one record, all-null, deep, wide, lists of lists, long text) with no page error and no NaN in x, y, width, height, d or transform",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.12.3",
               "title": "Minimap",
-              "status": "todo"
+              "status": "done",
+              "note": "Minimap: toggled for all 13 documents, no page error, no NaN in what is drawn",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.12.4",
               "title": "Heatmap",
-              "status": "todo"
+              "status": "done",
+              "note": "Heatmap: toggled on the Tree for all 13 documents, no page error, no NaN in styles or the legend; Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             }
           ]
         },
@@ -4450,39 +4528,49 @@
         {
           "id": "23.14",
           "title": "Security of generated HTML: extend hostile.js to every view",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.14.1",
               "title": "Markup in keys and values in Overview, Tree, Table, Graph, Schema, Node panel, Compare, Query results",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/hostile.js second section: keys and values that break out of an attribute, an svg onload and a script block, plus javascript: links, shown in Overview, Tree, Table, Graph, Schema, Editor, Node panel, JSONPath and SQL results in the Query panel, Find, Pivot, Null finder, Charts, Typedef, Compare, Validate, Snippets; nothing ran in Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.14.2",
               "title": "Check titles and attributes, not only text",
-              "status": "todo"
+              "status": "done",
+              "note": "The same test scans the whole page after rendering for any element with an on... attribute, a javascript: or data:text/html link, a frame, object or embed, or a script carrying the payload, and moves the pointer over lines, cells, palette items and the Node panel (what onmouseover waits for): all clean, no code change needed",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.15",
           "title": "Large files in all three engines (37 MB and 88 MB): time and memory",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.15.1",
               "title": "Firefox",
-              "status": "todo"
+              "status": "done",
+              "note": "Firefox: 37 MB opens in 0.8 s, 88 MB in 3.5 s; Tree, Table, Overview show in under 70 ms; longest stall 2.1 s; peak browser memory 1.2 GB; no errors (tests/perf/large-engines.js)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.15.2",
               "title": "WebKit",
-              "status": "todo"
+              "status": "done",
+              "note": "WebKit: 37 MB in 0.6 s, 88 MB in 1.3 s; views show in under 125 ms; longest stall 1.0 s; peak browser memory about 1.06 GB for 88 MB; no errors",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.15.3",
               "title": "Record the numbers in the docs",
-              "status": "todo"
+              "status": "done",
+              "note": "Numbers recorded in map section 8.8 with the method and a note on how rough the memory figure is; Edge baseline: 1.9 s, stall 1.7 s, page heap 355 MB for 88 MB",
+              "doneOn": "2026-10-28"
             }
           ]
         }

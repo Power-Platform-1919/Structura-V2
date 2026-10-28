@@ -68,7 +68,7 @@ An audit of every file in the repository against this document found these were 
 |---|---|---|
 | Deployment | `deploy-pages.yml`: every push to `prod` publishes `index.html`, `src` and `icons` to GitHub Pages | DONE 2026-10-28: `samples/` (old design prototypes) was published to the public site; it is now in `archive/` and no longer published (3.20) |
 | Branch mirror | `mirror-prod-to-main.yml`: makes `main` identical to `prod` | KEEP |
-| CI | `ci.yml`: lint and unit tests; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
+| CI | `ci.yml`: lint and unit tests; generated types through the real compilers; Chromium browser tests; Firefox and WebKit (not blocking yet); UI audit with axe-core | KEEP |
 | Old prototypes | `archive/structra-v2.html` and `archive/samples/` | DONE 2026-10-28: moved out of the root into `archive/` (see `archive/README.md`, review and delete later) |
 | `templates/` | an empty folder (not in git) | delete |
 | `todo.json` | the task list carried over from V1 (tasks 1 to 12) | KEEP; refresh |
@@ -192,7 +192,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Work out the format: JSON, CSV or TSV, XML, YAML, TOML, JSON lines; say plainly when a file is a zip or an Excel workbook | own detection (`_detectFormat`, `_binaryKind`) | Own | | input panel | KEEP |
 | Read JSON | `JSON.parse` on the main thread, after a scan that keeps numbers the browser would round (`protectBigNumbers`) | Own + browser | parseJsonAsync | input panel, editor | KEEP (recorded: a worker is slower here) |
 | Read CSV or TSV | PapaParse in a worker | Library | parseCsvAsync, worker pool | input panel | KEEP |
-| Read XML | the browser's `DOMParser` in a worker | Browser | parseXmlAsync | input panel | KEEP |
+| Read XML | the browser's `DOMParser` on the page (it does not exist in a worker) through `Structra.xmlIo` (`src/core/xml-io.js`); mapping rules in 8.3 | Browser + own | parseXmlAsync | input panel | KEEP (hardened 2026-10-28) |
 | Read YAML | yaml 2.9.1 through `Structra.yamlIo`, in a worker | Library | parseYamlAsync | input panel | DONE 2026-10-28: several documents become a list, unknown tags keep their values, << merges work |
 | Read TOML | toml 4.1.1 in a worker | Library | parseTomlAsync | input panel | UPGRADE to 5.0.1 (3.9) |
 | Load from a URL: method, headers, auth fields, send | `fetch` | Own + browser | | input panel | KEEP (only works where the server allows it) |
@@ -348,9 +348,9 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Switch view (tree, table, graph, schema, editor, overview) | `setState('activeView')` | Own | | | KEEP |
 | Power Platform: expressions, copy Power Automate or Power Fx, Parse JSON schema, flow actions, columns | `powerPlatformExpressions`, `parseJsonSchemaGenerator` | Own | | | KEEP |
 | Transform: sort keys, flatten, unflatten | own | Own | | | KEEP |
-| Mask and unmask personal data | `personalDataMasker` (own regexes) | Own | | | KEEP |
+| Mask personal data: email, UUID, IP, card number (Luhn), IBAN (mod 97), US social security number, phone number, names by key | `personalDataMasker` (own rules, each with its own check) | Own | | | KEEP (hardened 2026-10-28) |
 | Mock data and sample data | `mockDataGenerator` (own, 145 lines) | Own | | | KEEP |
-| Types: TypeScript, Python, Go, C#, Rust, SQL | `typeCodeGenerator` (own, 467 lines) | Own | | | KEEP |
+| Types: TypeScript, Python, Go, C#, Rust, Java, SQL, Power Fx | `typeCodeGenerator` (own; one walk and one naming step for all languages, `buildTypes`) | Own | | | KEEP (hardened 2026-10-28; compiled with the real compilers, 8.9) |
 | Export CSV, YAML, XML | `formatConversion` | Own + library (PapaParse, yaml) | | | KEEP |
 | Share as a link | URL hash with gzip through `CompressionStream` | Own + browser | shareLink | | KEEP |
 | Save as an image | modern-screenshot, loaded on first use | Library | imageCapture | | KEEP (replaced html2canvas, 3.10) |
@@ -422,7 +422,8 @@ The counts are taken from the code: how many files call the module.
 | `transformStepOperations` | Transform steps | own; loaded by the sandbox worker and by the unit tests, not by the page | Own | sandbox worker | KEEP |
 | `themeEngine` | themes | own, CSS `color-mix()` | Own + browser | header, theme, welcome, workspace | KEEP |
 | `appSettings`, `safeStorage`, `browserDatabase` | settings, storage fallbacks, IndexedDB | localStorage, IndexedDB | Own + browser | data engine, input panel, logger, settings, table | KEEP |
-| `workerPool` and the parse workers | CSV, XML, YAML, TOML parsing off the main thread | own pool, PapaParse, DOMParser, yaml, toml | Own + library | input panel | FIX: cache (3.14) |
+| `xml-io` | reads XML into JSON (one copy; the XML worker and the second copy in `worker-pool.js` could never run and are gone) | browser DOMParser + own mapping rules | Own | input panel | KEEP |
+| `workerPool` and the parse workers | CSV, YAML, TOML parsing off the main thread | own pool, PapaParse, DOMParser, yaml, toml | Own + library | input panel | FIX: cache (3.14) |
 | `libraryLoader` | load libraries on first use | own | Own | code view, DuckDB, diff, repair, JSONPath, share, table | KEEP |
 | `rowWindow` (`row-window.js`) | the one door to virtual-core: which rows are on screen, total height, scroll to a row | own wrapper | Own + library | table | KEEP (rule 3, one door per library) |
 | `errorReporter` (`error-reporter.js`) | catches uncaught errors and unhandled promise rejections, keeps the last 20, shows one short message with a "Copy a bug report" button, builds a bug report with no document data | own | Own | whole app, worker pool, command palette | KEEP (task 18.4; the planned GitHub issue button is task 28) |
@@ -711,7 +712,7 @@ Sorting the audit results by this rule:
 | CSV cell typing (`csv-typing.js`) | ours: thousands separators, decimals kept | **Keep and harden** (csv-spectrum cases) | 8.3 |
 | XML mapping (JSON to and from XML) | our own mapping rules | **Keep and harden** (well-formedness, name collisions, attributes, CDATA) | 8.3 |
 | Fuzzy search over data values | ours: a different job than list matching | **Keep and harden** (compare recall with uFuzzy and Fuse on typos) | 8.3 |
-| Personal data masking | ours: small and tuned | **Keep and harden** (Luhn check for cards, tighter phone pattern) | 8.3 |
+| Personal data masking | ours: small and tuned | **Keep and harden** (DONE 2026-10-28: Luhn for cards, IBAN and social security checks, 255 limit for IP, phone by how it is written or by its key; before, the loose phone rule swallowed IPs, cards, social security numbers and dates, and masked ids and timestamps; `tests/unit/masking.test.js`, 11 tests) | 8.3 |
 | Charts, Graph, Minimap, Heatmap | ours: small and tuned | **Keep and harden** (empty, single value, huge or negative values) | 8.3 |
 | Undo, bookmarks, history, tabs, theme engine | ours | **Keep and harden** (limits and odd states; undo now stores differences, 3.11) | 3.11 |
 
@@ -747,17 +748,17 @@ For each hand-written area that we keep, find an **oracle**: a standard, an offi
 |---|---|---|---|
 | JSON reading | `JSON.parse` plus the number scan | JSONTestSuite (318 files of valid, invalid and ambiguous JSON) | confirms what we accept and reject, and the big-number scan on odd input |
 | CSV and TSV import | `csv-typing.js` (own) plus PapaParse | the csv-spectrum cases; PapaParse's own tests | our own cell typing (thousands separators, leading zeros, decimals) is the risk |
-| XML import and export | own mapping in the XML worker and `jsonToXml` | well-formedness through `DOMParser`; fast-xml-parser's behavior for attributes, namespaces, CDATA, repeated elements | the mapping is our own choice; two keys can collide (`a b` and `a_b`) |
+| XML import and export | own mapping in `Structra.xmlIo` and `jsonToXml` | well-formedness through `DOMParser`; fast-xml-parser's behavior for attributes, namespaces, CDATA, repeated elements | DONE 2026-10-28: rules written in `src/core/xml-io.js`; colliding keys get `_2`, `_3`; `xsi:nil` reads back as null; text between elements is kept as `#text`; tests `tests/unit/xml-export.test.js` and `tests/smoke/xml-mapping.js` |
 | TOML and YAML import | toml, yaml | toml-test and yaml-test-suite | libraries are mature; confirms we pass options correctly (and covers the TOML upgrade) |
 | JSON Patch | jsondiffpatch's JSON Patch output | the RFC 6902 test collection | Compare's "copy as JSON Patch" must apply cleanly |
 | Schema generator | own | the official JSON Schema test suite, and a comparison with genson or quicktype on optional and nullable fields | the Parse JSON schema is the product's core output |
-| Type generator | own | real compilers (tsc, go, rustc, dotnet) on the output | generated code must compile |
+| Type generator | own | real compilers (tsc, go, rustc, dotnet) on the output | DONE 2026-10-28, see 8.9: many things did not compile and are fixed |
 | Power Automate and Power Fx expressions | own | Microsoft's documented syntax, examples from real flows | no executor is available here; needs real flows from you |
 | Fuzzy search | own Jaro-Winkler | uFuzzy and Fuse behavior on typos | to see if recall and speed match |
-| Personal data masking | own regexes | a list of known PII formats, Luhn check for card numbers | the phone pattern is loose, the card pattern has no check digit |
+| Personal data masking | own regexes | a list of known PII formats, Luhn check for card numbers | DONE 2026-10-28: found that the loose phone rule matched first and labelled every IP, card and social security number a phone, masked dates (2025-03-14) and plain ids; fixed with the checks above |
 | Startup cost | whole app | Lighthouse (and a bundle report) | the 358 KB icon set loads at start; DuckDB loads on demand |
 | Security of generated HTML | own escaping | `hostile.js` exists; extend it to every view with markup in keys and values | the app builds HTML as text in many places |
-| Large files | own | the 37 MB and 88 MB fixtures in all three engines | memory and time, per browser |
+| Large files | own | the 37 MB and 88 MB fixtures in all three engines | DONE 2026-10-28, numbers in section 8.8: all open in all three engines, no errors; the longest page stall is 0.4 to 2.1 s while the file is read |
 
 ### 8.4 Keeping it from regressing
 
@@ -810,3 +811,40 @@ A suite runs through OUR integration (the parse path, the adapter, the worker), 
 | Repair ("Fix it for me") | the 318 JSONTestSuite texts as input, with the promise "the result is valid JSON or an error" | `Structra.jsonRepairAndValidation.repair` (jsonrepair 3.x plus our second pass) | 127 valid, 191 invalid | valid: 127 of 127 unchanged. invalid: 148 repaired, 43 refused, **0 still broken (was 6)** | 6 texts came back from jsonrepair still invalid: numbers with a leading zero or a leading dot (`-01`, `.2e-3`, `-.5`) and a backslash followed by a raw tab or NUL. Fixed with a second pass; `repair()` now always returns valid JSON or throws (the Editor used to say "Repaired" over broken text) |
 | Compare and its JSON Patch (RFC 6902) | every valid JSONTestSuite document taken in pairs, patch applied by an independent implementation (fast-json-patch 3.1.1, a dev dependency) | `Structra.jsonRepairAndValidation.patch` (our position-mode patch) and `Structra.jsonDiff.compare` + `patchOps` (smart mode on jsondiffpatch) | 16,129 pairs (position mode), 2,305 pairs (smart mode) | all round-trip: 0 wrong, 0 refused | no bug found. Also checked: equal documents give an empty patch, the left document is not changed, keys with ~ and / are written ~0 and ~1 |
 | XML | W3C XML Conformance Test Suite (xmltest standalone files: 120 valid, 186 not well-formed) | the real XML opener (`Structra.parseXmlAsync`: browser DOMParser, our error detection and XML-to-JSON step) in all three engines | 306 | valid opened: Edge 116, Firefox 116, WebKit 114 of 120. Not well-formed refused: **Edge 125, Firefox 183, WebKit 181 of 186** | no bug in our code. Chromium (Chrome and Edge) implements XML 1.0 5th edition, in which many names and characters that the suite (written for earlier editions) marks as not well-formed are legal, so it opens 61 of them. Our refusal messages are always one line in all engines. Per-engine minimums are written in the test |
+
+### 8.8 Large files in the three engines (measured 2026-10-28)
+
+Tool: `tests/perf/large-engines.js` (Playwright, a fresh browser per file, this Windows machine, Edge 140-class Chromium, Firefox and WebKit as Playwright ships them). Files: `perf_100k.json` (37 MB, 2.2 million lines) and `perf_150k_complex.json` (88 MB, 6.9 million lines). Times are from choosing the file; "stall" is the longest time a 50 ms timer ran late (the page did not answer); browser memory is the peak working set of all processes the test started (page, workers, DuckDB when loaded), so it includes the browser itself.
+
+| Engine | File | Data open | Tree first line | Table | Overview | Longest stall | Page JS heap | Browser memory (peak) |
+|---|---|---|---|---|---|---|---|---|
+| Edge | 37 MB | 0.6 s | 42 ms | 50 ms | 32 ms | 0.46 s | 119 MB | 887 MB |
+| Edge | 88 MB | 1.9 s | 41 ms | 17 ms | 25 ms | 1.7 s | 355 MB | 1,072 MB |
+| Firefox | 37 MB | 0.8 s | 39 ms | 22 ms | 30 ms | 0.6 s | not exposed | 955 MB |
+| Firefox | 88 MB | 3.5 s | 37 ms | 27 ms | 67 ms | 2.1 s | not exposed | 1,198 MB |
+| WebKit | 37 MB | 0.6 s | 92 ms | 91 ms | 79 ms | 0.36 s | not exposed | 367 MB (see note) |
+| WebKit | 88 MB | 1.3 s | 60 ms | 35 ms | 123 ms | 1.0 s | not exposed | 1,059 MB |
+
+- No page errors in any run; the Tree, Table and Overview show at once in every engine, because they draw only the rows in view.
+- Firefox is the slowest to read the big file (3.5 s for 88 MB); WebKit is the fastest. The stall is the reading and counting of the document, while the Loading message shows.
+- Note: the WebKit 37 MB memory is a sampling gap (the processes were sampled every 4 s and the run is 3 s long); the 88 MB figure is the comparable one. The measure is rough on purpose; it is there to catch a doubling, not to compare engines to the megabyte.
+- Earlier plan figure (about 660 MB for the 88 MB file in Edge with the CodeMirror Tree) is within this: the measured peak is 1,072 MB for the whole browser, of which the page heap is 355 MB.
+
+
+### 8.9 Generated types through the real compilers (2026-10-28)
+
+`tests/compile/type-compile.js` gives the output of the type generator to tsc (strict), Python (the module is imported, not only parsed), the .NET SDK (C#), and in CI Go (`go vet`), Rust (`cargo check` with serde) and `javac`; the CI job "Generated types compile" runs it with every compiler required. Documents: a realistic list, a list with colliding names, the first list of each of the 31 test fixtures, one record with every awkward key of `tests/hostile-keys.js`, and one record with about 190 reserved words and type names of the languages.
+
+What the compilers showed, before the fix (all in the old code):
+- **A key with a line break, tab or other control character** broke the string in TypeScript, C#, Java, Rust, Go tags and the Python comment.
+- **Two keys that become the same name** (`a b`, `a_b`, `a-b`) made two fields with one name (error in C#, Go, Rust, Java, Python silently kept the last).
+- **A class name used twice** (the same key at two depths, or a key called like the class, or `Option`, `List`, `String`, `Vec`) made two classes with one name, or replaced the language's own type.
+- **Python**: a class that names one defined later failed when the file ran (NameError, `py_compile` does not see it); an empty class had no body; `async`, `await`, `nonlocal` and other words were not in the reserved list.
+- **Go**: `_1st` is not exported, so the JSON reader skipped the field; now `X1st`.
+- **Java**: several public classes cannot be in one file (none is public now); a field that can be empty was a plain `int`; a private field without a key was not read (every field has `@JsonProperty`).
+- **C#**: `List<>` needs its using; System.Text.Json matches names exactly (`name` is not `Name`), so every property now says its key; a member named like its class is an error.
+- **Lists of lists** named a class that did not exist.
+- **Numbers**: the type came from the first record only (3 then 1.5 was an integer; 3000000000 an `int`); it now comes from all of them (decimal, then wide integer).
+
+Fixed by one shared step: `buildTypes` in `src/core/type-code-generator.js` claims each class name once and each field name once per class, avoids each language's reserved words and its own type names, and writes keys into strings with the right escape. Checks that need no compiler: `tests/unit/codegen-names.test.js` (14 tests).
+

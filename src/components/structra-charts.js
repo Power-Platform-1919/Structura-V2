@@ -126,15 +126,16 @@ class StructraCharts extends StructraDialog {
 
   _numeric(values, nulls) {
     const count = values.length;
-    let min = values[0], max = values[0], sum = 0;
-    for (const value of values) { if (value < min) min = value; if (value > max) max = value; sum += value; }
+    let min = values[0], max = values[0], mean = 0;
+    // each value is divided first, so numbers near 1e308 cannot add up to Infinity
+    for (const value of values) { if (value < min) min = value; if (value > max) max = value; mean += value / count; }
     const sorted = [...values].sort((first, second) => first - second);
-    const median = count % 2 ? sorted[(count - 1) / 2] : (sorted[count / 2 - 1] + sorted[count / 2]) / 2;
+    const median = count % 2 ? sorted[(count - 1) / 2] : sorted[count / 2 - 1] / 2 + sorted[count / 2] / 2;
 
     const stats = [
       this._statLine('values', count.toLocaleString()), this._statLine('empty', nulls.toLocaleString()),
       this._statLine('min', this._formatNumber(min)), this._statLine('median', this._formatNumber(median)),
-      this._statLine('mean', this._formatNumber(sum / count)), this._statLine('max', this._formatNumber(max)),
+      this._statLine('mean', this._formatNumber(mean)), this._statLine('max', this._formatNumber(max)),
     ].join('');
 
     return `<div class="ch-stats">${stats}</div>
@@ -142,17 +143,26 @@ class StructraCharts extends StructraDialog {
       <h4 class="ch-sub">In file order</h4>${this._trend(values, min, max)}`;
   }
 
+  /** Where a value sits between min and max (0 to 1). max - min can be more than a number holds (1e308 and -1e308), so then both are halved first */
+  _fraction(min, max) {
+    const span = max - min;
+    if (Number.isFinite(span)) return (value) => (span ? (value - min) / span : 0);
+    const half = max / 2 - min / 2;
+    return (value) => (value / 2 - min / 2) / half;
+  }
+
   _histogram(values, min, max) {
     const width = 640, height = 170, paddingLeft = 8, paddingBottom = 22, paddingTop = 8;
     const bins = max === min ? 1 : StructraCharts.BINS;
     const counts = new Array(bins).fill(0);
-    const span = (max - min) || 1;
-    for (const value of values) counts[Math.min(bins - 1, Math.floor(((value - min) / span) * bins))]++;
+    const fraction = this._fraction(min, max);
+    for (const value of values) counts[Math.min(bins - 1, Math.max(0, Math.floor(fraction(value) * bins)))]++;
     const peak = Math.max(...counts);
     const barWidth = (width - paddingLeft * 2) / bins;
     const bars = counts.map((count, i) => {
       const barHeight = peak ? (count / peak) * (height - paddingBottom - paddingTop) : 0;
-      const low = min + (span * i) / bins, high = min + (span * (i + 1)) / bins;
+      const lerp = (t) => min * (1 - t) + max * t;       // no overflow with 1e308 and -1e308
+      const low = lerp(i / bins), high = lerp((i + 1) / bins);
       return `<rect class="ch-bar" x="${(paddingLeft + i * barWidth + 1).toFixed(1)}" y="${(height - paddingBottom - barHeight).toFixed(1)}" width="${Math.max(1, barWidth - 2).toFixed(1)}" height="${barHeight.toFixed(1)}"><title>${this._formatNumber(low)} to ${this._formatNumber(high)}: ${count.toLocaleString()}</title></rect>`;
     }).join('');
     return `<svg class="ch-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Histogram from ${this._formatNumber(min)} to ${this._formatNumber(max)}, tallest bar ${peak.toLocaleString()} values">
@@ -170,10 +180,10 @@ class StructraCharts extends StructraDialog {
     const stride = Math.max(1, Math.ceil(values.length / target));
     const pts = [];
     for (let i = 0; i < values.length; i += stride) pts.push(values[i]);
-    const span = (max - min) || 1;
+    const fraction = this._fraction(min, max);
     const pathData = pts.map((point, i) => {
       const x = pts.length === 1 ? (paddingLeft + width - paddingRight) / 2 : paddingLeft + (i / (pts.length - 1)) * (width - paddingLeft - paddingRight);
-      const y = height - paddingBottom - ((point - min) / span) * (height - paddingTop - paddingBottom);
+      const y = height - paddingBottom - fraction(point) * (height - paddingTop - paddingBottom);
       return (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
     }).join(' ');
     return `<svg class="ch-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Values in file order, ${values.length.toLocaleString()} values${stride > 1 ? ', every ' + stride + 'th shown' : ''}">
@@ -190,7 +200,7 @@ class StructraCharts extends StructraDialog {
   _categorical(values, nulls) {
     const frequency = new Map();
     for (const value of values) {
-      const text = typeof value === 'string' ? value : String(value);
+      const text = typeof value === 'string' ? value : (value !== null && typeof value === 'object' ? JSON.stringify(value) : String(value));
       frequency.set(text, (frequency.get(text) || 0) + 1);
     }
     const ranked = [...frequency.entries()].sort((first, second) => second[1] - first[1]);
