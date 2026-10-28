@@ -4451,27 +4451,35 @@
         {
           "id": "23.12",
           "title": "Charts, Graph, Minimap, Heatmap: empty, single value, huge and negative values",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.12.1",
               "title": "Charts",
-              "status": "todo"
+              "status": "done",
+              "note": "Charts: tests/smoke/visual-edge.js (13 awkward documents) found two real bugs, both fixed in structra-charts.js: numbers near 1e308 and -1e308 made the line chart path NaN (max - min overflowed; now a safe fraction, overflow-free mean and median, lerp for bin labels), and objects or lists in a text column showed as [object Object] (now JSON text)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.12.2",
               "title": "Graph",
-              "status": "todo"
+              "status": "done",
+              "note": "Graph: the same test opens the Graph for all 13 documents (one record, all-null, deep, wide, lists of lists, long text) with no page error and no NaN in x, y, width, height, d or transform",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.12.3",
               "title": "Minimap",
-              "status": "todo"
+              "status": "done",
+              "note": "Minimap: toggled for all 13 documents, no page error, no NaN in what is drawn",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.12.4",
               "title": "Heatmap",
-              "status": "todo"
+              "status": "done",
+              "note": "Heatmap: toggled on the Tree for all 13 documents, no page error, no NaN in styles or the legend; Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             }
           ]
         },
