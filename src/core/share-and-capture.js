@@ -81,60 +81,19 @@ Structra.shareLink = (() => {
 })();
 
 Structra.imageCapture = (() => {
-  // html2canvas reads colours itself and does not know the colour functions the themes use
-  // (color-mix and color()). Before it draws, every colour in the copy of the page is written as plain rgb().
-  const COLOR_PROPS = ['color', 'backgroundColor', 'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
-    'outlineColor', 'textDecorationColor', 'caretColor', 'columnRuleColor', 'fill', 'stroke', 'boxShadow', 'backgroundImage', 'textShadow'];
-  const MODERN = /(color-mix|color|oklch|oklab|lch|lab|hwb)\((?:[^()]|\([^()]*\))*\)/g;
-
-  function colorResolver() {
-    const context = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-    context.canvas.width = context.canvas.height = 1;
-    const cache = new Map();
-    return (css) => {
-      if (cache.has(css)) return cache.get(css);
-      context.clearRect(0, 0, 1, 1);
-      context.fillStyle = '#000';
-      context.fillStyle = css;                       // the browser parses any colour it supports
-      context.fillRect(0, 0, 1, 1);
-      const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
-      const out = alpha === 255 ? `rgb(${red}, ${green}, ${blue})` : `rgba(${red}, ${green}, ${blue}, ${+(alpha / 255).toFixed(3)})`;
-      cache.set(css, out);
-      return out;
-    };
-  }
-
-  function flattenColors(clonedDoc) {
-    const win = clonedDoc.defaultView;
-    const toRgb = colorResolver();
-    for (const element of clonedDoc.querySelectorAll('*')) {
-      const computedStyle = win.getComputedStyle(element);
-      for (const property of COLOR_PROPS) {
-        const value = computedStyle[property];
-        if (value && MODERN.test(value)) {
-          MODERN.lastIndex = 0;
-          element.style[property] = value.replace(MODERN, (match) => toRgb(match));
-        }
-        MODERN.lastIndex = 0;
-      }
-    }
-  }
-
+  // modern-screenshot (MIT) puts a copy of the element inside an SVG and lets the browser draw it, so every colour function the themes use
+  // (color-mix, oklab) and every font work without help. html2canvas did its own drawing and needed a colour-flattening step; it took
+  // about 5 seconds on a view and is not maintained (task 22.5).
   async function png(element, fileName) {
     if (!element) throw new Error('Nothing to capture');
-    await Structra.libraryLoader.loadLibrary('html2canvas');
-    const background = getComputedStyle(document.body).backgroundColor;
-    const canvas = await window.html2canvas(element, {
-      backgroundColor: MODERN.test(background) ? colorResolver()(background) : background,
+    await Structra.libraryLoader.loadLibrary('modernscreenshot');
+    const blob = await window.modernScreenshot.domToBlob(element, {
+      type: 'image/png',
+      backgroundColor: getComputedStyle(document.body).backgroundColor,
       scale: Math.min(2, window.devicePixelRatio || 1),
-      onclone: (doc) => flattenColors(doc),
     });
-    MODERN.lastIndex = 0;
-    await new Promise((resolve, reject) => canvas.toBlob((blob) => {
-      if (!blob) { reject(new Error('Could not create the image')); return; }
-      Structra.sharedHelpers.downloadFile(blob, fileName || 'structra.png');
-      resolve();
-    }, 'image/png'));
+    if (!blob) throw new Error('Could not create the image');
+    Structra.sharedHelpers.downloadFile(blob, fileName || 'structra.png');
   }
   return { png };
 })();

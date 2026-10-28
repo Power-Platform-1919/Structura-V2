@@ -100,7 +100,7 @@ Rules that keep large documents fast (measured with `node tests/perf/codeview.js
 - **JSON is coloured by our own line-by-line plugin**, for the lines in view only. A JSON string never crosses a line break, so no earlier line is needed to colour a later one and nothing has to be parsed first.
 - **Folding is left off above 1.5 MB**, because finding where each `{` ends would scan most of the document. Other languages fold from their syntax tree.
 - **Do not read the whole text on every keystroke** (`getValue()` copies it). The Editor view checks the text after a pause that grows with its size.
-- **Replacing the text keeps undo only for small text.** `replaceAll` starts a fresh history for large text, because remembering the old text would cost as much memory again.
+- **Replacing the text keeps undo only for small text.** `replaceAll` starts a fresh history for large text, because remembering the old text would cost as much memory again. (Undo itself keeps the document as one copy plus small edits, `src/core/undo-stack.js`, so a one-key change costs a few bytes.)
 - **One very long line cannot be shown smoothly.** Minify refuses to make a line over 2 MB.
 
 Colours are in `src/css/codeview.css`: the text classes are `tok-*` and use the theme's syntax colours (the same ones the Tree uses). The library writes its own light styles with a class chosen at run time, so each rule starts with `.cv .cm-editor` to be stronger. If you add a colour, check it in the dark themes (`npm run ui:themes`).

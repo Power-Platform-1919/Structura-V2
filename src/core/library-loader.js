@@ -8,7 +8,7 @@
    API:
      await Structra.libraryLoader.loadLibrary('jsonrepair')   → window.JSONRepair
      await Structra.libraryLoader.loadLibrary('ajv')          → window.Ajv
-     await Structra.libraryLoader.loadLibrary('html2canvas')  → window.html2canvas
+     await Structra.libraryLoader.loadLibrary('modernscreenshot')  → window.modernScreenshot
      await Structra.libraryLoader.loadLibrary('jsonpath')     → window.JSONPath
      const duckdb = await Structra.libraryLoader.loadLibrary('duckdb')
    ============================================================ */
@@ -26,7 +26,8 @@ Structra.libraryLoader = (() => {
     // jsonc-parser (MIT, Microsoft): where JSON is broken, the same in every browser (tools/build-jsonc-parser.mjs makes the file)
     jsonc:       { type: 'script', urls: ['src/libs/jsonc-parser.min.js'] },
     ajv:         { type: 'script', urls: ['src/libs/ajv.min.js'] },
-    html2canvas: { type: 'script', urls: ['src/libs/html2canvas.min.js'] },
+    // modern-screenshot (MIT): Save as PNG; the browser draws the copy of the view (src/core/share-and-capture.js)
+    modernscreenshot: { type: 'script', urls: ['src/libs/modern-screenshot/modern-screenshot.js'] },
     duckdb:      { type: 'module', urls: ['src/libs/duckdb/duckdb-wasm.mjs'] },
     // jsondiffpatch (MIT): what is different between two documents. Plain ES modules, so no build step is needed.
     jsondiffpatch:            { type: 'module', urls: ['src/libs/jsondiffpatch/index.js'] },

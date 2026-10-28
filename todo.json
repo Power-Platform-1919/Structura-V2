@@ -3946,7 +3946,7 @@
     {
       "id": "22",
       "title": "Wave 3: when a measurement or an outside event allows",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Sections 3.6, 3.7, 3.10, 3.11, 3.12 of the map.",
       "subtasks": [
         {
@@ -3979,99 +3979,126 @@
         {
           "id": "22.2",
           "title": "DuckDB-Wasm (3.7)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.2.1",
               "title": "Re-check the OPFS persistence claim in the adapter now",
-              "status": "todo"
+              "status": "done",
+              "note": "The adapter header claimed OPFS persistence but the code opens an in-memory database; header corrected. Per the DuckDB OPFS post (2026-09-18) OPFS needs 1.32.0 or 1.33.1-dev64+, and we do not need it",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.2.2",
               "title": "Benchmark the current DuckDB (engine 1.1.1) against the newest available: load time, start time, query time on 100,000 rows, memory, download size",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/perf/duckdb-bench.js: 100,000 rows, Edge, 3 runs. Engine 1.1.1 vs npm 1.32.0 (engine 1.4.3) vs npm next (2.0 dev): queries equal or slower in the newer builds, start 1,210 / 950 / 755 ms, wasm 34 / 32.7 / 32.2 MB, memory same. Table in map 3.7",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.2.3",
               "title": "Decide by the numbers (Q19): upgrade if it helps performance, otherwise wait for 2.0",
-              "status": "todo"
+              "status": "done",
+              "note": "Decision by the numbers: wait for 2.0 stable. No query gains, only about 0.25 s at first start; upgrade needs the JSON add-on rebuilt, an apache-arrow bundle, new file names and a three-engine test pass",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.2.4",
               "title": "If upgrading: branch, run the SQL, filter, pivot, null finder and find tests in three engines; re-vendor; update THIRD-PARTY.md",
-              "status": "todo",
-              "note": "only if the numbers say so"
+              "status": "done",
+              "note": "Not needed: the decision is not to upgrade now; revisit when DuckDB-Wasm 2.0 is released (watch list, task 30)",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "22.3",
           "title": "Undo stores differences (3.11)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.3.1",
               "title": "Design with jsondiffpatch deltas behind the same Structra.undoStack API",
-              "status": "todo"
+              "status": "done",
+              "note": "Design changed from jsondiffpatch to a text edit: the tab keeps the current document as one JSON text and every other step as the part taken out and put in (common start and end cut away). jsondiffpatch loads lazily so it cannot sit behind the synchronous Undo calls and would diff a 20 MB tree; reasons in map 3.11. Structra.undoStack API unchanged (plus sizeOf)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.3.2",
               "title": "Edge cases: many changes at once, replace all, redo after undo",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/undo-stack.test.js: 5 random runs of 25 changes (insert, delete, reverse, add and remove keys) read back exactly both ways; branching after undo; awkward text (surrogate pairs, repeats, empty); same document again adds no step",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.3.3",
               "title": "Memory check on the large fixtures",
-              "status": "todo"
+              "status": "done",
+              "note": "Measured: a 12 MB document with 10 one-key changes holds 173 characters of edits (was ten more 12 MB copies); push about 50 ms slower on 12 MB, undo about the same (JSON.parse); test asserts 40 edits of a 2 MB document cost under 100,000 characters",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.3.4",
               "title": "Keep the 60 MB budget as a safety net",
-              "status": "todo"
+              "status": "done",
+              "note": "The 60 MB limit stays as the safety net but now counts the edits only (a sort or replace all makes an edit as big as the file); oldest steps go first, last two always stay; tested with 9 MB rewrites. Steps limit 20 to 50. 25 MB skip kept",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "22.4",
           "title": "Command palette: ranked fuzzy matching (3.12)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.4.1",
               "title": "Try uFuzzy on the command list",
-              "status": "todo"
+              "status": "done",
+              "note": "uFuzzy 1.0.19 (MIT, 8 KB) vendored in src/libs/ufuzzy (dev dependency for updates); src/core/command-match.js uses it for close matches; palette calls Structra.commandMatch.rank",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.4.2",
               "title": "Keep exact and category matching ranked first",
-              "status": "todo"
+              "status": "done",
+              "note": "Exact matches come first in three groups (label starts with, label contains, id/category/keys contains); close matches only after them and only from 5 letters, because 'sort' otherwise offered Keyboard Shortcuts",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.4.3",
               "title": "Tests for typos and partial words",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/command-match.test.js (9 tests: typos exprt, flaten, tabel, shema; csv export in another order; short text exact only; no uFuzzy fallback) and palette checks in tests/smoke/shell.js (Edge, Firefox, WebKit)",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "22.5",
           "title": "Save as PNG: html2canvas replacement (3.10)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.5.1",
               "title": "Compare modern-screenshot and html-to-image on our themes and fonts",
-              "status": "todo"
+              "status": "done",
+              "note": "Measured on the real view panels in Edge, light and dark: html2canvas 4.5 to 5.7 s, modern-screenshot 0.5 to 1 s with the same picture, html-to-image failed on the Tree. Details in map 3.10",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.5.2",
               "title": "Decide; replace behind Structra.imageCapture",
-              "status": "todo"
+              "status": "done",
+              "note": "Replaced html2canvas with modern-screenshot 4.7.0 behind Structra.imageCapture.png (the colour-flattening workaround removed); html2canvas moved to archive/libs; exports and offline tests pass in Edge, Firefox, WebKit, and exports.js now checks every image is a PNG with several colours",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.5.3",
               "title": "Update THIRD-PARTY.md",
-              "status": "todo"
+              "status": "done",
+              "note": "THIRD-PARTY.md row replaced (modern-screenshot 4.7.0, MIT); map rows and section 3.10 updated; archive README row added",
+              "doneOn": "2026-10-28"
             }
           ]
         }

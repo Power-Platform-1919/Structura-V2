@@ -53,7 +53,7 @@ Verdict words used below:
 | PapaParse | 5.5.3 | 5.5.x | 19 KB | CSV | current |
 | yaml | 2.9.1 | 2.9.1 | 98 KB | YAML | REPLACED js-yaml on 2026-10-28 (task 31.5): the official suite showed js-yaml refusing 17 multi-document files and 26 valid ones; `yaml` accepts all 274 |
 | toml | **4.1.1** | **5.0.1 (TOML 1.1)** | 33 KB | TOML | one major behind |
-| html2canvas | **1.4.1 (January 2022)** | same, no newer release | 199 KB, lazy | save as PNG | not updated in almost 5 years |
+| modern-screenshot | **4.7.0** (was html2canvas 1.4.1, January 2022, not updated for almost 5 years) | 4.7.0 | 29 KB (was 199 KB), lazy | save as PNG | replaced 2026-10-28 (3.10) |
 | Lucide | **1.63.0** (was 0.468.0) | 1.63.0 | **25 KB, only the 130 icons the code names** (was 358 KB, the whole set) | icons | 79 names in icon calls |
 | json-p3 | 3.0.1 | 3.0.1 | 64 KB | JSONPath | IN PR #7 |
 | jsonc-parser | 3.3.1 | 3.3.1 | 21 KB | where JSON is broken | IN PR #6 |
@@ -344,7 +344,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 
 | Function | Built with | Origin | Depends on | Used by | Plan |
 |---|---|---|---|---|---|
-| Search about 55 commands by "contains" on label, id, category | own list and filter | Own | constants | header button, Ctrl+K | later: ranked fuzzy matching (3.12) |
+| Search about 55 commands: exact matches first (label starts with, label contains, id or category contains), then close matches (a typo, words in another order) | own list; `Structra.commandMatch` (`src/core/command-match.js`) and uFuzzy for the close matches | Own + library | constants | header button, Ctrl+K | KEEP (done, 3.12) |
 | Switch view (tree, table, graph, schema, editor, overview) | `setState('activeView')` | Own | | | KEEP |
 | Power Platform: expressions, copy Power Automate or Power Fx, Parse JSON schema, flow actions, columns | `powerPlatformExpressions`, `parseJsonSchemaGenerator` | Own | | | KEEP |
 | Transform: sort keys, flatten, unflatten | own | Own | | | KEEP |
@@ -353,9 +353,9 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Types: TypeScript, Python, Go, C#, Rust, SQL | `typeCodeGenerator` (own, 467 lines) | Own | | | KEEP |
 | Export CSV, YAML, XML | `formatConversion` | Own + library (PapaParse, yaml) | | | KEEP |
 | Share as a link | URL hash with gzip through `CompressionStream` | Own + browser | shareLink | | KEEP |
-| Save as an image | html2canvas, loaded on first use | Library | imageCapture | | WATCH (3.10) |
+| Save as an image | modern-screenshot, loaded on first use | Library | imageCapture | | KEEP (replaced html2canvas, 3.10) |
 | Repair, format, minify JSON | jsonrepair, `JSON.stringify` | Own + library | jsonRepairAndValidation | | KEEP |
-| Undo and redo (Ctrl+Z, Ctrl+Y) | `Structra.undoStack` (snapshots, 60 MB per tab) | Own | undoStack | | later: differences (3.11) |
+| Undo and redo (Ctrl+Z, Ctrl+Y) | `Structra.undoStack` (one whole copy plus small edits, up to 50 steps, edits limited to 60 MB per tab) | Own | undoStack | | KEEP (differences done, 3.11) |
 | Open Find, Filter, Fuzzy, SQL, Validate, Charts, Duplicate keys, Compare, Theme, Welcome, zoom, wrap, expand and collapse | events | Own | | | KEEP |
 
 #### Compare: `<structra-diff>` (366 lines)
@@ -406,6 +406,7 @@ The counts are taken from the code: how many files call the module.
 | `dataPaths` | parse, resolve and format paths | own | Own | 16 files (header, tree, table, query, overview, context ...) | KEEP |
 | `jsonpathQuery` | JSONPath | json-p3 plus an adapter | Library + own | query, data engine | DONE (PR #7) |
 | `sharedHelpers` | small helpers (escape, debounce, clipboard, download, regex safety check, run code in a worker) | own | Own | about 30 files | KEEP |
+| `command-match` | command palette ranking: exact matches first, then close matches (uFuzzy) | own ranking + uFuzzy 1.0.19 | Own + library | command palette | KEEP |
 | `icons` | every icon | Lucide 1.63.0, only the icons used | Library | 26 files | KEEP (trimmed and upgraded, 3.5) |
 | `codeView` | every code box | CodeMirror 6 | Library + own wrapper | context, diff, editor, expressions, input-panel, query, schemagen, typedef | KEEP |
 | `jsonTreeRenderer` | the Tree's renderer | own | Own | tree, query | see 3.1 |
@@ -415,9 +416,9 @@ The counts are taken from the code: how many files call the module.
 | `overviewInsights` | plain-language summary | own | Own | overview | KEEP |
 | `jsonRepairAndValidation` | repair, duplicate keys, error place, schema validation | jsonrepair, jsonc-parser, Ajv | Library + own | command, editor, input-panel, json-diff, validate | see 3.6 |
 | `jsonDiff` | compare two documents | jsondiffpatch | Library + own | diff | KEEP |
-| `undoStack` | undo per tab | own snapshots | Own | command, diff, editor, find, workspace | later (3.11) |
+| `undoStack` | undo per tab | own: one whole copy plus small edits | Own | command, diff, editor, find, workspace | KEEP (3.11) |
 | `bookmarks`, `pathHistory` | saved paths, back and forward | localStorage | Own | bookmarks: command, context, header, tree; history: command, header | KEEP |
-| `formatConversion`, `shareLink`, `imageCapture` | export, share, PNG | PapaParse, yaml, CompressionStream, html2canvas | Own + library + browser | command | see 3.10 |
+| `formatConversion`, `shareLink`, `imageCapture` | export, share, PNG | PapaParse, yaml, CompressionStream, modern-screenshot | Own + library + browser | command | see 3.10 |
 | `transformStepOperations` | Transform steps | own; loaded by the sandbox worker and by the unit tests, not by the page | Own | sandbox worker | KEEP |
 | `themeEngine` | themes | own, CSS `color-mix()` | Own + browser | header, theme, welcome, workspace | KEEP |
 | `appSettings`, `safeStorage`, `browserDatabase` | settings, storage fallbacks, IndexedDB | localStorage, IndexedDB | Own + browser | data engine, input panel, logger, settings, table | KEEP |
@@ -518,7 +519,18 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Reason:** the engine is v1.1.1 from September 2024. Newer versions exist (npm 1.33.1-dev57), and a **2.0 announcement is drafted** (smaller binary, simpler bundles, larger-than-memory queries). A September 2026 DuckDB post says the npm "latest" at that time created OPFS files but never wrote to them, so a persistence claim in our adapter ("database file persists across reloads") should be re-checked.
 - **Pros of upgrading:** performance, features, possibly a much smaller download.
 - **Cons:** 35 MB to re-vendor, SQL behavior differences, a big test pass.
-- **Your decision (Q19):** if it improves performance, upgrade; otherwise wait. **Plan:** benchmark the current engine against the newest available (load time, query time on 100,000 rows, memory, download size), decide by the numbers, and re-check the persistence claim now (task 22.2).
+- **Your decision (Q19):** if it improves performance, upgrade; otherwise wait.
+- **Persistence claim re-checked (2026-10-28):** the claim in the adapter's header was wrong for our code: the adapter opens an in-memory database (`_db.open({})`), nothing is stored in OPFS. The header is corrected. The DuckDB post says OPFS needs 1.32.0 or 1.33.1-dev64 and later, so it is possible in a newer build; we do not need it because the data is loaded again from the browser's own saved copy.
+- **Benchmark (2026-10-28, Edge, 100,000 rows, best of 3, `tests/perf/duckdb-bench.js`, three runs agree):**
+
+| Build | Engine | wasm | Start (worker + instantiate) | Open | Create table | Group by | Summarize |
+|---|---|---|---|---|---|---|---|
+| ours (npm 1.1.1 files) | v1.1.1 | 34 MB | 1,210 ms | 122 ms | 70 ms | 3 ms | 70 ms |
+| npm 1.32.0 | v1.4.3 | 32.7 MB | 950 ms | 150 ms | 75 to 89 ms | 3 ms | 67 to 72 ms |
+| npm next (1.33.1-dev110) | v2.0.0-dev | 32.2 MB | 755 ms | 250 ms | 83 to 93 ms | 6 ms | 83 to 89 ms |
+
+  Queries (count, group by, filter, order, distinct, pivot-like, summarize) are the same in 1.1.1 and 1.32.0 and slower in the 2.0 development build; the new builds only start faster (about 0.25 s for 1.32.0 once, when the SQL engine first loads) and are 1.3 to 1.8 MB smaller. Memory is the same (3 to 4 MB of page memory; the engine memory is in the worker).
+- **Decision (by the numbers, Q19): wait for 2.0 stable.** No query gets faster, the only gain is a quarter of a second at the first start, and an upgrade needs the JSON add-on rebuilt for the new version, an `apache-arrow` bundle (the new npm builds import it by name), the new file names, and the SQL, filter, pivot, null finder and find tests in three engines. Revisit when 2.0 is released (watch list, task 30).
 
 ### 3.8 User-written code: run it in one sandboxed worker (BUILT 2026-10-28 except two guards, see below) [task 19]
 
@@ -537,20 +549,27 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Reason:** 5.0.1 is TOML 1.1 compliant. `smol-toml` is another maintained option (also 1.1).
 - **Pros:** newer spec, bug fixes. **Cons:** a new major version needs one re-test of the TOML fixtures.
 
-### 3.10 Save as PNG: html2canvas (watch, low) [task 22.5]
+### 3.10 Save as PNG: modern-screenshot replaced html2canvas (done 2026-10-28) [task 22.5]
 
-- **Reason:** html2canvas 1.4.1 was published in January 2022 and has had no release since. `modern-screenshot` (4.7.0, April 2026) and `html-to-image` (1.11.13, February 2025) are maintained.
-- **Pros of switching:** maintained code, fewer rendering gaps (comparisons say html-to-image is closer to the real page). **Cons:** the output differs a little for complex CSS; the sources are comparison articles, not benchmarks. It is only used for one lazy button, so this can wait.
+- **Reason:** html2canvas 1.4.1 (January 2022) has had no release since, and it did its own drawing, so we needed a step that rewrote every colour the themes use (color-mix, oklab) before it ran.
+- **Measured (Edge, the active view panel, light and dark, real fixtures):** html2canvas took 4.5 s (Table), 4.5 s (Tree), 5.7 s (Graph). modern-screenshot took 0.5 s, 0.65 s and 0.96 s, with the same picture (looked at side by side). html-to-image 1.11.13 took 0.1 to 0.4 s but failed on the Tree ("[object Event]", an image or font it could not load), so it was not used. On the whole canvas html2canvas also failed with the colour function oklab; modern-screenshot did not.
+- **Done:** `Structra.imageCapture.png` now loads modern-screenshot (`src/libs/modern-screenshot/`, 29 KB, MIT, unchanged from the npm package) and asks the browser to draw a copy of the view inside an SVG. The colour-flattening code is gone. html2canvas moved to `archive/libs/`.
+- **Tested:** `tests/smoke/exports.js` saves every view in light and dark and now checks each picture is a PNG with several colours (not blank); also `tests/smoke/offline.js`. Edge, Firefox and WebKit pass.
+- **Cons:** the SVG way depends on the browser drawing foreignObject; Safari had known bugs, and WebKit passes here.
 
-### 3.11 Undo: store differences instead of whole copies (proposed) [task 22.3]
+### 3.11 Undo: store differences instead of whole copies (done 2026-10-28) [task 22.3]
 
-- **Reason:** each step is a full copy of the document, capped at 60 MB per tab (PR #6). jsondiffpatch is already in the app.
-- **Pros:** much less memory on big files; more steps possible. **Cons:** a change to a core module; undo of an edit that touched many places must be tested well.
+- **Reason:** each step was a full copy of the document, capped at 60 MB per tab (PR #6): a 20 MB file kept three steps.
+- **Done:** the tab keeps the document at the current step as one JSON text, and every other step as a small edit (the part taken out and the part put in, found by cutting away what the two texts share at the start and at the end). Undo and redo apply the edit backwards or forwards. The `Structra.undoStack` functions are the same. Up to 50 steps (was 20); the 60 MB limit now counts the edits only and is the safety net for a change that rewrites most of the file (sort, replace all); the last two steps always stay.
+- **Why not jsondiffpatch (the plan said it):** it loads on first use, so it cannot sit behind the synchronous Undo calls; it would have to diff a 20 MB object tree; and text cut-away is exact by construction (it reproduces the saved text character for character) and has no library to keep up.
+- **Measured:** a 12 MB document with 10 one-key changes holds 173 characters of edits (before: ten more 12 MB copies, trimmed to the limit). A push costs about 50 ms more on 12 MB (comparing the texts), an undo about the same as before (parsing the text, 140 ms).
+- **Tested:** `tests/unit/undo-stack.test.js` (9 tests): five random runs of 25 changes (insert, delete, reverse, add and remove keys) read back exactly in both directions, branching after an undo, awkward text (surrogate pairs, repeats, empty), 50-step trimming, the 60 MB limit with 9 MB rewrites, the 25 MB skip, separate tabs; the browser tests for Undo, Replace and the Editor pass.
 
-### 3.12 Command palette: ranked fuzzy matching (proposed, low) [task 22.4]
+### 3.12 Command palette: ranked fuzzy matching (done 2026-10-28) [task 22.4]
 
-- **Reason:** it only matches by "contains". **Plan:** uFuzzy (4 KB gzipped, MIT) for typo tolerant, ranked results.
-- **Pros:** finds "exp col" for "Expand collapse"; **Cons:** one more dependency; ranking needs a little tuning.
+- **Reason:** it only matched by "contains". **Done:** `src/core/command-match.js` ranks exact matches first (label starts with, label contains, id or category contains), then close matches from uFuzzy 1.0.19 (MIT, 8 KB, `src/libs/ufuzzy/`): a typo ("exprt", "tabel", "flaten") or words in another order ("csv export") still find the command. Without uFuzzy the exact matches still work.
+- **Tested:** `tests/unit/command-match.test.js` (8 tests, real command list, real uFuzzy file) and the palette checks in `tests/smoke/shell.js`.
+- **Cons:** one more small library; the order among close matches is uFuzzy's own.
 
 ### 3.13 Keyboard alternatives for drag and drop (proposed) [tasks 21.8 and 21.9]
 
@@ -694,7 +713,7 @@ Sorting the audit results by this rule:
 | Fuzzy search over data values | ours: a different job than list matching | **Keep and harden** (compare recall with uFuzzy and Fuse on typos) | 8.3 |
 | Personal data masking | ours: small and tuned | **Keep and harden** (Luhn check for cards, tighter phone pattern) | 8.3 |
 | Charts, Graph, Minimap, Heatmap | ours: small and tuned | **Keep and harden** (empty, single value, huge or negative values) | 8.3 |
-| Undo, bookmarks, history, tabs, theme engine | ours | **Keep and harden** (limits and odd states; undo moves to differences later) | 3.11 |
+| Undo, bookmarks, history, tabs, theme engine | ours | **Keep and harden** (limits and odd states; undo now stores differences, 3.11) | 3.11 |
 
 The audits below follow this sorting: a "replace" area is fixed by replacing; a "keep and harden" area gets its mature oracle turned into permanent tests, and every failure becomes a fix to our code.
 
@@ -755,7 +774,7 @@ Checked against the code on 2026-10-27. "Holds" means I verified it; "to check" 
 | A library fails to load or throws | a blank feature or a crash | fallbacks exist for DuckDB (the JavaScript path, by design), jsonc-parser (the browser's message), virtual-core (paging). json-p3 has none: if it fails to load, JSONPath shows an error | decide: acceptable for json-p3, or add a simple fallback |
 | Keys and focus | a library's shortcuts fight ours (CodeMirror's own undo against our document undo) | the global shortcut handler ignores editable targets (`app.js` line 134), so CodeMirror keeps its own keys inside a code box; `editor.js` and `codeview.js` cover it | holds |
 | Who owns the document | a library changes the document, or keeps a reference to it | json-p3 and jsonc-parser only read; DuckDB gets its own copy; jsondiffpatch's use is behind `jsonDiff` | to check: a test that freezes the document and runs every library path, so anything that changes it fails |
-| Global names | libraries add globals (`Papa`, `YAML`, `lucide`, `Ajv`, `JSONRepair`, `html2canvas`, `JSONC`) that could clash with each other or with the page | no clash today; not isolated | low risk; gather them under `Structra.libs` if a clash ever appears |
+| Global names | libraries add globals (`Papa`, `YAML`, `lucide`, `Ajv`, `JSONRepair`, `modernScreenshot`, `JSONC`) that could clash with each other or with the page | no clash today; not isolated | low risk; gather them under `Structra.libs` if a clash ever appears |
 | Styles | library CSS leaks into ours (CodeMirror injects its own) | `codeview.css` scopes our changes to `.cv`; the theme and axe audits run in all themes | holds |
 | Speed | a library blocks the page (DuckDB, a big diff, a big JSONPath) | DuckDB and the parsers are in workers or lazy; analysis is time-sliced; json-p3 measured 122 ms for 200,000 records on the main thread | holds; re-measure on the large fixtures when the data engine changes |
 | Memory | two copies of a big document (ours and the library's) | measured: about 660 MB for the 88 MB file with the CodeMirror Tree plan; budgets are in the plan | holds as a plan; add a memory check to the large-file test |

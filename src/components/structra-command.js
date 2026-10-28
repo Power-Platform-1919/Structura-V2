@@ -177,8 +177,8 @@ class StructraCommand extends StructraComponent {
   _renderList(query) {
     const searchText = query.toLowerCase().trim();
     const list = this.queryOne('#cmdList');
-    const filtered = this._commands.filter(command => this._available(command)
-      && (!searchText || command.label.toLowerCase().includes(searchText) || command.id.includes(searchText) || (command.cat && command.cat.toLowerCase().includes(searchText)) || (command.keys && command.keys.includes(searchText))));
+    // exact matches first, then close ones (a typo, words in another order): see src/core/command-match.js
+    const filtered = Structra.commandMatch.rank(this._commands.filter((command) => this._available(command)), searchText);
     if (!filtered.length) {
       list.innerHTML = `<div class="cmd-empty">No command matches <strong>${Structra.sharedHelpers.escapeHtml(query)}</strong>. Try a word like sort, mask, export, table or power.</div>`;
       return;

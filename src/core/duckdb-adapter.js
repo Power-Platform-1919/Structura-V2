@@ -3,8 +3,8 @@
    Async-loaded DuckDB WASM, served from this app's own folder (src/libs/duckdb).
 
    - Non-blocking: loads in background, engine works via JS Core until ready
-   - OPFS: database file persists across page reloads (instant resume)
-   - Fallback: in-memory mode if OPFS unavailable
+   - In-memory database: nothing is stored by DuckDB itself. Structra loads the data again from its own saved copy on start.
+     (OPFS persistence was tried on paper and not used: see docs/feature-technology-map.md, section 3.7.)
    - Registers ALL JSON shapes (flat-array, nested-array, object)
      via read_json_auto - DuckDB handles nested STRUCTs/LISTs natively.
    - JSON functions: json_extract, json_keys, unnest, json_type

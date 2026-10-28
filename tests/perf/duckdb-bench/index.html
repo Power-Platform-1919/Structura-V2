@@ -1,0 +1,7 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>DuckDB bench</title>
+<!-- A measurement page, not part of the app. Used by tests/perf/duckdb-bench.js: loads one DuckDB-Wasm build and times it on 100,000 rows. -->
+<!-- the newer npm builds import apache-arrow by name: tests/perf/duckdb-bench.js serves a bundle of it as the build "arrow" -->
+<script type="importmap">{ "imports": { "apache-arrow": "/build/arrow/arrow.bundle.mjs" } }</script>
+<script type="module" src="./bench.js"></script>
