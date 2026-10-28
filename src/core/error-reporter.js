@@ -7,6 +7,8 @@
      - Keeps the last 20 in memory (never saved, never sent anywhere).
      - Shows one short message (not one per error: the same message at most once a minute, three a minute in all).
      - "Copy a bug report" (command palette) puts a text on the clipboard: version, browser, the open view, the last errors.
+     - "Report a problem on GitHub" (command palette) opens GitHub's new-issue page in another tab with that text filled in. The person reads
+       and edits it there and presses the button themselves; the app sends nothing and needs no token.
 
    What a bug report never holds: the document, any value from it, or the file name. Error messages can quote a piece of the data
    (the browser says: Unexpected token 'a', "abc, def..." is not valid JSON), so text inside double quotes is replaced by "..." and
@@ -18,6 +20,8 @@
      Structra.errorReporter.list()               the recorded errors, newest last
      Structra.errorReporter.buildReport()        the bug report text
      Structra.errorReporter.copyReport()         copy the bug report
+     Structra.errorReporter.issueUrl()           the GitHub new-issue address with the report filled in (at most 7,000 characters)
+     Structra.errorReporter.openIssue()          open that address in a new tab
    ============================================================ */
 'use strict';
 
@@ -136,6 +140,29 @@ Structra.errorReporter = (() => {
     return Structra.sharedHelpers.copyToClipboard(buildReport(), 'Bug report copied. Paste it into your message.');
   }
 
+  const ISSUES = 'https://github.com/Power-Platform-1919/Structura-V2/issues/new';
+  const MAX_URL = 7000;     // GitHub and the browsers refuse addresses much longer than this
+
+  /** The new-issue address with the title and the report filled in. The report is cut from the end until the address is short enough. */
+  function issueUrl() {
+    const lastError = errors.length ? errors[errors.length - 1].message.slice(0, 80) : '';
+    const title = `[v${appVersion()}] ${lastError || 'Problem report'}`;
+    let body = buildReport();
+    const make = (text) => `${ISSUES}?labels=bug%2Cfrom-app&title=${encodeURIComponent(title)}&body=${encodeURIComponent(text)}`;
+    let url = make(body);
+    while (url.length > MAX_URL && body.length > 200) {
+      body = body.slice(0, Math.floor(body.length * 0.8)).replace(/\n[^\n]*$/, '') + '\n(the rest was cut to fit an address)';
+      url = make(body);
+    }
+    return url;
+  }
+
+  function openIssue() {
+    const opened = window.open(issueUrl(), '_blank', 'noopener');
+    if (!opened && Structra.toast) Structra.toast('The browser blocked the new tab. Use "Copy a bug report" and paste it into a new issue.');
+    return !!opened;
+  }
+
   start();
-  return { start, report, list: () => errors.slice(), buildReport, copyReport, cleanMessage, cleanAddress };
+  return { start, report, list: () => errors.slice(), buildReport, copyReport, issueUrl, openIssue, cleanMessage, cleanAddress };
 })();

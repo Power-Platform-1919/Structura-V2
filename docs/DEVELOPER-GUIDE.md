@@ -193,6 +193,17 @@ Every library is used through one module of ours (map, section 8.5). To upgrade 
 8. **Open a pull request into `dev`**; the same checks run in CI. Move the old file to `archive/` with a row in its README, never delete it in the same change.
 9. If the numbers get worse (speed, size, memory, a suite count), **stop and write it down** instead of upgrading: the watch list (task 30) says when to look again.
 
+## 9c. Problem reports from people
+
+**How a report reaches us.** In the app: Ctrl+K, "Report a problem on GitHub". The browser opens GitHub's new-issue page with a report filled in (version, browser, window size, the open view, the last errors; never the document, a value, a key or the file name: `tests/unit/issue-report.test.js` fails if it ever does). The person reads it, adds the steps, and presses the button themselves. The app sends nothing and needs no token. Issues carry the labels `bug` and `from-app`. The template for people who open Issues directly is `.github/ISSUE_TEMPLATE/bug_report.md`.
+
+**How we deal with one** (in this order):
+1. **Reproduce first.** Never fix from the description alone. Ask for a small file with no real data if needed; use or make a synthetic one (`tests/fixtures/pp_*.json` show the shapes).
+2. **Write the failing test** where the bug lives (unit test if it is logic, smoke test if it needs the page) and see it fail.
+3. **Fix**, then run the checks in section 9 and open a pull request into `dev` that says `Fixes #<issue>`.
+4. **Record it** in `todo.json` under the task it belongs to (`node tools/todo.mjs set <id> done "found in issue #N: what was wrong, what changed"`), so the note links the change to the report.
+5. **Tell the person** in the issue which release has the fix. A report that cannot be reproduced after two questions is closed with the reason written down.
+
 ## 9b. The task list and the map
 
 - `todo.json` is the list of work, with every step. `docs/TODO.md` is made from it: do not edit it by hand.

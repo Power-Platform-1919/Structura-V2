@@ -4870,33 +4870,43 @@
     {
       "id": "28",
       "title": "Bug reports: a button that opens a prefilled GitHub issue (future, Q20)",
-      "status": "todo",
+      "status": "done",
       "brief": "Later. A \"Report a problem\" button that never includes document data.",
       "subtasks": [
         {
           "id": "28.1",
           "title": "Design the report: version, browser, last errors, settings; never document data",
-          "status": "todo"
+          "status": "done",
+          "note": "The report is the existing buildReport (version, time, browser, window, view, whether a document is open, the last 20 errors with quoted text removed and addresses cut); never the document, a value, a key or the file name",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "28.2",
           "title": "Prefilled GitHub issue link (no token needed) and an issue template",
-          "status": "todo"
+          "status": "done",
+          "note": "Structra.errorReporter.issueUrl and openIssue: Ctrl+K 'Report a problem on GitHub' opens github.com/.../issues/new in a new tab (noopener) with the title, the labels bug and from-app, and the report filled in (cut to 7,000 characters); no token, the app sends nothing; issue template .github/ISSUE_TEMPLATE/bug_report.md",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "28.3",
           "title": "Depends on the global error handler (task 18.4)",
-          "status": "todo"
+          "status": "done",
+          "note": "Built on the global error handler from task 18.4 (error-reporter.js keeps the last 20 errors and shows one short message)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "28.4",
           "title": "Decide how issues are triaged and linked to tasks",
-          "status": "todo"
+          "status": "done",
+          "note": "DEVELOPER-GUIDE section 9c: reproduce first, failing test, fix with a pull request that says Fixes #N, record it in todo.json with the issue number, tell the person which release has the fix",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "28.5",
           "title": "Tests: the report never contains document text",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/issue-report.test.js (6 tests): no value, key, e-mail or file name of the open document is in the address even when error messages quote them; version in the title; under 7,000 characters with 40 long errors; opens in a new tab with noopener and says when the browser blocked it",
+          "doneOn": "2026-10-28"
         }
       ]
     },
