@@ -344,7 +344,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 
 | Function | Built with | Origin | Depends on | Used by | Plan |
 |---|---|---|---|---|---|
-| Search about 55 commands by "contains" on label, id, category | own list and filter | Own | constants | header button, Ctrl+K | later: ranked fuzzy matching (3.12) |
+| Search about 55 commands: exact matches first (label starts with, label contains, id or category contains), then close matches (a typo, words in another order) | own list; `Structra.commandMatch` (`src/core/command-match.js`) and uFuzzy for the close matches | Own + library | constants | header button, Ctrl+K | KEEP (done, 3.12) |
 | Switch view (tree, table, graph, schema, editor, overview) | `setState('activeView')` | Own | | | KEEP |
 | Power Platform: expressions, copy Power Automate or Power Fx, Parse JSON schema, flow actions, columns | `powerPlatformExpressions`, `parseJsonSchemaGenerator` | Own | | | KEEP |
 | Transform: sort keys, flatten, unflatten | own | Own | | | KEEP |
@@ -406,6 +406,7 @@ The counts are taken from the code: how many files call the module.
 | `dataPaths` | parse, resolve and format paths | own | Own | 16 files (header, tree, table, query, overview, context ...) | KEEP |
 | `jsonpathQuery` | JSONPath | json-p3 plus an adapter | Library + own | query, data engine | DONE (PR #7) |
 | `sharedHelpers` | small helpers (escape, debounce, clipboard, download, regex safety check, run code in a worker) | own | Own | about 30 files | KEEP |
+| `command-match` | command palette ranking: exact matches first, then close matches (uFuzzy) | own ranking + uFuzzy 1.0.19 | Own + library | command palette | KEEP |
 | `icons` | every icon | Lucide 1.63.0, only the icons used | Library | 26 files | KEEP (trimmed and upgraded, 3.5) |
 | `codeView` | every code box | CodeMirror 6 | Library + own wrapper | context, diff, editor, expressions, input-panel, query, schemagen, typedef | KEEP |
 | `jsonTreeRenderer` | the Tree's renderer | own | Own | tree, query | see 3.1 |
@@ -558,10 +559,11 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Reason:** each step is a full copy of the document, capped at 60 MB per tab (PR #6). jsondiffpatch is already in the app.
 - **Pros:** much less memory on big files; more steps possible. **Cons:** a change to a core module; undo of an edit that touched many places must be tested well.
 
-### 3.12 Command palette: ranked fuzzy matching (proposed, low) [task 22.4]
+### 3.12 Command palette: ranked fuzzy matching (done 2026-10-28) [task 22.4]
 
-- **Reason:** it only matches by "contains". **Plan:** uFuzzy (4 KB gzipped, MIT) for typo tolerant, ranked results.
-- **Pros:** finds "exp col" for "Expand collapse"; **Cons:** one more dependency; ranking needs a little tuning.
+- **Reason:** it only matched by "contains". **Done:** `src/core/command-match.js` ranks exact matches first (label starts with, label contains, id or category contains), then close matches from uFuzzy 1.0.19 (MIT, 8 KB, `src/libs/ufuzzy/`): a typo ("exprt", "tabel", "flaten") or words in another order ("csv export") still find the command. Without uFuzzy the exact matches still work.
+- **Tested:** `tests/unit/command-match.test.js` (8 tests, real command list, real uFuzzy file) and the palette checks in `tests/smoke/shell.js`.
+- **Cons:** one more small library; the order among close matches is uFuzzy's own.
 
 ### 3.13 Keyboard alternatives for drag and drop (proposed) [tasks 21.8 and 21.9]
 

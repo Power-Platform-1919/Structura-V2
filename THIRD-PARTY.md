@@ -11,6 +11,7 @@ When a library is added or upgraded, change this file in the same pull request. 
 | jsondiffpatch | 0.7.6 | MIT | https://github.com/benjamine/jsondiffpatch | `src/libs/jsondiffpatch/` | the npm package's `lib/` folder, unchanged, without the unused text and HTML parts | Compare |
 | Ajv | 6.12.6 | MIT | https://github.com/ajv-validator/ajv | `src/libs/ajv.min.js` | the npm package's `dist/ajv.min.js` | JSON Schema validation |
 | jsonrepair | see the file | ISC | https://github.com/josdejong/jsonrepair | `src/libs/jsonrepair.min.js` | the npm package's UMD build | "Fix it for me" |
+| uFuzzy | 1.0.19 | MIT | https://github.com/leeoniya/uFuzzy | `src/libs/ufuzzy/` | the npm package's `dist/uFuzzy.iife.min.js` | close matches in the command palette |
 | PapaParse | 5.5.3 | MIT | https://github.com/mholt/PapaParse | `src/libs/papaparse.min.js` | the npm package's minified file | CSV reading and writing |
 | yaml | 2.9.1 | ISC | https://github.com/eemeli/yaml | `src/libs/yaml/` | `node tools/build-yaml.mjs` (esbuild; only parseAllDocuments and stringify) | YAML reading and writing, through `Structra.yamlIo` |
 | toml | 4.1.1 | MIT | https://github.com/BinaryMuse/toml-node | `src/libs/toml.min.js` | jsDelivr's bundle of the npm package | TOML |

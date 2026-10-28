@@ -115,6 +115,13 @@ function serve() {
     if (!p.items.some((i) => /Parse JSON schema/.test(i))) failures.push('searching "parse json" does not find the Power Platform schema command: ' + p.items.join(', '));
     p = await palette('power fx');
     if (!p.items.length) failures.push('searching "power fx" finds nothing');
+    // close matches: a typo and words in another order still find the command, after the exact ones
+    p = await palette('exprt');
+    if (!p.items.some((i) => /^Export as CSV/.test(i))) failures.push('a typo ("exprt") should still find Export as CSV: ' + p.items.slice(0, 6).join(', '));
+    p = await palette('csv export');
+    if (!p.items.some((i) => /^Export as CSV/.test(i))) failures.push('words in another order ("csv export") should find Export as CSV: ' + p.items.slice(0, 6).join(', '));
+    p = await palette('export');
+    if (!/^Export/.test(p.items[0] || '')) failures.push('a label that starts with the text should come first: ' + p.items.slice(0, 3).join(', '));
     p = await palette('undo');
     if (p.items.length) failures.push('Undo is offered before anything was changed');
 

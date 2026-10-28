@@ -4041,22 +4041,28 @@
         {
           "id": "22.4",
           "title": "Command palette: ranked fuzzy matching (3.12)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.4.1",
               "title": "Try uFuzzy on the command list",
-              "status": "todo"
+              "status": "done",
+              "note": "uFuzzy 1.0.19 (MIT, 8 KB) vendored in src/libs/ufuzzy (dev dependency for updates); src/core/command-match.js uses it for close matches; palette calls Structra.commandMatch.rank",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.4.2",
               "title": "Keep exact and category matching ranked first",
-              "status": "todo"
+              "status": "done",
+              "note": "Exact matches come first in three groups (label starts with, label contains, id/category/keys contains); close matches only after them and only from 5 letters, because 'sort' otherwise offered Keyboard Shortcuts",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.4.3",
               "title": "Tests for typos and partial words",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/command-match.test.js (9 tests: typos exprt, flaten, tabel, shema; csv export in another order; short text exact only; no uFuzzy fallback) and palette checks in tests/smoke/shell.js (Edge, Firefox, WebKit)",
+              "doneOn": "2026-10-28"
             }
           ]
         },
