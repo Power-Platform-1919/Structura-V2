@@ -286,7 +286,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Function | Built with | Origin | Depends on | Used by | Plan |
 |---|---|---|---|---|---|
 | Find text, `key:name`, `$.path` or `SELECT ...` | engine search, DuckDB when ready | Own + library | dataEngine, jsonpathQuery | canvas header, Ctrl+F; opened by the Tree (double-click a key), context panel, command palette | KEEP |
-| Fuzzy mode: close matches (substring or Jaro-Winkler 0.8) | own | Own | dataEngine | Find | KEEP |
+| Fuzzy mode: values that hold the text or a word spelled close to it (a letter left out, added, changed, two swapped) | uFuzzy 1.0.19 inside `dataEngine.fuzzySearch` (was our own Jaro-Winkler 0.8) | Library | dataEngine | Find | REPLACED 2026-10-28 (8.10) |
 | Pattern mode: regular expression | `RegExp` | Browser | dataEngine | Find | KEEP |
 | Enter and Shift+Enter step through matches, count announced | own | Own | | Find | DONE (PR #6) |
 | Replace one or all (text values only) with Ctrl+Z | own | Own | undoStack | Find | KEEP |
@@ -711,7 +711,7 @@ Sorting the audit results by this rule:
 | Number safety (`protectBigNumbers`) | ours: JSON.parse alone cannot do it | **Keep and harden** (JSONTestSuite and number edge cases; already passes 14 of 14) | 8.3 |
 | CSV cell typing (`csv-typing.js`) | ours: thousands separators, decimals kept | **Keep and harden** (csv-spectrum cases) | 8.3 |
 | XML mapping (JSON to and from XML) | our own mapping rules | **Keep and harden** (well-formedness, name collisions, attributes, CDATA) | 8.3 |
-| Fuzzy search over data values | ours: a different job than list matching | **Keep and harden** (compare recall with uFuzzy and Fuse on typos) | 8.3 |
+| Fuzzy search over data values | uFuzzy now; ours was worse | **Measured, then replaced** (DONE 2026-10-28, 8.10): uFuzzy 99.5% found and 99% right in 3 ms; ours 100% and 81% right (0.8) or 98.5% and 99.5% right (0.9) in 75 ms | 8.3 |
 | Personal data masking | ours: small and tuned | **Keep and harden** (DONE 2026-10-28: Luhn for cards, IBAN and social security checks, 255 limit for IP, phone by how it is written or by its key; before, the loose phone rule swallowed IPs, cards, social security numbers and dates, and masked ids and timestamps; `tests/unit/masking.test.js`, 11 tests) | 8.3 |
 | Charts, Graph, Minimap, Heatmap | ours: small and tuned | **Keep and harden** (empty, single value, huge or negative values) | 8.3 |
 | Undo, bookmarks, history, tabs, theme engine | ours | **Keep and harden** (limits and odd states; undo now stores differences, 3.11) | 3.11 |
@@ -754,7 +754,7 @@ For each hand-written area that we keep, find an **oracle**: a standard, an offi
 | Schema generator | own | the official JSON Schema test suite, and a comparison with genson or quicktype on optional and nullable fields | the Parse JSON schema is the product's core output |
 | Type generator | own | real compilers (tsc, go, rustc, dotnet) on the output | DONE 2026-10-28, see 8.9: many things did not compile and are fixed |
 | Power Automate and Power Fx expressions | own | Microsoft's documented syntax, examples from real flows | no executor is available here; needs real flows from you |
-| Fuzzy search | own Jaro-Winkler | uFuzzy and Fuse behavior on typos | to see if recall and speed match |
+| Fuzzy search | own Jaro-Winkler, now uFuzzy | uFuzzy and Fuse behavior on typos | DONE 2026-10-28, 8.10 |
 | Personal data masking | own regexes | a list of known PII formats, Luhn check for card numbers | DONE 2026-10-28: found that the loose phone rule matched first and labelled every IP, card and social security number a phone, masked dates (2025-03-14) and plain ids; fixed with the checks above |
 | Startup cost | whole app | Lighthouse (and a bundle report) | the 358 KB icon set loads at start; DuckDB loads on demand |
 | Security of generated HTML | own escaping | `hostile.js` exists; extend it to every view with markup in keys and values | the app builds HTML as text in many places |
@@ -847,4 +847,46 @@ What the compilers showed, before the fix (all in the old code):
 - **Numbers**: the type came from the first record only (3 then 1.5 was an integer; 3000000000 an `int`); it now comes from all of them (decimal, then wide integer).
 
 Fixed by one shared step: `buildTypes` in `src/core/type-code-generator.js` claims each class name once and each field name once per class, avoids each language's reserved words and its own type names, and writes keys into strings with the right escape. Checks that need no compiler: `tests/unit/codegen-names.test.js` (14 tests).
+
+
+### 8.10 Fuzzy search over data values: ours, uFuzzy and Fuse.js (measured 2026-10-28)
+
+Tool: `tests/perf/fuzzy-compare.js`. 50,000 text values built from the words of the test fixtures and common business words; 200 questions, each a word of a value written with one typo (a letter left out, added, changed, or two swapped; the first letter kept; words of 4 to 10 letters). The right answer for a question is every value with a word within one edit of it (found by checking all). Node, one machine.
+
+| Matcher | Recall (right values found) | Precision (found values that are right) | No result | Time per question |
+|---|---|---|---|---|
+| our Jaro-Winkler, threshold 0.8 (the old setting) | 100% | 80.7% | 0 of 200 | 75 ms |
+| our Jaro-Winkler, 0.85 | 100% | 93.2% | 0 | 73 ms |
+| our Jaro-Winkler, 0.9 | 98.5% | 99.5% | 3 | 84 ms |
+| **uFuzzy 1.0.19, one typo per word** | **99.5%** | **99.0%** | 1 | **3 ms** |
+| Fuse.js 7.5.0, threshold 0.2 | 78.1% | 96.4% | 44 | 69 ms |
+| Fuse.js 7.5.0, threshold 0.3 | 95.5% | 91.5% | 9 | 88 ms |
+| Fuse.js 7.5.0, threshold 0.4 | 98.0% | 69.4% | 3 | 110 ms |
+
+- **Decision:** `dataEngine.fuzzySearch` now uses uFuzzy (the file already shipped for the command palette). Same quality as our best setting, 25 times faster in the match itself; through the engine (walking the document, writing the paths) a question over 50,000 values takes about 13 ms instead of 75 ms. Fuse is slower and less exact. Our old default (0.8) found everything but a fifth of what it showed was wrong.
+- Without the library (it did not load) Find > Fuzzy still finds values that contain the text.
+- Tested: `tests/unit/fuzzy-find.test.js` (7 tests, including odd keys and the no-library case) and the Fuzzy checks in `tests/smoke/inputs.js` (Edge, Firefox, WebKit).
+
+
+### 8.11 Startup cost (measured 2026-10-28)
+
+**What loads before the first screen** (`tests/perf/startup-cost.js`, Edge, this machine, 0.8 s to the first screen): 111 files, 1,971 KB, 701 KB gzipped.
+
+| Kind | Files | Size | Gzipped |
+|---|---|---|---|
+| Scripts (own code and vendored libraries) | 93 | 1,634 KB | 500 KB |
+| Styles | 12 | 162 KB | 34 KB |
+| Fonts | 4 | 165 KB | 164 KB |
+| Page | 1 | 10 KB | 2 KB |
+
+The biggest: the CodeMirror chunk 296 KB (loaded when the page is idle, so the Tree and Editor open at once), `yaml.min.js` 96 KB, `data-engine.js` 86 KB, `components.css` 77 KB, `structra-table.js` 67 KB, `json-p3.min.js` 63 KB. Opening a file loads one more font (31 KB); the 35 MB DuckDB engine, Ajv, jsonrepair, jsondiffpatch and modern-screenshot are not loaded until used.
+
+Candidates to load later (not done; each saves 15 to 30 KB gzipped at start): `yaml.min.js` (only when a YAML file is opened or Convert to YAML is used), `json-p3.min.js` (only when JSONPath is used), `papaparse.min.js` and `toml.min.js`. They are plain script tags today because the CSV and format code calls them directly.
+
+**Budget** (`tests/smoke/startup-budget.js`, runs in the browser tests in CI): at most 130 files, 2,300 KB, 830 KB gzipped, no single file over 340 KB at start, nothing from the lazy list (DuckDB, Ajv, jsonrepair, jsondiffpatch, modern-screenshot, editor languages) fetched at start, and no request to another address. About 15% above today. A breach means: load the new code later (`Structra.libraryLoader`), or raise the budget on purpose here.
+
+**Lighthouse 12.8.2** (Edge headless, its default simulated slow phone, this app served from a plain local server with no compression and no cache headers): Performance **71**, Accessibility **100**, Best practices **96**, SEO **90** (before the meta description was added; the description is in now).
+- First contentful paint 2.2 s, total blocking time 20 ms, layout shift 0.001, main thread work 1.1 s: good. Largest contentful paint 14.8 s and time to interactive 14.8 s: the LCP element is the first-run Welcome dialog (97% of it is render delay): the page only draws it after 93 scripts ran one after another under 4 times slower processing. On a normal computer the first screen is 0.8 s.
+- What it says to fix: 13 render-blocking files (12 style files and some scripts), unminified own code (287 KB) and CSS (22 KB), unused JavaScript (669 KB, mostly libraries used later) and CSS (97 KB), no compression and no long cache time (both are what the host sends: GitHub Pages sends compression and 10-minute cache), 11 px text in the help lines, 1,240 page elements at start.
+- Not changed: bundling the 93 scripts into one file would cut the render delay but breaks the rule of no build for the app; the numbers above are the baseline to compare any such change.
 

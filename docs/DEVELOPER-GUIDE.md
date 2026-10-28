@@ -179,6 +179,20 @@ The browser tests are written so that a full run takes a few minutes. Keep them 
 - Set `PW_CHANNEL=msedge` to use installed Edge instead of downloading Chromium.
 - When you change text that a test checks, update the test in the same change.
 
+## 9a. Upgrading or adding a library: the checklist
+
+Every library is used through one module of ours (map, section 8.5). To upgrade one, or to add one, in this order:
+
+1. **Read what changed** (the release notes, and the library's own test suite if it has one). Write down what you expect to differ.
+2. **Branch** from `dev` (`feature/<name>`). Put the new file in `src/libs/<name>/` with its licence file; build it with a tool in `tools/` when it needs bundling (`tools/build-*.mjs`, committed result, no build for the app).
+3. **Run the oracle first**: the official suite for that library is already a test in `tests/unit` (JSON, JSON Schema, CSV, YAML, TOML, XML, JSON Patch, paths). Compare the counts with the numbers written in the map (section 8.7). A drop fails the test; a rise means update the recorded count.
+4. **Run the seam tests**: `tests/unit/seams.test.js` (the shape of each adapter's answer, the share link, nothing changes the document).
+5. **Run everything in three browsers**: `node tests/unit/run.js`, then `PW_CHANNEL=msedge node tests/run-smoke.js`, and the same with `PW_BROWSER=firefox` and `PW_BROWSER=webkit`; then `node tests/ui/run-all.js`.
+6. **Run the offline test** (`tests/smoke/offline.js`: nothing may be fetched from another address) and the startup budget (`tests/smoke/startup-budget.js`: a library that loads at start must be worth it, and a heavy one must load when used).
+7. **Update the lists**: `THIRD-PARTY.md` (version, licence, source, how it was made; a unit test fails if a file in `src/libs` is missing), the map (the row for that library, section 8.7 for the counts), and `todo.json` (`node tools/todo.mjs set <id> done "what changed"`).
+8. **Open a pull request into `dev`**; the same checks run in CI. Move the old file to `archive/` with a row in its README, never delete it in the same change.
+9. If the numbers get worse (speed, size, memory, a suite count), **stop and write it down** instead of upgrading: the watch list (task 30) says when to look again.
+
 ## 9b. The task list and the map
 
 - `todo.json` is the list of work, with every step. `docs/TODO.md` is made from it: do not edit it by hand.
