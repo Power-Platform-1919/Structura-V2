@@ -3979,28 +3979,35 @@
         {
           "id": "22.2",
           "title": "DuckDB-Wasm (3.7)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "22.2.1",
               "title": "Re-check the OPFS persistence claim in the adapter now",
-              "status": "todo"
+              "status": "done",
+              "note": "The adapter header claimed OPFS persistence but the code opens an in-memory database; header corrected. Per the DuckDB OPFS post (2026-09-18) OPFS needs 1.32.0 or 1.33.1-dev64+, and we do not need it",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.2.2",
               "title": "Benchmark the current DuckDB (engine 1.1.1) against the newest available: load time, start time, query time on 100,000 rows, memory, download size",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/perf/duckdb-bench.js: 100,000 rows, Edge, 3 runs. Engine 1.1.1 vs npm 1.32.0 (engine 1.4.3) vs npm next (2.0 dev): queries equal or slower in the newer builds, start 1,210 / 950 / 755 ms, wasm 34 / 32.7 / 32.2 MB, memory same. Table in map 3.7",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.2.3",
               "title": "Decide by the numbers (Q19): upgrade if it helps performance, otherwise wait for 2.0",
-              "status": "todo"
+              "status": "done",
+              "note": "Decision by the numbers: wait for 2.0 stable. No query gains, only about 0.25 s at first start; upgrade needs the JSON add-on rebuilt, an apache-arrow bundle, new file names and a three-engine test pass",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "22.2.4",
               "title": "If upgrading: branch, run the SQL, filter, pivot, null finder and find tests in three engines; re-vendor; update THIRD-PARTY.md",
-              "status": "todo",
-              "note": "only if the numbers say so"
+              "status": "done",
+              "note": "Not needed: the decision is not to upgrade now; revisit when DuckDB-Wasm 2.0 is released (watch list, task 30)",
+              "doneOn": "2026-10-28"
             }
           ]
         },

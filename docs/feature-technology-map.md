@@ -518,7 +518,18 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Reason:** the engine is v1.1.1 from September 2024. Newer versions exist (npm 1.33.1-dev57), and a **2.0 announcement is drafted** (smaller binary, simpler bundles, larger-than-memory queries). A September 2026 DuckDB post says the npm "latest" at that time created OPFS files but never wrote to them, so a persistence claim in our adapter ("database file persists across reloads") should be re-checked.
 - **Pros of upgrading:** performance, features, possibly a much smaller download.
 - **Cons:** 35 MB to re-vendor, SQL behavior differences, a big test pass.
-- **Your decision (Q19):** if it improves performance, upgrade; otherwise wait. **Plan:** benchmark the current engine against the newest available (load time, query time on 100,000 rows, memory, download size), decide by the numbers, and re-check the persistence claim now (task 22.2).
+- **Your decision (Q19):** if it improves performance, upgrade; otherwise wait.
+- **Persistence claim re-checked (2026-10-28):** the claim in the adapter's header was wrong for our code: the adapter opens an in-memory database (`_db.open({})`), nothing is stored in OPFS. The header is corrected. The DuckDB post says OPFS needs 1.32.0 or 1.33.1-dev64 and later, so it is possible in a newer build; we do not need it because the data is loaded again from the browser's own saved copy.
+- **Benchmark (2026-10-28, Edge, 100,000 rows, best of 3, `tests/perf/duckdb-bench.js`, three runs agree):**
+
+| Build | Engine | wasm | Start (worker + instantiate) | Open | Create table | Group by | Summarize |
+|---|---|---|---|---|---|---|---|
+| ours (npm 1.1.1 files) | v1.1.1 | 34 MB | 1,210 ms | 122 ms | 70 ms | 3 ms | 70 ms |
+| npm 1.32.0 | v1.4.3 | 32.7 MB | 950 ms | 150 ms | 75 to 89 ms | 3 ms | 67 to 72 ms |
+| npm next (1.33.1-dev110) | v2.0.0-dev | 32.2 MB | 755 ms | 250 ms | 83 to 93 ms | 6 ms | 83 to 89 ms |
+
+  Queries (count, group by, filter, order, distinct, pivot-like, summarize) are the same in 1.1.1 and 1.32.0 and slower in the 2.0 development build; the new builds only start faster (about 0.25 s for 1.32.0 once, when the SQL engine first loads) and are 1.3 to 1.8 MB smaller. Memory is the same (3 to 4 MB of page memory; the engine memory is in the worker).
+- **Decision (by the numbers, Q19): wait for 2.0 stable.** No query gets faster, the only gain is a quarter of a second at the first start, and an upgrade needs the JSON add-on rebuilt for the new version, an `apache-arrow` bundle (the new npm builds import it by name), the new file names, and the SQL, filter, pivot, null finder and find tests in three engines. Revisit when 2.0 is released (watch list, task 30).
 
 ### 3.8 User-written code: run it in one sandboxed worker (BUILT 2026-10-28 except two guards, see below) [task 19]
 
