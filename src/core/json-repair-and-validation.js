@@ -15,12 +15,52 @@ window.Structra = window.Structra || {};
 Structra.jsonRepairAndValidation = (() => {
   /* ---------- repair ---------- */
 
+  /**
+   * What jsonrepair leaves as it is, found by running it on every text of JSONTestSuite (tests/unit/json-repair-suite.test.js):
+   * numbers with a leading zero (-01, 007) or starting with a dot (.5, -.2e-3), and a backslash followed by a raw control character
+   * (a tab or a NUL typed after the backslash). Fixed here, outside text values for the numbers and inside them for the backslash.
+   */
+  function fixNumbersAndEscapes(text) {
+    const fixNumbers = (part) => part
+      .replace(/(^|[^\w.])(-?)0+(?=\d)/g, (all, before, sign) => before + sign)
+      .replace(/(^|[^\w.])(-?)\.(?=\d)/g, (all, before, sign) => before + sign + '0.');
+    const escapeOf = (code) => ({ 9: '\\t', 10: '\\n', 13: '\\r', 8: '\\b', 12: '\\f' }[code] || '\\u' + code.toString(16).padStart(4, '0'));
+    let out = '';
+    let outside = '';
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] !== '"') { outside += text[i]; continue; }
+      out += fixNumbers(outside);
+      outside = '';
+      let inside = '"';
+      for (i++; i < text.length; i++) {
+        const character = text[i];
+        if (character === '\\') {
+          const next = text[i + 1];
+          if (next !== undefined && next.charCodeAt(0) < 32) { inside += escapeOf(next.charCodeAt(0)); i++; continue; }
+          inside += character + (next === undefined ? '' : next);
+          i++;
+          continue;
+        }
+        inside += character;
+        if (character === '"') break;
+      }
+      out += inside;
+    }
+    return out + fixNumbers(outside);
+  }
+
+  /** Repaired JSON text. The result is always valid JSON, or this throws: it never hands back text that is still broken. */
   async function repair(text) {
     await Structra.libraryLoader.loadLibrary('jsonrepair');
     const library = window.JSONRepair || window.jsonrepair;
     const callback = library && (library.jsonrepair || library);
     if (typeof callback !== 'function') throw new Error('jsonrepair did not load');
-    return callback(text);
+    const first = callback(text);
+    if (isCompleteJson(first)) return first;
+    let second = null;
+    try { second = callback(fixNumbersAndEscapes(text)); } catch { /* the message below says it */ }
+    if (second !== null && isCompleteJson(second)) return second;
+    throw new Error('This text could not be repaired automatically: what is left is still not valid JSON.');
   }
 
   /* ---------- where and why JSON is broken ---------- */

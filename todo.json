@@ -4764,7 +4764,9 @@
         {
           "id": "31.8",
           "title": "JSON repair: the jsonrepair test cases through our repair step; every result must parse",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/json-repair-suite.test.js feeds the 318 JSONTestSuite texts to repair(): 127 valid texts come back unchanged (0 changed or refused); of 191 invalid ones 148 are repaired and 43 refused. It found 6 texts that jsonrepair returned still invalid (numbers with a leading zero or leading dot, a backslash followed by a raw tab or NUL). Fixed with a second pass (fixNumbersAndEscapes) and a final check: repair() now returns valid JSON or throws, which also stops the Editor saying Repaired over broken text. 3 more unit tests.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.9",
