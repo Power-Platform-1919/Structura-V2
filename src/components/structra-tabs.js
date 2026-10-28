@@ -150,15 +150,11 @@ class StructraTabs extends StructraComponent {
       this._closeMenu();
     });
     this._menu = menu;
-    setTimeout(() => {
-      this._off = (event) => { if (event.type === 'keydown' && event.key !== 'Escape') return; if (event.type === 'mousedown' && menu.contains(event.target)) return; this._closeMenu(); };
-      document.addEventListener('mousedown', this._off); document.addEventListener('keydown', this._off);
-    }, 0);
+    this._popup = Structra.popup.watch(menu, { onClose: () => { this._menu = null; this._popup = null; } });
   }
 
   _closeMenu() {
-    if (this._menu) { this._menu.remove(); this._menu = null; }
-    if (this._off) { document.removeEventListener('mousedown', this._off); document.removeEventListener('keydown', this._off); this._off = null; }
+    if (this._popup) this._popup.close();
   }
 
   _handleClick = (event) => {

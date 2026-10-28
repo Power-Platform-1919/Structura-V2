@@ -187,20 +187,12 @@ class StructraTree extends StructraComponent {
       if (rect.bottom > window.innerHeight) menu.style.top = `${y - rect.height}px`;
     });
 
-    const close = (event) => {
-      if (!menu.contains(event.target)) {
-        this._dismissCtxMenu();
-        document.removeEventListener('mousedown', close);
-      }
-    };
-    setTimeout(() => document.addEventListener('mousedown', close), 0);
+    this._ctxPopup = Structra.popup.watch(menu, { onClose: () => { this._activeCtxMenu = null; this._ctxPopup = null; } });
   }
 
   _dismissCtxMenu() {
-    if (this._activeCtxMenu) {
-      this._activeCtxMenu.remove();
-      this._activeCtxMenu = null;
-    }
+    if (this._ctxPopup) this._ctxPopup.close();
+    else if (this._activeCtxMenu) { this._activeCtxMenu.remove(); this._activeCtxMenu = null; }
   }
 
   async _execCtxAction(action, path, value, lang) {

@@ -151,11 +151,8 @@ class StructraHeader extends StructraComponent {
     menu.style.top = (rect.bottom + 4) + 'px';
     menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 300)) + 'px';
     document.body.appendChild(menu);
-    const close = () => { menu.remove(); document.removeEventListener('mousedown', outside, true); document.removeEventListener('keydown', onKey, true); };
-    const outside = (event) => { if (!menu.contains(event.target) && !anchor.contains(event.target)) close(); };
-    const onKey = (event) => { if (event.key === 'Escape') close(); };
-    document.addEventListener('mousedown', outside, true);
-    document.addEventListener('keydown', onKey, true);
+    const popup = Structra.popup.watch(menu, { anchor });
+    const close = () => popup.close();
     menu.addEventListener('click', (event) => {
       const removeButton = event.target.closest('[data-remove]');
       if (removeButton) { Structra.bookmarks.remove(removeButton.dataset.remove); close(); return; }

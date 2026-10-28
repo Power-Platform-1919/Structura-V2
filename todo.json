@@ -4765,18 +4765,22 @@
     {
       "id": "27",
       "title": "Shared architecture: write generic logic once (rule 4)",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Your rule: generic code is written once and reused. Examples already found: paths written in 16 places, four ways to run user code, a menu and outside-click handler per component.",
       "subtasks": [
         {
           "id": "27.1",
           "title": "Add rule 4 to the map and DEVELOPER-GUIDE: shared architecture, one place per job",
-          "status": "todo"
+          "status": "done",
+          "note": "Rule 4 (shared architecture, one place per job) is in the map section 2 rules and in DEVELOPER-GUIDE; each new shared piece is listed in map 8.12",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.2",
           "title": "Scan the code for duplicated logic with a mature tool (jscpd), list the biggest repeats",
-          "status": "todo"
+          "status": "done",
+          "note": "jscpd scan: 8 exact repeats at 8+ lines (0.34 percent), 70 at 5+ lines (2.0 percent of 25,901 lines), mostly CSS; the repeated jobs were found by reading; result and candidates in map 8.12",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.3",
@@ -4791,12 +4795,16 @@
         {
           "id": "27.5",
           "title": "Candidate: one menu and popover service (Tree menu, Table column menu, tabs menu, canvas header menu each build their own and close on outside click their own way)",
-          "status": "todo"
+          "status": "done",
+          "note": "Structra.popup (src/core/popup.js): the tabs menu, toolbar menu, Tree menu, Table column menu, summary box and filter dropdown, and the bookmark list use it; 55 lines of closing code removed; tests/smoke/popup.js in Edge, Firefox, WebKit",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.6",
           "title": "Candidate: one Escape and outside-click handling for overlays",
-          "status": "todo"
+          "status": "done",
+          "note": "Same piece: Escape closes only the popup in front (a dialog behind stays), outside pointer closes, one at a time, listeners removed however it closed; Structra.closeTop asks the popup first; found and fixed two leaked key listeners",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.7",
@@ -4821,7 +4829,9 @@
         {
           "id": "27.11",
           "title": "Rank the candidates by how much they remove and how risky they are; agree the order with you",
-          "status": "todo"
+          "status": "done",
+          "note": "Candidates ranked by lines removed, risk and users in map 8.12: popup service first (done), then clipboard button, empty and error block, formatting, worker set-up",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "27.12",
