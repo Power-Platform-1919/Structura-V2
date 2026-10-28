@@ -21,6 +21,7 @@
      Structra.dataPaths.strip(path)          → path without the leading "$"
      Structra.dataPaths.lastKey(path)        → last key name, or 'data'
      Structra.dataPaths.powerAutomate(path)  → body('Parse_JSON')?['a'][0]
+     Structra.dataPaths.powerAutomateDynamic(path, { call }) → outputs('Get_item')?['body/Author/DisplayName']  (as the designer writes dynamic content)
      Structra.dataPaths.powerFx(path)        → ParseJSON(jsonText).a
    ============================================================ */
 
@@ -177,6 +178,30 @@ Structra.dataPaths = (() => {
   }
 
   /**
+   * The way the flow designer writes a value picked from "dynamic content": the keys under body in one text with slashes, as
+   *   outputs('Get_item')?['body/Author/DisplayName']      triggerOutputs()?['body/Title']
+   * (the Microsoft error reference writes outputs('Get_item')?['body/title'] the same way). A slash cannot step into a list, so the keys
+   * before the first list position go in the one text and what follows is written step by step, null-safe: 'body/value' then ?[0]?['Title'].
+   * A key that itself holds a slash ends the run (its own step), so a slash always means "go one level in".
+   * opts.call      the start: "outputs('Get_item')" or "triggerOutputs()"
+   * opts.dropBody  the document is a whole output ({ statusCode, headers, body }): the first key body is the "body" of the text
+   */
+  function powerAutomateDynamic(path, options = {}) {
+    const tokens = tokenize(path);
+    if (options.dropBody && tokens.length && tokens[0].type === 'key' && tokens[0].value === 'body') tokens.shift();
+    const run = ['body'];
+    let at = 0;
+    while (at < tokens.length && tokens[at].type === 'key' && !tokens[at].value.includes('/')) { run.push(tokens[at].value); at++; }
+    const quote = (text) => text.replace(/'/g, "''");
+    let out = `${options.call || "outputs('Get_item')"}?['${quote(run.join('/'))}']`;
+    for (const token of tokens.slice(at)) {
+      if (token.type === 'key') out += `?['${quote(token.value)}']`;
+      else out += `?[${token.type === 'wildcard' ? 0 : token.value}]`;
+    }
+    return out;
+  }
+
+  /**
    * Power Fx expression for a path, read from a text variable that holds the JSON.
    * opts.variable  the variable (or any text expression), default jsonText
    * Power Fx tables are 1-based, so index 0 becomes 1.
@@ -246,5 +271,5 @@ Structra.dataPaths = (() => {
     return cleanPath.startsWith('[') ? '$' + cleanPath : '$.' + cleanPath;
   }
 
-  return { child, toPattern, keysOf, tokenize, resolve, setNested, strip, lastKey, canonical, powerAutomate, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
+  return { child, toPattern, keysOf, tokenize, resolve, setNested, strip, lastKey, canonical, powerAutomate, powerAutomateDynamic, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
 })();

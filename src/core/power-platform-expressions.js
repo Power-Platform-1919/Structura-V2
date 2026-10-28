@@ -24,6 +24,10 @@ window.Structra = window.Structra || {};
 
 Structra.powerPlatformExpressions = (() => {
   const row = (label, code) => ({ label, code });
+  /** A text in an expression: single quotes, and a quote inside is doubled */
+  const lit = (text) => "'" + String(text).replace(/'/g, "''") + "'";
+  /** The name of an action as it is written in an expression: the designer turns spaces into underscores (Get items becomes Get_items) */
+  const actionRef = (name, fallback) => lit(String(name || '').trim().split(/\s+/).join('_') || fallback);
 
   const kindOf = Structra.sharedHelpers.jsonTypeOf;
 
@@ -59,9 +63,9 @@ Structra.powerPlatformExpressions = (() => {
     const name = (source.name || '').trim();
     switch (source.kind) {
       case 'trigger': return 'triggerBody()';
-      case 'item': return `items('${name || 'Apply_to_each'}')`;
+      case 'item': return `items(${actionRef(name, 'Apply_to_each')})`;
       case 'custom': return name || "body('Parse_JSON')";
-      default: return `body('${name || 'Parse_JSON'}')`;
+      default: return `body(${actionRef(name, 'Parse_JSON')})`;
     }
   }
 
@@ -84,6 +88,12 @@ Structra.powerPlatformExpressions = (() => {
     const expression = powerAutomatePath(path);
     const rows = [row('Access value', expression)];
     const add = (label, code) => rows.push(row(label, code));
+    // What the designer writes when the value is picked from dynamic content: outputs('Get_item')?['body/Title'], triggerOutputs()?['body/Title']
+    const dynamicCall = source.kind === 'trigger' ? 'triggerOutputs()' : source.kind === 'action' ? `outputs(${actionRef(source.name, 'Parse_JSON')})` : null;
+    if (dynamicCall) {
+      const dynamic = Structra.dataPaths.powerAutomateDynamic(path, { call: dynamicCall, dropBody: dropsBody(Structra.state && Structra.state.jsonData) });
+      if (dynamic !== expression) rows.push(row('As the designer writes it (dynamic content)', dynamic));
+    }
     // Inside a list item the position does not matter: it is "the current item" of the loop
     const inLoop = Structra.dataPaths.powerAutomateInLoop(path, source.loopName);
     if (inLoop) {
@@ -114,18 +124,18 @@ Structra.powerPlatformExpressions = (() => {
         if (keys) {
           const firstKey = keys[0];
           if (firstKey) {
-            add(`[0].${firstKey}`, `${expression}?[0]?['${firstKey}']`);
-            add(`Current .${firstKey}`, `items('Apply_to_each')?['${firstKey}']`);
-            add('Sort ascending', `sort(${expression}, '${firstKey}')`);
-            add('Sort descending', `reverse(sort(${expression}, '${firstKey}'))`);
+            add(`[0].${firstKey}`, `${expression}?[0]?[${lit(firstKey)}]`);
+            add(`Current .${firstKey}`, `items('Apply_to_each')?[${lit(firstKey)}]`);
+            add('Sort ascending', `sort(${expression}, ${lit(firstKey)})`);
+            add('Sort descending', `reverse(sort(${expression}, ${lit(firstKey)}))`);
             add('Filter array: From', expression);
-            add('Filter array: Where', `not(equals(item()?['${firstKey}'], null))`);
+            add('Filter array: Where', `not(equals(item()?[${lit(firstKey)}], null))`);
             add('Select: From', expression);
-            add('Select: Map', `item()?['${firstKey}']`);
+            add('Select: Map', `item()?[${lit(firstKey)}]`);
           }
           if (keys[1]) {
-            add(`[0].${keys[1]}`, `${expression}?[0]?['${keys[1]}']`);
-            add(`Current .${keys[1]}`, `items('Apply_to_each')?['${keys[1]}']`);
+            add(`[0].${keys[1]}`, `${expression}?[0]?[${lit(keys[1])}]`);
+            add(`Current .${keys[1]}`, `items('Apply_to_each')?[${lit(keys[1])}]`);
           }
         } else if (value.length && typeof value[0] === 'string') {
           add('Contains value', `contains(${expression}, 'searchValue')`);
@@ -146,11 +156,11 @@ Structra.powerPlatformExpressions = (() => {
         const firstKey = keys[0] || 'key';
         add('To JSON string', `string(${expression})`);
         add('Add property', `addProperty(${expression}, 'newKey', 'newValue')`);
-        add('Remove property', `removeProperty(${expression}, '${firstKey}')`);
-        add('Set property', `setProperty(${expression}, '${firstKey}', 'newValue')`);
+        add('Remove property', `removeProperty(${expression}, ${lit(firstKey)})`);
+        add('Set property', `setProperty(${expression}, ${lit(firstKey)}, 'newValue')`);
         for (const key of keys.slice(0, 10)) {
           const child = value[key];
-          const at = `${expression}?['${key}']`;
+          const at = `${expression}?[${lit(key)}]`;
           if (Array.isArray(child)) {
             add(`${key} (length)`, `length(${at})`);
             add(`${key}[0]`, `${at}?[0]`);
@@ -597,7 +607,7 @@ Structra.powerPlatformExpressions = (() => {
   function patternSections(data) {
     const isObject = data && typeof data === 'object' && !Array.isArray(data);
     const keys = isObject ? Object.keys(data).filter((key) => !key.startsWith('@')) : [];
-    const keyPath = (key) => (/^[A-Za-z_$][\w$]*$/.test(key) ? `$.${key}` : `$['${key.replace(/'/g, "\\'")}']`);
+    const keyPath = (key) => Structra.dataPaths.child('$', key);
     const scalarKey = keys.find((key) => data[key] === null || typeof data[key] !== 'object');
     const stringKey = keys.find((key) => typeof data[key] === 'string');
     const arrayKey = keys.find((key) => Array.isArray(data[key]));
@@ -724,10 +734,10 @@ Structra.powerPlatformExpressions = (() => {
           out.push(flowAction('Select: keep the chosen columns', 'Builds a smaller list with only the columns you chose.', 'Select',
             { type: 'Select', inputs: { from: at(expression), select: map } }));
           out.push(flowAction('Filter array: drop rows where a column is empty', `Keeps items where "${firstKey}" has a value.`, 'Filter_array',
-            { type: 'Query', inputs: { from: at(expression), where: at(hasValue(`item()?['${firstKey}']`, value.find((item) => item && item[firstKey] != null) ? value.find((item) => item && item[firstKey] != null)[firstKey] : null)) } }));
+            { type: 'Query', inputs: { from: at(expression), where: at(hasValue(`item()?[${lit(firstKey)}]`, value.find((item) => item && item[firstKey] != null) ? value.find((item) => item && item[firstKey] != null)[firstKey] : null)) } }));
           out.push(flowAction('Apply to each: work with one item at a time', 'Runs the inner actions once per item.', 'Apply_to_each',
             { type: 'Foreach', foreach: at(expression), actions: {
-              Compose_current: { type: 'Compose', inputs: at(`items('Apply_to_each')?['${firstKey}']`), runAfter: {} } } }));
+              Compose_current: { type: 'Compose', inputs: at(`items('Apply_to_each')?[${lit(firstKey)}]`), runAfter: {} } } }));
         } else {
           out.push(flowAction('Apply to each: work with one item at a time', 'Runs the inner actions once per item.', 'Apply_to_each',
             { type: 'Foreach', foreach: at(expression), actions: {
@@ -742,7 +752,7 @@ Structra.powerPlatformExpressions = (() => {
         out.push(flowAction('Compose: this object', 'Keeps the object for later steps.', 'Compose', { type: 'Compose', inputs: at(expression) }));
         if (firstKey) {
           out.push(flowAction(`Condition: "${firstKey}" has a value`, 'Add actions under "actions" for the yes path.', 'Condition',
-            { type: 'If', expression: { and: [{ equals: [at(hasValue(`${expression}?['${firstKey}']`, value[firstKey])), true] }] }, actions: {}, else: { actions: {} } }));
+            { type: 'If', expression: { and: [{ equals: [at(hasValue(`${expression}?[${lit(firstKey)}]`, value[firstKey])), true] }] }, actions: {}, else: { actions: {} } }));
         }
         break;
       }
@@ -836,7 +846,7 @@ Structra.powerPlatformExpressions = (() => {
           each.push(row(`${list.path}  (inside the loop over ${inner.listPath})`, inner.expr));
         }
         if (keys) {
-          for (const key of keys.slice(0, 3)) each.push(row(`  .${key}`, `items('${loopAt(depth + 1)}')?['${key}']`));
+          for (const key of keys.slice(0, 3)) each.push(row(`  .${key}`, `items('${loopAt(depth + 1)}')?[${lit(key)}]`));
         }
         const fxPath = Structra.dataPaths.powerFx(raw.replace(/\[\*\]/g, '[0]'), { variable: source.fxVar || 'jsonText' });
         gallery.push(row(list.path, `ForAll(${fxPath}, ThisRecord)`));

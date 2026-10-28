@@ -4365,7 +4365,7 @@
         {
           "id": "23.8",
           "title": "Power Automate and Power Fx expressions: Microsoft syntax rules and real flows",
-          "status": "todo",
+          "status": "in_progress",
           "subtasks": [
             {
               "id": "23.8.1",
@@ -4376,17 +4376,23 @@
             {
               "id": "23.8.2",
               "title": "Check quoting, null-safe steps, body detection against documented examples",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/expressions-syntax.test.js parses every expression the app writes (3 documents x 5 source kinds x every path, 15,000+ checks) with a small parser for the workflow expression language and checks every function against Microsoft's list of 135 (tests/suites/wdl-functions/functions.json). Found and fixed: key names with a quote were not doubled in 10 expressions (sort, Remove property, Set property, Select, Filter array, Compose); action names with spaces or quotes were written raw; a hand-written path writer in the pattern rows",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.8.3",
               "title": "Odd keys (after the path model fix)",
-              "status": "todo"
+              "status": "done",
+              "note": "Odd keys: the hostile-key document goes through every expression; quotes doubled with one helper (lit) and the path to a key written only by dataPaths.child",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.8.4",
               "title": "Permanent tests",
-              "status": "todo"
+              "status": "done",
+              "note": "Permanent: expressions-syntax.test.js and expressions-dynamic.test.js (13 tests) run in CI; the real-flow part (23.8.1) still waits for you",
+              "doneOn": "2026-10-28"
             }
           ]
         },
@@ -4950,7 +4956,9 @@
         {
           "id": "29.10",
           "title": "Add the dynamic-content style (outputs('Action')?['body/field']) as an extra output of the expression generator",
-          "status": "todo"
+          "status": "done",
+          "note": "powerAutomateDynamic in data-paths and a row 'As the designer writes it (dynamic content)' for action and trigger sources: outputs('Get_item')?['body/Author/DisplayName'], triggerOutputs()?['body/Title']; form confirmed in Microsoft's own error reference (outputs('Get_item')?['body/title']); a list position ends the slash text; tests/unit/expressions-dynamic.test.js",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "29.11",
