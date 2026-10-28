@@ -4,20 +4,20 @@
  */
 Structra.transformStepOperations = (() => {
 
-  // Safety: block dangerous patterns in callback expressions
-  function validateExpression(body, allowedParams) {
-    const blocked = /\b(eval|Function|import|require|fetch|XMLHttpRequest|document|window|globalThis|process|__proto__|constructor|prototype)\b/;
-    if (blocked.test(body)) throw new Error('That expression uses a word that is not allowed here');
+  // The steps run in the sandbox worker (Structra.sandbox), which has no access to the page, storage or network and is stopped when
+  // it runs too long. So no list of forbidden words is needed here. One check stays because it helps: a single = in a step is almost
+  // always a typo for ==, and would change the data instead of comparing.
+  function validateExpression(body) {
     if (/(?<![=!<>])=(?![=>])/.test(body)) throw new Error('Expressions cannot use a single = to set a value. Use == to compare.');
   }
 
   function buildFn1(param, body) {
-    validateExpression(body, [param]);
+    validateExpression(body);
     return new Function(param, `return (${body});`);
   }
 
   function buildFn2(firstParameter, secondParameter, body) {
-    validateExpression(body, [firstParameter, secondParameter]);
+    validateExpression(body);
     return new Function(firstParameter, secondParameter, `return (${body});`);
   }
 

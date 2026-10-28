@@ -2805,7 +2805,7 @@
     {
       "id": "18",
       "title": "Wave 0: correctness bugs found by the gap audit",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Sections 2.9, 3.17 to 3.20 and 8 of the map. Do these before the other waves.",
       "subtasks": [
         {
@@ -3074,37 +3074,63 @@
         {
           "id": "18.3",
           "title": "Regular expressions never freeze the page (3.19)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "18.3.1",
               "title": "List every place a user pattern runs: Find (Pattern), Filter bar, Query panel Pattern, JSONPath =~, data engine regex search",
-              "status": "todo"
+              "status": "done",
+              "note": "Inventory of every place a user pattern runs: Find Pattern mode (data engine regexSearch), Query panel Pattern, Filter bar pattern conditions, Table pattern filter (per cell), JSONPath =~ (per value inside json-p3), plus text search literals (escaped, safe).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.3.2",
               "title": "Add the ten known catastrophic patterns as a unit test against the current guard (8 of 10 caught today)",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/regex-guard.test.js: 15 known slow patterns. The quick check catches 10 and misses 5 (alternation-based and (.*a){20}); the list of misses is asserted so an improvement shows up; 14 ordinary patterns are never refused.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.3.3",
               "title": "Route user patterns through the sandbox worker (task 19) with a time limit",
-              "status": "todo"
+              "status": "done",
+              "note": "Find (Pattern mode) and the Query panel Pattern mode now run through Structra.sandbox.findPattern with a 5 second limit. JSONPath =~ and the Table filter are tracked as 18.3.7 and 18.3.8.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.3.4",
               "title": "Show a plain message when a pattern is stopped",
-              "status": "todo"
+              "status": "done",
+              "note": "A stopped pattern shows the plain message (Query panel result; Find bar says Pattern too slow plus a toast). Firefox's too much recursion is treated the same way in the sandbox service.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.3.5",
               "title": "Evaluate a ReDoS analyzer library (recheck) as an early warning; decide",
-              "status": "todo"
+              "status": "done",
+              "note": "redos-detector 6.1.4: 15 of 15 caught, 2 false alarms of 14, 4.7 s for 29 patterns, 880 KB. safe-regex2 5.1.2: 13 of 15, 0 false alarms, 1 ms. Decision: neither added; the sandbox is the safety net and our quick check stays. Recorded in the map section 3.19 and the regex-guard test header.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "18.3.6",
               "title": "Tests: (a|aa)+$ and the other missed pattern are stopped, ordinary patterns are not slower",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/sandbox.js: (a|aa)+$ through Find in Pattern mode is stopped with the plain message in Edge and Firefox (about 5 s, page keeps ticking) and finishes fast in WebKit; ordinary patterns over 20,000 rows are right and quick (3 engines).",
+              "doneOn": "2026-10-28"
+            },
+            {
+              "id": "18.3.7",
+              "title": "JSONPath =~ : the pattern test runs once per value inside json-p3 and cannot wait for a worker. Find a way (probe each pattern in the sandbox first, with a sample of the document, before the query runs) and test it",
+              "status": "done",
+              "note": "JSONPath =~ : a query that uses it runs once first in a collecting mode (the regex function only notes each pattern and up to 400 texts it is asked about); each pattern is then tried on the 40 longest texts in the sandbox (Structra.sandbox.probePattern, 1.5 s). A slow one is refused with the plain message; otherwise the query runs for real. Only queries with =~ pay for the extra pass.",
+              "doneOn": "2026-10-28"
+            },
+            {
+              "id": "18.3.8",
+              "title": "Table pattern filter: one test per cell on the page. Probe the pattern in the sandbox with a sample of the column first, then filter; a pattern that times out is refused with the plain message",
+              "status": "done",
+              "note": "Table column filter: before a regex or wildcard (like) condition is applied, Table._patternIsTooSlow tries it on the 40 longest texts of that column in the sandbox; a slow pattern shows the plain message and the filter is not applied. The wildcard-to-pattern step now exists once (_wildcardSource), used by the filter and the probe.",
+              "doneOn": "2026-10-28"
             }
           ]
         },
@@ -3224,7 +3250,7 @@
     {
       "id": "19",
       "title": "User-written code runs in one sandbox worker (3.8)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Four places use new Function today: Query panel JavaScript mode, the data engine row filter, Transform steps, the engine worker (unused).",
       "subtasks": [
         {
@@ -3236,77 +3262,107 @@
         {
           "id": "19.2",
           "title": "Inventory the places that run user code and what each needs (data, result shape, time limit)",
-          "status": "todo"
+          "status": "done",
+          "note": "Inventory: Query panel JavaScript (new Function on the page after a worker pre-check), Query panel Pattern, Find Pattern (data engine regexSearch), Filter bar expression (data engine filterByExpression, per row), Transform steps (new Function behind a word blocklist), the unused engine worker (loaded as a plain script), JSONPath =~ (once per value inside json-p3) and the Table pattern filter (once per cell).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.3",
           "title": "Measure the cost of copying a large document into a worker (37 MB and 88 MB)",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/perf/worker-copy.js on the 24 MB fixture: parse 92-137 ms; sending it to a worker 103 ms (Edge), 152 ms (Firefox), 274 ms (WebKit) on the page plus about the same in the worker (round trip 225 / 321 / 370 ms); once loaded, a later job costs 0-12 ms. Memory: one extra copy. Decision: the worker keeps the document and is told to drop it when the data changes.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.4",
           "title": "Design the worker protocol: load data once, run code, return result, cancel",
-          "status": "todo"
+          "status": "done",
+          "note": "Protocol { id, op, params } in, { id, ok, result } or { id, ok: false, error } out; ops load, evaluate, filter, regex, transform. Places in the document travel as lists of keys and are turned into paths on the page by Structra.dataPaths.child, so the worker holds no second path writer. Data is loaded once and dropped on state:jsonData, engine:data-modified, engine:active, engine:ingested and tabs:changed.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.5",
           "title": "Implement the sandbox worker (no access to the page)",
-          "status": "todo"
+          "status": "done",
+          "note": "src/workers/sandbox-worker.js and src/core/sandbox.js (Structra.sandbox). Before any user code runs the worker deletes fetch, XMLHttpRequest, WebSocket, importScripts, indexedDB, caches, navigator, Worker and others from the global object and its prototype chain; import() is refused by a text check (best effort, documented).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.6",
           "title": "Time limit and stop: the worker is ended when the limit passes",
-          "status": "todo"
+          "status": "done",
+          "note": "Each job has a time limit (5 s default); when it passes the worker is terminated, the job fails with timedOut true, and the next job starts a new worker and sends the document again. Structra.sandbox.stop() ends a running job (stopped true).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.7",
           "title": "Migrate Query panel JavaScript mode",
-          "status": "todo"
+          "status": "done",
+          "note": "structra-query.js: _queryJs and _queryRegex call Structra.sandbox; the old on-page new Function and the tryCodeInWorker pre-check are gone.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.8",
           "title": "Migrate the Filter bar expression mode and the data engine row filter",
-          "status": "todo"
+          "status": "done",
+          "note": "data-engine.js: filterByExpression sends the row test to the worker and gets the row positions back; regexSearch (Find in Pattern mode) uses sandbox.findPattern and the one result builder _setFindResult.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.9",
           "title": "Migrate Transform steps (rewrite the step runner to run inside the worker; remove the word blocklist)",
-          "status": "todo"
+          "status": "done",
+          "note": "Transform steps run in the worker (sandbox.transform); the worker loads the same src/core/transform-step-operations.js the unit tests use, so the step language exists once. The word blocklist is removed; the helpful single = check stays. The script tag is removed from index.html.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.10",
           "title": "Remove the main-thread new Function calls",
-          "status": "todo"
+          "status": "done",
+          "note": "Remaining new Function calls: only inside the worker and inside transform-step-operations.js (which runs in the worker and in unit tests); none on the page (grep verified).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.11",
           "title": "Keep the current syntax so saved queries still work; test with the existing presets",
-          "status": "todo"
+          "status": "done",
+          "note": "Syntax unchanged: expressions with a leading = still work; all existing Query, Filter, Find and inputs smoke tests pass, including the preset queries.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.12",
           "title": "Tests: infinite loop, huge result, error message, cancel, data changes while running",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/smoke/sandbox.js: ordinary jobs, locate gives real paths, syntax and function-result messages, an endless loop stopped at 1.5 s while the page keeps ticking, the next job works after a stop, catastrophic patterns stopped or finished quickly (Safari copes alone), Stop ends a running job, 16 probes of forbidden names are undefined, fetch and import() fail and a server sees no request, a document change is seen by the next job, Transform steps incl. a stuck step.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.13",
           "title": "Tests in three engines; memory check on the large fixtures",
-          "status": "todo"
+          "status": "done",
+          "note": "sandbox.js passes in Edge, Firefox and WebKit. tests/perf/sandbox-large.js on 24 MB: first job 235 / 391 / 426 ms (Edge / Firefox / WebKit), later jobs 0-14 ms, pattern over everything 234-386 ms, longest page freeze 88 / 162 / 272 ms. Edge heap 105 MB. Full Edge suite 39 of 39.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.14",
           "title": "Follow-up: allow a stricter Content-Security-Policy (task 18-D)",
-          "status": "todo"
+          "status": "done",
+          "note": "Recorded in docs/csp-study.md and the map: with user code in the worker, unsafe-eval is still needed on the page only for Ajv (JSON Schema). The stricter policy waits for the decision on Ajv 8 / precompiled validators (watch item 30.4).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.15",
           "title": "Design it as one generic shared job service: a single worker protocol any module can use (user code, patterns, transforms, later other heavy work), written once",
-          "status": "todo"
+          "status": "done",
+          "note": "Built as one service: four jobs on one protocol, one worker, one data copy, one timeout path. New heavy jobs add an operation to the worker and a method to Structra.sandbox.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "19.16",
           "title": "Document the service in DEVELOPER-GUIDE so new features use it and do not write their own",
-          "status": "todo"
+          "status": "done",
+          "note": "DEVELOPER-GUIDE: new section Running the person's own code or patterns: use Structra.sandbox (the four calls, the 5 second limit, forget(), how to add a job, the safeguard note, where it is tested).",
+          "doneOn": "2026-10-28"
         }
       ]
     },

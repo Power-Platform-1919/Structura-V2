@@ -39,11 +39,21 @@ Structra.jsonpathQuery = (() => {
     // =~ in a filter is turned into regex(@.field, 'pattern', 'flags'): the standard's match() and search() only know a small
     // pattern language (no \d, no flags), and people write ordinary JavaScript patterns
     const compiled = new Map();
+    // First pass of a query that uses =~: the function only notes each pattern and the texts it is asked about (and says "no match"),
+    // so the patterns can be tried in the sandbox before they run for real on the page
+    environment.collecting = null;
     environment.functions.regex = {
       argTypes: [VALUE_TYPE, VALUE_TYPE, VALUE_TYPE],
       returnType: LOGICAL_TYPE,
       call(value, pattern, flags) {
         if (typeof value !== 'string' || typeof pattern !== 'string') return false;
+        if (environment.collecting) {
+          const key = (typeof flags === 'string' ? flags : '') + '/' + pattern;
+          const entry = environment.collecting.get(key) || { pattern, flags: typeof flags === 'string' ? flags : '', samples: [] };
+          if (entry.samples.length < 400) entry.samples.push(value);
+          environment.collecting.set(key, entry);
+          return false;
+        }
         const key = flags + '/' + pattern;
         let expression = compiled.get(key);
         if (expression === undefined) {
@@ -106,9 +116,27 @@ Structra.jsonpathQuery = (() => {
 
   const toMatches = (nodes) => nodes.map((node) => ({ path: pathOf(node.location), value: node.value }));
 
+  /** Try every =~ pattern of the query on the longest real texts it will meet, in the sandbox, before running it on the page */
+  async function probePatterns(engine, prepared, data) {
+    engine.collecting = new Map();
+    let entries;
+    try {
+      try { engine.find(prepared.index, data); } catch { /* the real run reports query errors */ }
+      entries = [...engine.collecting.values()];
+    } finally { engine.collecting = null; }
+    for (const entry of entries) {
+      try { await Structra.sandbox.probePattern(entry.pattern, entry.flags, Structra.sandbox.pickSamples(entry.samples)); }
+      catch (error) {
+        if (error.timedOut) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
+        // Not a valid pattern, or no worker available: the real run below handles these as before
+      }
+    }
+  }
+
   async function query(data, expression) {
     const engine = await load();
     const prepared = prepare(expression);
+    if (prepared.changed && /\bregex\(/.test(prepared.index)) await probePatterns(engine, prepared, data);
     try {
       let found = toMatches(engine.find(prepared.index, data));
       if (!found.length && prepared.key) found = toMatches(engine.find(prepared.key, data));

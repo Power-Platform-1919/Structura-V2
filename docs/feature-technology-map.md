@@ -296,7 +296,7 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Function | Built with | Origin | Depends on | Used by | Plan |
 |---|---|---|---|---|---|
 | Structured conditions (column, operator, value, AND or OR) | DuckDB, JavaScript fallback | Own + library | dataEngine | canvas header, Ctrl+Shift+F; every view reads the result (`engine:filter-changed`: Tree, Table, Graph) | KEEP |
-| Other modes: JSONPath, pattern, JavaScript expression | json-p3, `RegExp`, `new Function` | Own + library | jsonpathQuery, dataEngine | Filter | FIX the JavaScript mode (3.8) |
+| Other modes: JSONPath, pattern, JavaScript expression | json-p3, `RegExp` and `new Function` in the sandbox worker | Own + library | jsonpathQuery, dataEngine, sandbox | Filter | DONE 2026-10-28: pattern and JavaScript run in the sandbox (3.8) |
 
 #### Query panel: `<structra-query>` (722 lines)
 
@@ -305,10 +305,10 @@ Every component is built on one small base class, `StructraComponent` (own, 94 l
 | Path query (our own syntax) | `dataPaths` | Own | dataPaths | rail "Query and Transform" | KEEP |
 | JSONPath query | json-p3 | Library + own adapter | jsonpathQuery | Query panel | DONE (PR #7) |
 | Pattern query | `RegExp` with a freeze check | Browser + own | | Query panel | KEEP |
-| JavaScript query | `new Function`, tried first in a worker with a time limit | Own + browser | sharedHelpers (`tryCodeInWorker`) | Query panel | FIX (3.8) |
+| JavaScript query | `new Function` in the sandbox worker (`Structra.sandbox.evaluate`) | Own + browser | sandbox | Query panel | DONE 2026-10-28 (3.8): time limit, no page, no network; the old pre-check in `sharedHelpers.tryCodeInWorker` is removed |
 | SQL: editor with suggestions, history, run, export CSV | CodeMirror editor, DuckDB | Library + own | codeView, dataEngine | Query panel | KEEP; DuckDB upgrade WATCH (3.7) |
 | Results list: show in the Tree, copy Power Automate or Power Fx expression, copy or open all matches in a tab | own | Own | powerPlatformExpressions, jsonTreeRenderer | Query panel | KEEP |
-| Transform: presets and steps (`map`, `filter`, `groupBy`, `sum` ...) | own registry of patterns, `new Function` behind a word blocklist | Own + browser | transformStepOperations | Query panel | FIX (3.8) |
+| Transform: presets and steps (`map`, `filter`, `groupBy`, `sum` ...) | own registry of patterns, run in the sandbox worker (`Structra.sandbox.transform`) | Own + browser | transformStepOperations, sandbox | Query panel | DONE 2026-10-28 (3.8): the word blocklist is gone, the sandbox is the protection |
 | Open Pivot | event `pivot:open` | Own | | Query panel | KEEP |
 
 #### Null finder: `<structra-nullfinder>`
@@ -418,13 +418,15 @@ The counts are taken from the code: how many files call the module.
 | `undoStack` | undo per tab | own snapshots | Own | command, diff, editor, find, workspace | later (3.11) |
 | `bookmarks`, `pathHistory` | saved paths, back and forward | localStorage | Own | bookmarks: command, context, header, tree; history: command, header | KEEP |
 | `formatConversion`, `shareLink`, `imageCapture` | export, share, PNG | PapaParse, js-yaml, CompressionStream, html2canvas | Own + library + browser | command | see 3.10 |
-| `transformStepOperations` | Transform steps | own, `new Function` | Own | query | FIX (3.8) |
+| `transformStepOperations` | Transform steps | own; loaded by the sandbox worker and by the unit tests, not by the page | Own | sandbox worker | KEEP |
 | `themeEngine` | themes | own, CSS `color-mix()` | Own + browser | header, theme, welcome, workspace | KEEP |
 | `appSettings`, `safeStorage`, `browserDatabase` | settings, storage fallbacks, IndexedDB | localStorage, IndexedDB | Own + browser | data engine, input panel, logger, settings, table | KEEP |
 | `workerPool` and the parse workers | CSV, XML, YAML, TOML parsing off the main thread | own pool, PapaParse, DOMParser, js-yaml, toml | Own + library | input panel | FIX: cache (3.14) |
 | `libraryLoader` | load libraries on first use | own | Own | code view, DuckDB, diff, repair, JSONPath, share, table | KEEP |
 | `rowWindow` (`row-window.js`) | the one door to virtual-core: which rows are on screen, total height, scroll to a row | own wrapper | Own + library | table | KEEP (rule 3, one door per library) |
 | `errorReporter` (`error-reporter.js`) | catches uncaught errors and unhandled promise rejections, keeps the last 20, shows one short message with a "Copy a bug report" button, builds a bug report with no document data | own | Own | whole app, worker pool, command palette | KEEP (task 18.4; the planned GitHub issue button is task 28) |
+| `sandbox` (`sandbox.js`) | the one place the person's own code and patterns run: JavaScript, filter expressions, Transform steps, patterns. Sends jobs to the sandbox worker, keeps one copy of the document there, ends the worker at the time limit | own | Own | Query panel, Filter, Find (Pattern), data engine | KEEP (task 19; written once, rule 4) |
+| `sandbox-worker` (`src/workers/sandbox-worker.js`) | the worker: protocol `{ id, op, params }`, operations load, evaluate, filter, regex, transform; network, storage and nested workers are removed before any user code runs | own | Own | sandbox | KEEP (task 19) |
 | `StructraComponent`, `StructraDialog`, `Structra.events`, `Structra.state`, `Structra.log`, `panelResizer` | base classes, event bus, state, logger, resizer | own | Own | all components | FIX (3.14), dialogs 3.4 |
 
 ### 2.8 How much is hand-written?
@@ -515,13 +517,17 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Cons:** 35 MB to re-vendor, SQL behavior differences, a big test pass.
 - **Your decision (Q19):** if it improves performance, upgrade; otherwise wait. **Plan:** benchmark the current engine against the newest available (load time, query time on 100,000 rows, memory, download size), decide by the numbers, and re-check the persistence claim now (task 22.2).
 
-### 3.8 User-written code: run it in one sandboxed worker (proposed) [task 19]
+### 3.8 User-written code: run it in one sandboxed worker (BUILT 2026-10-28 except two guards, see below) [task 19]
 
 - **Reason:** `new Function` runs user-typed JavaScript in four places (Query panel JavaScript mode, the row filter in the data engine, Transform steps, the engine worker). The Query panel tries the code in a worker first, then runs it again on the main thread. Transform blocks words like `constructor` with a regular expression, which is easy to get around. The user is running their own code, so this is not a break-in. It is a risk when someone pastes an expression from somewhere else, and it can still freeze the page if the second run behaves differently.
 - **Plan (approved, Q6):** one worker runs all user code (no access to the page), keeps the data inside, is stopped when the time limit passes. Keep the current syntax. **Shared architecture (your point):** it is built as one generic job service with a single worker protocol that any module can use (user code, patterns, transforms, later other heavy work), written once, and documented so new features use it and do not write their own.
 - **Pros:** safer; the page can never freeze; one mechanism instead of four.
 - **Cons:** the data is copied into the worker (memory for very large files); results come back as copies; Transform steps must be reworked to run there.
 - **Also considered:** JSONata (MIT, about 25 KB gzipped) or jq compiled to WebAssembly as safer expression languages. The research found nothing on how either handles untrusted expressions, and they would change the language users write, so this is an addition for later, not a replacement.
+
+- **What was built:** `Structra.sandbox` (`src/core/sandbox.js`) and `src/workers/sandbox-worker.js`. One protocol (`{ id, op, params }`), four jobs: evaluate (JavaScript), filter (row expression), regex (pattern over the document), transform (steps). The document is copied in once (24 MB: about a quarter of a second, then 0 to 12 ms per job) and dropped when the data changes. A job that runs past its limit (5 seconds) ends the worker; the next job starts it again. Network, storage, nested workers and the page are not reachable (`tests/smoke/sandbox.js` counts the requests a server sees: none). It is a safeguard against accidents and the usual ways code leaks data, not a wall against a determined attacker (for instance `import()` is refused by a text check only).
+- **Moved onto it:** Query panel JavaScript and pattern modes, the Filter bar expression, Find in Pattern mode, Transform steps. Removed: `sharedHelpers.tryCodeInWorker`, the Transform word blocklist, the unused engine worker (archived).
+- **Tried in the sandbox first, then run on the page:** the pattern test inside JSONPath (`=~`) and the Table's pattern and wildcard filters (18.3.7, 18.3.8).
 
 ### 3.9 TOML: 4.1.1 to 5.0.1 (proposed, small) [task 21.2]
 
@@ -594,6 +600,11 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Reason:** the guard `isRiskyRegex` is a heuristic. Against ten well-known catastrophic patterns it caught 8 and missed `(a|aa)+$` and `^(([a-z])+.)+[A-Z]([a-z])+$`. A pattern that gets through freezes the page: it runs on the main thread in Find (Pattern mode), the Filter bar, the Query panel and the JSONPath `=~` test.
 - **Plan:** run user patterns in the sandbox worker from 3.8 (a time limit, then the worker is stopped). A ReDoS analyzer library (such as `recheck`) could add an early warning; it is optional.
 - **Pros:** the page can never freeze, whatever the pattern. **Cons:** matching a very large document means copying it into the worker (the same cost as 3.8).
+
+- **Built 2026-10-28:** patterns in Find (Pattern mode) and in the Query panel now run in the sandbox worker with a 5 second limit; a stopped pattern says so in plain words ("Pattern too slow" in the Find bar). Firefox gives up on a runaway pattern with "too much recursion"; the service treats that the same way. Safari finishes the classic ones fast on its own.
+- **The quick check stays** (`isRiskyRegex`, instant message): 10 of 15 known slow patterns are caught; the 5 it misses are stopped by the sandbox (`tests/unit/regex-guard.test.js` records both lists).
+- **Analyzers evaluated (18.3.5):** redos-detector 6.1.4 caught all 15 but flagged `a.*b` and `id=\d+&` as risky and took 4.7 s for 29 patterns (880 KB): too slow and too noisy to run while typing. safe-regex2 5.1.2 caught 13 of 15, no false alarms, 1 ms: a fair early warning but a new dependency for little gain once the sandbox is the net. **Decision: not added.** Revisit if the plain message for the 5 missed patterns matters to people.
+- **Patterns that must test once per value on the page** (JSONPath `=~`, the Table pattern and wildcard filter) are tried first in the sandbox on the longest real texts (`Structra.sandbox.probePattern`, 1.5 s) and refused with the plain message if slow (18.3.7, 18.3.8, DONE 2026-10-28). The probe uses real data but cannot prove a pattern safe for every possible text; it catches the usual cases.
 
 ### 3.20 Cleanup and hardening (proposed) [task 18.4] (DONE 2026-10-28 except the sandbox-dependent parts; see task 18.4. CSP study: [csp-study.md](csp-study.md); third-party list: [THIRD-PARTY.md](../THIRD-PARTY.md); archive: [archive/README.md](../archive/README.md))
 
