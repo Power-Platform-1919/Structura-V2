@@ -1,3 +1,4 @@
+/* global uFuzzy */
 /* ============================================================
    STRUCTRA V2 - Data Engine
    Unified query API managing named datasets (one per tab).
@@ -1798,33 +1799,23 @@ Structra.dataEngine = (() => {
   /* ============================ */
 
   /**
-   * Fuzzy search across all VARCHAR columns using jaro_winkler_similarity.
+   * Fuzzy search: every text and number value that holds the search text, or a word spelled close to it (a letter left out, added, changed,
+   * two swapped), and several words in the same order. The matching is uFuzzy (src/libs/ufuzzy); on 50,000 values it finds 99.5% of the right
+   * values with 99% of what it returns right, in 3 ms, where our earlier Jaro-Winkler search took 75 ms and at its best setting found 98.5%
+   * with 99.5% right (tests/perf/fuzzy-compare.js, map 8.10).
    * @param {string} text - search text
-   * @param {number} threshold - minimum similarity (0-1), default 0.8
-   * @returns {Promise<Array>}
+   * @returns {Promise<{ total: number, matchedPaths: string[] }>}
    */
-  async function fuzzySearch(text, threshold = 0.8) {
+  let _fuzzyFinder = null;
+  async function fuzzySearch(text) {
     const dataset = getActive();
     if (!dataset) return { total: 0, matchedPaths: [] };
     _latestFind++;
-    const want = String(text).toLowerCase();
-    const near = new Set();
-    // Every text value is compared; one that contains the search text, or is spelled close to it, matches
-    const seen = new Map();
-    const matches = (candidate) => {
-      const text = String(candidate).toLowerCase();
-      if (seen.has(text)) return seen.get(text);
-      let match = text.includes(want);
-      if (!match && text.length <= 200 && Math.abs(text.length - want.length) <= Math.max(3, want.length)) match = _jaroWinkler(text, want) >= threshold;
-      if (!match && text.length > want.length && text.length <= 200) {
-        // a short search against a longer value: compare with each word
-        match = text.split(/[\s,;:@./_-]+/).some((part) => part.length > 1 && Math.abs(part.length - want.length) <= 3 && _jaroWinkler(part, want) >= threshold);
-      }
-      seen.set(text, match);
-      return match;
-    };
+    if (_fuzzyFinder === null) _fuzzyFinder = typeof uFuzzy === 'function' ? new uFuzzy({ intraMode: 1 }) : false;
+    const want = String(text).toLowerCase().trim();
+    const texts = [];
+    const paths = [];
     const stack = [{ val: dataset.raw, path: '$' }];
-    const matched = [];
     while (stack.length) {
       const { val: value, path } = stack.pop();
       if (!value || typeof value !== 'object') continue;
@@ -1832,33 +1823,20 @@ Structra.dataEngine = (() => {
       for (const [key, item] of entries) {
         const child = Structra.dataPaths.child(path, Array.isArray(value) ? Number(key) : key);
         if (item !== null && typeof item === 'object') stack.push({ val: item, path: child });
-        else if (item !== null && item !== undefined && typeof item !== 'boolean' && matches(item)) matched.push(child);
+        else if (item !== null && item !== undefined && typeof item !== 'boolean') { texts.push(String(item)); paths.push(child); }
       }
     }
-    near.clear();
-    return _setFindResult(dataset, text, matched);
-  }
-
-  /** Jaro-Winkler similarity, 0 to 1: how alike two spellings are */
-  function _jaroWinkler(first, second) {
-    if (first === second) return 1;
-    const firstLength = first.length, secondLength = second.length;
-    if (!firstLength || !secondLength) return 0;
-    const range = Math.max(0, Math.floor(Math.max(firstLength, secondLength) / 2) - 1);
-    const firstMatched = new Array(firstLength).fill(false), secondMatched = new Array(secondLength).fill(false);
-    let matches = 0;
-    for (let i = 0; i < firstLength; i++) {
-      for (let j = Math.max(0, i - range); j < Math.min(secondLength, i + range + 1); j++) {
-        if (!secondMatched[j] && first[i] === second[j]) { firstMatched[i] = secondMatched[j] = true; matches++; break; }
+    let positions = [];
+    if (want) {
+      if (_fuzzyFinder) {
+        // (the third argument of filter is a list of positions to look in, not the word order)
+        positions = _fuzzyFinder.filter(texts, want) || [];
+      } else {
+        // without the library: values that contain the text
+        texts.forEach((value, i) => { if (value.toLowerCase().includes(want)) positions.push(i); });
       }
     }
-    if (!matches) return 0;
-    let transpositions = 0, pointer = 0;
-    for (let i = 0; i < firstLength; i++) if (firstMatched[i]) { while (!secondMatched[pointer]) pointer++; if (first[i] !== second[pointer]) transpositions++; pointer++; }
-    const jaro = (matches / firstLength + matches / secondLength + (matches - transpositions / 2) / matches) / 3;
-    let prefix = 0;
-    while (prefix < Math.min(4, firstLength, secondLength) && first[prefix] === second[prefix]) prefix++;
-    return jaro + prefix * 0.1 * (1 - jaro);
+    return _setFindResult(dataset, text, positions.map((at) => paths[at]));
   }
 
   /**

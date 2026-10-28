@@ -4393,22 +4393,28 @@
         {
           "id": "23.9",
           "title": "Fuzzy search: compare recall and speed with uFuzzy and Fuse on typos",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.9.1",
               "title": "Build a typo test set",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/perf/fuzzy-compare.js builds 50,000 values from fixture words and common business words and 200 questions with one typo (letter left out, added, changed, two swapped); the right answer is every value with a word within one edit, found by checking all",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.9.2",
               "title": "Compare",
-              "status": "todo"
+              "status": "done",
+              "note": "Measured (map 8.10): our Jaro-Winkler 0.8 finds 100% but 19% of what it shows is wrong, 75 ms; at 0.9 98.5% found, 99.5% right, 84 ms; uFuzzy 99.5% found, 99% right, 3 ms; Fuse 7.5.0 at best 98% found with 69% right, 70 to 110 ms",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.9.3",
               "title": "Tune the threshold or keep",
-              "status": "todo"
+              "status": "done",
+              "note": "Replaced: dataEngine.fuzzySearch now uses uFuzzy (already shipped for the palette), our Jaro-Winkler code removed; 13 ms per question over 50,000 values through the engine; tests/unit/fuzzy-find.test.js (7) and the Fuzzy checks in the inputs smoke test pass in Edge, Firefox, WebKit",
+              "doneOn": "2026-10-28"
             }
           ]
         },
