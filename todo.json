@@ -4771,7 +4771,9 @@
         {
           "id": "31.9",
           "title": "Diff: jsondiffpatch test cases through Compare (changed, added, removed, moved, array moves)",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/json-patch-roundtrip.test.js: fast-json-patch 3.1.1 (new dev dependency, MIT) applies the JSON Patch that Compare exports, on every pair of the valid JSONTestSuite documents: 16,129 pairs with our position-mode patch and 2,305 pairs in smart mode (jsondiffpatch): all give the right document, none refused. Also: equal documents give an empty patch, the left document is unchanged, ~ and / are escaped as ~0 and ~1. No bug found.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.10",
