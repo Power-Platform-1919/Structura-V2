@@ -4597,27 +4597,37 @@
         {
           "id": "24.1",
           "title": "Contract test for the Ajv adapter",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/seams.test.js: the Ajv adapter's answer is { valid, errors: [{ path, message, keyword }], note }; paths relative to the document (root empty) and quoted the way the app writes them; all errors collected; unknown formats ignored; an older $schema checked as draft-07 with a note; an invalid schema throws; an enum names its allowed values; inherited names cannot satisfy required",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "24.2",
           "title": "Contract test for the jsondiffpatch adapter",
-          "status": "todo"
+          "status": "done",
+          "note": "seams.test.js: the compare adapter's answer is { changes: [{ type added/removed/changed/moved, leftPath, rightPath }] } and patchOps gives JSON Patch operations; equal documents have no changes; neither document is changed (json-diff.test.js and json-patch-roundtrip.test.js hold the rest)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "24.3",
           "title": "Contract test for the share link (size limits, base64url, gzip)",
-          "status": "todo"
+          "status": "done",
+          "note": "seams.test.js: the share link is #share=g.<base64url> with only A-Z a-z 0-9 - _; round trip of quotes, line breaks, emoji and names; too large refused with a message; plain p. form without CompressionStream; damaged and non-gzip hashes throw; a 25 MB compressed bomb is refused; clearHash",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "24.4",
           "title": "Contract tests for the parse workers (CSV, XML, YAML, TOML)",
-          "status": "todo"
+          "status": "done",
+          "note": "The parse workers are held by the official suites that run the real workers: csv-spectrum (12 files), yaml-test-suite (402), toml-test (717) and the XML tests (xml-conformance, xml-mapping; XML is read on the page by xml-io, there is no XML worker); their answer shape is { id, success, data | error }",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "24.5",
           "title": "Test that freezes the document and runs every library path: nothing may change it",
-          "status": "todo"
+          "status": "done",
+          "note": "seams.test.js: 14 library paths (validate, schema generator smart and basic, masking, scan, type generators for 8 languages, XML, CSV, analysis, insights, compare, undo, JSONPath, paths) run on 3 documents, each deep frozen and plain; answers must be identical and the document unchanged; no path writes to its input (62 tests pass)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "24.6",
@@ -4627,12 +4637,16 @@
         {
           "id": "24.7",
           "title": "Upgrade checklist written in DEVELOPER-GUIDE: re-run the oracle, three browsers, offline test, THIRD-PARTY.md",
-          "status": "todo"
+          "status": "done",
+          "note": "DEVELOPER-GUIDE section 9a: the 9-step checklist for upgrading or adding a library (oracle first, seam tests, three browsers, offline and budget tests, the lists, a pull request, archive the old file, stop if numbers get worse)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "24.8",
           "title": "Memory check added to the large-file test (two copies of a big document)",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/smoke/memory-budget.js (Chromium only, it reports the page memory): a 100,000-record document (11 MB of text) adds about 24 MB beyond itself with a forced collection and about 48 MB without; limits 5 times the text plus 40 MB for opening and the text plus 20 MB for each view; Firefox and WebKit skip it (map 8.8 has their browser memory)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "24.9",
