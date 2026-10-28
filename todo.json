@@ -4370,8 +4370,8 @@
             {
               "id": "23.8.1",
               "title": "Collect real flows from you",
-              "status": "blocked",
-              "note": "waiting for you (D2)"
+              "status": "todo",
+              "note": "Collect real flows with the Power Automate plugin: the certificate problem is fixed (29.12), so after a restart of Claude Code list_flows and get_flow can read your developer environments (read-only) and the shapes go into synthetic fixtures"
             },
             {
               "id": "23.8.2",
@@ -4715,56 +4715,70 @@
     {
       "id": "26",
       "title": "Process: branches, pull requests, releases, CI",
-      "status": "todo",
+      "status": "in_progress",
       "brief": "Nothing is merged or promoted to test or prod unless you say so.",
       "subtasks": [
         {
           "id": "26.1",
           "title": "Merge order: #6 into dev, then #7, then the Table pull request",
-          "status": "todo"
+          "status": "done",
+          "note": "Done: #6, #7 and the Table pull request were merged into dev in that order, each after CI was green",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.2",
           "title": "After #6 merges, retarget #7 and the Table pull request to dev",
-          "status": "todo",
-          "note": "after the first merge"
+          "status": "done",
+          "note": "Done: #7 and the Table pull request were retargeted to dev after #6 merged, then merged",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.3",
           "title": "Promote dev to test and prod only when you say so",
-          "status": "blocked",
-          "note": "waiting for you each time (Q16)"
+          "status": "todo",
+          "note": "Your plan (2026-10-28): finish the development tasks first, then promote dev to test, then test to prod, each only when you say so"
         },
         {
           "id": "26.4",
           "title": "CI: make the Firefox and WebKit job blocking, or keep it optional",
-          "status": "blocked",
-          "note": "optional until tuned (Q15)"
+          "status": "done",
+          "note": "Done at your word (2026-10-28): branch protection on dev now requires all six CI jobs, including Firefox and WebKit, before a pull request merges (no review requirement; admins can still override)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.5",
           "title": "CI: measure the time of every job on GitHub; cache apt packages for WebKit; try fewer shards",
-          "status": "todo"
+          "status": "done",
+          "note": "Measured on the last green run (2026-10-28): lint and unit 27 s, generated types compile 33 s, Chromium browser tests 206 s, Firefox 267 s, WebKit 290 s, UI audit 130 s; the jobs run side by side, so a pull request is checked in about 5 minutes. The Playwright image already has the WebKit packages, so there is nothing to cache; the shard count is already 8 browsers at a time",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.6",
           "title": "CI: UI audit takes about 10 minutes on GitHub; look for savings",
-          "status": "todo"
+          "status": "done",
+          "note": "Measured: the UI audit takes 130 s on GitHub (it was about 10 minutes before the audit scripts ran 5 at a time in one browser), so no further saving is needed",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.7",
           "title": "Each change: lint, unit, browser tests, UI audit, three engines before the pull request",
-          "status": "todo"
+          "status": "done",
+          "note": "Written in DEVELOPER-GUIDE sections 9 and 9a and followed for each pull request: lint, unit tests, Edge browser tests, UI audit, then Firefox and WebKit, before the pull request",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.8",
           "title": "Merge PR #6 into dev after CI is green (Q7)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done: #6 merged into dev with CI green (Q7)",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "26.9",
           "title": "Retarget PR #7 to dev, wait for CI, merge (Q7)",
-          "status": "todo"
+          "status": "done",
+          "note": "Done: #7 retargeted to dev and merged with CI green (Q7)",
+          "doneOn": "2026-10-28"
         }
       ]
     },
@@ -4913,7 +4927,7 @@
     {
       "id": "29",
       "title": "Real Power Platform data through the installed tools (D1 and D2)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Done with your permission: read-only, your own developer environments only, nothing stored in the repository. Results: map section 8.6.",
       "subtasks": [
         {
@@ -4996,15 +5010,16 @@
         {
           "id": "29.12",
           "title": "Optional: ask IT for the company CA bundle (NODE_EXTRA_CA_CERTS) so the plugin itself can list flows",
-          "status": "todo",
-          "note": "optional"
+          "status": "done",
+          "note": "Done without IT: the plugin's TLS failure (UNABLE_TO_GET_ISSUER_CERT_LOCALLY on the Power Platform API host) comes from the Zscaler web security proxy, whose chain ends at American Airlines Production Root CA (thumbprint 16DF2D68...), already trusted by Windows. That one public root was exported to C:\\Users\\228295\\.claude\\certs\\american-airlines-production-root-ca.pem (outside the repository) and NODE_EXTRA_CA_CERTS was set for the user account. Proved with a Node TLS handshake: fails without it, validates with it; no certificate check was turned off. Needs a restart of Claude Code to reach the plugin",
+          "doneOn": "2026-10-28"
         }
       ]
     },
     {
       "id": "30",
       "title": "Watch list: revisit when a reason appears",
-      "status": "blocked",
+      "status": "todo",
       "brief": "Things we decided not to do now, and what would make us do them.",
       "subtasks": [
         {
@@ -5034,8 +5049,8 @@
         {
           "id": "30.5",
           "title": "Offline install: if you want it (Q18)",
-          "status": "blocked",
-          "note": "Q18: no for now; optional later"
+          "status": "todo",
+          "note": "Offline install: effort estimated at 3 to 4 working days for a careful result (about 1.5 for a minimal one), details in QUESTIONS.md under Q18; waiting for your go"
         },
         {
           "id": "30.6",

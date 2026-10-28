@@ -193,6 +193,15 @@ Every library is used through one module of ours (map, section 8.5). To upgrade 
 8. **Open a pull request into `dev`**; the same checks run in CI. Move the old file to `archive/` with a row in its README, never delete it in the same change.
 9. If the numbers get worse (speed, size, memory, a suite count), **stop and write it down** instead of upgrading: the watch list (task 30) says when to look again.
 
+## 9d. Tools that say "unable to get local issuer certificate" behind a company proxy
+
+A web-security proxy (Zscaler at work) re-signs HTTPS with the company's own root certificate. Windows and the browsers trust it; Node.js (Claude Code plugins, npm tools) keeps its own list and does not, so it stops with `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`. **Never turn certificate checking off.** Add the one root instead:
+1. See which chain is presented (PowerShell: open an SslStream to the host and list the chain elements; the last certificate is the root).
+2. Export that root, which is a public certificate, as PEM to a folder outside the repository (`%USERPROFILE%\.claude\certs\`). Do not commit it.
+3. Set `NODE_EXTRA_CA_CERTS` to the PEM file for the user account and restart the tool.
+4. Prove it: a Node `tls.connect` to the host fails without the variable and validates with it.
+Done once on 2026-10-28 for the Power Automate plugin (task 29.12).
+
 ## 9c. Problem reports from people
 
 **How a report reaches us.** In the app: Ctrl+K, "Report a problem on GitHub". The browser opens GitHub's new-issue page with a report filled in (version, browser, window size, the open view, the last errors; never the document, a value, a key or the file name: `tests/unit/issue-report.test.js` fails if it ever does). The person reads it, adds the steps, and presses the button themselves. The app sends nothing and needs no token. Issues carry the labels `bug` and `from-app`. The template for people who open Issues directly is `.github/ISSUE_TEMPLATE/bug_report.md`.
