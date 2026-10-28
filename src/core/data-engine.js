@@ -926,7 +926,7 @@ Structra.dataEngine = (() => {
   /** Store query result and notify views */
   function _setActiveQuery(result) {
     // Every find (text, key, path, pattern, fuzzy) ends here, so Next and Previous always walk the matches in document order
-    if (Array.isArray(result.matchedPaths)) result.matchedPaths = _inDocumentOrder(result.matchedPaths);
+    if (Array.isArray(result.matchedPaths)) { const dataset = getActive(); result.matchedPaths = _inDocumentOrder(result.matchedPaths, dataset ? dataset.raw : undefined); }
     _activeFilter = result;
     Structra.events.emit('engine:filter-changed', result);
   }
@@ -1034,28 +1034,26 @@ Structra.dataEngine = (() => {
     if (!dataset || !_canUseDuck(dataset)) return [];
     const tableName = _tableOf(dataset);
 
-    // Convert dot path to DuckDB json_extract path: address.city → $.address.city
-    const jsonPath = path.startsWith('$') ? path : '$.' + path;
+    // The path is read by Structra.dataPaths and written again as a DuckDB JSON path with quoted keys ($."a.b"[0]), so a key with a
+    // dot, a bracket or a quote works, and a quote cannot end the SQL string.
+    const tokens = Structra.dataPaths.tokenize(path);
+    const jsonPath = '$' + tokens.map((token) => (token.type === 'key' ? '."' + token.value.replace(/"/g, '\\"') + '"' : '[' + (token.type === 'wildcard' ? '*' : token.value) + ']')).join('');
+    const sqlText = (text) => "'" + text.replace(/'/g, "''") + "'";
 
     try {
-      // First try struct access (DuckDB auto-creates STRUCT columns from nested JSON)
-      // If the path is a direct column or nested struct, struct access is faster
+      // A plain top-level column: DuckDB made it a column of its own, so it is read directly (faster)
       const columns = _getDuckColumnNames(dataset);
-      const topKey = path.split('.')[0].split('[')[0];
-
-      if (columns.includes(topKey)) {
-        // Column exists - use struct access for nested or direct select
-        const sqlPath = path.replace(/\[(\d+)\]/g, '[$1+1]'); // DuckDB uses 1-based list indexing
-        const sql = `SELECT "${sqlPath}" AS value FROM "${tableName}" WHERE "${sqlPath}" IS NOT NULL`;
+      if (tokens.length === 1 && tokens[0].type === 'key' && columns.includes(tokens[0].value)) {
+        const column = '"' + tokens[0].value.replace(/"/g, '""') + '"';
         try {
-          return await Structra.duckdbAdapter.query(sql);
+          return await Structra.duckdbAdapter.query(`SELECT ${column} AS value FROM "${tableName}" WHERE ${column} IS NOT NULL`);
         } catch {
-          // Struct access failed - fall through to json_extract
+          // Direct access failed - fall through to json_extract
         }
       }
 
-      // Fallback: json_extract on each column
-      const sql = `SELECT json_extract_string(CAST(ROW(*) AS JSON), '${jsonPath}') AS value FROM "${tableName}"`;
+      // Everything else: json_extract on each row
+      const sql = `SELECT json_extract_string(CAST(ROW(*) AS JSON), ${sqlText(jsonPath)}) AS value FROM "${tableName}"`;
       return await Structra.duckdbAdapter.query(sql);
     } catch (error) {
       Structra.log.warn('Engine', `jsonExtract("${path}") failed: ${error.message}`);
@@ -1870,19 +1868,35 @@ Structra.dataEngine = (() => {
   }
 
   /**
-   * Matches in the order they appear in the document: [2] before [10], not after it. Next and Previous walk this list, so the
-   * order it comes in (from the database, or from a search that ran in pieces) must not decide where Next goes first.
+   * Matches in the order they appear in the document: [2] before [10], and a key before the keys after it in the same object.
+   * Next and Previous walk this list, so the order it comes in (from the database, or from a search that ran in pieces) must
+   * not decide where Next goes first. Each path becomes a list of positions (list position, or the place of the key inside
+   * its object) and the lists are compared; the first position that differs decides.
    */
-  function _inDocumentOrder(paths) {
-    const keyed = paths.map((path) => ({ path, parts: path.split(/\[(\d+)\]/) }));   // text, number, text, number ...
-    keyed.sort((a, b) => {
-      const length = Math.min(a.parts.length, b.parts.length);
-      for (let i = 0; i < length; i++) {
-        if (a.parts[i] === b.parts[i]) continue;
-        if (i % 2) return Number(a.parts[i]) - Number(b.parts[i]);
-        return a.parts[i] < b.parts[i] ? -1 : 1;
+  function _inDocumentOrder(paths, root) {
+    const places = new WeakMap();    // object -> Map(key -> its place), built once per object that a path goes through
+    const placeOf = (object, key) => {
+      let map = places.get(object);
+      if (!map) { map = new Map(); Object.keys(object).forEach((name, index) => map.set(name, index)); places.set(object, map); }
+      return map.has(key) ? map.get(key) : Infinity;
+    };
+    const vectorOf = (path) => {
+      const vector = [];
+      let node = root;
+      for (const token of Structra.dataPaths.tokenize(path)) {
+        if (token.type === 'index') { vector.push(token.value); node = node === null || node === undefined ? undefined : node[token.value]; continue; }
+        if (token.type !== 'key') { vector.push(0); continue; }
+        if (node === null || typeof node !== 'object') { vector.push(Infinity); node = undefined; continue; }
+        vector.push(placeOf(node, token.value));
+        node = node[token.value];
       }
-      return a.parts.length - b.parts.length;
+      return vector;
+    };
+    const keyed = paths.map((path) => ({ path, vector: vectorOf(path) }));
+    keyed.sort((first, second) => {
+      const length = Math.min(first.vector.length, second.vector.length);
+      for (let i = 0; i < length; i++) if (first.vector[i] !== second.vector[i]) return first.vector[i] < second.vector[i] ? -1 : 1;
+      return first.vector.length - second.vector.length;
     });
     return keyed.map((item) => item.path);
   }

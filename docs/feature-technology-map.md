@@ -443,7 +443,7 @@ By code volume it is the other way round. Our own JavaScript is about 1.0 MB (ab
 
 Read it as: most of the app is our own code around the browser's features. The libraries sit behind a handful of modules (`codeView`, `dataEngine` and DuckDB, `jsonDiff`, `jsonRepairAndValidation`, `icons`, the parse workers). The things nothing else could provide are the Power Platform expressions, the Parse JSON schema generator, the Overview insights, the path model and the way all views follow one selected path.
 
-### 2.9 Where the path of a value is written (one idea, six rules)
+### 2.9 Where the path of a value is written (one idea, six rules; FIXED 2026-10-28: one writer, Structra.dataPaths.child)
 
 The path ("which value is this") is the center of the app, and it is written by hand in at least 16 places. They do not agree. A path written by one place cannot always be read back by another.
 

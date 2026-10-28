@@ -264,7 +264,7 @@ class StructraOverview extends StructraComponent {
   _groupArraysBySchema(arraysDetail) {
     const map = new Map();
     for (const list of arraysDetail) {
-      const schema = list.path.replace(/\[\d+\]/g, '[*]');
+      const schema = Structra.dataPaths.toPattern(list.path);
       if (!map.has(schema)) {
         map.set(schema, { path: schema, occurrences: 0, totalItems: 0, min: Infinity, max: 0, types: {} });
       }

@@ -14,6 +14,7 @@
 
    API:
      Structra.dataPaths.child(path, key)     → the path of a child: a text key, or a number (array position)
+     Structra.dataPaths.toPattern(path)      → the path with list positions replaced: value[3].a → value[*].a
      Structra.dataPaths.tokenize(path)       → [{type:'key'|'index'|'wildcard', value}]
      Structra.dataPaths.resolve(data, path)  → value, or undefined when missing
      Structra.dataPaths.setNested(data, path, value) → assign in place, true when set
@@ -97,6 +98,18 @@ Structra.dataPaths = (() => {
       i = end;
     }
     return tokens;
+  }
+
+  /** The same path with every list position replaced: value[3].Tags[0] → value[*].Tags[*]. A key that looks like a position, ["a[0]"], is left alone. */
+  function toPattern(path, marker = '[*]') {
+    let out = /^\$(?=\.|\[|$)/.test(String(path)) ? '$' : '';
+    for (const token of tokenize(path)) out = token.type === 'key' ? child(out, token.value) : `${out}${marker}`;
+    return out;
+  }
+
+  /** The key names of a path, as a list: value[0].Title → ['value', 'Title'] (list positions left out) */
+  function keysOf(path) {
+    return tokenize(path).filter((token) => token.type === 'key').map((token) => token.value);
   }
 
   function _walk(node, tokens, at) {
@@ -233,5 +246,5 @@ Structra.dataPaths = (() => {
     return cleanPath.startsWith('[') ? '$' + cleanPath : '$.' + cleanPath;
   }
 
-  return { child, tokenize, resolve, setNested, strip, lastKey, canonical, powerAutomate, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
+  return { child, toPattern, keysOf, tokenize, resolve, setNested, strip, lastKey, canonical, powerAutomate, powerFx, splitAtItem, powerAutomateInLoop, powerAutomateInItem, powerFxInRecord };
 })();

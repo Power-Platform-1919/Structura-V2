@@ -99,3 +99,16 @@ test('splitAtItem keeps odd keys in the list path', () => {
   eq(at.listPath, 'd["@odata.list"]');
   eq(P.tokenize(at.listPath).map((t) => t.value), ['d', '@odata.list']);
 });
+
+test('toPattern replaces list positions but not keys that look like positions', () => {
+  eq(P.toPattern('value[3].Tags[0].Value'), 'value[*].Tags[*].Value');
+  eq(P.toPattern('$.value[12].x'), '$.value[*].x');
+  eq(P.toPattern('value[1]', '[]'), 'value[]');
+  eq(P.toPattern(P.child(P.child('d', 0), 'a[0]')), 'd[*]["a[0]"]');
+  eq(P.toPattern(P.child('', '@odata.etag')), '["@odata.etag"]');
+  eq(P.toPattern('$'), '$');
+});
+
+test('keysOf lists the key names and leaves out list positions', () => {
+  eq(P.keysOf(P.child(P.child(P.child('', 'value'), 0), '@odata.etag')), ['value', '@odata.etag']);
+});

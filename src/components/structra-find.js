@@ -251,6 +251,7 @@ class StructraFind extends StructraComponent {
   async _doDbFind(query) {
     try {
       const result = await Structra.dataEngine.findInDb(query);
+      this._idx = -1;   // a new search starts before the first match, so Enter goes to the first one (fuzzy and regex already did this)
       if (result && result.total > 0) {
         this.queryOne('#findCount').textContent = result.total + ' found';
       } else {

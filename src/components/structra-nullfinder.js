@@ -120,7 +120,7 @@ class StructraNullfinder extends StructraDialog {
     // One line per field (value[*].Notes), with how many of each kind, so a column that is mostly empty stands out
     const groups = new Map();
     this._results.forEach((result, i) => {
-      const pattern = result.path.replace(/\[\d+\]/g, '[*]');
+      const pattern = Structra.dataPaths.toPattern(result.path);
       if (!groups.has(pattern)) groups.set(pattern, { pattern, first: result.path, counts: {}, total: 0, firstIdx: i });
       const group = groups.get(pattern);
       group.counts[result.type] = (group.counts[result.type] || 0) + 1;
@@ -141,7 +141,7 @@ class StructraNullfinder extends StructraDialog {
     this.queryOne('#nfNavCount').textContent = `${this._idx + 1} of ${this._results.length.toLocaleString()}`;
     const result = this._results[this._idx];
     this._goToPath(result.path);
-    const pattern = result.path.replace(/\[\d+\]/g, '[*]');
+    const pattern = Structra.dataPaths.toPattern(result.path);
     this.querySelectorAll('.nf-item').forEach((element) => element.classList.toggle('nf-active', element.querySelector('.nf-path').textContent === pattern));
   }
 
