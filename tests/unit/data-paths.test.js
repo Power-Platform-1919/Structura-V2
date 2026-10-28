@@ -112,3 +112,28 @@ test('toPattern replaces list positions but not keys that look like positions', 
 test('keysOf lists the key names and leaves out list positions', () => {
   eq(P.keysOf(P.child(P.child(P.child('', 'value'), 0), '@odata.etag')), ['value', '@odata.etag']);
 });
+
+test('deep documents: a path 1,000 levels down is written and read back, and json-p3 agrees', async () => {
+  let document = 'bottom';
+  let written = '$';
+  for (let level = 0; level < 1000; level++) { document = level % 3 === 0 ? { ['k.' + level]: document } : (level % 3 === 1 ? [document] : { '@odata.x': document }); }
+  // walk down the same way to write the path
+  let node = document;
+  while (typeof node === 'object') {
+    if (Array.isArray(node)) { written = P.child(written, 0); node = node[0]; } else { const key = Object.keys(node)[0]; written = P.child(written, key); node = node[key]; }
+  }
+  eq(P.resolve(document, written), 'bottom');
+  const hits = await Structra.jsonpathQuery.query(document, written);
+  eq(hits.length, 1);
+  eq(hits[0].value, 'bottom');
+  eq(P.resolve(document, hits[0].path), 'bottom');
+});
+
+test('wide documents: 30,000 keys, hostile names among them, are all written and read back quickly', () => {
+  const wide = {};
+  const keys = [];
+  for (let i = 0; i < 30000; i++) { const key = i % 5 === 0 ? 'a.b' + i : (i % 5 === 1 ? '@odata.' + i : (i % 5 === 2 ? 'say "' + i + '"' : (i % 5 === 3 ? 'x[' + i + ']' : 'plain' + i))); wide[key] = i; keys.push(key); }
+  const started = Date.now();
+  for (const key of keys) eq(P.resolve(wide, P.child('', key)), wide[key]);
+  truthy(Date.now() - started < 3000, 'took ' + (Date.now() - started) + ' ms');
+});

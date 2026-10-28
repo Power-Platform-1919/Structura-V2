@@ -47,8 +47,13 @@ const COMPOSE = 'x-base: &base\n  image: node\n  restart: always\nservices:\n  w
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message.slice(0, 160)));
   const fail = (message) => failures.push(message);
-  const toastText = () => page.evaluate(() => (document.querySelector('structra-toast') || {}).textContent || '');
+  // Every message shown while a file opens, collected as it arrives: a hint can replace the "Loaded ..." message within a moment
+  const toastText = () => page.evaluate(() => (window.__toasts || []).join(' | '));
   const open = async (name, text) => {
+    await page.evaluate(() => {
+      if (!window.__toastListener) { window.__toastListener = true; Structra.events.on('toast', (toast) => { (window.__toasts = window.__toasts || []).push(String(toast.msg)); }); }
+      window.__toasts = [];
+    });
     await uploadAndWait(page, { name, mimeType: 'text/yaml', buffer: Buffer.from(text) });
     await page.waitForTimeout(300);
   };
