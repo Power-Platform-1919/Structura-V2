@@ -570,11 +570,7 @@ class StructraQuery extends StructraComponent {
     if (how === 'copy') {
       Structra.sharedHelpers.copyToClipboard(JSON.stringify(rows, null, 2), `${rows.length} ${rows.length === 1 ? 'row' : 'rows'} copied`);
     } else if (how === 'csv') {
-      const csvCell = (value) => {
-        const text = value === null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value);
-        return /[",\n\r]/.test(text) ? '"' + text.replace(/"/g, '""') + '"' : text;
-      };
-      const csv = [columns.map(csvCell).join(','), ...result.table.plain.map((row, number) => row.map((value, i) => csvCell(kinds[i].name === 'decimal' && typeof value === 'number' ? value.toFixed(kinds[i].scale) : value)).join(','))].join('\r\n');
+      const csv = Structra.formatConversion.writeCsv(columns, result.table.plain.map((row) => row.map((value, i) => (kinds[i].name === 'decimal' && typeof value === 'number' ? value.toFixed(kinds[i].scale) : value))), { newline: '\r\n' });
       Structra.sharedHelpers.downloadFile('﻿' + csv, base + ' (query).csv', 'text/csv;charset=utf-8');
       Structra.toast('CSV downloaded');
     } else {

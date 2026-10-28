@@ -90,6 +90,14 @@ function serve() {
     }
     const saved = await page.evaluate(() => window.__saved);
     if (saved.length && saved.some((s) => !(s.size > 2000))) failures.push('an exported image is empty or tiny: ' + saved.filter((s) => !(s.size > 2000)).map((s) => s.name).join(', '));
+    // CSV export: a text cell a spreadsheet would run as a formula is protected, a real number is not, and a comma or quote survives
+    await uploadAndWait(page, { name: 'csv.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify([{ name: '=HYPERLINK("http://x","y")', note: 'a, "b"', n: -5, tag: '@SUM(1)' }])) });
+    const csv = await page.evaluate(() => Structra.dataEngine.exportData('csv'));
+    const lines = String(csv).trim().split('\n');
+    if (lines[0] !== 'name,note,n,tag') failures.push('CSV header should be name,note,n,tag: ' + lines[0]);
+    if (!lines[1] || !lines[1].startsWith("\"'=HYPERLINK(\"\"http://x\"\",\"\"y\"\")\"")) failures.push('a formula in a cell should start with an apostrophe: ' + lines[1]);
+    if (!lines[1] || !lines[1].endsWith(",-5,\"'@SUM(1)\"")) failures.push('-5 should stay a number and @SUM(1) should be protected: ' + lines[1]);
+    if (!lines[1] || !lines[1].includes('"a, ""b"""')) failures.push('a comma and quotes should survive: ' + lines[1]);
   } catch (err) {
     failures.push('crashed: ' + err.message.slice(0, 200));
   }
