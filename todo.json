@@ -4274,12 +4274,14 @@
         {
           "id": "23.6",
           "title": "Parse JSON schema generator: the official JSON Schema suite; compare with genson and quicktype on optional and nullable fields",
-          "status": "in_progress",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.6.1",
               "title": "Ajv self-validation as a permanent test (57 of 57 pass today)",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/schema-gen-validate.test.js: for the first list of each of the 9 fixtures plus hostile keys, nulls, mixed types, lists of lists, empty things, numbers, deep, optional keys: the schema (smart and basic, 4 option sets) is valid and the records pass it under Ajv 6",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.6.2",
@@ -4291,19 +4293,23 @@
             {
               "id": "23.6.3",
               "title": "Compare optional and nullable handling with genson",
-              "status": "todo"
+              "status": "done",
+              "note": "Compared with genson's documented behaviour: type lists for mixed values and required limited to keys in every object are the same; a key that is sometimes null is [type, null] here; genson's null handling was not in the docs we could read (noted in the test)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.6.4",
               "title": "Fix differences that matter for the Parse JSON action",
-              "status": "todo"
+              "status": "done",
+              "note": "No difference found that matters for Parse JSON: all 19 generated schemas validate their own data, nullable keys accept null, required lists the keys every record has",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "23.7",
           "title": "Type generator: compile the output with real compilers",
-          "status": "in_progress",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.7.1",
@@ -4315,12 +4321,16 @@
             {
               "id": "23.7.2",
               "title": "Go",
-              "status": "todo"
+              "status": "done",
+              "note": "Go: go vet on all 12 documents in the CI job 'Generated types compile'; found and fixed unexported fields (_1st, a key with no letters), duplicate names, tags with backticks and control characters",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.3",
               "title": "Rust",
-              "status": "todo"
+              "status": "done",
+              "note": "Rust: cargo check with serde and serde_json in CI on all 12 documents; passes (braced unicode escapes, keyword and type names avoided, f64 and i64 chosen from all records)",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.4",
@@ -4339,12 +4349,16 @@
             {
               "id": "23.7.6",
               "title": "Java",
-              "status": "todo"
+              "status": "done",
+              "note": "Java: javac in CI on all 12 documents; fixed one-file output (no public classes), boxed types for fields that can be empty, @JsonProperty on every field, keyword list",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.7.7",
               "title": "Fix what does not compile",
-              "status": "todo"
+              "status": "done",
+              "note": "Everything that did not compile is fixed (list in map 8.9); the CI job runs the compilers on every push with REQUIRE_COMPILERS=1",
+              "doneOn": "2026-10-28"
             }
           ]
         },
