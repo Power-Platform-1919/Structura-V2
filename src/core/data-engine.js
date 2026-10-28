@@ -484,9 +484,14 @@ Structra.dataEngine = (() => {
    * @param {string} text - search text
    * @returns {Promise<Object>} query result
    */
+  // Every find takes a number. A find that has to wait (a pattern in the sandbox, a path query) may be overtaken by a newer one: its
+  // result must not replace the newer one, so it comes back marked `superseded` and nothing is applied.
+  let _latestFind = 0;
+
   async function findInDb(text) {
     const dataset = getActive();
     if (!dataset) return null;
+    const mine = ++_latestFind;
 
     // key:name finds a field by its name, $.a.b finds by path; anything else searches the values
     const byKey = /^\s*key:\s*(.+?)\s*$/i.exec(text);
@@ -497,6 +502,7 @@ Structra.dataEngine = (() => {
     if (/^\s*\$[.\[]/.test(text)) {
       let matches;
       try { matches = await Structra.jsonpathQuery.query(dataset.raw, text.trim()); } catch (error) { throw new Error('This path could not be read: ' + error.message); }
+      if (mine !== _latestFind) return { superseded: true, total: 0, matchedPaths: [] };
       return _setFindResult(dataset, text, matches.map((match) => match.path));
     }
     // Search the values themselves: every match carries its path, so the count is the number of matching
@@ -1800,6 +1806,7 @@ Structra.dataEngine = (() => {
   async function fuzzySearch(text, threshold = 0.8) {
     const dataset = getActive();
     if (!dataset) return { total: 0, matchedPaths: [] };
+    _latestFind++;
     const want = String(text).toLowerCase();
     const near = new Set();
     // Every text value is compared; one that contains the search text, or is spelled close to it, matches
@@ -1862,6 +1869,7 @@ Structra.dataEngine = (() => {
     const dataset = getActive();
     if (!dataset) return { total: 0, matchedPaths: [] };
     if (Structra.sharedHelpers.isRiskyRegex(pattern)) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
+    const mine = ++_latestFind;
     // The pattern runs in the sandbox worker, so one that never finishes is stopped instead of freezing the page.
     // An invalid pattern throws; the Find bar says so.
     try { new RegExp(pattern, 'i'); } catch (error) { throw new Error(error.message); }
@@ -1871,6 +1879,7 @@ Structra.dataEngine = (() => {
       if (error.timedOut) throw new Error(Structra.sharedHelpers.RISKY_REGEX_MESSAGE);
       throw error;
     }
+    if (mine !== _latestFind) return { superseded: true, total: 0, matchedPaths: [] };
     return _setFindResult(dataset, pattern, found.matches.map((match) => match.path));
   }
 

@@ -3556,22 +3556,28 @@
         {
           "id": "21.2",
           "title": "TOML 4.1.1 to 5.0.1 (3.9)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.2.1",
               "title": "Run the TOML fixtures and a TOML test suite sample against the new version",
-              "status": "todo"
+              "status": "done",
+              "note": "Done through task 31.6: the toml-test suite (717 cases) was run on toml 4.1.1, toml 5.0.1 and smol-toml 1.9.1.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.2.2",
               "title": "Re-vendor and update THIRD-PARTY.md",
-              "status": "todo"
+              "status": "done",
+              "note": "Not needed: no gain measured, so nothing is re-vendored (THIRD-PARTY.md unchanged).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.2.3",
               "title": "Test dates, arrays of tables, big integers; browser test in three engines",
-              "status": "todo"
+              "status": "done",
+              "note": "Not needed for the same reason; dates, arrays of tables and big integers are covered by the toml-test cases that run on every unit test run.",
+              "doneOn": "2026-10-28"
             }
           ]
         },
@@ -4706,7 +4712,7 @@
     {
       "id": "31",
       "title": "Run the official test suites of the mature libraries against our own code (rule 5)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "You asked (2026-10-28): make sure the code passes the test suites of the mature frameworks wherever they apply, because they cover cases we never thought of. Each suite runs through OUR integration (the adapter, the parser pipeline, the worker), not only inside the library, and becomes a permanent test with a recorded pass count. Where a case fails, we fix our code or record why, with the library as the reference.",
       "subtasks": [
         {
@@ -4718,62 +4724,86 @@
         {
           "id": "31.2",
           "title": "JSON parsing: JSONTestSuite (nst/JSONTestSuite) y_, n_ and i_ files through our parse pipeline and error places; list every difference from JSON.parse and from jsonc-parser",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/json-test-suite.test.js runs the 318 JSONTestSuite cases (collected by tools/fetch-json-test-suite.mjs into tests/suites/json-test-suite, MIT licence kept) through parseJsonAsync and explainParseError. Result: y 95/95, n 188/188, i 32 accepted and 3 rejected. Found and fixed two bugs: protectBigNumbers quoted numbers used as keys or written wrongly (so {9999E9999:1} and 01234567890123456 were accepted), and explainParseError overflowed the stack on 100,000 nested arrays (now falls back to a bracket walk with a plain reason).",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.3",
           "title": "JSON Schema: the official JSON-Schema-Test-Suite (draft-04, 06, 07) through the validate adapter with Ajv 6; record the cases that pass and the ones Ajv 6 does not support",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/json-schema-test-suite.test.js runs the official JSON Schema Test Suite (tools/fetch-json-schema-test-suite.mjs; drafts 4, 6, 7) through the validate adapter. Draft 7: 873 of 906 before, 901 after three fixes in json-repair-and-validation.js: unknown formats ignored, inherited property names (constructor, toString, __proto__) handled with a copy without inherited names, a schema naming draft-04 or draft-06 checked as draft-07 with a note shown in the Validate panel. Draft 6: 809 of 818, draft 4 checked as draft 7: 572 of 601. Ajv 8.20 checked on the same draft-07 cases: 898 of 906, so no gain from upgrading.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.4",
           "title": "CSV: csv-spectrum and the PapaParse test cases through the CSV worker, the typing step and the CSV export (round trip)",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/csv-spectrum.test.js runs the real CSV worker on all 12 csv-spectrum 2.0.0 files (tools/fetch-csv-spectrum.mjs; npm package because the git repo changes line breaks) and writes each result back through generateCsv and reads it again: 24 of 24 pass. No bug in our code; one upstream inconsistency (a phone number differs between the suite's CSV and JSON) is corrected in the test with a comment.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.5",
           "title": "YAML: the official yaml-test-suite through the YAML worker; record the differences",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/yaml-test-suite.test.js runs the real YAML worker on the 402 official YAML Test Suite cases (tools/fetch-yaml-test-suite.mjs). js-yaml 4.1.0 (before): accepted 231 of 274 valid files (17 multi-document files and 26 valid files refused), rejected 83 of 94 invalid, 18 wrong values. Replaced by yaml 2.9.1 (tools/build-yaml.mjs, src/libs/yaml, one door src/core/yaml-io.js used by the page, the worker and Convert to YAML): accepts 274 of 274, 269 same value, rejects 92 of 94. Several documents open as a list with a toast note; unknown tags (!Ref) keep their values with a note; the << merge works; an alias bomb is refused. js-yaml archived in archive/libs. tests/unit/yaml-io.test.js (9) and tests/smoke/yaml.js in Edge, Firefox, WebKit; full Edge suite 40 of 40.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.6",
           "title": "TOML: BurntSushi toml-test valid and invalid cases through the TOML 5 worker",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/toml-test.test.js runs the real TOML worker on the 717 toml-test cases for TOML 1.0.0 (208 valid, 509 invalid; tools/fetch-toml-test.mjs). toml 4.1.1 accepts 207 of 208 (the empty file is refused by our worker on purpose), 204 with the right value, rejects 494 of 509. Same cases on toml 5.0.1: 206 / 203 / 494 and smol-toml 1.9.1: 206 / 203 / 488: no gain from upgrading.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.7",
           "title": "XML: W3C and xmltest well-formed and not-well-formed cases through the XML worker",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/smoke/xml-conformance.js (tools/fetch-xml-conformance.mjs, 306 W3C xmltest standalone files) through Structra.parseXmlAsync in each engine. Valid opened: Edge 116, Firefox 116, WebKit 114 of 120. Not well-formed refused: Edge 125, Firefox 183, WebKit 181 of 186. No bug in our code: Chromium implements XML 1.0 5th edition, where many names and characters the older-edition suite marks as not well-formed are legal. Per-engine minimums with a margin are in the test; refusal messages are one line everywhere.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.8",
           "title": "JSON repair: the jsonrepair test cases through our repair step; every result must parse",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/json-repair-suite.test.js feeds the 318 JSONTestSuite texts to repair(): 127 valid texts come back unchanged (0 changed or refused); of 191 invalid ones 148 are repaired and 43 refused. It found 6 texts that jsonrepair returned still invalid (numbers with a leading zero or leading dot, a backslash followed by a raw tab or NUL). Fixed with a second pass (fixNumbersAndEscapes) and a final check: repair() now returns valid JSON or throws, which also stops the Editor saying Repaired over broken text. 3 more unit tests.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.9",
           "title": "Diff: jsondiffpatch test cases through Compare (changed, added, removed, moved, array moves)",
-          "status": "todo"
+          "status": "done",
+          "note": "tests/unit/json-patch-roundtrip.test.js: fast-json-patch 3.1.1 (new dev dependency, MIT) applies the JSON Patch that Compare exports, on every pair of the valid JSONTestSuite documents: 16,129 pairs with our position-mode patch and 2,305 pairs in smart mode (jsondiffpatch): all give the right document, none refused. Also: equal documents give an empty patch, the left document is unchanged, ~ and / are escaped as ~0 and ~1. No bug found.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.10",
           "title": "Paths: JSONPath normalized paths of json-p3 as the oracle for the path writer (done in 18.1.22); extend to deep and very wide documents",
-          "status": "in_progress"
+          "status": "done",
+          "note": "tests/unit/data-paths.test.js: a path 1,000 levels deep (keys with dots, lists, @odata names) is written, read back, found by json-p3 and its normalized path reads back; 30,000 keys with hostile names are all resolved in well under 3 s. Plus the 55-key hostile list and json-p3 oracle from 18.1.22.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.11",
           "title": "Table grid and Tree: the WAI-ARIA Authoring Practices grid and tree patterns checked by hand against our keys, plus axe-core (done in the UI audit)",
-          "status": "todo"
+          "status": "done",
+          "note": "ARIA patterns are checked by tests that already run: tests/smoke/table-grid.js follows the WAI-ARIA grid pattern (roles, one tab stop, arrows, Home, End, Ctrl+Home, Ctrl+End, Page keys, Enter), tests/smoke/treekeys.js the tree keys, and the axe-core audit (tests/ui/06-axe.js) runs in CI in the UI audit job.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.12",
           "title": "Make each suite a test that runs in CI, with the pass count written in docs (a drop fails the test); fetch the suites once into tests/suites with their licences, never at test time",
-          "status": "todo"
+          "status": "done",
+          "note": "Every suite is a test that runs in CI: unit tests (JSONTestSuite, JSON Schema, csv-spectrum, toml-test, YAML, repair, patch round trip) in the Lint and unit tests job, browser suites (sandbox, yaml, xml-conformance, paths-hostile) in the browser jobs. Cases are collected once into tests/suites with their licences by tools/fetch-*.mjs and never downloaded at test time; the pass counts are written in each test, so a drop fails it.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "31.13",
           "title": "Write the result into the map (section 8.7): per library, which suite, how many cases, how many pass, what we fixed",
-          "status": "todo"
+          "status": "done",
+          "note": "Docs: feature-technology-map section 8.7 has a row per library or standard: suite, our code it ran through, number of cases, result, and what it found. Rows: JSONPath, JSON parsing, JSON Schema, CSV, TOML, YAML, XML, repair, Compare and JSON Patch.",
+          "doneOn": "2026-10-28"
         }
       ]
     }

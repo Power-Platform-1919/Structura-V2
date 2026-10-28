@@ -45,7 +45,7 @@ test('every workflow and build tool is in the map', () => {
   const missing = [];
   for (const f of names('.github/workflows')) if (!mentions(f)) missing.push('.github/workflows/' + f);
   // the build tools are described by the library they build
-  const byLibrary = { 'build-editor.mjs': 'codemirror', 'build-jsonc-parser.mjs': 'jsonc-parser', 'build-virtual-core.mjs': 'virtual-core' };
+  const byLibrary = { 'build-editor.mjs': 'codemirror', 'build-jsonc-parser.mjs': 'jsonc-parser', 'build-virtual-core.mjs': 'virtual-core', 'build-yaml.mjs': 'yamlIo' };
   for (const f of names('tools', (x) => x.endsWith('.mjs'))) if (!mentions(f) && !(byLibrary[f] && mentions(byLibrary[f]))) missing.push('tools/' + f);
   truthy(!missing.length, 'not in the map: ' + missing.join(', '));
 });

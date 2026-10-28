@@ -229,6 +229,22 @@ function serve() {
     if (!ownsBacktracking && slowCell.slowPattern !== true) fail('the Table probe should refuse (a|aa)+$ in this engine: ' + JSON.stringify(slowCell));
     if (ownsBacktracking && slowCell.slowPattern !== false) fail('Safari finishes it fast, so it is not refused: ' + JSON.stringify(slowCell));
 
+    /* ---------- Find: a search that finishes late must not overwrite a newer one ---------- */
+    // Pattern searches wait for the sandbox; an invalid pattern fails at once. If the slow one finishes last it used to put "1 found"
+    // over "Not a valid pattern" (and make its matches the active result).
+    const race = await page.evaluate(async () => {
+      Structra.setState('findBarOpen', true);
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      const find = document.querySelector('structra-find');
+      find._mode = 'regex';
+      const older = find._doFind('^a');
+      const newer = find._doFind('(');
+      const [olderResult, newerResult] = await Promise.all([older, newer]);
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return { text: document.querySelector('#findCount').textContent, olderResult, newerResult };
+    });
+    if (race.text !== 'Not a valid pattern' || race.olderResult !== false || race.newerResult !== false) fail('the older search must not overwrite the newer one: ' + JSON.stringify(race));
+
   } catch (error) {
     fail('crashed: ' + String(error.message).split('\n')[0]);
   }

@@ -7,7 +7,7 @@
      await Structra.jsonRepairAndValidation.findDuplicateKeys(text) → [{ key, path, line }]
      await Structra.jsonRepairAndValidation.explainParseError(text) → { offset, line, column, reason } or null when the text is valid
      Structra.jsonRepairAndValidation.patch(from, to)               → RFC 6902 operations
-     await Structra.jsonRepairAndValidation.validate(data, schema)  → { valid, errors: [{ path, message, keyword }] }
+     await Structra.jsonRepairAndValidation.validate(data, schema)  → { valid, errors: [{ path, message, keyword }], note }  (note: something to tell the person, or '')
    ============================================================ */
 
 window.Structra = window.Structra || {};
@@ -15,12 +15,52 @@ window.Structra = window.Structra || {};
 Structra.jsonRepairAndValidation = (() => {
   /* ---------- repair ---------- */
 
+  /**
+   * What jsonrepair leaves as it is, found by running it on every text of JSONTestSuite (tests/unit/json-repair-suite.test.js):
+   * numbers with a leading zero (-01, 007) or starting with a dot (.5, -.2e-3), and a backslash followed by a raw control character
+   * (a tab or a NUL typed after the backslash). Fixed here, outside text values for the numbers and inside them for the backslash.
+   */
+  function fixNumbersAndEscapes(text) {
+    const fixNumbers = (part) => part
+      .replace(/(^|[^\w.])(-?)0+(?=\d)/g, (all, before, sign) => before + sign)
+      .replace(/(^|[^\w.])(-?)\.(?=\d)/g, (all, before, sign) => before + sign + '0.');
+    const escapeOf = (code) => ({ 9: '\\t', 10: '\\n', 13: '\\r', 8: '\\b', 12: '\\f' }[code] || '\\u' + code.toString(16).padStart(4, '0'));
+    let out = '';
+    let outside = '';
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] !== '"') { outside += text[i]; continue; }
+      out += fixNumbers(outside);
+      outside = '';
+      let inside = '"';
+      for (i++; i < text.length; i++) {
+        const character = text[i];
+        if (character === '\\') {
+          const next = text[i + 1];
+          if (next !== undefined && next.charCodeAt(0) < 32) { inside += escapeOf(next.charCodeAt(0)); i++; continue; }
+          inside += character + (next === undefined ? '' : next);
+          i++;
+          continue;
+        }
+        inside += character;
+        if (character === '"') break;
+      }
+      out += inside;
+    }
+    return out + fixNumbers(outside);
+  }
+
+  /** Repaired JSON text. The result is always valid JSON, or this throws: it never hands back text that is still broken. */
   async function repair(text) {
     await Structra.libraryLoader.loadLibrary('jsonrepair');
     const library = window.JSONRepair || window.jsonrepair;
     const callback = library && (library.jsonrepair || library);
     if (typeof callback !== 'function') throw new Error('jsonrepair did not load');
-    return callback(text);
+    const first = callback(text);
+    if (isCompleteJson(first)) return first;
+    let second = null;
+    try { second = callback(fixNumbersAndEscapes(text)); } catch { /* the message below says it */ }
+    if (second !== null && isCompleteJson(second)) return second;
+    throw new Error('This text could not be repaired automatically: what is left is still not valid JSON.');
   }
 
   /* ---------- where and why JSON is broken ---------- */
@@ -67,11 +107,39 @@ Structra.jsonRepairAndValidation = (() => {
   async function explainParseError(text) {
     await Structra.libraryLoader.loadLibrary('jsonc');
     const errors = [];
-    window.JSONC.parse(String(text), errors, { allowTrailingComma: false, disallowComments: true });
+    try {
+      window.JSONC.parse(String(text), errors, { allowTrailingComma: false, disallowComments: true });
+    } catch (error) {
+      // The library reads nested values by calling itself, so tens of thousands of levels overflow its stack. Check the brackets another way.
+      if (error instanceof RangeError) return explainBracketsOnly(String(text));
+      throw error;
+    }
     if (!errors.length) return null;
     const { error: code, offset } = errors[0];
-    const before = String(text).slice(0, offset);
-    return { offset, line: before.split('\n').length, column: before.length - before.lastIndexOf('\n'), reason: plainReason(code, String(text), offset) };
+    return placeOf(String(text), offset, plainReason(code, String(text), offset));
+  }
+
+  function placeOf(text, offset, reason) {
+    const before = text.slice(0, offset);
+    return { offset, line: before.split('\n').length, column: before.length - before.lastIndexOf('\n'), reason };
+  }
+
+  /** For text nested too deeply for the library: walks the brackets without recursion and says what is wrong with them */
+  function explainBracketsOnly(text) {
+    const open = [];
+    let inString = false;
+    for (let i = 0; i < text.length; i++) {
+      const character = text[i];
+      if (inString) { if (character === '\\') i++; else if (character === '"') inString = false; continue; }
+      if (character === '"') inString = true;
+      else if (character === '[' || character === '{') open.push(character);
+      else if (character === ']' || character === '}') {
+        const last = open.pop();
+        if (!last || (last === '[' ? ']' : '}') !== character) return placeOf(text, i, 'this closing bracket does not match the one that was opened');
+      }
+    }
+    if (open.length) return placeOf(text, text.length, `the text ends before ${open.length.toLocaleString()} open ${open.length === 1 ? 'bracket is' : 'brackets are'} closed`);
+    return placeOf(text, 0, 'this text is nested so deeply that it cannot be checked further');
   }
 
   /* ---------- duplicate keys ---------- */
@@ -173,18 +241,61 @@ Structra.jsonRepairAndValidation = (() => {
     return out;
   }
 
+  // Names every object inherits. Ajv 6 reads a property with data[name], so a schema that mentions one of them would see the inherited
+  // function (toString) or object (__proto__) as if the document held it. The official JSON Schema Test Suite has these cases.
+  const INHERITED_NAMES = /"(__proto__|constructor|prototype|toString|toLocaleString|valueOf|hasOwnProperty|isPrototypeOf|propertyIsEnumerable)"/;
+
+  /** A copy of the data whose objects have nothing inherited, so only the keys the document really has can be found. Without recursion. */
+  function withoutInheritedNames(root) {
+    const copyOf = (value) => (Array.isArray(value) ? new Array(value.length) : (value && typeof value === 'object' ? Object.create(null) : value));
+    const top = copyOf(root);
+    if (top === root) return root;
+    const stack = [[root, top]];
+    while (stack.length) {
+      const [from, to] = stack.pop();
+      for (const key of Object.keys(from)) {
+        const item = from[key];
+        const copy = copyOf(item);
+        Object.defineProperty(to, key, { value: copy, enumerable: true, writable: true, configurable: true });
+        if (copy !== item) stack.push([item, copy]);
+      }
+    }
+    return top;
+  }
+
+  // Ajv's own notes ("unknown format ignored", "$ref: keywords ignored") go to the quiet debug log, not the page console
+  const AJV_OPTIONS = {
+    allErrors: true,
+    jsonPointers: true,
+    unknownFormats: 'ignore',
+    logger: { log: (message) => Structra.log.debug('Validate', String(message)), warn: (message) => Structra.log.debug('Validate', String(message)), error: (message) => Structra.log.warn('Validate', String(message)) },
+  };
+
   async function validate(data, schema) {
     await Structra.libraryLoader.loadLibrary('ajv');
-    const ajv = new window.Ajv({ allErrors: true, jsonPointers: true });
-    const check = ajv.compile(schema);          // throws on an invalid schema
-    const valid = check(data);
+    // AJV_OPTIONS has unknownFormats 'ignore': a format Ajv does not know ("int32", "uuid-v7") is a hint, not an error, as the standard says. Without this
+    // the whole schema is refused, and schemas made from OpenAPI documents are full of such formats.
+    const ajv = new window.Ajv(AJV_OPTIONS);
+    let note = '';
+    let check;
+    try { check = ajv.compile(schema); }          // throws on an invalid schema
+    catch (error) {
+      // A schema that names an older draft ($schema draft-04 or draft-06): Ajv 6 only has the draft-07 rules. They are nearly the same, so check it that way and say so.
+      if (schema && typeof schema.$schema === 'string' && /no schema with key or ref/i.test(error.message)) {
+        const { $schema: named, ...rest } = schema;
+        check = new window.Ajv(AJV_OPTIONS).compile(rest);
+        note = `The schema names ${named.replace(/^https?:\/\//, '').replace(/#$/, '')}. It was checked with the rules of draft-07, which are almost the same.`;
+      } else throw error;
+    }
+    const subject = typeof schema === 'object' && INHERITED_NAMES.test(JSON.stringify(schema)) ? withoutInheritedNames(data) : data;
+    const valid = check(subject);
     const errors = (check.errors || []).map((error) => ({
       path: pointerToPath(error.dataPath),
       // An enum says which values are allowed, not only that the value is not one of them
       message: error.keyword === 'enum' && error.params && error.params.allowedValues ? 'should be one of: ' + error.params.allowedValues.map((value) => JSON.stringify(value)).join(', ') : error.message,
       keyword: error.keyword,
     }));
-    return { valid: !!valid, errors };
+    return { valid: !!valid, errors, note };
   }
 
   return { repair, explainParseError, findDuplicateKeys, patch, validate };
