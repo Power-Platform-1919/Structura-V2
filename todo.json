@@ -4963,7 +4963,9 @@
         {
           "id": "29.11",
           "title": "Build synthetic test fixtures that copy the shapes (nested items, oneOf, slash keys, odata keys) without any real names or data",
-          "status": "todo"
+          "status": "done",
+          "note": "Three synthetic fixtures with no real names or data: pp_flow_run_output.json (a whole action output with statusCode, headers, body, SharePoint expanded user and choice, odata keys, braces keys, a key with a slash and one with brackets), pp_dataverse_rows.json (odata count and next link, FormattedValue and lookup keys, nested lookups, nulls, quotes in a name), pp_parse_json_schema.json (oneOf with an object, a deep list and null; additionalProperties; slash and odata keys). They run through the fixtures browser test (34 files, every view), the type compilers and the schema checks",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "29.12",

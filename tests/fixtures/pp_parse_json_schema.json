@@ -1,0 +1,18 @@
+{
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "kind": { "type": ["string", "null"] },
+    "payload": {
+      "oneOf": [
+        { "type": "object", "properties": { "text": { "type": "string" } }, "required": ["text"] },
+        { "type": "object", "properties": { "items": { "type": "array", "items": { "type": "object", "properties": { "sku": { "type": "string" }, "qty": { "type": "integer" }, "options": { "type": "array", "items": { "type": "object", "properties": { "name": { "type": "string" }, "values": { "type": "array", "items": { "type": "string" } } } } } } } } } },
+        { "type": "null" }
+      ]
+    },
+    "links": { "type": "object", "additionalProperties": { "type": "string" } },
+    "body/field": { "type": "string" },
+    "@odata.type": { "type": "string" }
+  },
+  "required": ["id"]
+}

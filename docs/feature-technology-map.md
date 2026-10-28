@@ -834,7 +834,7 @@ Tool: `tests/perf/large-engines.js` (Playwright, a fresh browser per file, this 
 
 ### 8.9 Generated types through the real compilers (2026-10-28)
 
-`tests/compile/type-compile.js` gives the output of the type generator to tsc (strict), Python (the module is imported, not only parsed), the .NET SDK (C#), and in CI Go (`go vet`), Rust (`cargo check` with serde) and `javac`; the CI job "Generated types compile" runs it with every compiler required. Documents: a realistic list, a list with colliding names, the first list of each of the 31 test fixtures, one record with every awkward key of `tests/hostile-keys.js`, and one record with about 190 reserved words and type names of the languages.
+`tests/compile/type-compile.js` gives the output of the type generator to tsc (strict), Python (the module is imported, not only parsed), the .NET SDK (C#), and in CI Go (`go vet`), Rust (`cargo check` with serde) and `javac`; the CI job "Generated types compile" runs it with every compiler required. Documents: a realistic list, a list with colliding names, the first list of each of the 34 test fixtures, one record with every awkward key of `tests/hostile-keys.js`, and one record with about 190 reserved words and type names of the languages.
 
 What the compilers showed, before the fix (all in the old code):
 - **A key with a line break, tab or other control character** broke the string in TypeScript, C#, Java, Rust, Go tags and the Python comment.
