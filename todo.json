@@ -3846,22 +3846,28 @@
         {
           "id": "21.8",
           "title": "Tabs: keyboard way to reorder (3.13)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "21.8.1",
               "title": "Move left and Move right: shortcut and menu item",
-              "status": "todo"
+              "status": "done",
+              "note": "structra-tabs.js: _moveTab; Ctrl+Shift+Left/Right on a focused tab and 'Move left' / 'Move right' in the tab right-click menu (disabled at the ends); listed in the shortcuts dialog under Tabs",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.8.2",
               "title": "Announce the change for screen readers",
-              "status": "todo"
+              "status": "done",
+              "note": "After a move the toast (a polite live region) says '<name> moved to place N of M' and the focus stays on the moved tab",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "21.8.3",
               "title": "Test with keyboard only",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/smoke/tabsui.js moves a tab with the keys and the menu, checks place, focus and announcement; Edge, Firefox, WebKit green; UI audit still 0 axe findings",
+              "doneOn": "2026-10-28"
             }
           ]
         },

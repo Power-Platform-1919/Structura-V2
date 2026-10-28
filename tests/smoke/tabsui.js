@@ -72,6 +72,30 @@ function serve() {
     await page.waitForTimeout(500);
     if ((await active()) === first) failures.push('the right arrow key did not move to the next tab');
 
+    // ---- keyboard: Ctrl+Shift+arrows move the focused tab, the focus stays on it, and the new place is announced ----
+    const movedLabel = await active();
+    const placeBefore = (await order()).indexOf(movedLabel);
+    await page.locator('.doc-tab.active').focus();
+    await page.keyboard.press('Control+Shift+ArrowLeft');
+    await page.waitForTimeout(300);
+    names = await order();
+    if (names.indexOf(movedLabel) !== placeBefore - 1) failures.push('Ctrl+Shift+Left should move the tab one place left: ' + names.join());
+    const stillFocused = await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('doc-tab') && document.activeElement.classList.contains('active'));
+    if (!stillFocused) failures.push('the moved tab should keep the focus');
+    const announced = await page.evaluate(() => document.querySelector('#toastMsg').textContent);
+    if (!/moved to place \d+ of \d+/.test(announced)) failures.push('the move should be announced: ' + announced);
+    await page.keyboard.press('Control+Shift+ArrowRight');
+    await page.waitForTimeout(300);
+    if ((await order()).indexOf(movedLabel) !== placeBefore) failures.push('Ctrl+Shift+Right should move the tab back');
+    // the right-click menu has the same two actions
+    await page.locator('.doc-tab.active').click({ button: 'right' });
+    await page.locator('.menu .menu-item', { hasText: 'Move left' }).click();
+    await page.waitForTimeout(300);
+    if ((await order()).indexOf(movedLabel) !== placeBefore - 1) failures.push('the menu item Move left should move the tab: ' + (await order()).join());
+    await page.locator('.doc-tab.active').click({ button: 'right' });
+    await page.locator('.menu .menu-item', { hasText: 'Move right' }).click();
+    await page.waitForTimeout(300);
+
     // ---- right-click menu: Duplicate ----
     const countBefore = (await order()).length;
     await page.locator('.doc-tab', { hasText: 'jsonobject' }).click({ button: 'right' });
