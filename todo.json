@@ -3369,7 +3369,7 @@
     {
       "id": "20",
       "title": "One Tree for the whole app: research CodeMirror for large files, decide by numbers, build it once (3.1)",
-      "status": "in_progress",
+      "status": "done",
       "brief": "Q12: only one tree, uniform in every place it is shown. CodeMirror if it can meet every requirement on large files; otherwise our own hand-written tree for the whole app. Research: docs/codemirror-tree-research.md. No engine switch.",
       "subtasks": [
         {
@@ -3503,7 +3503,7 @@
         {
           "id": "20.9",
           "title": "Build it for real on CodeMirror (design B), replace the hand-written renderer, archive it after every Tree test passes in three engines",
-          "status": "in_progress",
+          "status": "done",
           "subtasks": [
             {
               "id": "20.9.1",
@@ -3522,54 +3522,74 @@
             {
               "id": "20.9.3",
               "title": "Toggle markers in a custom gutter, and keyboard opening and closing",
-              "status": "todo"
+              "status": "done",
+              "note": "Toggle markers are .j-toggle widgets inside the line (same look and names as before); keyboard in a high-priority key map: Up, Down, Home, End, Page keys, Right opens, Left closes, Enter selects, Space toggles; with nothing selected Down selects the first line.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.9.4",
               "title": "Huge arrays: a window of items with \"show more\" rows",
-              "status": "todo"
+              "status": "done",
+              "note": "tree-model.js windows: a block shows up to 500,000 children then a more row (click or Enter shows the next window); the window size is an option for tests. tests/smoke/tree-large.js opens a list of 600,000 numbers and uses the more row in three engines.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.9.5",
               "title": "Find marks, filter (hide rows that do not match), bookmarks and key highlight as decorations, kept when rows scroll in",
-              "status": "todo"
+              "status": "done",
+              "note": "Find marks, bookmarks, key highlight, selected line as line and mark decorations; a filter is a second model that shows only matches and the blocks above them (makeFilter, tests against a pruned copy of the data). The selected path is remembered by text across rebuilds (reselect).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.9.6",
               "title": "Inline value editing as a replace widget, and hidden characters shown",
-              "status": "todo"
+              "status": "done",
+              "note": "Inline edit is a replace widget with the same tree:inline-edit event; hidden characters shown as .j-special widgets with their code point (U+202E, U+200B in tree-state.js).",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.9.7",
               "title": "Rewrite Structra.jsonTreeRenderer on CodeMirror with the same functions and the same .j-line, .j-toggle, .highlighted and .find-match names",
-              "status": "todo"
+              "status": "done",
+              "note": "src/core/json-tree-renderer.js rewritten on CodeMirror with the same functions and DOM names (.j-line, data-path, data-ln, .j-toggle, .highlighted, .find-match, .bookmarked); structra-tree.js lost its own key handler; CSS adapted; old renderer kept in archive/src-core. Edge 41 of 41, UI audit no Tree findings; Tree tests green in Firefox and WebKit.",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "20.9.8",
               "title": "Prefetch CodeMirror as soon as a file is chosen so the first Tree does not wait for it",
-              "status": "todo"
+              "status": "done",
+              "note": "The renderer asks for CodeMirror when the page is idle (runWhenIdle), so the first Tree does not wait for the download.",
+              "doneOn": "2026-10-28"
             }
           ]
         },
         {
           "id": "20.10",
           "title": "If hand-written: keep our renderer as the only tree, add every behavior CodeMirror would have given (the keep-and-harden rule), and make every place use it",
-          "status": "todo"
+          "status": "done",
+          "note": "Not needed: CodeMirror met every requirement, so the fallback to keep our renderer was not used.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "20.11",
           "title": "Make every place that shows a tree use the same renderer",
-          "status": "todo"
+          "status": "done",
+          "note": "Only structra-tree.js draws a tree; the Query panel only marks paths in it. Nothing else to change.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "20.12",
           "title": "Tests: every existing Tree test, in three browsers, plus the large-file budget test",
-          "status": "todo"
+          "status": "done",
+          "note": "Tree tests adapted to the new design (tree-state, tree-margin, treekeys, path-history) plus tests/smoke/tree-large.js (100,000 records and 600,000 numbers: 36 lines in the page, last line numbered like the file, a record opens in 33 ms) and tests/unit/tree-model.test.js.",
+          "doneOn": "2026-10-28"
         },
         {
           "id": "20.13",
           "title": "Update the map, the plan and DEVELOPER-GUIDE",
-          "status": "todo"
+          "status": "done",
+          "note": "Map section 3.1 marked built; DEVELOPER-GUIDE has a Tree section (only the lines in view exist; go to a path before looking for its line).",
+          "doneOn": "2026-10-28"
         }
       ]
     },

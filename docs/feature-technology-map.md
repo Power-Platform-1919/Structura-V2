@@ -468,7 +468,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 
 ## 3. Planned changes: reason, pros, cons
 
-### 3.1 Tree: one tree for the whole app, on CodeMirror (DECIDED 2026-10-28, build in progress) [task 20]
+### 3.1 Tree: one tree for the whole app, on CodeMirror (BUILT 2026-10-28) [task 20]
 
 - **Your rule (Q12):** one Tree, the same everywhere; CodeMirror if it meets every need on large files, otherwise our own renderer.
 - **Result:** CodeMirror can, when the document it holds is **the rows that are showing** (a closed block is one line; opening a block replaces that line with the block's lines; the margin shows the file's own line numbers from a typed array). Full write-up with sources and tables: [codemirror-tree-research.md](codemirror-tree-research.md).
@@ -476,7 +476,7 @@ Measured (see section 8): of 13 hostile keys, Find's paths failed to resolve for
 - **Behaviors proven in the prototype:** file line numbers, keyboard (3 ms per key), text selection across rows, find and selection marks that appear when rows scroll in, and a screen reader tree (`role="tree"`, `treeitem` with level, open state and selected state): **axe-core 0 violations** after removing two attributes CodeMirror adds that a tree may not have.
 - **Costs:** about 120 KB gzipped of CodeMirror on the critical path of the first Tree (mitigation: start loading when a file is chosen); roughly 600 to 800 new lines replacing 1,071; tests that look at recycling internals are rewritten, the rest keep working because the lines and markers keep the names `.j-line`, `.j-toggle`, `.highlighted` and `.find-match`.
 - **Where a tree is drawn:** one place (`structra-tree.js`), so uniformity already holds; the change is the engine behind the same interface.
-- **Status:** research and prototype done (tasks 20.1 to 20.8). Building it for real is task 20.9, in steps; the old renderer moves to `archive/` only after every Tree test passes in three engines. Fallback if a requirement cannot be met: keep our renderer (20.10).
+- **Status:** built (tasks 20.1 to 20.12): `Structra.treeModel` (rows, filter, windows) and the renderer on CodeMirror; every Tree test green in Edge, Firefox and WebKit; the old renderer is in `archive/src-core/json-tree-renderer.js` for review. Large-document budget test: `tests/smoke/tree-large.js`.
 
 ### 3.2 Table: true scrollbar, grid roles, keyboard (decided: keep the library; finishing and merging) [task 17]
 

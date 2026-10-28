@@ -135,6 +135,10 @@ JavaScript the person types, a filter expression, a Transform step and a pattern
 - The worker has no page, no storage and no network (they are removed before the code runs). That is a safeguard against accidents, not a wall against a determined attacker.
 - Test it in `tests/smoke/sandbox.js`: stop, page stays responsive, nothing reaches a server that counts requests.
 
+### The Tree
+
+The Tree is a CodeMirror document that holds only the rows that are showing (`src/core/tree-model.js` keeps the rows, `src/core/json-tree-renderer.js` draws them). Use the renderer's functions (`highlightPath`, `highlightPaths`, `expandAll`, `setFilter` ...); do not look for lines in the page that are not drawn: only the lines in view exist, so a test or a feature that needs a row far away goes to its path first. Lines keep the names `.j-line`, `data-path`, `data-ln`, `.j-toggle`, `.highlighted`, `.find-match`, `.bookmarked`. Research and numbers: `docs/codemirror-tree-research.md`.
+
 ## 8. Naming
 
 A name should say what the thing is or does, so a reader never has to look it up.

@@ -118,9 +118,10 @@ async function openJson(page, name, value) {
       renderer.highlightKeyByName(view, 'name');
       await until(() => view.querySelector('.j-line[data-path="[2].meta"]'), 'the marked rows');
       const before = marks();
+      const restoreTop = scroller.scrollTop;
       // Far away: the first rows leave the page. Then back: they are drawn again, as they were.
       await until(() => { scroller.scrollTop = scroller.scrollHeight; return !view.querySelector('.j-line[data-path="[2].meta"]'); }, 'the first rows to leave the page');
-      scroller.scrollTop = 0;
+      scroller.scrollTop = restoreTop;      // the same place as before, whatever the window height
       await until(() => view.querySelector('.j-line[data-path="[2].meta"]'), 'the first rows to be drawn again');
       return { before, after: marks() };
     });

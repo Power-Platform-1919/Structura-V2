@@ -81,10 +81,10 @@ function serve() {
       toggle.click();
       await frame();
       out.openOneMs = Math.round(performance.now() - t);
-      out.opened = !!view.querySelector('.j-line[data-path="[3].owner.mail"]');
+      out.opened = !!view.querySelector('.j-line[data-path="[3].name"]');
       view.querySelector('.j-line[data-path="[3]"] .j-toggle').click();
       await frame();
-      out.closed = !view.querySelector('.j-line[data-path="[3].owner.mail"]');
+      out.closed = !view.querySelector('.j-line[data-path="[3].name"]');
       // a row at the end, by its path (what Find and the path bar do)
       t = performance.now();
       Structra.setState('currentPath', '$[99990].owner.mail');
@@ -97,7 +97,10 @@ function serve() {
       await Structra.jsonTreeRenderer.collapseAll(view);
       await frame();
       out.collapseAllMs = Math.round(performance.now() - t);
+      // the selected row stays reachable, so its blocks reopen; the rest of the 100,000 records stay closed
+      scroller.scrollTop = 0; await frame();
       out.collapsedText = view.querySelector('.j-line').textContent.trim();
+      out.recordsClosed = !view.querySelector('.j-line[data-path="[3]"] .j-toggle') || view.querySelector('.j-line[data-path="[3]"] .j-toggle').textContent === '▶';
       return out;
     });
     console.log('  100,000 records:', JSON.stringify(records));
@@ -107,7 +110,7 @@ function serve() {
     if (!records.opened || !records.closed) fail('a record should open and close: ' + JSON.stringify({ opened: records.opened, closed: records.closed }));
     if (records.openOneMs > 1500) fail('opening one record should be quick, it took ' + records.openOneMs + ' ms');
     if (!records.reached) fail('a row at the end should be reached by its path');
-    if (!/^▶\[ \.\.\.100000 items \]|^▶?\[ \.\.\.100000 items \]/.test(records.collapsedText.replace(/\s+/g, ' ')) && !/100000 items/.test(records.collapsedText)) fail('collapse all should leave one line saying 100000 items: "' + records.collapsedText + '"');
+    if (!/^▼\[/.test(records.collapsedText) || !records.recordsClosed) fail('collapse all should leave the records closed (the selected row stays reachable): "' + records.collapsedText + '"');
 
     /* ---------- 2. 600,000 numbers: a window and a "more" row ---------- */
     const windowed = await page.evaluate(async () => {
