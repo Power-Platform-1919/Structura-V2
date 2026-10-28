@@ -9,28 +9,13 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const { test, eq } = require('./harness');
+const { runWorker } = require('./test-utils');
 
 const suite = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'suites', 'yaml-test-suite', 'cases.json'), 'utf8'));
 const WORKERS = path.join(__dirname, '..', '..', 'src', 'workers');
 
-function parseWithWorker(text) {
-  let handler = null;
-  let posted = null;
-  const context = {
-    console: { log() {}, warn() {}, error() {} },
-    performance: { now: () => Date.now() },
-    atob: (text) => Buffer.from(text, 'base64').toString('latin1'),    // every browser has atob; the library reads !!binary with it
-    postMessage: (message) => { posted = message; },
-    // the worker names its files relative to src/workers, as it does in the browser
-    importScripts: (...files) => { for (const file of files) vm.runInContext(fs.readFileSync(path.join(WORKERS, file), 'utf8'), context); },
-  };
-  context.self = context;
-  context.addEventListener = (type, fn) => { if (type === 'message') handler = fn; };
-  vm.createContext(context);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'workers', 'yaml-parse-worker.js'), 'utf8'), context);
-  handler({ data: { id: 1, text } });
-  return posted;
-}
+// every browser has atob; the library reads !!binary with it
+const parseWithWorker = (text) => runWorker('yaml-parse-worker.js', { id: 1, text }, { shims: { atob: (value) => Buffer.from(value, 'base64').toString('latin1') } });
 
 /** The suite gives the JSON of every document one after the other: cut them apart without a parser that stops at the first */
 function jsonValues(text) {

@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { load, test, eq, truthy } = require('./harness');
+const { fixtureLists } = require('./test-utils');
 
 global.Ajv = require('../../src/libs/ajv.min.js');
 window.Ajv = global.Ajv;
@@ -20,20 +21,8 @@ console.log('schema generator against the validator');
 
 const ajv = new global.Ajv({ allErrors: true, schemaId: 'auto' });
 
-function firstList(value) {
-  if (Array.isArray(value) && value.length && value.every((item) => item && typeof item === 'object' && !Array.isArray(item))) return value;
-  if (value && typeof value === 'object') for (const child of Object.values(value)) { const found = firstList(child); if (found) return found; }
-  return null;
-}
 
-const documents = [];
-const fixtures = path.join(__dirname, '..', 'fixtures');
-for (const file of fs.readdirSync(fixtures).filter((name) => name.endsWith('.json')).sort()) {
-  try {
-    const rows = firstList(JSON.parse(fs.readFileSync(path.join(fixtures, file), 'utf8')));
-    if (rows) documents.push({ name: file, rows: rows.slice(0, 300) });
-  } catch { /* not JSON */ }
-}
+const documents = fixtureLists().map(({ name, rows }) => ({ name, rows }));
 const hostile = {};
 HOSTILE_KEYS.filter((key) => !key.includes('\u0000')).forEach((key, i) => { hostile[key] = i % 3 ? 'text' : i; });
 documents.push({ name: 'hostile keys', rows: [hostile, { ...hostile, '': null }] });

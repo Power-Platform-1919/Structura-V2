@@ -5,6 +5,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { seededRandom } = require('./test-utils');
 
 function freshStack() {
   const sandbox = { console };
@@ -17,8 +18,6 @@ function freshStack() {
 // the objects come out of another context, so they are compared as text
 const same = (actual, expected, message) => assert.strictEqual(JSON.stringify(actual), JSON.stringify(expected), message);
 
-// a small repeatable random generator
-function random(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
 
 function makeDocument(rnd, size) {
   return Array.from({ length: size }, (_, i) => ({ id: i, name: 'item ' + i, tags: ['a', 'b'], nested: { value: Math.round(rnd() * 1000), note: i % 3 ? 'x"y' : 'café 😀' } }));
@@ -39,7 +38,7 @@ function change(rnd, doc) {
 
 test('undo and redo return exactly the document of every step', () => {
   for (const seed of [1, 2, 3, 4, 5]) {
-    const rnd = random(seed);
+    const rnd = seededRandom(seed);
     const stack = freshStack();
     const states = [makeDocument(rnd, 30)];
     stack.push(states[0], 'start', 1);
@@ -57,7 +56,7 @@ test('undo and redo return exactly the document of every step', () => {
 });
 
 test('a new change after an undo ends the redo path and the history still reads back right', () => {
-  const rnd = random(9);
+  const rnd = seededRandom(9);
   const stack = freshStack();
   const a = makeDocument(rnd, 10);
   const b = change(rnd, a);
@@ -95,7 +94,7 @@ test('text that is awkward for a cut-away comparison: repeats, surrogate pairs, 
 });
 
 test('a one-key change in a large document costs a few bytes, not another copy', () => {
-  const rnd = random(3);
+  const rnd = seededRandom(3);
   const stack = freshStack();
   let doc = makeDocument(rnd, 20000);        // about 2 MB of text
   stack.push(doc, 'start', 1);

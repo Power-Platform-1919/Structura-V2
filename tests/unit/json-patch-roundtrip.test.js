@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const { load, test, eq, truthy } = require('./harness');
+const { clone } = require('./test-utils');
 const jsonpatch = require('fast-json-patch');
 
 const { pathToFileURL } = require('url');
@@ -18,7 +19,6 @@ for (const item of suite.cases) {
   if (item.kind === 'n') continue;
   try { documents.push({ name: item.name, value: JSON.parse(new TextDecoder('utf-8').decode(Buffer.from(item.base64, 'base64'))) }); } catch { /* not valid: not a document */ }
 }
-const clone = (value) => JSON.parse(JSON.stringify(value));
 
 // Differences found in smart mode are listed here with their count; see the comment at the test
 const KNOWN_SMART_WRONG = 0;
