@@ -4423,22 +4423,28 @@
         {
           "id": "23.11",
           "title": "Overview insights and quality score: edge cases (empty lists, mixed types, huge arrays, all-null columns)",
-          "status": "todo",
+          "status": "done",
           "subtasks": [
             {
               "id": "23.11.1",
               "title": "List the edge cases",
-              "status": "todo"
+              "status": "done",
+              "note": "Listed 24 awkward documents: empty list/object, list of empty objects, nulls, numbers, lists of lists, single record or value, all-null column, mixed-type column, rare column, odd keys, ids that repeat or differ, numbers as text, 1e308, dates, 300 levels deep, 3000 keys wide, 200 KB strings, nested empty lists",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.11.2",
               "title": "Test each",
-              "status": "todo"
+              "status": "done",
+              "note": "tests/unit/analysis-edge.test.js (28 tests): every number is finite and in range (quality parts 0 to 100, null/unique/coverage percent), no NaN or undefined in the insight text, plus checks for all-null, mixed types, repeating ids, a clean list scoring 100, and 200,000 records in under 15 s",
+              "doneOn": "2026-10-28"
             },
             {
               "id": "23.11.3",
               "title": "Fix",
-              "status": "todo"
+              "status": "done",
+              "note": "Nothing needed fixing: all 24 documents give real numbers and plain text; the one document that gives no numbers, a bare null, cannot be opened by design (fixtures test edge_null)",
+              "doneOn": "2026-10-28"
             }
           ]
         },
