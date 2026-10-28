@@ -9,7 +9,7 @@
 */
 
 export { EditorState, EditorSelection, Compartment, StateEffect, StateField, RangeSetBuilder, Prec } from '@codemirror/state';
-export { EditorView, ViewPlugin, Decoration, keymap, lineNumbers, drawSelection, placeholder, highlightSpecialChars } from '@codemirror/view';
+export { EditorView, ViewPlugin, Decoration, WidgetType, keymap, lineNumbers, gutter, GutterMarker, drawSelection, placeholder, highlightSpecialChars } from '@codemirror/view';
 export { history, historyKeymap, defaultKeymap } from '@codemirror/commands';
 export {
   syntaxHighlighting, HighlightStyle, StreamLanguage, bracketMatching, foldGutter, foldService, foldEffect, unfoldEffect,

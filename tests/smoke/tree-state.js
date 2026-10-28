@@ -85,13 +85,14 @@ async function openJson(page, name, value) {
     const special = await page.evaluate(() => [...document.querySelectorAll('.json-view .j-special')].map((el) => el.title));
     if (special.join() !== 'U+202E,U+200B') failures.push('the hidden characters of a text value should show as marks, got ' + JSON.stringify(special));
 
-    /* ---- 2. a long list: state survives recycling, far rows can be reached ---- */
+    /* ---- 2. a long list: what is marked survives scrolling away and back, far rows can be reached ---- */
     const rows = [];
     for (let i = 0; i < 3000; i++) rows.push({ id: i, name: 'row' + i, meta: { a: i, b: [1, 2, 3], c: { d: 'x' } }, tags: ['p', 'q'] });
     await openJson(page, 'rows.json', rows);
 
     const kept = await page.evaluate(async () => {
       const view = document.querySelector('.json-view');
+      const scroller = view.querySelector('.cm-scroller');
       const renderer = Structra.jsonTreeRenderer;
       const until = async (test, what) => {
         const began = performance.now();
@@ -100,7 +101,6 @@ async function openJson(page, name, value) {
           await new Promise((resolve) => setTimeout(resolve, 30));
         }
       };
-      const firstChunk = () => view.querySelector('.j-chunk[data-chunkpath=""][data-chunkstart="0"]');
       const marks = () => ({
         highlighted: (view.querySelector('.j-line.highlighted') || {}).dataset ? view.querySelector('.j-line.highlighted').dataset.path : null,
         find: !!view.querySelector('.j-line.find-match'),
@@ -108,29 +108,40 @@ async function openJson(page, name, value) {
         key: view.querySelectorAll('.j-key-hl').length > 0,
         toggle: (view.querySelector('.j-line[data-path="[2].meta"] .j-toggle') || {}).textContent,
       });
-      view.scrollTop = 0;
-      await until(() => firstChunk() && !firstChunk().dataset.recycled, 'the first chunk');
+      scroller.scrollTop = 0;
+      await until(() => view.querySelector('.j-line[data-path="[2].meta"]'), 'the first rows');
+      // the first view opens the records and leaves their blocks closed: open one, then mark lines
       view.querySelector('.j-line[data-path="[2].meta"] .j-toggle').click();
       renderer.highlightPath(view, '[3].name');
       renderer.highlightPaths(view, ['$[4].name']);
       renderer.updateBookmarkHighlights(view, ['[5].name']);
       renderer.highlightKeyByName(view, 'name');
+      await until(() => view.querySelector('.j-line[data-path="[2].meta"]'), 'the marked rows');
       const before = marks();
-      // Far away: the first chunk is recycled (emptied). Then back: it is drawn again.
-      await until(() => { view.scrollTop = view.scrollHeight; return firstChunk().dataset.recycled; }, 'the first chunk to be recycled');
-      view.scrollTop = 0;
-      await until(() => !firstChunk().dataset.recycled && view.querySelector('.j-line[data-path="[2].meta"]'), 'the first chunk to be drawn again');
+      const restoreTop = scroller.scrollTop;
+      // Far away: the first rows leave the page. Then back: they are drawn again, as they were.
+      await until(() => { scroller.scrollTop = scroller.scrollHeight; return !view.querySelector('.j-line[data-path="[2].meta"]'); }, 'the first rows to leave the page');
+      // back to the marked lines: from the top, down until they are in the page (browsers keep a pixel position a little differently)
+      scroller.scrollTop = 0;
+      for (let step = 0; step < 60 && !view.querySelector('.j-line[data-path="[5].name"]'); step++) { scroller.scrollTop += 120; await new Promise((resolve) => setTimeout(resolve, 40)); }
+      await until(() => view.querySelector('.j-line[data-path="[2].meta"]'), 'the first rows to be drawn again');
+      // the marks are drawn with the lines: wait (with a limit) until they are back, then compare
+      await until(() => JSON.stringify(marks()) === JSON.stringify(before), 'the marks to be drawn again').catch(() => {});
       return { before, after: marks() };
     });
-    if (kept.before.toggle !== '▶') failures.push('setup: the block should be closed before recycling, got ' + kept.before.toggle);
+    if (kept.before.toggle !== '▼') failures.push('setup: the block should be open after a click, got ' + kept.before.toggle);
     for (const name of Object.keys(kept.before)) {
-      if (JSON.stringify(kept.before[name]) !== JSON.stringify(kept.after[name])) failures.push(`"${name}" changed when its chunk was recycled and drawn again: ${JSON.stringify(kept.before[name])} became ${JSON.stringify(kept.after[name])}`);
+      if (JSON.stringify(kept.before[name]) !== JSON.stringify(kept.after[name])) failures.push(`"${name}" changed when its lines left the page and were drawn again: ${JSON.stringify(kept.before[name])} became ${JSON.stringify(kept.after[name])}`);
     }
+    // the page holds only the lines in view, not the document
+    const drawn = await page.evaluate(() => document.querySelectorAll('.json-view .j-line').length);
+    if (drawn > 400) failures.push('the Tree should draw only the lines in view, not ' + drawn);
 
     // A row far down, never scrolled to: the path bar selects it and the Tree draws it, in view
     const far = await page.evaluate(async () => {
       Structra.setState('currentPath', '$[2500].name');
       const view = document.querySelector('.json-view');
+      const scroller = view.querySelector('.cm-scroller');
       const began = performance.now();
       let line = null;
       while (performance.now() - began < 10000) {
@@ -141,7 +152,7 @@ async function openJson(page, name, value) {
       if (!line) return { found: false };
       await new Promise((resolve) => setTimeout(resolve, 600));
       const lineBox = line.getBoundingClientRect();
-      const viewBox = view.getBoundingClientRect();
+      const viewBox = scroller.getBoundingClientRect();
       return { found: true, inView: lineBox.top >= viewBox.top - 1 && lineBox.bottom <= viewBox.bottom + 1, number: line.dataset.ln };
     });
     if (!far.found) failures.push('selecting a row far down ($[2500].name) should draw it and highlight it');
@@ -164,11 +175,11 @@ async function openJson(page, name, value) {
     if (!afterCollapse.found || !afterCollapse.visible) failures.push('after collapse all, selecting $[2700].meta.a should open the blocks above it: ' + JSON.stringify(afterCollapse));
 
     // A page key moves by a page of lines
-    await page.evaluate(() => { Structra.jsonTreeRenderer.expandAll(document.querySelector('.json-view')); Structra.setState('currentPath', '$[10].name'); });
+    await page.evaluate(async () => { await Structra.jsonTreeRenderer.expandAll(document.querySelector('.json-view')); Structra.setState('currentPath', '$[10].name'); });
     await page.waitForSelector('.j-line.highlighted[data-path="[10].name"]', { timeout: 5000 });
     const lineNumber = () => page.evaluate(() => Number((document.querySelector('.j-line.highlighted') || { dataset: { ln: 0 } }).dataset.ln));
     const start = await lineNumber();
-    await page.locator('.json-view').focus();
+    await page.locator('.json-view .cm-content').focus();
     await page.keyboard.press('PageDown');
     await page.waitForFunction((from) => Number((document.querySelector('.j-line.highlighted') || { dataset: { ln: 0 } }).dataset.ln) > from + 10, start, { timeout: 5000 }).catch(() => {});
     const afterDown = await lineNumber();

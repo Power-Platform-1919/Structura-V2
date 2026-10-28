@@ -28,7 +28,7 @@ class StructraTree extends StructraComponent {
     this.on('tree:toggle-wrap', () => {
       this._wrap = !this._wrap;
       const view = this._getView();
-      if (view) view.classList.toggle('wrap-mode', this._wrap);
+      if (view) { view.classList.toggle('wrap-mode', this._wrap); Structra.jsonTreeRenderer.setWrap(view, this._wrap); }
       Structra.events.emit('tree:wrap-state', this._wrap);
       Structra.toast(this._wrap ? 'Long values now wrap onto several lines' : 'Long values stay on one line');
     });
@@ -46,47 +46,9 @@ class StructraTree extends StructraComponent {
   }
 
   render() {
-    this.innerHTML = '<div class="json-view" id="jsonView" tabindex="0" role="group" aria-label="JSON tree. Arrow keys move, Left and Right fold, Enter selects."></div>';
-    this._bindKeys();
+    // CodeMirror makes the tree inside this box: it is the one tab stop, a role="tree" with the arrow-key help as its label
+    this.innerHTML = '<div class="json-view" id="jsonView"></div>';
     this.renderTree();
-  }
-
-  /** Up and Down move between lines, PageUp and PageDown by a page, Right opens and Left closes a block, Enter selects the line */
-  _bindKeys() {
-    const view = this._getView();
-    view.addEventListener('keydown', (event) => {
-      if (event.ctrlKey || event.metaKey || event.altKey || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' ', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) return;
-      const lines = [...view.querySelectorAll('.j-line')].filter((line) => line.offsetParent !== null);
-      if (!lines.length) return;
-      event.preventDefault();
-      let current = lines.indexOf(this._kcur);
-      if (current < 0) current = lines.findIndex((line) => line.classList.contains('highlighted'));
-      const select = (line) => {
-        if (!line) return;
-        view.querySelectorAll('.j-line.highlighted').forEach((line) => line.classList.remove('highlighted'));
-        line.classList.add('highlighted');
-        this._kcur = line;
-        const path = Structra.dataPaths.canonical(line.dataset.path);
-        Structra.setState('currentPath', path);
-        Structra.events.emit('tree:node-selected', path);
-        line.scrollIntoView({ block: 'nearest' });
-      };
-      const toggle = current >= 0 ? lines[current].querySelector('.j-toggle') : null;
-      const open = toggle && toggle.textContent.trim() === '\u25BC';
-      if (event.key === 'ArrowDown') select(lines[Math.min(lines.length - 1, current + 1)]);
-      else if (event.key === 'ArrowUp') select(lines[Math.max(0, current - 1)]);
-      else if (event.key === 'PageDown' || event.key === 'PageUp') {
-        // A page is the number of lines that fit, less one so the line before stays in view (CodeMirror's PageUp and PageDown do this)
-        const page = Math.max(1, Math.floor(view.clientHeight / (lines[0].offsetHeight || 22)) - 1);
-        select(lines[Math.max(0, Math.min(lines.length - 1, Math.max(current, 0) + (event.key === 'PageDown' ? page : -page)))]);
-      }
-      else if (event.key === 'Home') select(lines[0]);
-      else if (event.key === 'End') select(lines[lines.length - 1]);
-      else if (event.key === 'ArrowRight') { if (toggle && !open) toggle.click(); else select(lines[Math.min(lines.length - 1, current + 1)]); }
-      else if (event.key === 'ArrowLeft') { if (toggle && open) toggle.click(); }
-      else if (current >= 0) { if (toggle && event.key === ' ') toggle.click(); else select(lines[current]); }
-      else select(lines[0]);
-    });
   }
 
   _getView() {
@@ -105,7 +67,8 @@ class StructraTree extends StructraComponent {
     Structra.log.info('Tree', 'renderTree() - ' + itemCount + ' top-level items');
     const startTime = performance.now();
 
-    // Render using V2 json-tree renderer
+    if (this._wrap) view.classList.add('wrap-mode');
+    // Render with the CodeMirror tree renderer
     Structra.jsonTreeRenderer.render(view, data, {
       onPathSelect: (path) => {
         const canonicalPath = Structra.dataPaths.canonical(path);
@@ -121,7 +84,6 @@ class StructraTree extends StructraComponent {
     });
 
     this._markBookmarks();
-    if (this._wrap) view.classList.add('wrap-mode');
     Structra.events.emit('tree:rendered');
     Structra.log.perf('Tree', 'renderTree()', performance.now() - startTime);
   }

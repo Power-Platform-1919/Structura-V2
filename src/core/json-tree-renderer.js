@@ -1,31 +1,25 @@
 /* ============================================================
    STRUCTRA V2 - JSON Tree Renderer
-   Chunked, virtualized JSON tree view with:
-   - IntersectionObserver-based lazy chunk loading
-   - DOM recycling (offscreen chunks replaced with placeholders)
-   - Chunk rehydration on scroll-back, with the view state (closed blocks, selected line, search marks, bookmarks, key
-     highlight) kept in treeState and put back, so a rebuilt chunk looks as it did
-   - Jump to a row in a chunk that is not drawn yet (placeholders for the chunks in between)
-   - Collapse/expand with depth control
-   - Inline value editing
-   - Key occurrence highlighting
-   - Data-level filter (persists across recycle/rehydrate)
-   - Path highlighting + bookmark support
+   The Tree, drawn by CodeMirror. The CodeMirror document holds only the rows that are showing: a closed block is one row, opening it
+   replaces that row by the rows of the block (src/core/tree-model.js keeps the rows; docs/codemirror-tree-research.md says why).
+   CodeMirror draws only the lines in view, so a 90 MB document is about 85 lines in the page.
 
-   Its own chunking and recycling: a long array is drawn a chunk at a time.
-   Object/primitive rendering is inline (no chunking).
+   What a person sees and what the tests look at are the same as before: every line is a .j-line with data-path and data-ln (its line
+   number in the file), keys are .j-key, values .j-str .j-num .j-bool .j-null, blocks have a .j-toggle and closed blocks a .j-ellipsis,
+   the selected line is .highlighted, search results .find-match, bookmarks .bookmarked.
 
-   API:
-     Structra.jsonTreeRenderer.render(container, data, opts)
-     Structra.jsonTreeRenderer.expandAll(container)
+   API (the same as the renderer before it; the work now happens when CodeMirror has loaded, so calls made before then wait):
+     Structra.jsonTreeRenderer.render(container, data, opts)       opts.onPathSelect(path), opts.onContextMenu(x, y, path)
+     Structra.jsonTreeRenderer.expandAll(container)                open every block (a document of millions of lines opens as far as MAX_ROWS)
      Structra.jsonTreeRenderer.collapseAll(container)
      Structra.jsonTreeRenderer.collapseToDepth(container, depth)
-     Structra.jsonTreeRenderer.highlightPath(container, path)
-     Structra.jsonTreeRenderer.highlightPaths(container, paths)
-     Structra.jsonTreeRenderer.setFilter(container, matchedPaths)
-     Structra.jsonTreeRenderer.setFilterByRegex(container, regex)
+     Structra.jsonTreeRenderer.highlightPath(container, path)      select a line (opening what is above it, scrolling to it)
+     Structra.jsonTreeRenderer.highlightPaths(container, paths)    mark search results and go to the first
+     Structra.jsonTreeRenderer.updateBookmarkHighlights(container, bookmarks)
+     Structra.jsonTreeRenderer.highlightKeyByName(container, keyName)
+     Structra.jsonTreeRenderer.setFilter(container, matchedPaths)  show only the matches and the blocks above them
      Structra.jsonTreeRenderer.clearFilter(container)
-     Structra.jsonTreeRenderer.renderInto(container, data)
+     Structra.jsonTreeRenderer.setWrap(container, on)              long values wrap onto several lines
 
    Wiring (generated from the code below; update it when you add or remove an event):
      Emits: tree:search-key, loading:show, loading:hide, tree:inline-edit
@@ -36,1036 +30,546 @@ window.Structra = window.Structra || {};
 Structra.jsonTreeRenderer = (() => {
   'use strict';
 
-  const CHUNK_SIZE = 100;
-  const OFFSCREEN_MARGIN = 3000;
-  const escapeHtml = Structra.sharedHelpers.escapeHtml;
+  const K = Structra.treeModel.KIND;
+  const CLICK_DELAY = 250;            // a click waits this long, so a double click does not also select
+  const LONG_LINE = 20000;            // a line longer than this is shown as plain text (colouring it would cost more than it is worth)
 
-  // Characters that cannot be seen or that change how text reads (control characters, zero width characters, the ones that
-  // flip the reading direction). The Editor shows them too (CodeMirror's highlightSpecialChars): a value that looks like
-  // "admin" but holds a hidden character is not the same value. New lines, returns and tabs are already shown as \n, \r, \t.
-  const SPECIAL_CHARS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u00ad\u061c\u200b\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069\ufeff\ufff9-\ufffc]/g;
+  // Characters that cannot be seen or that change how text reads (control characters, zero width characters, the ones that flip the reading
+  // direction). The Editor shows them too: a value that looks like "admin" but holds a hidden character is not the same value.
+  // Built from character codes, so no invisible character has to be typed into this file
+  const SPECIAL_CHARS = new RegExp('[' + ['0000-0008', '000b', '000c', '000e-001f', '007f-009f', '00ad', '061c', '200b', '200e', '200f', '2028', '2029', '202a-202e', '2066-2069', 'feff', 'fff9-fffc']
+    .map((range) => range.split('-').map((hex) => String.fromCharCode(parseInt(hex, 16))).join('-')).join('') + ']', 'g');
+  const KEY_PREFIX = /^( *)("(?:[^"\\]|\\.)*": )?/;
+  const ESCAPE = /\\(?:u[0-9a-fA-F]{4}|.)/g;
 
-  function showSpecialChar(character) {
-    const code = character.charCodeAt(0);
-    const shown = code < 0x20 ? String.fromCharCode(0x2400 + code) : code === 0x7f ? '\u2421' : '\u2022';
-    return `<span class="j-special" title="U+${code.toString(16).toUpperCase().padStart(4, '0')}">${shown}</span>`;
+  let library = null;                 // the CodeMirror pieces, once loaded
+  const states = new WeakMap();       // container -> what the tree there is showing
+
+  const stripPath = (path) => Structra.dataPaths.strip(path);
+  const tick = Structra.sharedHelpers.waitForNextTick;
+
+  /** Run a function on the tree of a container once its view exists (CodeMirror may still be loading) */
+  function whenReady(container, work) {
+    const state = states.get(container);
+    if (!state) return;
+    if (state.view) work(state); else state.waiting.push(work);
   }
 
   /* ============================
-     RENDER STATE (per container)
+     DRAWING A LINE
      ============================ */
 
-  // WeakMap keyed by container element → render state
-  const _states = new WeakMap();
-
-  function getState(container) {
-    return _states.get(container) || null;
+  function makeWidgets() {
+    const { WidgetType } = library;
+    class ToggleWidget extends WidgetType {
+      constructor(open) { super(); this.open = open; }
+      eq(other) { return other.open === this.open; }
+      toDOM() {
+        const element = document.createElement('span');
+        element.className = 'j-toggle';
+        element.textContent = this.open ? '▼' : '▶';
+        element.title = this.open ? 'Collapse' : 'Expand';
+        return element;
+      }
+      ignoreEvent() { return false; }
+    }
+    class SpecialWidget extends WidgetType {
+      constructor(character) { super(); this.character = character; }
+      eq(other) { return other.character === this.character; }
+      toDOM() {
+        const code = this.character.charCodeAt(0);
+        const element = document.createElement('span');
+        element.className = 'j-special';
+        element.title = 'U+' + code.toString(16).toUpperCase().padStart(4, '0');
+        element.textContent = code < 0x20 ? String.fromCharCode(0x2400 + code) : code === 0x7f ? '␡' : '•';
+        return element;
+      }
+    }
+    class EditWidget extends WidgetType {
+      constructor(initial, onCommit, onCancel) { super(); this.initial = initial; this.onCommit = onCommit; this.onCancel = onCancel; }
+      eq() { return false; }
+      ignoreEvent() { return true; }
+      toDOM() {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'j-inline-edit';
+        input.value = this.initial;
+        input.style.cssText = 'font-family:var(--font-mono);font-size:inherit;padding:0 2px;border:1px solid var(--accent);border-radius:3px;background:var(--surface);color:var(--text);outline:none;min-width:40px;width:' + Math.max(60, this.initial.length * 8 + 24) + 'px;';
+        let finished = false;
+        input.addEventListener('blur', () => { if (!finished) { finished = true; this.onCommit(input.value); } });
+        input.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
+          if (event.key === 'Escape') { event.preventDefault(); finished = true; this.onCancel(); }
+        });
+        requestAnimationFrame(() => { input.focus(); input.select(); });
+        return input;
+      }
+    }
+    return { ToggleWidget, SpecialWidget, EditWidget };
   }
 
-  function initState(container, data, options) {
-    const state = {
-      data,
-      opts: options || {},
-      lineCounter: 0,
-      fileLine: 0,
-      chunkId: 0,
-      listeners: new AbortController(),
-      loadObserver: null,
-      recycleObserver: null,
-      highlightedEl: null,
-      bookmarkedEls: [],
-      filterMatchedPaths: null,
-      filterPathRegex: null,
-      filterScrollHandler: null,
-      // How the lines look is kept here, not only in the page: a chunk that is built again after it was recycled (or drawn on
-      // demand) gets the same look. CodeMirror does the same: fold state and selection live in its state, the page is drawn from it.
-      collapseDepth: null,           // after collapseAll / collapseToDepth: blocks at this depth or deeper are closed (null: no rule)
-      collapseOverrides: new Map(),  // path -> true (closed) or false (open): the blocks opened or closed by hand since
-      highlightedPath: null,
-      findPaths: null,               // Set of the paths marked as search results
-      bookmarkPaths: null,           // Set of the bookmarked paths
-      keyHighlightName: null,
+  /** The marks of a line: what a colour, a click or a double click is attached to. Returns a list of { from, to, decoration }. */
+  function lineMarks(state, row, line, path, widgets) {
+    const { Decoration } = library;
+    const { model } = state;
+    const kind = model.kind(row);
+    const text = line.text;
+    const marks = [];
+    const add = (from, to, decoration) => marks.push({ from: line.from + from, to: line.from + to, decoration });
+    const mark = (from, to, className, extra) => add(from, to, Decoration.mark({ class: className, attributes: Object.assign({ 'data-path': path }, extra) }));
+    if (text.length > LONG_LINE) return marks;
+
+    if (kind === K.MORE) { mark(0, text.length, 'j-muted'); return marks; }
+    const prefix = KEY_PREFIX.exec(text);
+    const indent = prefix[1].length;
+    let valueStart = indent;
+    if (prefix[2]) {
+      const keyText = prefix[2].slice(0, -2);
+      const highlighted = state.keyHighlightName !== null && keyText.slice(1, -1) === state.keyHighlightName;
+      mark(indent, indent + keyText.length, 'j-key' + (highlighted ? ' j-key-hl' : ''));
+      valueStart = indent + prefix[2].length;
+    }
+    const bare = text.endsWith(',') ? text.length - 1 : text.length;
+    if (kind === K.CLOSE) { mark(valueStart, valueStart + 1, 'j-bracket'); return marks; }
+    if (kind === K.OPEN) {
+      add(valueStart, valueStart, Decoration.widget({ widget: new widgets.ToggleWidget(true), side: -1 }));
+      mark(valueStart, valueStart + 1, 'j-bracket');
+      return marks;
+    }
+    if (kind === K.CLOSED) {
+      add(valueStart, valueStart, Decoration.widget({ widget: new widgets.ToggleWidget(false), side: -1 }));
+      mark(valueStart, valueStart + 1, 'j-bracket');
+      mark(valueStart + 1, bare, 'j-ellipsis');
+      return marks;
+    }
+    if (kind === K.EMPTY) { mark(valueStart, bare, 'j-bracket'); return marks; }
+
+    // a value on its own line
+    const first = text[valueStart];
+    const match = state.filterMatched && state.filterMatched.has(path) ? ' filter-match' : '';
+    if (first === '"') {
+      mark(valueStart, bare, 'j-str' + match);
+      const body = text.slice(valueStart, bare);
+      ESCAPE.lastIndex = 0;
+      for (let found = ESCAPE.exec(body); found; found = ESCAPE.exec(body)) add(valueStart + found.index, valueStart + found.index + found[0].length, Decoration.mark({ class: 'j-esc' }));
+      SPECIAL_CHARS.lastIndex = 0;
+      for (let found = SPECIAL_CHARS.exec(body); found; found = SPECIAL_CHARS.exec(body)) add(valueStart + found.index, valueStart + found.index + 1, Decoration.replace({ widget: new widgets.SpecialWidget(found[0]) }));
+    } else if (first === 't' || first === 'f') mark(valueStart, bare, 'j-bool' + match);
+    else if (first === 'n') mark(valueStart, bare, 'j-null' + match);
+    else mark(valueStart, bare, 'j-num' + match);
+    return marks;
+  }
+
+  /** The decorations of the lines in view: the line itself (its classes and attributes), then its marks, in the order CodeMirror needs */
+  function buildDecorations(view, state, widgets) {
+    const { Decoration, RangeSetBuilder } = library;
+    const { model } = state;
+    const doc = view.state.doc;
+    const found = [];
+    for (const range of view.visibleRanges) {
+      for (let position = range.from; position <= range.to;) {
+        const line = doc.lineAt(position);
+        const row = line.number - 1;
+        position = line.to + 1;
+        if (row >= model.rows) continue;
+        const kind = model.kind(row);
+        const path = model.pathOf(row);
+        const selected = row === state.highlightedRow;
+        let classes = 'j-line' + (kind === K.CLOSE ? ' j-close' : '') + (selected ? ' highlighted' : '');
+        if (state.findPaths && state.findPaths.has(path) && kind !== K.CLOSE) classes += ' find-match';
+        if (state.bookmarkPaths && state.bookmarkPaths.has(path) && kind !== K.CLOSE) classes += ' bookmarked';
+        const attributes = { 'data-path': path, 'data-ln': kind === K.MORE ? '' : String(model.fileLineOf(row) + 1), role: 'treeitem', 'aria-level': String(model.depth(row) + 1), id: 'tree-row-' + row };
+        if (kind === K.OPEN) attributes['aria-expanded'] = 'true';
+        if (kind === K.CLOSED) attributes['aria-expanded'] = 'false';
+        if (selected) attributes['aria-selected'] = 'true';
+        found.push({ from: line.from, to: line.from, decoration: Decoration.line({ class: classes, attributes }) });
+        const edit = state.editing && state.editing.row === row ? state.editing : null;
+        if (edit) { found.push({ from: line.from + edit.from, to: line.from + edit.to, decoration: Decoration.replace({ widget: new widgets.EditWidget(edit.initial, edit.commit, edit.cancel) }) }); continue; }
+        for (const mark of lineMarks(state, row, line, path, widgets)) found.push(mark);
+      }
+    }
+    found.sort((a, b) => a.from - b.from || a.decoration.startSide - b.decoration.startSide || a.to - b.to);
+    const builder = new RangeSetBuilder();
+    for (const item of found) builder.add(item.from, item.to, item.decoration);
+    return builder.finish();
+  }
+
+  /* ============================
+     THE VIEW
+     ============================ */
+
+  function createView(container, state) {
+    const { EditorView, EditorState, ViewPlugin, StateEffect, Prec, keymap, Compartment } = library;
+    const widgets = makeWidgets();
+    const refreshEffect = StateEffect.define();
+    state.refreshEffect = refreshEffect;
+    state.wrapCompartment = new Compartment();
+
+    const lines = ViewPlugin.fromClass(class {
+      constructor(view) { this.decorations = buildDecorations(view, state, widgets); this.fix(view); }
+      update(update) {
+        if (update.docChanged || update.viewportChanged || update.transactions.some((transaction) => transaction.effects.some((effect) => effect.is(refreshEffect)))) this.decorations = buildDecorations(update.view, state, widgets);
+        this.fix(update.view);
+      }
+      // CodeMirror marks its content as a multi-line text box and read-only; a tree is neither (ARIA does not allow these on role=tree).
+      // aria-activedescendant must name a row that is drawn, so it is left off when the selected row is out of view.
+      fix(view) {
+        queueMicrotask(() => {
+          if (!view.contentDOM.isConnected) return;
+          view.contentDOM.removeAttribute('aria-multiline');
+          view.contentDOM.removeAttribute('aria-readonly');
+          const element = state.highlightedRow >= 0 ? view.contentDOM.querySelector('#tree-row-' + state.highlightedRow) : null;
+          if (element) view.contentDOM.setAttribute('aria-activedescendant', 'tree-row-' + state.highlightedRow); else view.contentDOM.removeAttribute('aria-activedescendant');
+        });
+      }
+    }, { decorations: (plugin) => plugin.decorations });
+
+    // The row an event happened in: found from the line element it hit (so a click made by code, or by assistive technology, which has
+    // no coordinates, works), else from where the pointer is
+    const rowAtEvent = (event, view) => {
+      const lineElement = event.target.closest && event.target.closest('.cm-line');
+      let position = lineElement ? view.posAtDOM(lineElement) : view.posAtCoords({ x: event.clientX, y: event.clientY });
+      if (position === null || position === undefined) position = -1;
+      return position < 0 ? -1 : view.state.doc.lineAt(position).number - 1;
     };
-    _states.set(container, state);
-    return state;
+
+    const handlers = EditorView.domEventHandlers({
+      click(event, view) {
+        const target = event.target;
+        const row = rowAtEvent(event, view);
+        if (row < 0) return false;
+        if (target.closest('.j-toggle') || target.closest('.j-ellipsis')) { toggleRow(state, row); return true; }
+        if (state.model.kind(row) === K.MORE) { showMore(state, row); return true; }
+        const key = target.closest('.j-key');
+        if (key) {
+          setKeyHighlight(state, key.textContent.replace(/^"|"$/g, ''));
+        } else if (state.keyHighlightName !== null) setKeyHighlight(state, null);
+        const path = state.model.pathOf(row);
+        if (state.opts.onPathSelect) { clearTimeout(state.clickTimer); state.clickTimer = setTimeout(() => state.opts.onPathSelect(path), CLICK_DELAY); }
+        return false;
+      },
+      dblclick(event, view) {
+        clearTimeout(state.clickTimer);
+        const row = rowAtEvent(event, view);
+        if (row < 0) return false;
+        const key = event.target.closest('.j-key');
+        if (key) { Structra.events.emit('tree:search-key', key.textContent.replace(/^"|"$/g, '')); return true; }
+        if (event.target.closest('.j-str, .j-num, .j-bool, .j-null')) { startInlineEdit(state, row); return true; }
+        return false;
+      },
+      contextmenu(event, view) {
+        const row = rowAtEvent(event, view);
+        if (row < 0 || !state.opts.onContextMenu) return false;
+        event.preventDefault();
+        state.opts.onContextMenu(event.clientX, event.clientY, state.model.pathOf(row));
+        return true;
+      },
+    });
+
+    // Up and Down move between lines, PageUp and PageDown by a page, Right opens and Left closes a block, Enter selects the line,
+    // Space opens or closes the block. They run before CodeMirror's own keys, which would move a text cursor.
+    const move = (change) => () => { selectByKey(state, change); return true; };
+    const keys = Prec.highest(keymap.of([
+      // with no line selected yet, Down selects the first line (row -1 plus one)
+      { key: 'ArrowDown', run: move((row) => row + 1) },
+      { key: 'ArrowUp', run: move((row) => row - 1) },
+      { key: 'Home', run: move(() => 0) },
+      { key: 'End', run: move((row, count) => count - 1) },
+      { key: 'PageDown', run: move((row, count, page) => Math.max(row, 0) + page) },
+      { key: 'PageUp', run: move((row, count, page) => Math.max(row, 0) - page) },
+      { key: 'ArrowRight', run: () => { const row = state.highlightedRow; if (row >= 0 && state.model.kind(row) === K.CLOSED) toggleRow(state, row); else selectByKey(state, (at) => at + 1); return true; } },
+      { key: 'ArrowLeft', run: () => { const row = state.highlightedRow; if (row >= 0 && state.model.kind(row) === K.OPEN) toggleRow(state, row); return true; } },
+      { key: 'Enter', run: () => { const row = state.highlightedRow; if (row >= 0 && state.model.kind(row) === K.MORE) showMore(state, row); else selectByKey(state, (at) => Math.max(at, 0)); return true; } },
+      { key: ' ', run: () => { const row = state.highlightedRow; if (row >= 0) toggleRow(state, row); return true; } },
+    ]));
+
+    state.view = new EditorView({
+      parent: container,
+      state: EditorState.create({
+        doc: state.model.initialText(),
+        extensions: [
+          EditorState.readOnly.of(true),
+          EditorView.contentAttributes.of({ role: 'tree', 'aria-label': 'JSON tree. Arrow keys move, Left and Right fold, Enter selects.', tabindex: '0', inputmode: 'none' }),
+          state.wrapCompartment.of(state.wrap ? EditorView.lineWrapping : []),
+          lines, handlers, keys,
+        ],
+      }),
+    });
+    container.style.setProperty('--ln-digits', String(Math.max(2, String(state.model.fileLines).length)));
   }
 
   /* ============================
-     CORE RENDER
+     CHANGING WHAT SHOWS
      ============================ */
 
-  function render(container, data, options) {
-    options = options || {};
-    Structra.log.info('JsonTree', 'render()');
-    const startTime = performance.now();
+  function refresh(state) {
+    if (state.view) state.view.dispatch({ effects: state.refreshEffect.of(null) });
+  }
 
+  /** Put a change from the model into the document */
+  function applyChange(state, change) {
+    const { doc } = state.view.state;
+    const from = doc.line(change.at + 1).from;
+    const to = doc.line(change.at + change.removeRows).to;
+    state.view.dispatch({ changes: { from, to, insert: change.text } });
+  }
+
+  function replaceDocument(state, text) {
+    state.view.dispatch({ changes: { from: 0, to: state.view.state.doc.length, insert: text } });
+  }
+
+  /** The row of the selected path, now that rows may have moved */
+  function syncSelected(state) {
+    state.highlightedRow = state.highlightedPath === null ? -1 : state.model.rowOfPath(state.highlightedPath);
+  }
+
+  function toggleRow(state, row) {
+    const change = state.model.toggle(row);
+    if (!change) return;
+    applyChange(state, change);
+    syncSelected(state);
+    refresh(state);
+  }
+
+  function showMore(state, row) {
+    const change = state.model.more(row);
+    if (!change) return;
+    applyChange(state, change);
+    syncSelected(state);
+    refresh(state);
+  }
+
+  function scrollToRow(state, row, center) {
+    const line = state.view.state.doc.line(row + 1);
+    state.view.dispatch({ effects: library.EditorView.scrollIntoView(line.from, { y: center ? 'center' : 'nearest' }) });
+  }
+
+  function isRowInView(state, row) {
+    const line = state.view.state.doc.line(row + 1);
+    return state.view.visibleRanges.some((range) => line.from >= range.from && line.from <= range.to);
+  }
+
+  function selectRow(state, row, fromKeyboard) {
+    row = Math.max(0, Math.min(state.model.rows - 1, row));
+    const path = state.model.pathOf(row);
+    state.highlightedPath = path;
+    state.highlightedRow = row;
+    refresh(state);
+    scrollToRow(state, row, false);
+    if (fromKeyboard && state.opts.onPathSelect) state.opts.onPathSelect(path);
+  }
+
+  function selectByKey(state, next) {
+    if (!state.model.rows) return;
+    const page = Math.max(1, Math.floor(state.view.scrollDOM.clientHeight / (state.view.defaultLineHeight || 22)) - 1);
+    selectRow(state, next(state.highlightedRow, state.model.rows, page), true);
+  }
+
+  function setKeyHighlight(state, name) {
+    state.keyHighlightName = name;
+    refresh(state);
+  }
+
+  /** Edit a value in place: the value text is swapped for a text box; leaving it (or Enter) asks the command layer to make the change */
+  function startInlineEdit(state, row) {
+    const model = state.model;
+    const path = model.pathOf(row);
+    const value = model.valueOf(row);
+    if (value !== null && typeof value === 'object') return;
+    const line = state.view.state.doc.line(row + 1);
+    const prefix = KEY_PREFIX.exec(line.text);
+    const from = prefix[0].length;
+    const to = line.text.endsWith(',') ? line.text.length - 1 : line.text.length;
+    const finish = () => { state.editing = null; refresh(state); };
+    state.editing = {
+      row, from, to,
+      initial: value === null ? 'null' : String(value),
+      cancel: finish,
+      commit: (raw) => {
+        let newValue;
+        if (raw === 'null') newValue = null;
+        else if (raw === 'true') newValue = true;
+        else if (raw === 'false') newValue = false;
+        else if (raw !== '' && !isNaN(Number(raw)) && raw.trim() === raw) newValue = Number(raw);
+        else newValue = raw;
+        finish();
+        // The command layer makes the change: it keeps the original for Undo, marks the tab and refreshes every view
+        Structra.events.emit('tree:inline-edit', { path, value: newValue });
+      },
+    };
+    refresh(state);
+  }
+
+  /* ============================
+     PUBLIC
+     ============================ */
+
+  async function render(container, data, options) {
     cleanup(container);
-    const treeState = initState(container, data, options);
     container.innerHTML = '';
-
-    if (!data) {
-      container.innerHTML = '<span class="j-muted">No data</span>';
-      return;
-    }
-
-    const lines = buildLines(treeState, data, '', 0);
-    container.innerHTML = lines.join('');
-    sizeNumberMargin(container, treeState);
-
-    setupDelegation(container, treeState);
-    setupObservers(container, treeState);
-
-    Structra.log.perf('JsonTree', 'render() total (' + treeState.chunkId + ' chunks)', performance.now() - startTime);
+    if (!data) { container.innerHTML = '<span class="j-muted">No data</span>'; return; }
+    const started = performance.now();
+    const state = {
+      data, opts: options || {}, model: Structra.treeModel.create(data), view: null, waiting: [], refreshEffect: null,
+      highlightedPath: null, highlightedRow: -1, findPaths: null, bookmarkPaths: null, keyHighlightName: null,
+      filterMatched: null, savedText: null, baseModel: null, editing: null, clickTimer: null, wrap: container.classList.contains('wrap-mode'),
+    };
+    states.set(container, state);
+    if (!library) library = await Structra.libraryLoader.loadLibrary('codemirror6');
+    // the container may have been given a newer document while the library loaded
+    if (states.get(container) !== state) return;
+    createView(container, state);
+    for (const work of state.waiting.splice(0)) work(state);
+    Structra.log.perf('JsonTree', 'render() total (' + state.model.rows + ' rows)', performance.now() - started);
+    Structra.events.emit('tree:view-ready');
   }
-
-  /* ============================
-     LINE BUILDERS
-     ============================ */
-
-  /**
-   * The line numbers sit in a margin that is as wide as the biggest number in the file, set once here (CSS reads
-   * --ln-digits). The Editor's margin works the same way: CodeMirror measures a hidden number made of 9s. Without this, a
-   * number with more digits would push its line's text to the right, and the lines would no longer line up.
-   * After buildLines, fileLine is the last line number of the whole file, including chunks that are not drawn yet.
-   */
-  function sizeNumberMargin(container, treeState) {
-    container.style.setProperty('--ln-digits', String(Math.max(2, String(treeState.fileLine).length)));
-  }
-
-  function makeLine(treeState, content, path) {
-    return `<span class="j-line" data-path="${escapeHtml(path)}" data-ln="${++treeState.fileLine}">${content}</span>`;
-  }
-
-  function valSpan(value, path) {
-    if (value === null) return `<span class="j-null" data-path="${escapeHtml(path)}">null</span>`;
-    if (typeof value === 'string') {
-      const escaped = escapeHtml(
-        value.replace(/\\/g, '\\\\')
-           .replace(/"/g, '\\"')
-           .replace(/\n/g, '\\n')
-           .replace(/\r/g, '\\r')
-           .replace(/\t/g, '\\t')
-      ).replace(/\\(?:[nrt\\]|&quot;)/g, match => `<span class="j-esc">${match}</span>`).replace(SPECIAL_CHARS, showSpecialChar);
-      return `<span class="j-str" data-path="${escapeHtml(path)}">&quot;${escaped}&quot;</span>`;
-    }
-    if (typeof value === 'number') return `<span class="j-num" data-path="${escapeHtml(path)}">${value}</span>`;
-    if (typeof value === 'boolean') return `<span class="j-bool" data-path="${escapeHtml(path)}">${value}</span>`;
-    return `<span data-path="${escapeHtml(path)}">${escapeHtml(String(value))}</span>`;
-  }
-
-  function countFileLines(value) {
-    if (value === null || typeof value !== 'object') return 1;
-    if (Array.isArray(value)) {
-      if (value.length === 0) return 1;
-      let count = 2;
-      for (let i = 0; i < value.length; i++) count += countFileLines(value[i]);
-      return count;
-    }
-    const keys = Object.keys(value);
-    if (keys.length === 0) return 1;
-    let count = 2;
-    for (let i = 0; i < keys.length; i++) {
-      const child = value[keys[i]];
-      if (child && typeof child === 'object') count += countFileLines(child);
-      else count += 1;
-    }
-    return count;
-  }
-
-  function buildLines(treeState, object, path, indent) {
-    const lines = [];
-    const pad = '  '.repeat(indent);
-
-    if (Array.isArray(object)) {
-      if (object.length === 0) {
-        lines.push(makeLine(treeState, `${pad}<span class="j-bracket">[]</span>`, path));
-        return lines;
-      }
-      const id = 'bl' + (treeState.lineCounter++);
-      lines.push(makeLine(treeState, `${pad}<span class="j-toggle" data-block="${id}" title="Collapse">&#9660;</span><span class="j-bracket">[</span><span class="j-ellipsis" data-block="${id}" style="display:none"> ...${object.length} items ]</span>`, path));
-      const chunkStartLine = treeState.fileLine;
-
-      // Render first chunk inline
-      const renderCount = Math.min(object.length, CHUNK_SIZE);
-      const chunkHtml = buildChunkLines(treeState, object, path, indent, 0, renderCount, object.length, chunkStartLine);
-      // The lines of the items are numbered inside buildChunkLines; carry on from the last one
-      if (chunkHtml.endLine != null) treeState.fileLine = chunkHtml.endLine;
-
-      // Wrap in recyclable container
-      const chunkKey = 'jchunk' + (treeState.chunkId++);
-      let blockContent = `<span class="j-chunk" id="${chunkKey}" data-chunkpath="${escapeHtml(path || '')}" data-chunkindent="${indent}" data-chunkstart="0" data-chunkend="${renderCount}" data-chunktotal="${object.length}" data-chunkstartline="${chunkStartLine}">${chunkHtml.join('')}</span>`;
-
-      // Sentinel for remaining items
-      if (object.length > CHUNK_SIZE) {
-        let skippedLines = 0;
-        for (let i = CHUNK_SIZE; i < object.length; i++) {
-          skippedLines += countFileLines(object[i]);
-        }
-        const sentinelStartLine = treeState.fileLine;
-        treeState.fileLine += skippedLines;
-        blockContent += makeSentinel(path, indent, CHUNK_SIZE, object.length, sentinelStartLine);
-      }
-
-      lines.push(`<span class="j-block" data-block="${id}">${blockContent}</span>`);
-      lines.push(`<span class="j-line j-close" data-path="${escapeHtml(path)}" data-close="${id}" data-ln="${++treeState.fileLine}">${pad}<span class="j-bracket">]</span></span>`);
-
-    } else if (object && typeof object === 'object') {
-      const keys = Object.keys(object);
-      if (keys.length === 0) {
-        lines.push(makeLine(treeState, `${pad}<span class="j-bracket">{}</span>`, path));
-        return lines;
-      }
-      const id = 'bl' + (treeState.lineCounter++);
-      lines.push(makeLine(treeState, `${pad}<span class="j-toggle" data-block="${id}" title="Collapse">&#9660;</span><span class="j-bracket">{</span><span class="j-ellipsis" data-block="${id}" style="display:none"> ...${keys.length} keys }</span>`, path));
-      const inner = [];
-      const innerPad = '  '.repeat(indent + 1);
-      for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
-        const childPath = Structra.dataPaths.child(path, key);
-        const comma = i < keys.length - 1 ? ',' : '';
-        const value = object[key];
-        if (value && typeof value === 'object') {
-          const keyText = `${innerPad}<span class="j-key" data-path="${escapeHtml(childPath)}">"${escapeHtml(key)}"</span>: `;
-          const subLines = buildLines(treeState, value, childPath, indent + 1);
-          if (subLines.length > 0) {
-            const first = subLines[0].replace(/^<span class="j-line"[^>]*>(\s*)/, '');
-            subLines[0] = `<span class="j-line" data-path="${escapeHtml(childPath)}" data-ln="${subLines[0].match(/data-ln="(\d+)"/)[1]}">${keyText}${first}`;
-            for (let index = 0; index < subLines.length; index++) inner.push(subLines[index]);
-            if (comma && inner.length) {
-              const last = inner[inner.length - 1];
-              const index = last.lastIndexOf('</span>');
-              if (index !== -1) inner[inner.length - 1] = last.slice(0, index) + comma + '</span>';
-            }
-          }
-        } else {
-          inner.push(makeLine(treeState, `${innerPad}<span class="j-key" data-path="${escapeHtml(childPath)}">"${escapeHtml(key)}"</span>: ${valSpan(value, childPath)}${comma}`, childPath));
-        }
-      }
-      lines.push(`<span class="j-block" data-block="${id}">${inner.join('')}</span>`);
-      lines.push(`<span class="j-line j-close" data-path="${escapeHtml(path)}" data-close="${id}" data-ln="${++treeState.fileLine}">${pad}<span class="j-bracket">}</span></span>`);
-
-    } else {
-      lines.push(makeLine(treeState, pad + valSpan(object, path), path));
-    }
-    return lines;
-  }
-
-  function buildChunkLines(treeState, array, path, indent, start, end, total, startLine) {
-    const lines = [];
-    const innerPad = '  '.repeat(indent + 1);
-    let currentLine = startLine || 0;
-    for (let i = start; i < end; i++) {
-      const item = array[i];
-      const childPath = path ? `${path}[${i}]` : `[${i}]`;
-      const needsComma = i < total - 1;
-      if (item && typeof item === 'object') {
-        const savedFileLine = treeState.fileLine;
-        treeState.fileLine = currentLine;
-        const subLines = buildLines(treeState, item, childPath, indent + 1);
-        currentLine = treeState.fileLine;
-        treeState.fileLine = savedFileLine;
-        for (let index = 0; index < subLines.length; index++) lines.push(subLines[index]);
-        if (needsComma && lines.length) {
-          const last = lines[lines.length - 1];
-          const index = last.lastIndexOf('</span>');
-          if (index !== -1) lines[lines.length - 1] = last.slice(0, index) + ',</span>';
-        }
-      } else {
-        currentLine++;
-        const comma = needsComma ? ',' : '';
-        lines.push(`<span class="j-line" data-path="${escapeHtml(childPath)}" data-ln="${currentLine}">${innerPad}${valSpan(item, childPath)}${comma}</span>`);
-      }
-    }
-    lines.endLine = currentLine;
-    return lines;
-  }
-
-  function makeSentinel(path, indent, start, total, startLine) {
-    const remaining = total - start;
-    const pad = '  '.repeat(indent + 1);
-    return `<span class="j-lazy-sentinel j-line" data-lazypath="${escapeHtml(path || '')}" data-indent="${indent}" data-start="${start}" data-total="${total}" data-startline="${startLine}" data-ln=""><span class="j-muted">${pad}// ${remaining} more items below...</span></span>`;
-  }
-
-  /* ============================
-     CHUNK LOADING & RECYCLING
-     ============================ */
 
   function cleanup(container) {
-    const treeState = getState(container);
-    if (!treeState) return;
-    // The click handlers of the last render go too: without this every render added another set, and one click ran them all
-    treeState.listeners.abort();
-    if (treeState.loadObserver) { treeState.loadObserver.disconnect(); treeState.loadObserver = null; }
-    if (treeState.recycleObserver) { treeState.recycleObserver.disconnect(); treeState.recycleObserver = null; }
-    removeFilterScrollLoader(container, treeState);
+    const state = states.get(container);
+    if (!state) return;
+    clearTimeout(state.clickTimer);
+    if (state.view) state.view.destroy();
+    states.delete(container);
   }
 
-  function setupObservers(container, treeState) {
-    treeState.loadObserver = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          treeState.loadObserver.unobserve(entry.target);
-          loadNextChunk(container, treeState, entry.target);
-        }
-      }
-    }, { root: container, rootMargin: '400px' });
-
-    treeState.recycleObserver = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        const chunk = entry.target;
-        if (!entry.isIntersecting) {
-          if (!chunk.dataset.recycled) recycleChunk(chunk);
-        } else {
-          if (chunk.dataset.recycled) rehydrateChunk(container, treeState, chunk);
-        }
-      }
-    }, { root: container, rootMargin: `${OFFSCREEN_MARGIN}px` });
-
-    container.querySelectorAll('.j-lazy-sentinel').forEach(sentinel => treeState.loadObserver.observe(sentinel));
-    container.querySelectorAll('.j-chunk').forEach(closer => {
-      const total = parseInt(closer.dataset.chunktotal);
-      if (total > CHUNK_SIZE) treeState.recycleObserver.observe(closer);
-    });
-  }
-
-  function recycleChunk(chunk) {
-    const height = chunk.offsetHeight;
-    if (height === 0) return;
-    chunk.dataset.recycled = '1';
-    chunk.innerHTML = '';
-    chunk.style.height = height + 'px';
-  }
-
-  function rehydrateChunk(container, treeState, chunk) {
-    const path = chunk.dataset.chunkpath || '';
-    const indent = parseInt(chunk.dataset.chunkindent);
-    const start = parseInt(chunk.dataset.chunkstart);
-    const end = parseInt(chunk.dataset.chunkend);
-    const total = parseInt(chunk.dataset.chunktotal);
-    const startLine = parseInt(chunk.dataset.chunkstartline) || 0;
-
-    const dataRef = treeState.data;
-    const actualArray = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
-    if (!actualArray || !Array.isArray(actualArray)) return;
-
-    const lines = buildChunkLines(treeState, actualArray, path, indent, start, end, total, startLine);
-    chunk.innerHTML = lines.join('');
-    chunk.style.height = '';
-    delete chunk.dataset.recycled;
-    applyFilterToContainer(treeState, chunk);
-    restoreViewState(container, treeState, chunk);
-  }
-
-  function createChunkElement(treeState, path, indent, start, end, total, startLine) {
-    const chunk = document.createElement('span');
-    chunk.className = 'j-chunk';
-    chunk.dataset.chunkpath = path;
-    chunk.dataset.chunkindent = indent;
-    chunk.dataset.chunkstart = start;
-    chunk.dataset.chunkend = end;
-    chunk.dataset.chunktotal = total;
-    chunk.dataset.chunkstartline = startLine;
-    chunk.id = 'jchunk' + (treeState.chunkId++);
-    return chunk;
+  async function withSpinner(message, work) {
+    Structra.events.emit('loading:show', message);
+    await tick();
+    try { work(); } finally { Structra.events.emit('loading:hide'); }
   }
 
   /**
-   * A chunk that was just built looks like new: every block open, nothing marked. This gives it back the look it had: the blocks
-   * the user closed (or collapseAll closed), the selected line, search results, bookmarks and the highlighted key name.
-   * The chunk must already be in the page, because the depth of a block is counted from the page.
+   * After the rows were made again (collapse all, a filter, clearing it): show the selected path again, opening what is above it. The path is
+   * remembered by its text, not by its row, because the rows have just changed. Returns whether the selected line is showing.
    */
-  function restoreViewState(container, treeState, chunk) {
-    if (treeState.collapseDepth !== null || treeState.collapseOverrides.size) {
-      const toggles = chunk.getElementsByClassName('j-toggle');
-      for (let i = 0; i < toggles.length; i++) {
-        const toggle = toggles[i];
-        const path = togglePath(toggle);
-        const closed = treeState.collapseOverrides.has(path)
-          ? treeState.collapseOverrides.get(path)
-          : treeState.collapseDepth !== null && getDepth(container, toggle) >= treeState.collapseDepth;
-        if (closed) setCollapsed(container, toggle, true);
-      }
+  function reselect(state) {
+    syncSelected(state);
+    if (state.highlightedPath !== null && state.highlightedRow < 0) {
+      const found = state.model.revealPath(state.highlightedPath);
+      if (found) { for (const change of found.changes) applyChange(state, change); syncSelected(state); }
     }
-    const { highlightedPath, findPaths, bookmarkPaths, keyHighlightName } = treeState;
-    if (highlightedPath !== null || findPaths || bookmarkPaths) {
-      const lines = chunk.getElementsByClassName('j-line');
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const path = line.dataset.path;
-        if (path === undefined) continue;
-        if (findPaths && findPaths.has(path)) line.classList.add('find-match');
-        // The closing line shares its block's path; the marks go on the opening line only, as they do when first drawn
-        if (line.classList.contains('j-close')) continue;
-        if (path === highlightedPath) { line.classList.add('highlighted'); treeState.highlightedEl = line; }
-        if (bookmarkPaths && bookmarkPaths.has(path)) { line.classList.add('bookmarked'); treeState.bookmarkedEls.push(line); }
-      }
-    }
-    if (keyHighlightName !== null) markKeys(chunk, keyHighlightName);
+    refresh(state);
+    return state.highlightedRow >= 0;
   }
 
-  /**
-   * Jump to a line that is not drawn yet (a row far down a long list). The chunks before the one that holds it are not built:
-   * each gets an empty placeholder of about the right height and is drawn when it is scrolled near, like a recycled chunk.
-   * Building all of them would put every row between the top and the target on the page.
-   */
-  function skipToIndex(container, treeState, sentinel, index) {
-    const path = sentinel.dataset.lazypath || '';
-    const array = path ? Structra.dataPaths.resolve(treeState.data, path) : treeState.data;
-    if (!Array.isArray(array)) return;
-    const indent = parseInt(sentinel.dataset.indent);
-    const total = parseInt(sentinel.dataset.total);
-    let start = parseInt(sentinel.dataset.start);
-    let startLine = parseInt(sentinel.dataset.startline) || 0;
-    const sample = container.querySelector('.j-line:not(.j-lazy-sentinel)');
-    const lineHeight = (sample && sample.getBoundingClientRect().height) || 22;
-    while (start + CHUNK_SIZE <= index) {
-      const end = start + CHUNK_SIZE;
-      let lines = 0;
-      for (let i = start; i < end; i++) lines += countFileLines(array[i]);
-      const placeholder = createChunkElement(treeState, path, indent, start, end, total, startLine);
-      placeholder.dataset.recycled = '1';
-      placeholder.style.height = (lines * lineHeight) + 'px';
-      sentinel.parentNode.insertBefore(placeholder, sentinel);
-      if (treeState.recycleObserver) treeState.recycleObserver.observe(placeholder);
-      start = end;
-      startLine += lines;
-    }
-    sentinel.dataset.start = start;
-    sentinel.dataset.startline = startLine;
-    loadNextChunk(container, treeState, sentinel);
+  /** After the rows were all made again: go to the selected line if it is there, else to the top */
+  function afterRebuild(state) {
+    if (reselect(state)) scrollToRow(state, state.highlightedRow, true);
+    else state.view.dispatch({ effects: library.EditorView.scrollIntoView(0) });
   }
 
-  function pathOfTokens(tokens, count) {
-    let path = '';
-    for (let i = 0; i < count; i++) {
-      path = Structra.dataPaths.child(path, tokens[i].value);
-    }
-    return path;
+  function expandAll(container) {
+    return new Promise((resolve) => whenReady(container, (state) => {
+      withSpinner('Expanding all…', () => {
+        const { text, capped } = state.model.expandAll();
+        replaceDocument(state, text);
+        afterRebuild(state);
+        if (capped) Structra.toast(`Opened the first ${Structra.treeModel.MAX_ROWS.toLocaleString()} lines. The blocks after that stay closed: open them one by one.`);
+      }).then(resolve);
+    }));
   }
 
-  /**
-   * The line of a path, drawing the chunk that holds it when it is not on the page. Only arrays are chunked, so the step to
-   * take is always the same: find the deepest part of the path that is drawn, then draw the chunk of the next index.
-   * Returns the line, or null when the path is not in the data.
-   */
-  function revealLine(container, treeState, target) {
-    if (!treeState) return null;
-    const tokens = Structra.dataPaths.tokenize(target);
-    for (let attempt = 0; attempt <= tokens.length; attempt++) {
-      const line = findLine(container, target);
-      if (line) return line;
-      let stepped = false;
-      for (let drawn = tokens.length - 1; drawn >= 0 && !stepped; drawn--) {
-        const holder = pathOfTokens(tokens, drawn);
-        if (!findLine(container, holder)) continue;
-        const next = tokens[drawn];
-        if (next.type !== 'index') return null;
-        const escapedHolder = CSS.escape(holder);
-        const chunk = [...container.querySelectorAll(`.j-chunk[data-chunkpath="${escapedHolder}"]`)]
-          .find((element) => next.value >= parseInt(element.dataset.chunkstart) && next.value < parseInt(element.dataset.chunkend));
-        if (chunk) {
-          if (!chunk.dataset.recycled) return null;
-          rehydrateChunk(container, treeState, chunk);
-          stepped = true;
-          break;
-        }
-        const sentinel = container.querySelector(`.j-lazy-sentinel[data-lazypath="${escapedHolder}"]`);
-        if (!sentinel || next.value < parseInt(sentinel.dataset.start)) return null;
-        skipToIndex(container, treeState, sentinel, next.value);
-        stepped = true;
-      }
-      if (!stepped) return null;
-    }
-    return findLine(container, target);
+  function collapseAll(container) {
+    return new Promise((resolve) => whenReady(container, (state) => {
+      withSpinner('Collapsing all…', () => { replaceDocument(state, state.model.collapseAll().text); afterRebuild(state); }).then(resolve);
+    }));
   }
 
-  function loadNextChunk(container, treeState, sentinel) {
-    const path = sentinel.dataset.lazypath || '';
-    const indent = parseInt(sentinel.dataset.indent);
-    const start = parseInt(sentinel.dataset.start);
-    const total = parseInt(sentinel.dataset.total);
-    const startLine = parseInt(sentinel.dataset.startline) || 0;
-    const end = Math.min(start + CHUNK_SIZE, total);
-
-    const dataRef = treeState.data;
-    const actualArray = path ? Structra.dataPaths.resolve(dataRef, path) : dataRef;
-    if (!actualArray || !Array.isArray(actualArray)) { sentinel.remove(); return; }
-
-    const chunk = createChunkElement(treeState, path, indent, start, end, total, startLine);
-
-    const lines = buildChunkLines(treeState, actualArray, path, indent, start, end, total, startLine);
-    chunk.innerHTML = lines.join('');
-    applyFilterToContainer(treeState, chunk);
-
-    // Calculate next chunk's start line
-    let nextStartLine = startLine;
-    for (let i = start; i < end; i++) {
-      nextStartLine += countFileLines(actualArray[i]);
-    }
-
-    sentinel.parentNode.insertBefore(chunk, sentinel);
-    restoreViewState(container, treeState, chunk);
-
-    const filterActive = !!(treeState.filterMatchedPaths || treeState.filterPathRegex);
-
-    if (end < total) {
-      sentinel.dataset.start = end;
-      sentinel.dataset.startline = nextStartLine;
-      const remaining = total - end;
-      const pad = '  '.repeat(indent + 1);
-      sentinel.innerHTML = `<span class="j-muted">${pad}// ${remaining} more items below...</span>`;
-      if (!filterActive && treeState.loadObserver) treeState.loadObserver.observe(sentinel);
-    } else {
-      sentinel.remove();
-    }
-
-    if (treeState.recycleObserver && total > CHUNK_SIZE) treeState.recycleObserver.observe(chunk);
-  }
-
-  /* ============================
-     EVENT DELEGATION
-     ============================ */
-
-  function setupDelegation(container, treeState) {
-    const { signal } = treeState.listeners;
-    const listen = (type, handler) => container.addEventListener(type, handler, { signal });
-    let clickScrollTimer = null;
-    const onPathSelect = treeState.opts.onPathSelect;
-    const onContextMenu = treeState.opts.onContextMenu;
-
-    listen('click', event => {
-      const toggle = event.target.closest('.j-toggle');
-      if (toggle) { event.stopPropagation(); toggleCollapse(container, toggle); return; }
-      const ellipsisElement = event.target.closest('.j-ellipsis');
-      if (ellipsisElement && ellipsisElement.dataset.block) {
-        const owner = container.querySelector(`.j-toggle[data-block="${ellipsisElement.dataset.block}"]`);
-        if (owner) { event.stopPropagation(); toggleCollapse(container, owner); return; }
-      }
-
-      const keyElement = event.target.closest('.j-key');
-      if (keyElement) {
-        event.stopPropagation();
-        highlightKeyOccurrences(container, keyElement);
-        const path = keyElement.getAttribute('data-path');
-        if (path && onPathSelect) {
-          clearTimeout(clickScrollTimer);
-          clickScrollTimer = setTimeout(() => onPathSelect(path), 250);
-        }
-        return;
-      }
-
-      clearKeyHighlights(container);
-
-      const pathElement = event.target.closest('[data-path]');
-      if (pathElement) {
-        event.stopPropagation();
-        const path = pathElement.getAttribute('data-path');
-        if (path && onPathSelect) {
-          clearTimeout(clickScrollTimer);
-          clickScrollTimer = setTimeout(() => onPathSelect(path), 250);
-        }
-      }
-    });
-
-    listen('dblclick', event => {
-      clearTimeout(clickScrollTimer);
-
-      const keyElement = event.target.closest('.j-key');
-      if (keyElement) {
-        event.stopPropagation();
-        const keyName = extractKeyName(keyElement);
-        if (keyName) Structra.events.emit('tree:search-key', keyName);
-        return;
-      }
-
-      const valElement = event.target.closest('.j-str, .j-num, .j-bool, .j-null');
-      if (valElement && valElement.dataset.path) {
-        event.stopPropagation();
-        startInlineEdit(container, treeState, valElement);
-      }
-    });
-
-    listen('contextmenu', event => {
-      const pathElement = event.target.closest('[data-path]');
-      if (pathElement) {
-        event.preventDefault(); event.stopPropagation();
-        if (onContextMenu) onContextMenu(event.clientX, event.clientY, pathElement.getAttribute('data-path'));
-      }
-    });
-  }
-
-  /* ============================
-     COLLAPSE / EXPAND
-     ============================ */
-
-  /** One place sets how a toggle looks, so the arrow and its tooltip always agree */
-  function setToggleState(toggle, open) {
-    toggle.textContent = open ? '\u25BC' : '\u25B6';
-    toggle.title = open ? 'Collapse' : 'Expand';
-  }
-
-  function isOpen(toggle) {
-    return toggle.textContent === '\u25BC';
-  }
-
-  /** The path of the line a toggle is on. It names the block and stays the same when the line is built again (the block ids do not) */
-  function togglePath(toggle) {
-    const line = toggle.closest('.j-line');
-    return line ? line.dataset.path || '' : '';
-  }
-
-  /** Close or open one block, given its toggle. Returns false when the block is not drawn */
-  function setCollapsed(container, toggle, collapsed) {
-    const blockId = toggle.dataset.block;
-    const parentLine = toggle.closest('.j-line');
-    let ellipsis = null, block = null;
-    if (parentLine) {
-      ellipsis = parentLine.querySelector(`.j-ellipsis[data-block="${blockId}"]`);
-      const next = parentLine.nextElementSibling;
-      if (next && next.classList.contains('j-block') && next.dataset.block === blockId) block = next;
-    }
-    if (!block) block = container.querySelector(`.j-block[data-block="${blockId}"]`);
-    if (!ellipsis) ellipsis = container.querySelector(`.j-ellipsis[data-block="${blockId}"]`);
-    if (!block) return false;
-    block.style.display = collapsed ? 'none' : '';
-    if (ellipsis) ellipsis.style.display = collapsed ? 'inline' : 'none';
-    setToggleState(toggle, !collapsed);
-    const closeLine = block.nextElementSibling;
-    if (closeLine && closeLine.dataset.close === blockId) closeLine.style.display = collapsed ? 'none' : '';
-    return true;
-  }
-
-  function toggleCollapse(container, toggle) {
-    const collapsed = isOpen(toggle);
-    if (!setCollapsed(container, toggle, collapsed)) return;
-    const treeState = getState(container);
-    if (treeState) treeState.collapseOverrides.set(togglePath(toggle), collapsed);
-  }
-
-  async function expandAll(container) {
-    Structra.events.emit('loading:show', 'Expanding all…');
-    await tick();
-    const treeState = getState(container);
-    if (treeState) { treeState.collapseDepth = null; treeState.collapseOverrides.clear(); }
-    container.classList.remove('all-collapsed');
-    // One selector reaches every part of every block; a tree walker that runs a function on every element is much slower
-    for (const node of container.querySelectorAll('.j-block, .j-ellipsis, .j-toggle, .j-close')) {
-      if (node.classList.contains('j-toggle')) setToggleState(node, true);
-      else if (node.classList.contains('j-ellipsis')) node.style.display = 'none';
-      else node.style.display = '';
-    }
-    Structra.events.emit('loading:hide');
-  }
-
-  async function collapseAll(container) {
-    Structra.events.emit('loading:show', 'Collapsing all…');
-    await tick();
-    const treeState = getState(container);
-    if (treeState) { treeState.collapseDepth = 0; treeState.collapseOverrides.clear(); }
-    for (const node of container.querySelectorAll('.j-block, .j-ellipsis, .j-toggle, .j-close')) {
-      if (node.classList.contains('j-toggle')) setToggleState(node, false);
-      else if (node.classList.contains('j-ellipsis')) node.style.display = 'inline';
-      else node.style.display = 'none';
-    }
-    Structra.events.emit('loading:hide');
-  }
-
-  async function collapseToDepth(container, maxDepth) {
-    Structra.events.emit('loading:show', 'Collapsing…');
-    await tick();
-    const treeState = getState(container);
-    if (treeState) { treeState.collapseDepth = maxDepth; treeState.collapseOverrides.clear(); }
-    container.classList.remove('all-collapsed');
-    const toggles = container.getElementsByClassName('j-toggle');
-    for (let i = 0; i < toggles.length; i++) setCollapsed(container, toggles[i], getDepth(container, toggles[i]) >= maxDepth);
-    Structra.events.emit('loading:hide');
-  }
-
-  function getDepth(container, element) {
-    let depth = 0;
-    let node = element;
-    while (node && node !== container) {
-      if (node.classList && node.classList.contains('j-block')) depth++;
-      node = node.parentElement;
-    }
-    return depth;
-  }
-
-  function expandParents(container, element) {
-    const treeState = getState(container);
-    let node = element.parentElement;
-    while (node && node !== container) {
-      if (node.classList.contains('j-block') && node.style.display === 'none') {
-        const blockId = node.dataset.block;
-        const toggle = blockId && container.querySelector(`.j-toggle[data-block="${blockId}"]`);
-        if (toggle) {
-          setCollapsed(container, toggle, false);
-          if (treeState) treeState.collapseOverrides.set(togglePath(toggle), false);
-        } else node.style.display = '';
-      }
-      node = node.parentElement;
-    }
-  }
-
-  /* ============================
-     HIGHLIGHT & BOOKMARK
-     ============================ */
-
-  function findLine(container, path) {
-    return container.querySelector(`.j-line[data-path="${CSS.escape(path)}"]`);
+  function collapseToDepth(container, depth) {
+    return new Promise((resolve) => whenReady(container, (state) => {
+      withSpinner('Collapsing…', () => { replaceDocument(state, state.model.setDepth(depth).text); afterRebuild(state); }).then(resolve);
+    }));
   }
 
   function highlightPath(container, path) {
-    const treeState = getState(container);
-    if (treeState && treeState.highlightedEl) { treeState.highlightedEl.classList.remove('highlighted'); treeState.highlightedEl = null; }
-    if (treeState) treeState.highlightedPath = null;
-    if (!path) return;
-    const target = Structra.dataPaths.strip(path);
-    // A line in a chunk that is not drawn yet is drawn now, so Find and the path bar reach rows far down a long list
-    const match = findLine(container, target) || revealLine(container, treeState, target);
-    if (match) {
-      match.classList.add('highlighted');
-      if (treeState) { treeState.highlightedEl = match; treeState.highlightedPath = target; }
-      expandParents(container, match);
-      match.offsetHeight; // force reflow
-      const matchRect = match.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      const offsetTop = matchRect.top - containerRect.top + container.scrollTop;
-      const targetScroll = offsetTop - container.clientHeight / 2 + matchRect.height / 2;
-      container.scrollTo({ top: targetScroll, behavior: 'instant' });
-    }
+    whenReady(container, (state) => {
+      if (!path) { state.highlightedPath = null; state.highlightedRow = -1; refresh(state); return; }
+      const target = stripPath(path);
+      // remembered even if it is not showing now: a rebuild that is still to come (a filter being applied) may show it
+      state.highlightedPath = target;
+      const found = state.model.revealPath(target);
+      if (!found) { state.highlightedRow = -1; refresh(state); return; }
+      for (const change of found.changes) applyChange(state, change);
+      state.highlightedRow = found.row;
+      refresh(state);
+      scrollToRow(state, found.row, !isRowInView(state, found.row));
+    });
   }
 
   function highlightPaths(container, paths) {
-    // Highlight multiple paths (for search results)
-    // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b"
-    const set = new Set((Array.isArray(paths) ? paths : []).map((path) => Structra.dataPaths.strip(path)));
-    const treeState = getState(container);
-    if (treeState) treeState.findPaths = set.size ? set : null;
-    container.querySelectorAll('.j-line').forEach(element => {
-      const dataPath = element.getAttribute('data-path') || '';
-      element.classList.toggle('find-match', set.has(dataPath));
+    whenReady(container, (state) => {
+      const list = [...(Array.isArray(paths) ? paths : paths || [])].map(stripPath);
+      state.findPaths = list.length ? new Set(list) : null;
+      refresh(state);
+      if (!list.length) return;
+      const found = state.model.revealPath(list[0]);
+      if (!found) return;
+      for (const change of found.changes) applyChange(state, change);
+      syncSelected(state);
+      refresh(state);
+      scrollToRow(state, found.row, true);
     });
-    // Scroll to first match
-    const first = container.querySelector('.find-match');
-    if (first) {
-      expandParents(container, first);
-      first.scrollIntoView({ block: 'center', behavior: 'instant' });
-    }
   }
 
   function updateBookmarkHighlights(container, bookmarks) {
-    const treeState = getState(container);
-    if (!treeState) return;
-    for (let i = 0; i < treeState.bookmarkedEls.length; i++) treeState.bookmarkedEls[i].classList.remove('bookmarked');
-    treeState.bookmarkedEls = [];
-    treeState.bookmarkPaths = new Set();
-    for (const bookmark of bookmarks) {
-      const path = Structra.dataPaths.strip(bookmark);
-      treeState.bookmarkPaths.add(path);
-      const element = findLine(container, path);
-      if (element) { element.classList.add('bookmarked'); treeState.bookmarkedEls.push(element); }
-    }
-    if (!treeState.bookmarkPaths.size) treeState.bookmarkPaths = null;
+    whenReady(container, (state) => {
+      const set = new Set([...(bookmarks || [])].map(stripPath));
+      state.bookmarkPaths = set.size ? set : null;
+      refresh(state);
+    });
   }
 
   function highlightKeyByName(container, keyName) {
-    clearKeyHighlights(container);
-    if (!keyName) return;
-    const treeState = getState(container);
-    if (treeState) treeState.keyHighlightName = keyName;
-    markKeys(container, keyName);
-    const first = container.querySelector('.j-key-hl');
-    if (first) first.scrollIntoView({ behavior: 'instant', block: 'center' });
-  }
-
-  function extractKeyName(keyElement) {
-    return keyElement.textContent.replace(/^"|"$/g, '');
-  }
-
-  function markKeys(root, keyName) {
-    const allKeys = root.getElementsByClassName('j-key');
-    for (let i = 0; i < allKeys.length; i++) {
-      if (extractKeyName(allKeys[i]) === keyName) allKeys[i].classList.add('j-key-hl');
-    }
-  }
-
-  function highlightKeyOccurrences(container, clickedKey) {
-    clearKeyHighlights(container);
-    const keyName = extractKeyName(clickedKey);
-    if (!keyName) return;
-    const treeState = getState(container);
-    if (treeState) treeState.keyHighlightName = keyName;
-    markKeys(container, keyName);
-  }
-
-  function clearKeyHighlights(container) {
-    const treeState = getState(container);
-    if (treeState) treeState.keyHighlightName = null;
-    const highlighted = container.getElementsByClassName('j-key-hl');
-    while (highlighted.length > 0) highlighted[0].classList.remove('j-key-hl');
-  }
-
-  /* ============================
-     INLINE EDITING
-     ============================ */
-
-  function startInlineEdit(container, treeState, valElement) {
-    const path = valElement.dataset.path;
-    const data = treeState.data;
-    if (!path || !data) return;
-
-    const currentValue = Structra.dataPaths.resolve(data, path);
-    let displayValue;
-    if (currentValue === null) displayValue = 'null';
-    else if (typeof currentValue === 'string') displayValue = currentValue;
-    else displayValue = String(currentValue);
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.className = 'j-inline-edit';
-    input.value = displayValue;
-    input.style.cssText = 'font-family:var(--font-mono);font-size:inherit;padding:0 2px;border:1px solid var(--accent);border-radius:3px;background:var(--surface);color:var(--text);outline:none;min-width:40px;width:' + Math.max(60, valElement.offsetWidth + 20) + 'px;';
-
-    const parent = valElement.parentNode;
-    parent.replaceChild(input, valElement);
-    input.focus();
-    input.select();
-
-    let committed = false;
-    const commit = () => {
-      if (committed) return;
-      committed = true;
-      const raw = input.value;
-      let newValue;
-      if (raw === 'null') newValue = null;
-      else if (raw === 'true') newValue = true;
-      else if (raw === 'false') newValue = false;
-      else if (raw !== '' && !isNaN(Number(raw)) && raw.trim() === raw) newValue = Number(raw);
-      else newValue = raw;
-
-      // The command layer makes the change: it keeps the original for Undo, marks the tab and refreshes every view
-      Structra.events.emit('tree:inline-edit', { path, value: newValue });
-    };
-
-    input.addEventListener('blur', commit);
-    input.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
-      if (event.key === 'Escape') { committed = true; if (input.parentNode) input.parentNode.replaceChild(valElement, input); }
+    whenReady(container, (state) => {
+      setKeyHighlight(state, keyName || null);
+      if (!keyName) return;
+      // go to the first line that has the key, when none shows
+      const pattern = new RegExp('^ *' + JSON.stringify(keyName).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ': ');
+      const doc = state.view.state.doc;
+      for (let number = 1; number <= doc.lines; number++) { if (pattern.test(doc.line(number).text)) { scrollToRow(state, number - 1, true); break; } }
     });
   }
 
-  /* ============================
-     FILTER (data-level, survives recycle/rehydrate)
-     ============================ */
-
-  function applyFilterToContainer(treeState, element) {
-    if (!treeState.filterMatchedPaths && !treeState.filterPathRegex) return;
-
-    const parent = element.parentNode;
-    const next = element.nextSibling;
-    if (parent) parent.removeChild(element);
-
-    const lines = element.getElementsByClassName('j-line');
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.classList.contains('j-lazy-sentinel')) {
-        line.style.visibility = 'hidden';
-        line.style.height = '1px';
-        line.style.overflow = 'hidden';
-        continue;
-      }
-      const dataPath = line.getAttribute('data-path') || '';
-
-      if (treeState.filterPathRegex) {
-        line.classList.toggle('filter-hidden', !treeState.filterPathRegex.test(dataPath));
-      } else if (treeState.filterMatchedPaths) {
-        const match = isAncestorMatched(treeState.filterMatchedPaths, dataPath) || (treeState.filterAncestors && treeState.filterAncestors.has(dataPath));
-        if (match) {
-          line.classList.remove('filter-hidden');
-          if (treeState.filterMatchedPaths.has(dataPath)) {
-            line.querySelectorAll('.j-str, .j-num, .j-bool, .j-null').forEach(element => element.classList.add('filter-match'));
-          }
-        } else {
-          line.classList.add('filter-hidden');
-        }
-      }
-    }
-
-    if (parent) {
-      if (next) parent.insertBefore(element, next);
-      else parent.appendChild(element);
-    }
+  /** Show only the matches and the blocks above them (as many rows as that takes); the whole tree comes back with clearFilter */
+  function setFilter(container, matchedPaths) {
+    return new Promise((resolve) => whenReady(container, (state) => {
+      const paths = [...matchedPaths].map(stripPath);
+      if (!paths.length) { clearFilter(container).then(resolve); return; }
+      withSpinner('Applying filter…', () => {
+        if (!state.baseModel) { state.baseModel = state.model; state.savedText = state.view.state.doc.toString(); state.savedPath = state.highlightedPath; }
+        state.filterMatched = new Set(paths);
+        state.model = Structra.treeModel.create(state.data, { filter: Structra.treeModel.makeFilter(paths) });
+        replaceDocument(state, state.model.initialText());
+        if (reselect(state)) scrollToRow(state, state.highlightedRow, !isRowInView(state, state.highlightedRow));
+      }).then(resolve);
+    }));
   }
 
-  function isAncestorMatched(matchedPaths, dataPath) {
-    if (matchedPaths.has('')) return true;
-    if (matchedPaths.has(dataPath)) return true;
-    let currentPath = dataPath;
-    while (currentPath) {
-      const lastDot = currentPath.lastIndexOf('.');
-      const lastBracket = currentPath.lastIndexOf('[');
-      const splitAt = Math.max(lastDot, lastBracket);
-      if (splitAt <= 0) break;
-      currentPath = currentPath.substring(0, splitAt);
-      if (matchedPaths.has(currentPath)) return true;
-    }
-    return false;
+  function clearFilter(container) {
+    return new Promise((resolve) => whenReady(container, (state) => {
+      if (!state.baseModel) { resolve(); return; }
+      withSpinner('Clearing filter…', () => {
+        state.model = state.baseModel;
+        state.baseModel = null;
+        state.filterMatched = null;
+        replaceDocument(state, state.savedText);
+        state.savedText = null;
+        if (reselect(state)) scrollToRow(state, state.highlightedRow, !isRowInView(state, state.highlightedRow));
+      }).then(resolve);
+    }));
   }
 
-  async function setFilter(container, matchedPaths) {
-    const treeState = getState(container);
-    if (!treeState) return;
-    // Search returns paths written "$.a[0].b"; tree lines are written "a[0].b". The filter looks paths up, so keep them as a Set in the tree's form.
-    treeState.filterMatchedPaths = new Set([...matchedPaths].map((path) => Structra.dataPaths.strip(path)));
-    treeState.filterPathRegex = null;
-    // The lines above a match stay visible, so a match is shown inside the record that holds it
-    treeState.filterAncestors = new Set(['']);
-    for (const filterMatchedPath of treeState.filterMatchedPaths) {
-      let currentPath = filterMatchedPath;
-      while (currentPath) {
-        const splitAt = Math.max(currentPath.lastIndexOf('.'), currentPath.lastIndexOf('['));
-        if (splitAt <= 0) break;
-        currentPath = currentPath.substring(0, splitAt);
-        if (treeState.filterAncestors.has(currentPath)) break;
-        treeState.filterAncestors.add(currentPath);
-      }
-    }
-    if (treeState.loadObserver) treeState.loadObserver.disconnect();
-    Structra.events.emit('loading:show', 'Applying filter…');
-    await tick();
-    applyFilterToContainer(treeState, container);
-    installFilterScrollLoader(container, treeState);
-    fillViewport(container, treeState, true);
-  }
-
-  async function setFilterByRegex(container, regex) {
-    const treeState = getState(container);
-    if (!treeState) return;
-    treeState.filterPathRegex = regex;
-    treeState.filterMatchedPaths = null;
-    if (treeState.loadObserver) treeState.loadObserver.disconnect();
-    Structra.events.emit('loading:show', 'Applying filter…');
-    await tick();
-    applyFilterToContainer(treeState, container);
-    installFilterScrollLoader(container, treeState);
-    fillViewport(container, treeState, true);
-  }
-
-  async function clearFilter(container) {
-    const treeState = getState(container);
-    if (!treeState) return;
-    treeState.filterMatchedPaths = null;
-    treeState.filterPathRegex = null;
-    removeFilterScrollLoader(container, treeState);
-    Structra.events.emit('loading:show', 'Clearing filter…');
-    await tick();
-
-    const parent = container.parentNode;
-    const next = container.nextSibling;
-    if (parent) parent.removeChild(container);
-
-    container.querySelectorAll('.filter-hidden').forEach(element => element.classList.remove('filter-hidden'));
-    container.querySelectorAll('.filter-match').forEach(element => element.classList.remove('filter-match'));
-    container.querySelectorAll('.j-lazy-sentinel').forEach(sentinel => {
-      sentinel.style.visibility = '';
-      sentinel.style.height = '';
-      sentinel.style.overflow = '';
+  function setWrap(container, on) {
+    whenReady(container, (state) => {
+      state.wrap = !!on;
+      state.view.dispatch({ effects: state.wrapCompartment.reconfigure(on ? library.EditorView.lineWrapping : []) });
     });
-
-    if (parent) {
-      if (next) parent.insertBefore(container, next);
-      else parent.appendChild(container);
-    }
-    if (treeState.loadObserver) {
-      container.querySelectorAll('.j-lazy-sentinel').forEach(sentinel => treeState.loadObserver.observe(sentinel));
-    }
-    Structra.events.emit('loading:hide');
   }
 
-  function fillViewport(container, treeState, dismissSpinner) {
-    if (!container.clientHeight) { if (dismissSpinner) Structra.events.emit('loading:hide'); return; }
-    const maxIterations = 200;
-    let iterations = 0;
-    const doFill = () => {
-      if (iterations++ >= maxIterations) { if (dismissSpinner) Structra.events.emit('loading:hide'); return; }
-      const sentinel = container.querySelector('.j-lazy-sentinel');
-      if (!sentinel) { if (dismissSpinner) Structra.events.emit('loading:hide'); return; }
-      if (container.scrollHeight > container.clientHeight + 100) { if (dismissSpinner) Structra.events.emit('loading:hide'); return; }
-      loadNextChunk(container, treeState, sentinel);
-      requestAnimationFrame(doFill);
-    };
-    requestAnimationFrame(doFill);
-  }
-
-  function installFilterScrollLoader(container, treeState) {
-    removeFilterScrollLoader(container, treeState);
-    let loading = false;
-    treeState.filterScrollHandler = () => {
-      if (loading) return;
-      const sentinel = container.querySelector('.j-lazy-sentinel');
-      if (!sentinel) return;
-      const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (remaining < 600) {
-        loading = true;
-        Structra.events.emit('loading:show', 'Loading more…');
-        let chunksLoaded = 0;
-        const maxChunksPerScroll = 30;
-        const doLoad = () => {
-          const sentinel = container.querySelector('.j-lazy-sentinel');
-          if (!sentinel || chunksLoaded >= maxChunksPerScroll) { loading = false; Structra.events.emit('loading:hide'); return; }
-          const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
-          if (remaining > 400 && chunksLoaded > 0) { loading = false; Structra.events.emit('loading:hide'); return; }
-          loadNextChunk(container, treeState, sentinel);
-          chunksLoaded++;
-          requestAnimationFrame(doLoad);
-        };
-        requestAnimationFrame(doLoad);
-      }
-    };
-    container.addEventListener('scroll', treeState.filterScrollHandler, { passive: true });
-  }
-
-  function removeFilterScrollLoader(container, treeState) {
-    if (treeState && treeState.filterScrollHandler) {
-      container.removeEventListener('scroll', treeState.filterScrollHandler);
-      treeState.filterScrollHandler = null;
-    }
-  }
-
-  /* ============================
-     RENDER INTO (read-only, no callbacks)
-     ============================ */
-
-  function renderInto(container, data) {
-    cleanup(container);
-    const treeState = initState(container, data, {});
-    container.innerHTML = buildLines(treeState, data, '', 0).join('');
-    sizeNumberMargin(container, treeState);
-    setupDelegation(container, treeState);
-    setupObservers(container, treeState);
-  }
-
-  /* --- Utility --- */
-  const tick = Structra.sharedHelpers.waitForNextTick;
-
-  /* ============================
-     PUBLIC API
-     ============================ */
-
-  return {
-    render,
-    renderInto,
-    expandAll,
-    collapseAll,
-    collapseToDepth,
-    highlightPath,
-    highlightPaths,
-    highlightKeyByName,
-    updateBookmarkHighlights,
-    expandParents,
-    setFilter,
-    setFilterByRegex,
-    clearFilter,
-  };
+  return { render, expandAll, collapseAll, collapseToDepth, highlightPath, highlightPaths, highlightKeyByName, updateBookmarkHighlights, setFilter, clearFilter, setWrap };
 })();
+
+// CodeMirror is the first thing the Tree needs: fetch it while the page is idle, so the first Tree does not wait for the download
+if (Structra.sharedHelpers.runWhenIdle && typeof document !== 'undefined') {
+  Structra.sharedHelpers.runWhenIdle(() => { Structra.libraryLoader.loadLibrary('codemirror6').catch(() => { /* loaded again when the Tree needs it */ }); });
+}

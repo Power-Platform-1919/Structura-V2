@@ -70,11 +70,21 @@ async function openJson(page, name, value) {
     if (digits !== '4') failures.push('a 1,502 line file should size its margin for 4 digits, got "' + digits + '"');
 
     // The text starts at the same x on a line with a 1 digit, 3 digit and 4 digit number
-    const measure = async (wrap) => page.evaluate((wrapOn) => {
+    // The Tree draws only the lines in view (CodeMirror), so each line is scrolled to before it is measured (key498 is on line 500)
+    const measure = async (wrap) => page.evaluate(async (wrapOn) => {
       const jv = document.querySelector('.json-view');
       jv.classList.toggle('wrap-mode', wrapOn);
-      const left = (n) => { const line = jv.querySelector('.j-line[data-ln="' + n + '"]'); return line ? Math.round(line.querySelector('.j-key').getBoundingClientRect().left * 10) / 10 : null; };
-      const out = { one: left(2), threeDigits: left(500), fourDigits: left(1200) };
+      Structra.jsonTreeRenderer.setWrap(jv, wrapOn);
+      const settle = () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 60))));
+      const left = async (n) => {
+        Structra.jsonTreeRenderer.highlightPath(jv, 'key' + (n - 2));
+        await settle();
+        const line = jv.querySelector('.j-line[data-ln="' + n + '"]');
+        return line ? Math.round(line.querySelector('.j-key').getBoundingClientRect().left * 10) / 10 : null;
+      };
+      const out = { one: await left(2), threeDigits: await left(500), fourDigits: await left(1200) };
+      Structra.jsonTreeRenderer.highlightPath(jv, 'key698');
+      await settle();
       // a highlighted, a bookmarked and a search match line must not move their text
       const line = jv.querySelector('.j-line[data-ln="700"]');
       const before = line.querySelector('.j-key').getBoundingClientRect().left;
