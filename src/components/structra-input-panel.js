@@ -341,7 +341,7 @@ class StructraInputPanel extends StructraComponent {
     const mixedColumns = Object.entries(notes.mixed || {});
     const csvTab = (Structra.tabs.list || []).find((tab) => tab.id === Structra.tabs.activeId);
     if (csvTab) csvTab.decimals = notes.decimals || null;
-    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : '') + (mixedColumns.length ? `. ${mixedColumns[0][0]} has text among its numbers (row ${mixedColumns[0][1].row}: "${String(mixedColumns[0][1].value).slice(0, 20)}")` + (mixedColumns.length > 1 ? ` and ${mixedColumns.length - 1} more column${mixedColumns.length > 2 ? 's' : ''}` : '') : '') + (deep ? `. It is nested ${deep.toLocaleString()} levels deep: only the first 200 levels are shown.` : ''));
+    Structra.toast('Loaded ' + name + (big ? `. ${big} very large number${big === 1 ? ' was' : 's were'} kept as text so no digit is lost.` : '') + (mixedColumns.length ? `. ${mixedColumns[0][0]} has text among its numbers (row ${mixedColumns[0][1].row}: "${String(mixedColumns[0][1].value).slice(0, 20)}")` + (mixedColumns.length > 1 ? ` and ${mixedColumns.length - 1} more column${mixedColumns.length > 2 ? 's' : ''}` : '') : '') + (deep ? `. It is nested ${deep.toLocaleString()} levels deep: only the first 200 levels are shown.` : '') + (notes.yamlDocuments ? `. The file holds ${notes.yamlDocuments} YAML documents: they are shown as a list.` : '') + (notes.yamlTagsIgnored ? '. Tags such as !Ref were left out; their values are kept.' : ''));
     Structra.parseNotes = {};
     // Auto-hide overlay wrapper if present
     const overlay = this.closest('.io-overlay');

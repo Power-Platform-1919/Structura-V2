@@ -6,11 +6,11 @@ Structra.formatConversion = (() => {
 
   // --- YAML ---
   async function jsonToYaml(json) {
-    return jsyaml.dump(json, { indent: 2, lineWidth: 120, noRefs: true });
+    return Structra.yamlIo.stringify(json);
   }
 
   async function yamlToJson(yamlText) {
-    return jsyaml.load(yamlText);
+    return Structra.yamlIo.parse(yamlText).data;
   }
 
   function isYaml(text) {

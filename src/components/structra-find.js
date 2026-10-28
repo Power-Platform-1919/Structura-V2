@@ -209,18 +209,22 @@ class StructraFind extends StructraComponent {
 
   async _doFind(query) {
     this._lastQuery = query;
+    // A search that has to wait (a pattern in the sandbox) can be overtaken by a newer one. Only the newest writes the count and the
+    // message; an older one that finishes late is dropped and reports "not done" so nobody steps through its results.
+    const token = this._searchToken = (this._searchToken || 0) + 1;
     // SQL always takes priority regardless of mode
-    if (/^\s*(SELECT|WITH)\s/i.test(query)) return this._doSqlFind(query);
+    if (/^\s*(SELECT|WITH)\s/i.test(query)) return this._doSqlFind(query, token);
 
-    if (this._mode === 'fuzzy') return this._doFuzzyFind(query);
-    if (this._mode === 'regex') return this._doRegexFind(query);
-    return this._doDbFind(query);
+    if (this._mode === 'fuzzy') return this._doFuzzyFind(query, token);
+    if (this._mode === 'regex') return this._doRegexFind(query, token);
+    return this._doDbFind(query, token);
   }
 
   /* --- Fuzzy search (engine.fuzzySearch) --- */
-  async _doFuzzyFind(query) {
+  async _doFuzzyFind(query, token) {
     try {
       const results = await Structra.dataEngine.fuzzySearch(query);
+      if (token !== this._searchToken) return false;
       const total = (results && results.total) || 0;
       this._idx = -1;
       this.queryOne('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
@@ -233,15 +237,17 @@ class StructraFind extends StructraComponent {
   }
 
   /* --- Regex search (engine.regexSearch) --- */
-  async _doRegexFind(query) {
+  async _doRegexFind(query, token) {
     try {
       const results = await Structra.dataEngine.regexSearch(query);
+      if (token !== this._searchToken || (results && results.superseded)) return false;
       const total = (results && results.total) || 0;
       this._idx = -1;
       this.queryOne('#findCount').textContent = total > 0 ? `${total} found` : '0 found';
       return true;
     } catch (error) {
       Structra.log.warn('Find', 'Regex search failed', error.message);
+      if (token !== this._searchToken) return false;
       // A pattern that was stopped for taking too long is not an invalid pattern: say what happened and what to do
       if (error.message === Structra.sharedHelpers.RISKY_REGEX_MESSAGE) {
         this.queryOne('#findCount').textContent = 'Pattern too slow';
@@ -254,9 +260,10 @@ class StructraFind extends StructraComponent {
   }
 
   /* --- DuckDB-backed find --- */
-  async _doDbFind(query) {
+  async _doDbFind(query, token) {
     try {
       const result = await Structra.dataEngine.findInDb(query);
+      if (token !== this._searchToken || (result && result.superseded)) return false;
       this._idx = -1;   // a new search starts before the first match, so Enter goes to the first one (fuzzy and regex already did this)
       if (result && result.total > 0) {
         this.queryOne('#findCount').textContent = result.total + ' found';
@@ -272,11 +279,12 @@ class StructraFind extends StructraComponent {
   }
 
   /* --- SQL query --- */
-  async _doSqlFind(query) {
+  async _doSqlFind(query, token) {
     // The SQL engine starts on first use (runSql does that), so say so while it loads
     if (!Structra.dataEngine.duckReady) this.queryOne('#findCount').textContent = 'Starting SQL…';
     try {
       const result = await Structra.dataEngine.runSql(query);
+      if (token !== this._searchToken) return false;
       if (result.error) {
         this.queryOne('#findCount').textContent = 'SQL Error';
         Structra.toast(result.error, 'error');

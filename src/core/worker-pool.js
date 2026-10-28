@@ -403,7 +403,7 @@ Structra.parseXmlAsync = function(text) {
 Structra._yamlWorkerPool = Structra.createWorkerPool({
   name: 'YAML',
   workerUrl: 'src/workers/yaml-parse-worker.js',
-  workerCode: null,  // needs js-yaml lib - sync fallback on file://
+  workerCode: null,  // needs the yaml library and yaml-io.js - sync fallback on file://
   maxWorkers: 2,
   poolThreshold: 2,
   taskTimeout: 60000,
@@ -413,15 +413,21 @@ Structra._yamlWorkerPool = Structra.createWorkerPool({
 Structra.parseYamlAsync = function(text) {
   Structra.log.info('WorkerPool', 'parseYamlAsync (' + (text.length / 1024).toFixed(1) + ' KB)');
   var startTime = performance.now();
+  // Several documents in one file (---) come back as a list; the notes tell the person so (shown when the file is loaded)
+  var note = function(parsed) {
+    Structra.parseNotes = Object.assign(Structra.parseNotes || {}, { yamlDocuments: parsed.documents > 1 ? parsed.documents : 0, yamlTagsIgnored: !!parsed.tagsIgnored });
+  };
   return Structra._yamlWorkerPool.enqueue(text).then(function(result) {
     Structra.log.perf('WorkerPool', 'YAML parse', performance.now() - startTime);
+    note(result);
     return result.data;
   }).catch(function(error) {
-    if (typeof jsyaml !== 'undefined' && error.message && error.message.indexOf('Worker failed') !== -1) {
+    if (Structra.yamlIo && error.message && error.message.indexOf('Worker failed') !== -1) {
       Structra.log.info('WorkerPool', 'YAML sync fallback');
-      var data = jsyaml.load(text);
+      var parsed = Structra.yamlIo.parse(text);
       Structra.log.perf('WorkerPool', 'YAML parse sync', performance.now() - startTime);
-      return data;
+      note(parsed);
+      return parsed.data;
     }
     throw error;
   });

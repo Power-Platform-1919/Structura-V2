@@ -127,4 +127,4 @@ Everything is served from this repository, so the app works offline. Nothing is 
 | [jsondiffpatch](https://github.com/benjamine/jsondiffpatch) (`src/libs/jsondiffpatch`) | Compare: what is different between two documents | MIT (see `src/libs/jsondiffpatch/NOTICE.txt`) |
 | [DuckDB-Wasm](https://duckdb.org/docs/api/wasm/overview) (`src/libs/duckdb`) | SQL engine | MIT |
 | [Lucide](https://lucide.dev) (`src/vendor/lucide.min.js`) | Icons | ISC |
-| PapaParse, js-yaml, toml, Ajv, jsonrepair, html2canvas (`src/libs`) | File formats, validation, repair, image export | MIT |
+| PapaParse, yaml, toml, Ajv, jsonrepair, html2canvas (`src/libs`) | File formats, validation, repair, image export | MIT |
